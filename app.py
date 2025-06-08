@@ -1,12 +1,15 @@
 import streamlit as st
 from PIL import Image
-import pytesseract
+import easyocr
+import numpy as np
+#import pytesseract
 import pandas as pd
 from process_ocr import process_ocr_unified
 from sheets_utils import connect_to_gsheet, append_dataframe_to_sheet
 
 # --- SETUP TESSERACT ---
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+#pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+reader = easyocr.Reader(['en', 'id'])
 
 SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 
@@ -115,7 +118,11 @@ if uploaded_file:
     st.image(image, caption="📸 Gambar Terupload", use_column_width=True)
 
     with st.spinner("🔍 Menjalankan OCR..."):
-        ocr_text = pytesseract.image_to_string(image, lang="eng+ind")
+        # Convert ke numpy array
+        img_array = np.array(image.convert("RGB"))
+        # Jalankan EasyOCR
+        result = reader.readtext(img_array, detail=0)
+        ocr_text = "\n".join(result)
 
     st.text_area("📄 Hasil OCR", ocr_text, height=200)
 

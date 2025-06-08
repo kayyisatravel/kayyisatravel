@@ -1,8 +1,8 @@
 streamlit
-pytesseract
-Pillow
+easyocr
+pillow
+numpy
 pandas
 gspread
 oauth2client
-google-auth
-google-auth-oauthlib
+torch

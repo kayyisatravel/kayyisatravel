@@ -13,7 +13,7 @@ def connect_to_gsheet(SHEET_ID, worksheet_name="Data"):
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
     sheet = client.open_by_key(SHEET_ID)
-    worksheet = sheet.worksheet(worksheet_name)
+    worksheet = sheet.worksheet(worksheet_name)  # <- Perbaikan di sini
     return worksheet
 
 def append_dataframe_to_sheet(df, worksheet):

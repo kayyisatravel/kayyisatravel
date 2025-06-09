@@ -160,34 +160,69 @@ if file:
                 st.error(f'OCR Processing Error: {ex}')
 
 # --- SECTION: MANUAL INPUT ---
-st.markdown("---")
-st.subheader("2. Input Data Manual")
-manual = st.text_area('Masukkan Teks Manual', value=st.session_state.manual_text, height=200)
+# Pastikan key session_state sudah diinisialisasi
+def init_session_state():
+    if 'manual_text' not in st.session_state:
+        st.session_state.manual_text = ''  # teks manual default kosong
+    if 'parsed_entries_manual' not in st.session_state:
+        st.session_state.parsed_entries_manual = None  # DataFrame hasil parsing
 
-col1, col2 = st.columns([1, 1])
-with col1:
-    if st.button('🔍 Proses Manual'):
-        st.session_state.manual_text = manual
-        try:
-            entries = process_ocr_unified(manual)
-            df_man = pd.DataFrame(entries)
-            st.session_state.parsed_entries_manual = df_man  # simpan DataFrame saja
-        except Exception as err:
-            st.error(f'Manual Processing Error: {err}')
+# Fungsi utama untuk menampilkan dan memproses input manual
 
-with col2:
-    if st.button("🧹 Clear Manual"):
-        st.session_state.manual_text = ''
-        st.session_state.parsed_entries_manual = None
-        st.experimental_rerun()
+def manual_input_section():
+    # Inisialisasi session state
+    init_session_state()
 
-# Tampilkan hanya satu kali dengan key unik
-if st.session_state.parsed_entries_manual is not None:
-    st.session_state.parsed_entries_manual = st.data_editor(
-        st.session_state.parsed_entries_manual,
-        use_container_width=True,
-        key="parsed_entries_manual_editor"
+    # Garis pemisah antar seksi
+    st.markdown('---')
+    # Subheader untuk seksi input manual
+    st.subheader('2. Input Data Manual')
+
+    # Text area untuk memasukkan teks manual, nilai default diambil dari session_state
+    manual = st.text_area(
+        label='Masukkan Teks Manual',
+        value=st.session_state.manual_text,
+        height=200
     )
+
+    # Membagi layout menjadi dua kolom untuk tombol aksi
+    col1, col2 = st.columns([1, 1])
+
+    with col1:
+        # Tombol untuk memproses manual input
+        if st.button('🔍 Proses Manual'):
+            # Simpan teks manual ke session_state
+            st.session_state.manual_text = manual
+            try:
+                # Panggil fungsi OCR/unified processing untuk teks manual
+                entries = process_ocr_unified(manual)
+                # Buat DataFrame dari hasil parsing
+                df_man = pd.DataFrame(entries)
+                # Simpan DataFrame hasil parsing ke session_state
+                st.session_state.parsed_entries_manual = df_man
+            except Exception as err:
+                # Tampilkan pesan error jika terjadi kegagalan
+                st.error(f'Manual Processing Error: {err}')
+
+    with col2:
+        # Tombol untuk membersihkan input manual dan hasil parsing
+        if st.button('🧹 Clear Manual'):
+            # Reset session_state ke nilai awal
+            st.session_state.manual_text = ''
+            st.session_state.parsed_entries_manual = None
+            # Muat ulang aplikasi untuk membersihkan komponen
+            st.experimental_rerun()
+
+    # Jika ada DataFrame hasil parsing, tampilkan editable data editor dengan key unik
+    if st.session_state.parsed_entries_manual is not None:
+        st.session_state.parsed_entries_manual = st.data_editor(
+            data=st.session_state.parsed_entries_manual,
+            use_container_width=True,
+            key='parsed_entries_manual_editor'
+        )
+
+# Panggil fungsi untuk merender seksi
+manual_input_section()
 
 
 

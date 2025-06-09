@@ -47,7 +47,7 @@ def resize_image(img: Image.Image, max_dim=1024) -> Image.Image:
 
 # --- INITIALIZE SESSION STATE ---
 for key, default in {
-    'manual_text': '',
+    'manual_input_area': '',
     'parsed_entries_manual': None,
     'parsed_entries_ocr': None,
 }.items():
@@ -56,7 +56,7 @@ for key, default in {
 
 SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 
-# --- PUSH CSS & HEADER ---
+# --- PUSH CSS & HEADER --- & HEADER ---
 st.markdown("""
 <style>
 /* ... CSS omitted for brevity ... */
@@ -95,6 +95,35 @@ if file:
 
 # --- SECTION: MANUAL INPUT ---
 def manual_input_section():
+    st.markdown('---')
+    st.subheader('2. Input Data Manual')
+
+    # Text area dengan key manual_input_area untuk menyimpan input
+    input_text = st.text_area(
+        label='Masukkan Teks Manual',
+        value=st.session_state.manual_input_area,
+        height=200,
+        key='manual_input_area'
+    )
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button('🔍 Proses Manual'):
+            try:
+                df_man = pd.DataFrame(process_ocr_unified(input_text))
+                st.dataframe(df_man, use_container_width=True)
+                st.session_state.parsed_entries_manual = df_man
+            except Exception as e:
+                st.error(f'Manual Processing Error: {e}')
+    with col2:
+        if st.button('🧹 Clear Manual'):
+            # Reset hanya input area dan hasil parsing
+            st.session_state.manual_input_area = ''
+            st.session_state.parsed_entries_manual = None
+
+# Panggil fungsi manual_input_section di entry point
+if __name__ == '__main__':
+    manual_input_section():
     st.markdown('---')
     st.subheader('2. Input Data Manual')
 

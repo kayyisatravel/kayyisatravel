@@ -17,7 +17,7 @@ def clean_text_keep_lines(text: str) -> str:
     Menghapus baris kosong, memangkas spasi di awal/akhir tiap baris,
     lalu menggabungkan kembali dengan newline per baris yang tersisa.
     """
-    return '\n'.join(line.strip() for line in text.splitlines() if line.strip())
+    return re.sub(r'[^\x20-\x7E\n\r\u00C0-\u024F\u1E00-\u1EFF]', '', text)
 
 def normalize_price(raw_price: str) -> int:
     """
@@ -89,6 +89,8 @@ def extract_price_info(text: str) -> (int, int):
 
     return harga_beli, harga_jual
 
+import re
+
 def detect_document_type(text: str) -> str:
     """
     Deteksi apakah teks OCR milik 'kereta', 'pesawat', atau 'hotel'.
@@ -96,15 +98,15 @@ def detect_document_type(text: str) -> str:
     """
     tl = text.lower()
 
-    # Kereta (kata kunci: KA, stasiun, eksekutif, ekonomi, atau “kode booking” ditambah kombinasi huruf/digit)
-    if re.search(r'\b(kereta|ka\s+[A-Za-z]+|stasiun|eksekutif|ekonomi|bisnis|kode\s*booking\s*[A-Z0-9]{3,})', tl):
+    # Kereta
+    if re.search(r'\b(kereta|ka\s+[a-z]+|stasiun|eksekutif|ekonomi|bisnis|kode\s*booking\s*[a-z0-9]{3,})', tl):
         return 'kereta'
 
-    # Pesawat (kata kunci: flight, bandara, airlines, PNR, maskapai)
-    if re.search(r'\b(flight|airlines|maskapai|pnr|kode\s*penerbangan|bandara|terminal|air\s*asia|airasia|citilink|garuda||super|nam\s*air|Batik|wings|susi\s*air|pelita\s*aiar|sriwijaya|lion)\b', tl):
+    # Pesawat
+    if re.search(r'\b(flight|airlines|maskapai|pnr|kode\s*penerbangan|bandara|terminal|air\s*asia|airasia|citilink|garuda|super|nam\s*air|batik|wings|susi\s*air|pelita\s*air|sriwijaya|lion)\b', tl):
         return 'pesawat'
 
-    # Hotel (kata kunci: hotel, check-in, check-out, tipe kamar, Nama Tamu)
+    # Hotel
     if re.search(r'\b(hotel|check[-\s]?in|check[-\s]?out|tipe\s*kamar|nama\s*tamu)\b', tl):
         return 'hotel'
 
@@ -136,13 +138,19 @@ def load_city_list(filepath="city_list.txt") -> list:
 
 def extract_booking_code(text: str) -> str:
     """
-    Ekstrak kode booking dari teks, misalnya:
+    Ekstrak kode booking dari teks.
+    Contoh pola yang dicari:
     - 'Order ID 123456'
     - 'ID Pesanan: 78910'
     - 'No. Pesanan Traveloka 112233'
     """
-    m = re.search(r'(Order\s*ID|ID\s*Pesanan|No\.?\s*Pesanan(?:\s*Traveloka)?)[^\d]*(\d+)', text, re.IGNORECASE)
-    return m.group(2) if m else None
+    m = re.search(
+        r'(?:Order\s*ID|ID\s*Pesanan|No\.?\s*Pesanan(?:\s*Traveloka)?)\D*(\d+)', 
+        text, 
+        re.IGNORECASE
+    )
+    return m.group(1) if m else None
+
 
 def extract_hotel_name(text_keep_lines: str) -> str:
     """
@@ -292,7 +300,7 @@ def extract_dates_hotel(text: str) -> (datetime, datetime):
             'jul': 7, 'juli': 7, 'aug': 8, 'agustus': 8, 'sep': 9, 'september': 9,
             'oct': 10, 'oktober': 10, 'nov': 11, 'november': 11, 'dec': 12, 'desember': 12
         }
-        m3 = month_map.get(month_str.strip().lower()[:3])
+        m3 = month_map.get(month_str.strip().lower())
         if not m3:
             return None
         try:
@@ -344,7 +352,7 @@ def process_ocr_text_multiple(text: str) -> list:
     customer_names = extract_customer_names(cleaned_lines)
 
     # Debug print (optional)
-    # print(f"[DEBUG] Jumlah kamar: {jumlah_kamar}, Nama Tamu: {customer_names}")
+    #print(f"[DEBUG] Jumlah kamar: {jumlah_kamar}, Nama Tamu: {customer_names}")
 
     # Hitung per-kamar
     harga_beli_per_kamar = (harga_beli_total // jumlah_kamar) if (harga_beli_total and jumlah_kamar) else None

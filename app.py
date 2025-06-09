@@ -22,16 +22,18 @@ def get_ocr_reader():
 
 @st.cache_data
 def extract_text_from_pdf(pdf_bytes):
-    # Convert PDF pages to images and run OCR on each
     reader = get_ocr_reader()
     texts = []
-    pages = convert_from_bytes(pdf_bytes.read(), dpi=150)
+    pages = convert_from_bytes(pdf_bytes.read(), dpi=300)  # Naikkan dpi
+
     for page in pages[:5]:
         img = page.convert('RGB')
-        img = resize_image(img, max_dim=800)
-        result = reader.readtext(np.array(img), detail=0)
+        img = resize_image(img, max_dim=1600)  # Jangan terlalu kecil
+        result = reader.readtext(np.array(img), detail=0)  # Bisa ubah ke detail=1 untuk uji keakuratan
         texts.append("\n".join(result))
+
     return "\n\n".join(texts)
+
 
 try:
     resample = Image.Resampling.LANCZOS

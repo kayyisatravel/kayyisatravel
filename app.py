@@ -149,11 +149,11 @@ if file:
         if st.button('➡️ Proses Data OCR'):
             try:
                 data = process_ocr_unified(ocr_text)
-                for e in data:
-                    e.setdefault('no_invoice','')
-                    e.setdefault('keterangan','')
-                    e.setdefault('pemesan','')
-                    e.setdefault('admin','')
+                #for e in data:
+                    #e.setdefault('no_invoice','')
+                    #e.setdefault('keterangan','')
+                    #e.setdefault('pemesan','')
+                    #e.setdefault('admin','')
                 df_ocr = pd.DataFrame(data)
                 st.session_state.parsed_entries_ocr = st.data_editor(df_ocr, use_container_width=True)
             except Exception as ex:
@@ -167,11 +167,11 @@ if st.button('🔍 Proses Manual'):
     st.session_state.manual_text = manual
     try:
         entries = process_ocr_unified(manual)
-        for ent in entries:
-            ent.setdefault('no_invoice','')
-            ent.setdefault('keterangan','')
-            ent.setdefault('pemesan','')
-            ent.setdefault('admin','')
+        #for ent in entries:
+            #ent.setdefault('no_invoice','')
+            #ent.setdefault('keterangan','')
+            #ent.setdefault('pemesan','')
+            #ent.setdefault('admin','')
         df_man = pd.DataFrame(entries)
         st.session_state.parsed_entries_manual = st.data_editor(df_man, use_container_width=True)
     except Exception as err:

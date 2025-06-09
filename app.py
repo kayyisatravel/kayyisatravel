@@ -51,7 +51,8 @@ st.markdown("""
     max-width: 900px;
     margin: auto;
     padding: 2rem 3rem;
-    background: #f4f6f8;
+    background-color: #97a0ad;
+    color: #2d3748;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }

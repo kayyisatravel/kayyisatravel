@@ -391,57 +391,63 @@ def process_ocr_text_multiple(text: str) -> list:
     return results
 
 # ===================================
+import re
+from datetime import datetime
+
 # === PESAWAT PROCESSOR FUNCTIONS ===
 # ===================================
 
 def process_ocr_pesawat(text: str) -> list:
+    """
+    Memproses teks hasil OCR untuk tiket pesawat.
+    Mengembalikan list of dict berisi detail pemesanan.
+    """
     cleaned = text.strip()
 
-    # Kode Booking / PNR
+    # 1. Kode Booking / PNR
     kode_booking = None
-    m_code = re.search(r'(?:PNR|Kode\s*booking.*?)[:\-]?\s*([A-Z0-9]{5,8})', cleaned, re.IGNORECASE)
+    m_code = re.search(r"(?:PNR|Kode\s*booking)[:\-]?\s*([A-Z0-9]{5,8})", cleaned, re.IGNORECASE)
     if m_code:
         kode_booking = m_code.group(1)
 
-    # Nama Maskapai + Kode Penerbangan
+    # 2. Nama Maskapai + Kode Penerbangan (IATA + nomor)
     penerbangan = None
-    m_maskapai = re.search(r'\b(garuda|citilink|lion|batik|airasia|super\s*air\s*jet|pelita)\b.*?([A-Z]{2})[- ]?(\d{2,4})', cleaned, re.IGNORECASE)
+    m_maskapai = re.search(r"\b(garuda|citilink|lion|batik|airasia|super\s*air\s*jet|pelita)\b.*?([A-Z]{2})[- ]?(\d{2,4})", cleaned, re.IGNORECASE)
     if m_maskapai:
         penerbangan = m_maskapai.group(2) + m_maskapai.group(3)
     else:
-        m_fallback = re.search(r'\b([A-Z]{2})[- ]?(\d{2,4})\b', cleaned)
+        # fallback, ambil pola umum XX123
+        m_fallback = re.search(r"\b([A-Z]{2})[- ]?(\d{2,4})\b", cleaned)
         if m_fallback:
             penerbangan = m_fallback.group(1) + m_fallback.group(2)
 
-    # Durasi jam
+    # 3. Durasi jam (berangkat - tiba)
     durasi = None
-    m_times = re.findall(r'(\d{1,2}[:.]\d{2}(?:AM|PM)?)', cleaned, re.IGNORECASE)
+    m_times = re.findall(r"(\d{1,2}[:.]\d{2}(?:AM|PM)?)", cleaned, re.IGNORECASE)
     if len(m_times) >= 2:
         durasi = f"{m_times[0]} - {m_times[1]}"
 
-    # Rute bandara (contoh: (DPS) – (SUB))
-    # Ambil hanya kode bandara dari kota yang valid (hindari PNR)
-    iata_codes = re.findall(r'\(([A-Z]{3})\)', cleaned)
-    # Hilangkan kode tidak mungkin (seperti 'PNR', 'ECO', dsb)
+    # 4. Rute bandara (kode IATA)
+    iata_codes = re.findall(r"\(([A-Z]{3})\)", cleaned)
     excluded = {'PNR', 'ECO', 'VIP', 'BUS', 'TBA'}
     valid_routes = [code for code in iata_codes if code not in excluded]
     rute_final = None
     if len(valid_routes) >= 2:
         rute_final = f"{valid_routes[0]} - {valid_routes[1]}"
 
-    # Tanggal Berangkat
+    # 5. Tanggal Berangkat
     tgl_berangkat = ''
+    # dua format: '10 Jun 2025' atau 'Jun 10, 2025'
     m_date = re.search(
-        r'\b(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\b|\b([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})\b',
+        r"\b(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\b|\b([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})\b",
         cleaned
     )
     if m_date:
-        if m_date.group(1) and m_date.group(2) and m_date.group(3):
+        # grup 1-3 untuk format DMY, 4-6 untuk MDY
+        if m_date.group(1):
             day, month_str, year = m_date.group(1), m_date.group(2), m_date.group(3)
-        elif m_date.group(4) and m_date.group(5) and m_date.group(6):
-            month_str, day, year = m_date.group(4), m_date.group(5), m_date.group(6)
         else:
-            day, month_str, year = '', '', ''
+            month_str, day, year = m_date.group(4), m_date.group(5), m_date.group(6)
 
         month_map = {
             'jan': 1, 'januari': 1, 'feb': 2, 'februari': 2, 'mar': 3, 'maret': 3,
@@ -449,26 +455,27 @@ def process_ocr_pesawat(text: str) -> list:
             'jul': 7, 'juli': 7, 'aug': 8, 'agustus': 8, 'sep': 9, 'september': 9,
             'okt': 10, 'oktober': 10, 'nov': 11, 'november': 11, 'des': 12, 'desember': 12
         }
-        mm = month_map.get(month_str.lower()[:3]) if month_str else None
+        mm = month_map.get(month_str.lower()[:3])
         if mm:
             try:
                 tgl_berangkat = datetime(int(year), mm, int(day)).strftime('%Y-%m-%d')
             except ValueError:
                 tgl_berangkat = ''
 
-    # Harga Beli dan Harga Jual
+    # 6. Harga Beli dan Harga Jual
     harga_beli = harga_jual = None
-    hb_match = re.search(r'Harga\s*Beli\s*:?[\sRp\.]*([\d,\.]+)', cleaned, re.IGNORECASE)
-    hj_match = re.search(r'Harga\s*Jual\s*:?[\sRp\.]*([\d,\.]+)', cleaned, re.IGNORECASE)
+    # regex diperbarui: cari 'Beli' atau 'BELI' tanpa memperhatikan urutan kata
+    hb_match = re.search(r"(?:Beli|HB|Harga\s*Beli)[:\s]*[Rp\.]*([\d,\.]+)", cleaned, re.IGNORECASE)
+    hj_match = re.search(r"(?:Jual|HJ|Harga\s*Jual)[:\s]*[Rp\.]*([\d,\.]+)", cleaned, re.IGNORECASE)
     if hb_match:
-        harga_beli = int(re.sub(r'[^\d]', '', hb_match.group(1)))
+        harga_beli = int(re.sub(r"[^\d]", "", hb_match.group(1)))
     if hj_match:
-        harga_jual = int(re.sub(r'[^\d]', '', hj_match.group(1)))
+        harga_jual = int(re.sub(r"[^\d]", "", hj_match.group(1)))
 
-    # Ambil daftar penumpang
+    # 7. Nama penumpang
     names = []
     m_cust = re.search(
-        r'nama\s*(?:penumpang|customer|tamu)?\s*[:\-]?\s*((?:.*\n?)+?)(?:\n\s*\n|Harga|Check[-\s]?in|Check[-\s]?out|$)',
+        r"nama\s*(?:penumpang|customer|tamu)?\s*[:\-]?\s*((?:.*\n?)+?)(?:\n\s*\n|Harga|Check[-\s]?in|Check[-\s]?out|$)",
         cleaned,
         re.IGNORECASE
     )
@@ -476,18 +483,15 @@ def process_ocr_pesawat(text: str) -> list:
         raw_block = m_cust.group(1)
         lines = [line.strip() for line in raw_block.strip().splitlines()]
         for line in lines:
-            match = re.match(r'^\d+\.\s*(.+)', line)
+            match = re.match(r"^\d+\.\s*(.+)", line)
             if match:
-                name = match.group(1)
-                name = re.sub(r'\b(Tn|Ny|Nn|Mr|Mrs|Ms)\.?\s+', '', name).strip()
+                name = re.sub(r"\b(Tn|Ny|Nn|Mr|Mrs|Ms)\.?\s+", "", match.group(1)).strip()
                 if name:
                     names.append(name)
-
-    # Fallback jika nama tidak ditemukan
     if not names:
         names = [None]
 
-    # Hitung harga per orang
+    # 8. Hitung harga per orang dan laba
     per_orang_beli = harga_beli // len(names) if harga_beli else None
     per_orang_jual = harga_jual // len(names) if harga_jual else None
 
@@ -521,6 +525,7 @@ def process_ocr_pesawat(text: str) -> list:
         results.append(entry)
 
     return results
+
 
 # ===================================
 # === KERETA PROCESSOR FUNCTIONS ===

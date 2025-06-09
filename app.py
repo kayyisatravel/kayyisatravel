@@ -106,7 +106,7 @@ if file:
     else:
         img = Image.open(file).convert('RGB')
         img = resize_image(img)
-        st.image(img, caption='Gambar Terupload', use_container_width=True)
+        st.image(img, caption='Gambar Terupload', use_column_width=True)
         reader = get_ocr_reader()
         result = reader.readtext(np.array(img), detail=0)
         ocr_text = "\n".join(result)
@@ -175,7 +175,6 @@ if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bu
     for k in ["bulk_parsed", "bulk_input", "file_uploader"]:
         st.session_state.pop(k, None)
     st.experimental_rerun()
-    return
 
 # --- SECTION 3: SAVE TO GOOGLE SHEETS ---
 st.markdown('---')
@@ -187,11 +186,9 @@ if st.session_state.parsed_entries_ocr is not None and st.button('📤 Simpan OC
     ]:
         st.session_state.pop(k, None)
     st.experimental_rerun()
-    return
 
 if st.session_state.parsed_entries_manual is not None and st.button('📤 Simpan Manual ke GSheet'):
     save_gsheet(st.session_state.parsed_entries_manual)
     for k in ['parsed_entries_manual', 'manual_input_area', 'file_uploader']:
         st.session_state.pop(k, None)
     st.experimental_rerun()
-    return

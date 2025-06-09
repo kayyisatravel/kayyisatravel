@@ -1,4 +1,3 @@
-```python
 import os
 os.environ["STREAMLIT_WATCHER_TYPE"] = "none"
 
@@ -55,7 +54,19 @@ for key, default in {
     if key not in st.session_state:
         st.session_state[key] = default
 
-# Google Sheets ID\ nSHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
+# Google Sheets ID\ n
+SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
+
+def save_gsheet(df: pd.DataFrame):
+    """
+    Kirim DataFrame ke Google Sheets pada worksheet 'Data'.
+    """
+    if df is None or df.empty:
+        st.warning('Data kosong atau invalid')
+        return
+    ws = connect_to_gsheet(SHEET_ID, 'Data')
+    append_dataframe_to_sheet(df, ws)
+    st.success('✅ Berhasil simpan ke Google Sheets')
 
 # --- INJECT CSS ---
 st.markdown("""
@@ -124,7 +135,7 @@ def manual_input_section():
         if st.button('🔍 Proses Manual'):
             try:
                 df_man = pd.DataFrame(process_ocr_unified(input_text))
-                st.dataframe(df_man, use_container_width=True)
+                st.dataframe(df_man, use_column_width=True)
                 st.session_state.parsed_entries_manual = df_man
             except Exception as e:
                 st.error(f"Manual Processing Error: {e}")
@@ -133,7 +144,6 @@ def manual_input_section():
             st.session_state.manual_input_area = ''
             st.session_state.parsed_entries_manual = None
 
-# Panggil manual input
 manual_input_section()
 
 # --- SECTION 2b: BULK MANUAL INPUT ---
@@ -159,7 +169,6 @@ if st.button("🔍 Proses Bulk"):
         st.dataframe(df_all, use_container_width=True)
         st.session_state.bulk_parsed = df_all
 
-# Tombol simpan bulk
 if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bulk ke GSheet"):
     save_gsheet(st.session_state.bulk_parsed)
     for k in ["bulk_parsed", "bulk_input", "file_uploader"]:
@@ -169,15 +178,6 @@ if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bu
 # --- SECTION 3: SAVE TO GOOGLE SHEETS ---
 st.markdown('---')
 st.subheader('3. Simpan ke Google Sheets')
-
-def save_gsheet(df):
-    if not isinstance(df, pd.DataFrame):
-        st.warning('Data kosong atau invalid')
-        return
-    ws = connect_to_gsheet(SHEET_ID, 'Data')
-    append_dataframe_to_sheet(df, ws)
-    st.success('✅ Berhasil simpan ke Google Sheets')
-
 if st.session_state.parsed_entries_ocr is not None and st.button('📤 Simpan OCR ke GSheet'):
     save_gsheet(st.session_state.parsed_entries_ocr)
     for k in [
@@ -191,4 +191,3 @@ if st.session_state.parsed_entries_manual is not None and st.button('📤 Simpan
     for k in ['parsed_entries_manual', 'manual_input_area', 'file_uploader']:
         st.session_state.pop(k, None)
     st.experimental_rerun()
-```

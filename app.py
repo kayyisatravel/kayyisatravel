@@ -136,7 +136,12 @@ st.markdown("""
 # --- SECTION: UPLOAD & OCR ---
 st.markdown("---")
 st.subheader("1. Upload Gambar atau PDF untuk OCR")
-file = st.file_uploader("Pilih file gambar (.jpg/.png) atau PDF", type=['jpg','jpeg','png','pdf'])
+file = st.file_uploader(
+    "Pilih file gambar (.jpg/.png) atau PDF",
+    type=['jpg','jpeg','png','pdf'],
+    key="file_uploader"
+)
+
 ocr_text = ''
 if file:
     if file.type == 'application/pdf':
@@ -160,33 +165,40 @@ if file:
 
 # --- SECTION: MANUAL INPUT ---
 def manual_input_section():
-    st.markdown('---')
-    st.subheader('2. Input Data Manual')
+    # ——— SECTION: BULK MANUAL INPUT ———
+st.markdown('---')
+st.subheader('2b. Bulk Manual Input')
 
-    input_text = st.text_area(
-        label='Masukkan Teks Manual',
-        value=st.session_state.manual_input_area,
-        height=200,
-        key='manual_input_area'
-    )
+# Text area untuk banyak entri sekaligus, pisahkan tiap entri dengan "==="
+raw = st.text_area(
+    "Masukkan banyak entri, pisahkan setiap entri dengan '==='",
+    key="bulk_input",
+    height=200
+)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button('🔍 Proses Manual'):
+if st.button("🔍 Proses Bulk"):
+    entries = []
+    for block in raw.split("==="):
+        block = block.strip()
+        if block:
             try:
-                df_man = pd.DataFrame(process_ocr_unified(input_text))
-                st.dataframe(df_man, use_container_width=True)
-                st.session_state.parsed_entries_manual = df_man
+                df_block = pd.DataFrame(process_ocr_unified(block))
+                entries.append(df_block)
             except Exception as e:
-                st.error(f'Manual Processing Error: {e}')
-    with col2:
-        if st.button('🧹 Clear Manual'):
-            st.session_state.manual_input_area = ''
-            st.session_state.parsed_entries_manual = None
+                st.error(f"Gagal parse blok: {e}")
+    if entries:
+        df_all = pd.concat(entries, ignore_index=True)
+        st.dataframe(df_all, use_container_width=True)
+        st.session_state.bulk_parsed = df_all
 
-# Panggil fungsi manual_input_section di entry point
-if __name__ == '__main__':
-    manual_input_section()
+# Tombol simpan bulk
+if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bulk ke GSheet"):
+    save_gsheet(st.session_state.bulk_parsed)
+    # Reset state sama seperti di atas
+    for k in ["bulk_parsed", "bulk_input", "file_uploader"]:
+        st.session_state.pop(k, None)
+    st.experimental_rerun()
+
 
 # --- SECTION: SAVE TO GOOGLE SHEETS ---
 st.markdown('---')
@@ -204,6 +216,14 @@ if st.session_state.parsed_entries_ocr is not None and st.button('📤 Simpan OC
     save_gsheet(st.session_state.parsed_entries_ocr)
 if st.session_state.parsed_entries_manual is not None and st.button('📤 Simpan Manual ke GSheet'):
     save_gsheet(st.session_state.parsed_entries_manual)
-    for k in ["parsed_entries_ocr", "file", "manual_input_area", "parsed_entries_manual"]:
-        st.session_state.pop(k, None)                       # 2. Hapus semua data lama
+    for k in [
+        "parsed_entries_ocr",       # hasil OCR
+        "parsed_entries_manual",    # hasil manual
+        "manual_input_area",        # teks manual
+        "bulk_input",               # teks bulk (jika pakai)
+        "file_uploader"             # file uploader
+    ]:
+        st.session_state.pop(k, None)
+
+    # reload app agar form kembali kosong
     st.experimental_rerun()

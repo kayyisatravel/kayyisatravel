@@ -163,8 +163,23 @@ if file:
 st.markdown("---")
 st.subheader("2. Input Data Manual")
 manual = st.text_area('Masukkan Teks Manual', value=st.session_state.manual_text, height=200)
-if st.button('🔍 Proses Manual'):
-    st.session_state.manual_text = manual
+
+col1, col2 = st.columns([1, 1])
+with col1:
+    if st.button('🔍 Proses Manual'):
+        st.session_state.manual_text = manual
+        try:
+            entries = process_ocr_unified(manual)
+            df_man = pd.DataFrame(entries)
+            st.session_state.parsed_entries_manual = st.data_editor(df_man, use_container_width=True)
+        except Exception as err:
+            st.error(f'Manual Processing Error: {err}')
+with col2:
+    if st.button("🧹 Clear Manual"):
+        st.session_state.manual_text = ''
+        st.session_state.parsed_entries_manual = None
+        st.experimental_rerun()
+
     try:
         entries = process_ocr_unified(manual)
         #for ent in entries:
@@ -174,11 +189,6 @@ if st.button('🔍 Proses Manual'):
             #ent.setdefault('admin','')
         df_man = pd.DataFrame(entries)
         st.session_state.parsed_entries_manual = st.data_editor(df_man, use_container_width=True)
-if st.button("🧹 Clear Input Manual"):
-    st.session_state.manual_text = ''
-    st.session_state.parsed_entries_manual = None
-    st.success("Input manual berhasil dibersihkan.")
-
     except Exception as err:
         st.error(f'Manual Processing Error: {err}')
 

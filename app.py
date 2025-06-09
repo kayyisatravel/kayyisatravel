@@ -1,4 +1,4 @@
-import os
+import os  
 os.environ["STREAMLIT_WATCHER_TYPE"] = "none"
 
 import streamlit as st
@@ -18,22 +18,21 @@ st.set_page_config(page_title="OCR & Dashboard Tiket", layout="centered")
 # --- CACHE RESOURCES ---
 @st.cache_resource
 def get_ocr_reader():
+    """Inisialisasi OCR reader sekali, di-cache untuk performa"""
     return easyocr.Reader(['en', 'id'], gpu=False)
 
 @st.cache_data
 def extract_text_from_pdf(pdf_bytes):
+    """Ekstraksi teks dari file PDF (hingga 5 halaman pertama)"""
     reader = get_ocr_reader()
+    pages = convert_from_bytes(pdf_bytes.read(), dpi=300)
     texts = []
-    pages = convert_from_bytes(pdf_bytes.read(), dpi=300)  # Naikkan dpi
-
     for page in pages[:5]:
         img = page.convert('RGB')
-        img = resize_image(img, max_dim=1600)  # Jangan terlalu kecil
-        result = reader.readtext(np.array(img), detail=0)  # Bisa ubah ke detail=1 untuk uji keakuratan
+        img = resize_image(img, max_dim=1600)
+        result = reader.readtext(np.array(img), detail=0)
         texts.append("\n".join(result))
-
     return "\n\n".join(texts)
-
 
 try:
     resample = Image.Resampling.LANCZOS
@@ -42,6 +41,7 @@ except AttributeError:
 
 # --- UTILITIES ---
 def resize_image(img: Image.Image, max_dim=1024) -> Image.Image:
+    """Resize gambar menjaga aspek rasio hingga maksimum max_dim"""
     w, h = img.size
     if max(w, h) > max_dim:
         scale = max_dim / float(max(w, h))
@@ -72,27 +72,23 @@ st.markdown("""
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
-
 /* Header */
 h1, h2, h3 {
     font-family: 'Segoe UI', sans-serif;
     color: #1f2937;
 }
-
 /* File uploader and buttons */
 .stFileUploader, button[kind="primary"] {
     border-radius: 8px;
     padding: 10px 18px !important;
     font-weight: 600;
 }
-
 /* Manual input area: softer background */
 textarea {
     background: #eef1f5 !important;
     border: 1px solid #cbd5e1 !important;
     color: #1f2937 !important;
 }
-
 /* Data editor container */
 section[data-testid="stDataFrameContainer"] {
     background: #ffffff;
@@ -100,7 +96,6 @@ section[data-testid="stDataFrameContainer"] {
     border-radius: 8px;
     padding: 10px;
 }
-
 /* Image styling */
 img {
     border-radius: 8px;
@@ -124,10 +119,8 @@ st.markdown(
 # --- SECTION: UPLOAD & OCR ---
 st.markdown("---")
 st.subheader("1. Upload Gambar atau PDF untuk OCR")
-
 file = st.file_uploader("Pilih file gambar (.jpg/.png) atau PDF", type=['jpg','jpeg','png','pdf'])
 ocr_text = ''
-
 if file:
     if file.type == 'application/pdf':
         with st.spinner('Mengonversi PDF ke gambar dan menjalankan OCR...'):
@@ -140,91 +133,66 @@ if file:
             reader = get_ocr_reader()
             result = reader.readtext(np.array(img), detail=0)
             ocr_text = "\n".join(result)
-
-    # Konfirmasi: file uploader kamera juga menghasilkan tipe image
     st.info('Jika Anda memilih opsi Kamera di daftar Browse File pada HP, file akan diproses di sini.')
-
     if ocr_text:
         st.text_area('Hasil OCR', ocr_text, height=200)
         if st.button('➡️ Proses Data OCR'):
             try:
                 data = process_ocr_unified(ocr_text)
-                #for e in data:
-                    #e.setdefault('no_invoice','')
-                    #e.setdefault('keterangan','')
-                    #e.setdefault('pemesan','')
-                    #e.setdefault('admin','')
                 df_ocr = pd.DataFrame(data)
                 st.session_state.parsed_entries_ocr = st.data_editor(df_ocr, use_container_width=True)
             except Exception as ex:
                 st.error(f'OCR Processing Error: {ex}')
 
 # --- SECTION: MANUAL INPUT ---
-# Pastikan key session_state sudah diinisialisasi
-def init_session_state():
-    if 'manual_text' not in st.session_state:
-        st.session_state.manual_text = ''  # teks manual default kosong
-    if 'parsed_entries_manual' not in st.session_state:
-        st.session_state.parsed_entries_manual = None  # DataFrame hasil parsing
-
-# Fungsi utama untuk menampilkan dan memproses input manual
-
 def manual_input_section():
-    # Inisialisasi session state
-    init_session_state()
-
-    # Garis pemisah antar seksi
+    """Tampilkan area input manual, tombol proses, clear, dan data editor"""
+    # Subheader dan separator
     st.markdown('---')
-    # Subheader untuk seksi input manual
     st.subheader('2. Input Data Manual')
 
-    # Text area untuk memasukkan teks manual, nilai default diambil dari session_state
+    # Area text untuk manual input, diprefill dari session_state
     manual = st.text_area(
         label='Masukkan Teks Manual',
         value=st.session_state.manual_text,
-        height=200
+        height=200,
+        key='manual_input_area'
     )
 
-    # Membagi layout menjadi dua kolom untuk tombol aksi
+    # Kolom untuk tombol Proses dan Clear
     col1, col2 = st.columns([1, 1])
-
     with col1:
-        # Tombol untuk memproses manual input
         if st.button('🔍 Proses Manual'):
-            # Simpan teks manual ke session_state
+            # Simpan input baru dan parse
             st.session_state.manual_text = manual
             try:
-                # Panggil fungsi OCR/unified processing untuk teks manual
                 entries = process_ocr_unified(manual)
-                # Buat DataFrame dari hasil parsing
                 df_man = pd.DataFrame(entries)
-                # Simpan DataFrame hasil parsing ke session_state
                 st.session_state.parsed_entries_manual = df_man
             except Exception as err:
-                # Tampilkan pesan error jika terjadi kegagalan
                 st.error(f'Manual Processing Error: {err}')
-
     with col2:
-        # Tombol untuk membersihkan input manual dan hasil parsing
-        if st.button('🧹 Clear Manual'):
-            # Reset session_state ke nilai awal
+        if st.button('🧹 Clear Input'):
+            # Reset text area dan hasil parsing
             st.session_state.manual_text = ''
             st.session_state.parsed_entries_manual = None
-            # Muat ulang aplikasi untuk membersihkan komponen
             st.experimental_rerun()
 
-    # Jika ada DataFrame hasil parsing, tampilkan editable data editor dengan key unik
+    # Jika sudah diproses, tampilkan data editor dan tombol clear tambahan
     if st.session_state.parsed_entries_manual is not None:
         st.session_state.parsed_entries_manual = st.data_editor(
             data=st.session_state.parsed_entries_manual,
             use_container_width=True,
             key='parsed_entries_manual_editor'
         )
+        # Tombol clear di bawah data editor untuk input selanjutnya
+        if st.button('🧹 Clear Manual dan Editor'):
+            st.session_state.manual_text = ''
+            st.session_state.parsed_entries_manual = None
+            st.experimental_rerun()
 
-# Panggil fungsi untuk merender seksi
+# Panggil fungsi renderer
 manual_input_section()
-
-
 
 # --- SECTION: SAVE TO GOOGLE SHEETS ---
 st.markdown("---")
@@ -237,6 +205,5 @@ def save_gsheet(df):
 
 if st.session_state.parsed_entries_ocr is not None and st.button('📤 Simpan OCR ke GSheet'):
     save_gsheet(st.session_state.parsed_entries_ocr)
-
 if st.session_state.parsed_entries_manual is not None and st.button('📤 Simpan Manual ke GSheet'):
     save_gsheet(st.session_state.parsed_entries_manual)

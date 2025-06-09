@@ -125,8 +125,6 @@ def manual_input_section():
 # Panggil fungsi manual_input_section di entry point
 if __name__ == '__main__':
     manual_input_section()
-if __name__ == '__main__':
-    manual_input_section()
 
 # --- SECTION: SAVE TO GOOGLE SHEETS ---
 st.markdown('---')

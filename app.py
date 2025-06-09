@@ -174,6 +174,11 @@ if st.button('🔍 Proses Manual'):
             #ent.setdefault('admin','')
         df_man = pd.DataFrame(entries)
         st.session_state.parsed_entries_manual = st.data_editor(df_man, use_container_width=True)
+if st.button("🧹 Clear Input Manual"):
+    st.session_state.manual_text = ''
+    st.session_state.parsed_entries_manual = None
+    st.success("Input manual berhasil dibersihkan.")
+
     except Exception as err:
         st.error(f'Manual Processing Error: {err}')
 

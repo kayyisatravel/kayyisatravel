@@ -4,6 +4,7 @@ import easyocr
 import numpy as np
 import pandas as pd
 import PyPDF2
+from pdf2image import convert_from_bytes
 from process_ocr import process_ocr_unified
 from sheets_utils import connect_to_gsheet, append_dataframe_to_sheet
 
@@ -17,12 +18,16 @@ def get_ocr_reader():
 
 @st.cache_data
 def extract_text_from_pdf(pdf_bytes):
-    text_pages = []
-    reader = PyPDF2.PdfReader(pdf_bytes)
-    for page in reader.pages:
-        page_text = page.extract_text() or ""
-        text_pages.append(page_text)
-    return "\n".join(text_pages)
+    # Convert PDF pages to images and run OCR on each
+    reader = get_ocr_reader()
+    texts = []
+    pages = convert_from_bytes(pdf_bytes.read(), dpi=200)
+    for page in pages:
+        img = page.convert('RGB')
+        img = resize_image(img)
+        result = reader.readtext(np.array(img), detail=0)
+        texts.append("\n".join(result))
+    return "\n\n".join(texts)
 
 # --- UTILITIES ---
 def resize_image(img: Image.Image, max_dim=1024) -> Image.Image:
@@ -114,7 +119,7 @@ ocr_text = ''
 
 if file:
     if file.type == 'application/pdf':
-        with st.spinner('Membaca PDF...'):
+        with st.spinner('Mengonversi PDF ke gambar dan menjalankan OCR...'):
             ocr_text = extract_text_from_pdf(file)
     else:
         img = Image.open(file).convert('RGB')
@@ -125,17 +130,8 @@ if file:
             result = reader.readtext(np.array(img), detail=0)
             ocr_text = "\n".join(result)
 
-    # Camera input muncul setelah upload file
-    capture = st.button('📷 Ambil Foto via Kamera')
-    if capture:
-        cam_img = st.camera_input('Ambil Foto')
-        if cam_img:
-            img_cam = Image.open(cam_img).convert('RGB')
-            img_cam = resize_image(img_cam)
-            st.image(img_cam, caption='Foto Kamera', use_column_width=True)
-            with st.spinner('Menjalankan OCR pada foto...'):
-                reader = get_ocr_reader()
-                ocr_text = "\n".join(reader.readtext(np.array(img_cam), detail=0))
+    # Konfirmasi: file uploader kamera juga menghasilkan tipe image
+    st.info('Jika Anda memilih opsi Kamera di daftar Browse File pada HP, file akan diproses di sini.')
 
     if ocr_text:
         st.text_area('Hasil OCR', ocr_text, height=200)

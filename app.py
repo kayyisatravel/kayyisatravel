@@ -26,7 +26,7 @@ def extract_text_from_pdf(pdf_bytes):
     reader = get_ocr_reader()
     texts = []
     pages = convert_from_bytes(pdf_bytes.read(), dpi=150)
-    for page in pages[:5]
+    for page in pages[:5]:
         img = page.convert('RGB')
         img = resize_image(img, max_dim=800)
         result = reader.readtext(np.array(img), detail=0)

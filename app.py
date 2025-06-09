@@ -180,17 +180,20 @@ with col2:
         st.session_state.parsed_entries_manual = None
         st.experimental_rerun()
 
-    try:
-        entries = process_ocr_unified(manual)
-        #for ent in entries:
-            #ent.setdefault('no_invoice','')
-            #ent.setdefault('keterangan','')
-            #ent.setdefault('pemesan','')
-            #ent.setdefault('admin','')
-        df_man = pd.DataFrame(entries)
-        st.session_state.parsed_entries_manual = st.data_editor(df_man, use_container_width=True)
-    except Exception as err:
-        st.error(f'Manual Processing Error: {err}')
+    	try:
+        	entries = process_ocr_unified(manual)
+       		 #for ent in entries:
+          	 #ent.setdefault('no_invoice','')
+            	 #ent.setdefault('keterangan','')
+            	 #ent.setdefault('pemesan','')
+            	 #ent.setdefault('admin','')
+        	df_man = pd.DataFrame(entries)
+        	st.session_state.parsed_entries_manual = st.data_editor(df_man, use_container_width=True)
+    	except Exception as err:
+        	st.error(f'Manual Processing Error: {err}')
+if st.session_state.parsed_entries_manual is not None:
+    st.data_editor(st.session_state.parsed_entries_manual, use_container_width=True)
+
 
 # --- SECTION: SAVE TO GOOGLE SHEETS ---
 st.markdown("---")

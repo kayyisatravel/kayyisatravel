@@ -175,16 +175,18 @@ def manual_input_section():
                 st.error(f'Manual Processing Error: {err}')
     with col2:
         if st.button('🧹 Clear Input', key='clear_input_button'):
+            # Hanya clear input manual tanpa rerun
+            st.session_state.manual_input_area = ''
             st.session_state.manual_text = ''
             st.session_state.parsed_entries_manual = None
-            st.stop()
 
     # Setelah diproses, tombol Clear Manual dan Editor
     if st.session_state.parsed_entries_manual is not None:
         if st.button('🧹 Clear Manual dan Tabel', key='clear_all_button'):
+            # Clear input dan hasil tabel tanpa rerun
+            st.session_state.manual_input_area = ''
             st.session_state.manual_text = ''
             st.session_state.parsed_entries_manual = None
-            st.stop()
 
 # --- MAIN ENTRY POINT ---
 if __name__ == "__main__":

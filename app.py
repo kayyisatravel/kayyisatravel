@@ -38,7 +38,15 @@ def resize_image(img: Image.Image, max_dim=1024) -> Image.Image:
     w, h = img.size
     if max(w, h) > max_dim:
         scale = max_dim / float(max(w, h))
-        return img.resize((int(w*scale), int(h*scale)), Image.ANTIALIAS)
+        try:
+    		resample = Image.Resampling.LANCZOS
+	except AttributeError:
+    		resample = Image.ANTIALIAS
+
+	def resize_image(img, scale=1.5):
+    		w, h = img.size
+    		return img.resize((int(w*scale), int(h*scale)), resample)
+
     return img
 
 # --- INITIALIZE SESSION STATE ---

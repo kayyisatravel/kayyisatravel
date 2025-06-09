@@ -204,3 +204,6 @@ if st.session_state.parsed_entries_ocr is not None and st.button('📤 Simpan OC
     save_gsheet(st.session_state.parsed_entries_ocr)
 if st.session_state.parsed_entries_manual is not None and st.button('📤 Simpan Manual ke GSheet'):
     save_gsheet(st.session_state.parsed_entries_manual)
+    for k in ["parsed_entries_ocr", "file", "manual_input_area", "parsed_entries_manual"]:
+        st.session_state.pop(k, None)                       # 2. Hapus semua data lama
+    st.experimental_rerun()

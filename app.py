@@ -54,7 +54,7 @@ for key, default in {
     if key not in st.session_state:
         st.session_state[key] = default
 
-# Google Sheets ID\ n
+# Google Sheets ID
 SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 
 def save_gsheet(df: pd.DataFrame):
@@ -106,7 +106,7 @@ if file:
     else:
         img = Image.open(file).convert('RGB')
         img = resize_image(img)
-        st.image(img, caption='Gambar Terupload', use_column_width=True)
+        st.image(img, caption='Gambar Terupload', use_container_width=True)
         reader = get_ocr_reader()
         result = reader.readtext(np.array(img), detail=0)
         ocr_text = "\n".join(result)
@@ -135,7 +135,7 @@ def manual_input_section():
         if st.button('🔍 Proses Manual'):
             try:
                 df_man = pd.DataFrame(process_ocr_unified(input_text))
-                st.dataframe(df_man, use_column_width=True)
+                st.dataframe(df_man, use_container_width=True)
                 st.session_state.parsed_entries_manual = df_man
             except Exception as e:
                 st.error(f"Manual Processing Error: {e}")
@@ -169,11 +169,13 @@ if st.button("🔍 Proses Bulk"):
         st.dataframe(df_all, use_container_width=True)
         st.session_state.bulk_parsed = df_all
 
+# Bulk save button
 if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bulk ke GSheet"):
     save_gsheet(st.session_state.bulk_parsed)
     for k in ["bulk_parsed", "bulk_input", "file_uploader"]:
         st.session_state.pop(k, None)
     st.experimental_rerun()
+    return
 
 # --- SECTION 3: SAVE TO GOOGLE SHEETS ---
 st.markdown('---')
@@ -185,9 +187,11 @@ if st.session_state.parsed_entries_ocr is not None and st.button('📤 Simpan OC
     ]:
         st.session_state.pop(k, None)
     st.experimental_rerun()
+    return
 
 if st.session_state.parsed_entries_manual is not None and st.button('📤 Simpan Manual ke GSheet'):
     save_gsheet(st.session_state.parsed_entries_manual)
     for k in ['parsed_entries_manual', 'manual_input_area', 'file_uploader']:
         st.session_state.pop(k, None)
     st.experimental_rerun()
+    return

@@ -89,7 +89,7 @@ textarea {
     border: 1px solid #cbd5e1 !important;
     color: #1f2937 !important;
 }
-/* Data editor container */
+/* Data display container */
 section[data-testid="stDataFrameContainer"] {
     background: #ffffff;
     border: 1px solid #e2e8f0;
@@ -140,18 +140,19 @@ if file:
             try:
                 data = process_ocr_unified(ocr_text)
                 df_ocr = pd.DataFrame(data)
-                st.session_state.parsed_entries_ocr = st.data_editor(df_ocr, use_container_width=True)
+                # Tampilkan tabel tanpa editor interaktif untuk kompatibilitas versi lama
+                st.dataframe(df_ocr, use_container_width=True)
+                # Simpan DataFrame untuk penyimpanan ke GSheet
+                st.session_state.parsed_entries_ocr = df_ocr
             except Exception as ex:
                 st.error(f'OCR Processing Error: {ex}')
 
 # --- SECTION: MANUAL INPUT ---
 def manual_input_section():
-    """Tampilkan area input manual, tombol proses, clear, dan data editor"""
-    # Subheader dan separator
+    """Tampilkan area input manual, tombol proses, clear, dan data table"""
     st.markdown('---')
     st.subheader('2. Input Data Manual')
 
-    # Area text untuk manual input, diprefill dari session_state
     manual = st.text_area(
         label='Masukkan Teks Manual',
         value=st.session_state.manual_text,
@@ -159,46 +160,44 @@ def manual_input_section():
         key='manual_input_area'
     )
 
-    # Kolom untuk tombol Proses dan Clear
     col1, col2 = st.columns([1, 1])
     with col1:
         if st.button('🔍 Proses Manual'):
-            # Simpan input baru dan parse
             st.session_state.manual_text = manual
             try:
                 entries = process_ocr_unified(manual)
                 df_man = pd.DataFrame(entries)
+                # Tampilkan tabel tanpa editor interaktif
+                st.dataframe(df_man, use_container_width=True)
+                # Simpan DataFrame untuk penyimpanan ke GSheet
                 st.session_state.parsed_entries_manual = df_man
             except Exception as err:
                 st.error(f'Manual Processing Error: {err}')
     with col2:
-        if st.button('🧹 Clear Input'):
-            # Reset text area dan hasil parsing
+        if st.button('🧹 Clear Input', key='clear_input_button'):
             st.session_state.manual_text = ''
             st.session_state.parsed_entries_manual = None
-            st.experimental_rerun()
+            st.stop()
 
-    # Jika sudah diproses, tampilkan data editor dan tombol clear tambahan
+    # Setelah diproses, tombol Clear Manual dan Editor
     if st.session_state.parsed_entries_manual is not None:
-        st.session_state.parsed_entries_manual = st.data_editor(
-            data=st.session_state.parsed_entries_manual,
-            use_container_width=True,
-            key='parsed_entries_manual_editor'
-        )
-        # Tombol clear di bawah data editor untuk input selanjutnya
-        if st.button('🧹 Clear Manual dan Editor'):
+        if st.button('🧹 Clear Manual dan Tabel', key='clear_all_button'):
             st.session_state.manual_text = ''
             st.session_state.parsed_entries_manual = None
-            st.experimental_rerun()
+            st.stop()
 
-# Panggil fungsi renderer
-manual_input_section()
+# --- MAIN ENTRY POINT ---
+if __name__ == "__main__":
+    manual_input_section()
 
 # --- SECTION: SAVE TO GOOGLE SHEETS ---
 st.markdown("---")
 st.subheader('3. Simpan ke Google Sheets')
 
 def save_gsheet(df):
+    if df is None or not isinstance(df, pd.DataFrame):
+        st.warning('⚠️ Data tidak valid atau kosong.')
+        return
     ws = connect_to_gsheet(SHEET_ID, 'Data')
     append_dataframe_to_sheet(df, ws)
     st.success('✅ Berhasil simpan ke Google Sheets')

@@ -155,7 +155,6 @@ if file:
                     e.setdefault('pemesan','')
                     e.setdefault('admin','')
                 df_ocr = pd.DataFrame(data)
-		df_ocr = df_ocr.loc[:, ~df_ocr.columns.duplicated()]
                 st.session_state.parsed_entries_ocr = st.data_editor(df_ocr, use_container_width=True)
             except Exception as ex:
                 st.error(f'OCR Processing Error: {ex}')
@@ -174,7 +173,6 @@ if st.button('🔍 Proses Manual'):
             ent.setdefault('pemesan','')
             ent.setdefault('admin','')
         df_man = pd.DataFrame(entries)
-	df_manual = df_manual.loc[:, ~df_manual.columns.duplicated()]
         st.session_state.parsed_entries_manual = st.data_editor(df_man, use_container_width=True)
     except Exception as err:
         st.error(f'Manual Processing Error: {err}')

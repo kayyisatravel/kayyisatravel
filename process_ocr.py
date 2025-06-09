@@ -101,7 +101,7 @@ def detect_document_type(text: str) -> str:
         return 'kereta'
 
     # Pesawat (kata kunci: flight, bandara, airlines, PNR, maskapai)
-    if re.search(r'\b(flight|airlines|maskapai|pnr|kode\s*penerbangan|bandara|terminal)\b', tl):
+    if re.search(r'\b(flight|airlines|maskapai|pnr|kode\s*penerbangan|bandara|terminal|air\s*asia|airasia|citilink|garuda||super|nam\s*air|Batik|wings|susi\s*air|pelita\s*aiar|sriwijaya|lion)\b', tl):
         return 'pesawat'
 
     # Hotel (kata kunci: hotel, check-in, check-out, tipe kamar, Nama Tamu)

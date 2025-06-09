@@ -25,10 +25,10 @@ def extract_text_from_pdf(pdf_bytes):
     # Convert PDF pages to images and run OCR on each
     reader = get_ocr_reader()
     texts = []
-    pages = convert_from_bytes(pdf_bytes.read(), dpi=200)
-    for page in pages:
+    pages = convert_from_bytes(pdf_bytes.read(), dpi=150)
+    for page in pages[:5]
         img = page.convert('RGB')
-        img = resize_image(img)
+        img = resize_image(img, max_dim=800)
         result = reader.readtext(np.array(img), detail=0)
         texts.append("\n".join(result))
     return "\n\n".join(texts)

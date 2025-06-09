@@ -56,17 +56,85 @@ for key, default in {
 
 SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 
-# --- PUSH CSS & HEADER --- & HEADER ---
+# Inject CSS: Gaya modern yang kontras, bersih dan responsif
 st.markdown("""
-<style>
-/* ... CSS omitted for brevity ... */
-</style>
+    <style>
+    /* Layout utama */
+    .block-container {
+        max-width: 900px;
+        margin: auto;
+        padding: 2rem;
+        background-color: #97a0ad;
+        color: #2d3748;
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    /* Judul halaman */
+    h1, h2, h3 {
+        color: #2d3748 !important;
+    }
+
+    /* Text Area */
+    textarea {
+        color: #2d3748 !important;
+        background-color: #ffffff !important;
+        border: 1px solid #d1d5db !important;
+        border-radius: 6px !important;
+        font-size: 0.95rem;
+        padding: 10px;
+    }
+
+    /* Data Editor */
+    section[data-testid="stDataFrameContainer"] {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 10px;
+    }
+
+    /* Tombol */
+    button[kind="primary"] {
+        background-color: #2563eb !important;
+        color: white !important;
+        border-radius: 6px;
+        padding: 10px 20px;
+        font-weight: 600;
+        margin-top: 10px;
+    }
+
+    /* Divider garis */
+    hr {
+        border: none;
+        height: 1px;
+        background-color: #e5e7eb;
+        margin: 2rem 0;
+    }
+
+    /* Image border */
+    img {
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+
+    /* Responsiveness dan jarak elemen */
+    .element-container {
+        margin-bottom: 1.5rem;
+    }
+    </style>
 """, unsafe_allow_html=True)
 
-st.markdown(
-    """
-    <!-- header omitted -->
-    """, unsafe_allow_html=True)
+st.markdown("""
+    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 1rem;">
+        <img src="https://cdn-icons-png.flaticon.com/512/201/201623.png" width="40">
+        <div>
+            <h1 style="margin: 0; font-size: 1.8rem; color: #2d3748;">Dashboard Tiket | Kayyisa Tour</h1>
+            <p style="margin: 0; color: #2d3748; font-size: 0.9rem;">Input & Simpan Data Pesanan</p>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
+
+#st.title("📤 Input Data Kayyisa Tour & Travel")
+
 
 # --- SECTION: UPLOAD & OCR ---
 st.markdown("---")

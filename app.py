@@ -4,6 +4,8 @@ import easyocr
 import numpy as np
 import pandas as pd
 import PyPDF2
+import os
+os.environ["STREAMLIT_WATCHER_TYPE"] = "none"
 from pdf2image import convert_from_bytes
 from process_ocr import process_ocr_unified
 from sheets_utils import connect_to_gsheet, append_dataframe_to_sheet

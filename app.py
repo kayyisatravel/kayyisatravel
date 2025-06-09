@@ -7,144 +7,179 @@ import PyPDF2
 from process_ocr import process_ocr_unified
 from sheets_utils import connect_to_gsheet, append_dataframe_to_sheet
 
-# --- SETTINGS ---
-st.set_page_config(page_title="OCR & Input Tiket", layout="centered")
+# --- PAGE CONFIG ---
+st.set_page_config(page_title="OCR & Dashboard Tiket", layout="centered")
 
-# --- CACHING RESOURCES ---
+# --- CACHE RESOURCES ---
 @st.cache_resource
 def get_ocr_reader():
-    # Initialize EasyOCR reader once
     return easyocr.Reader(['en', 'id'], gpu=False)
 
 @st.cache_data
 def extract_text_from_pdf(pdf_bytes):
-    # Extract text from uploaded PDF
-    text = []
+    text_pages = []
     reader = PyPDF2.PdfReader(pdf_bytes)
     for page in reader.pages:
         page_text = page.extract_text() or ""
-        text.append(page_text)
-    return "\n".join(text)
+        text_pages.append(page_text)
+    return "\n".join(text_pages)
 
 # --- UTILITIES ---
-def resize_image(image: Image.Image, max_dim=1024) -> Image.Image:
-    # Resize image to max dimension for lighter processing
-    w, h = image.size
+def resize_image(img: Image.Image, max_dim=1024) -> Image.Image:
+    w, h = img.size
     if max(w, h) > max_dim:
         scale = max_dim / float(max(w, h))
-        new_size = (int(w * scale), int(h * scale))
-        return image.resize(new_size, Image.ANTIALIAS)
-    return image
+        return img.resize((int(w*scale), int(h*scale)), Image.ANTIALIAS)
+    return img
 
-# --- SESSION STATE INIT ---
+# --- INITIALIZE SESSION STATE ---
 for key, default in {
     'manual_text': '',
     'parsed_entries_manual': None,
-    'parsed_entries_ocr': None
+    'parsed_entries_ocr': None,
 }.items():
     if key not in st.session_state:
         st.session_state[key] = default
 
 SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 
-# --- PAGE STYLING ---
+# --- INJECT CSS: MODERN ELEGANT STYLE ---
 st.markdown("""
 <style>
-.block-container { max-width: 900px; margin: auto; padding: 2rem; background: #97a0ad; }
-button[kind="primary"] { border-radius: 6px; padding: 10px 20px; }
+/* Container */
+.block-container {
+    max-width: 900px;
+    margin: auto;
+    padding: 2rem 3rem;
+    background: #f4f6f8;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+/* Header */
+h1, h2, h3 {
+    font-family: 'Segoe UI', sans-serif;
+    color: #1f2937;
+}
+
+/* File uploader and buttons */
+.stFileUploader, button[kind="primary"] {
+    border-radius: 8px;
+    padding: 10px 18px !important;
+    font-weight: 600;
+}
+
+/* Manual input area: softer background */
+textarea {
+    background: #eef1f5 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #1f2937 !important;
+}
+
+/* Data editor container */
+section[data-testid="stDataFrameContainer"] {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+/* Image styling */
+img {
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # --- HEADER ---
 st.markdown(
     """
-    <div style='display:flex; align-items:center; gap:10px;'>
+    <div style='display:flex; align-items:center; gap:12px;'>
       <img src='https://cdn-icons-png.flaticon.com/512/201/201623.png' width='40'/>
-      <h1 style='margin:0;'>Dashboard Tiket | Kayyisa Tour</h1>
+      <div>
+        <h1 style='margin:0'>Dashboard Tiket | Kayyisa Tour</h1>
+        <p style='margin:0; color:#4b5563;'>Input & Simpan Data Pesanan</p>
+      </div>
     </div>
     """, unsafe_allow_html=True)
 
-# --- INPUT SECTION ---
+# --- SECTION: UPLOAD & OCR ---
 st.markdown("---")
-st.subheader("1. Upload / Camera / PDF Input")
+st.subheader("1. Upload Gambar atau PDF untuk OCR")
 
-# File uploader (image/pdf) or camera
-col1, col2 = st.columns(2)
-with col1:
-    file = st.file_uploader("Upload Gambar (.jpg,.jpeg,.png) atau PDF", type=['jpg','jpeg','png','pdf'])
-with col2:
-    camera_img = st.camera_input("Atau ambil foto langsung")
-
+file = st.file_uploader("Pilih file gambar (.jpg/.png) atau PDF", type=['jpg','jpeg','png','pdf'])
 ocr_text = ''
 
-if file is not None:
+if file:
     if file.type == 'application/pdf':
-        with st.spinner("Membaca PDF..."):
+        with st.spinner('Membaca PDF...'):
             ocr_text = extract_text_from_pdf(file)
     else:
-        image = Image.open(file).convert("RGB")
-        image = resize_image(image)
-        st.image(image, caption="Gambar Terupload", use_column_width=True)
-        with st.spinner("Menjalankan OCR pada gambar..."):
+        img = Image.open(file).convert('RGB')
+        img = resize_image(img)
+        st.image(img, caption='Gambar Terupload', use_column_width=True)
+        with st.spinner('Menjalankan OCR...'):
             reader = get_ocr_reader()
-            result = reader.readtext(np.array(image), detail=0)
+            result = reader.readtext(np.array(img), detail=0)
             ocr_text = "\n".join(result)
 
-elif camera_img is not None:
-    image = Image.open(camera_img).convert("RGB")
-    image = resize_image(image)
-    st.image(image, caption="Foto Kamera", use_column_width=True)
-    with st.spinner("Menjalankan OCR pada foto..."):
-        reader = get_ocr_reader()
-        result = reader.readtext(np.array(image), detail=0)
-        ocr_text = "\n".join(result)
+    # Camera input muncul setelah upload file
+    capture = st.button('📷 Ambil Foto via Kamera')
+    if capture:
+        cam_img = st.camera_input('Ambil Foto')
+        if cam_img:
+            img_cam = Image.open(cam_img).convert('RGB')
+            img_cam = resize_image(img_cam)
+            st.image(img_cam, caption='Foto Kamera', use_column_width=True)
+            with st.spinner('Menjalankan OCR pada foto...'):
+                reader = get_ocr_reader()
+                ocr_text = "\n".join(reader.readtext(np.array(img_cam), detail=0))
 
-# Show OCR result
-if ocr_text:
-    st.text_area("Hasil OCR", ocr_text, height=200)
-    if st.button("Proses Data dari OCR"):
-        try:
-            data_entries = process_ocr_unified(ocr_text)
-            for entry in data_entries:
-                entry.setdefault('no_invoice','')
-                entry.setdefault('keterangan','')
-                entry.setdefault('pemesan','')
-                entry.setdefault('admin','')
-            df_ocr = pd.DataFrame(data_entries)
-            st.session_state.parsed_entries_ocr = st.data_editor(df_ocr, use_container_width=True)
-        except Exception as e:
-            st.error(f"OCR Processing Error: {e}")
+    if ocr_text:
+        st.text_area('Hasil OCR', ocr_text, height=200)
+        if st.button('➡️ Proses Data OCR'):
+            try:
+                data = process_ocr_unified(ocr_text)
+                for e in data:
+                    e.setdefault('no_invoice','')
+                    e.setdefault('keterangan','')
+                    e.setdefault('pemesan','')
+                    e.setdefault('admin','')
+                df_ocr = pd.DataFrame(data)
+                st.session_state.parsed_entries_ocr = st.data_editor(df_ocr, use_container_width=True)
+            except Exception as ex:
+                st.error(f'OCR Processing Error: {ex}')
 
-# --- MANUAL INPUT ---
+# --- SECTION: MANUAL INPUT ---
 st.markdown("---")
-st.subheader("2. Input Manual")
-manual_input = st.text_area("Masukkan Teks Manual (Email/Tiket)", value=st.session_state.manual_text, height=200)
-if st.button("Proses Manual"):
-    st.session_state.manual_text = manual_input
+st.subheader("2. Input Data Manual")
+manual = st.text_area('Masukkan Teks Manual', value=st.session_state.manual_text, height=200)
+if st.button('🔍 Proses Manual'):
+    st.session_state.manual_text = manual
     try:
-        entries = process_ocr_unified(manual_input)
-        for entry in entries:
-            entry.setdefault('no_invoice','')
-            entry.setdefault('keterangan','')
-            entry.setdefault('pemesan','')
-            entry.setdefault('admin','')
-        df_manual = pd.DataFrame(entries)
-        st.session_state.parsed_entries_manual = st.data_editor(df_manual, use_container_width=True)
-    except Exception as e:
-        st.error(f"Manual Processing Error: {e}")
+        entries = process_ocr_unified(manual)
+        for ent in entries:
+            ent.setdefault('no_invoice','')
+            ent.setdefault('keterangan','')
+            ent.setdefault('pemesan','')
+            ent.setdefault('admin','')
+        df_man = pd.DataFrame(entries)
+        st.session_state.parsed_entries_manual = st.data_editor(df_man, use_container_width=True)
+    except Exception as err:
+        st.error(f'Manual Processing Error: {err}')
 
-# --- SAVE SECTION ---
+# --- SECTION: SAVE TO GOOGLE SHEETS ---
 st.markdown("---")
-st.subheader("3. Simpan ke Google Sheets")
-def save_to_gsheet(df):
+st.subheader('3. Simpan ke Google Sheets')
+
+def save_gsheet(df):
     ws = connect_to_gsheet(SHEET_ID, 'Data')
     append_dataframe_to_sheet(df, ws)
-    st.success("Berhasil simpan ke Google Sheets")
+    st.success('✅ Berhasil simpan ke Google Sheets')
 
-if st.session_state.parsed_entries_ocr is not None:
-    if st.button("Simpan OCR ke GSheet"):
-        save_to_gsheet(st.session_state.parsed_entries_ocr)
+if st.session_state.parsed_entries_ocr is not None and st.button('📤 Simpan OCR ke GSheet'):
+    save_gsheet(st.session_state.parsed_entries_ocr)
 
-if st.session_state.parsed_entries_manual is not None:
-    if st.button("Simpan Manual ke GSheet"):
-        save_to_gsheet(st.session_state.parsed_entries_manual)
+if st.session_state.parsed_entries_manual is not None and st.button('📤 Simpan Manual ke GSheet'):
+    save_gsheet(st.session_state.parsed_entries_manual)

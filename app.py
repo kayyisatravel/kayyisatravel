@@ -50,7 +50,7 @@ SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 # --- PAGE STYLING ---
 st.markdown("""
 <style>
-.block-container { max-width: 900px; margin: auto; padding: 2rem; background: #f7fafc; }
+.block-container { max-width: 900px; margin: auto; padding: 2rem; background: #97a0ad; }
 button[kind="primary"] { border-radius: 6px; padding: 10px 20px; }
 </style>
 """, unsafe_allow_html=True)

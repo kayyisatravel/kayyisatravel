@@ -6,3 +6,6 @@ pandas
 gspread
 oauth2client
 torch
+PyPDF2
+google-auth
+google-auth-oauthlib

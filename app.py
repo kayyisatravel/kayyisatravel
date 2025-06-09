@@ -181,8 +181,8 @@ with col2:
         st.experimental_rerun()
 
 # Tampilkan hasil jika ada
-if st.session_state.parsed_entries_manual is not None:
-    st.data_editor(st.session_state.parsed_entries_manual, use_container_width=True)
+    if st.session_state.parsed_entries_manual is not None:
+        st.data_editor(st.session_state.parsed_entries_manual, use_container_width=True)
 
 
 # --- SECTION: SAVE TO GOOGLE SHEETS ---

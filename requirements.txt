@@ -9,3 +9,5 @@ torch
 PyPDF2
 google-auth
 google-auth-oauthlib
+pdf2image
+

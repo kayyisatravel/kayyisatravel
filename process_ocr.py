@@ -223,10 +223,12 @@ def extract_bf(text: str) -> str:
         r'tidak.*sarapan',
         r'non[-\s]?breakfast',
         r'room\s+only',
-        r'makanan\s*[:\-]?\s*(tidak ada|tidak tersedia|tidak disediakan|-)'
+        r'makanan\s*[:\-]?\s*(tidak ada|tidak tersedia|tidak disediakan|-)',
+        r'makanan\s*[:\-]?\s*$'
     ]
     for pat in nbf_patterns:
-        if re.search(pat, tl):
+        if re.search(r'makanan\s*[:\-]?\s*$', tl, re.MULTILINE) or 'makanan:' in tl and 'sarapan' not in tl:
+
             return 'NBF'
 
     bf_patterns = [
@@ -237,7 +239,7 @@ def extract_bf(text: str) -> str:
         r'makanan\s*[:\-]?\s*sarapan'
     ]
     for pat in bf_patterns:
-        if re.search(pat, tl):
+        if re.search(pat, tl, re.MULTILINE):
             return 'BF'
 
     return 'N/A'

@@ -133,9 +133,6 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-#st.title("📤 Input Data Kayyisa Tour & Travel")
-
-
 # --- SECTION: UPLOAD & OCR ---
 st.markdown("---")
 st.subheader("1. Upload Gambar atau PDF untuk OCR")
@@ -166,7 +163,6 @@ def manual_input_section():
     st.markdown('---')
     st.subheader('2. Input Data Manual')
 
-    # Text area dengan key manual_input_area untuk menyimpan input
     input_text = st.text_area(
         label='Masukkan Teks Manual',
         value=st.session_state.manual_input_area,
@@ -185,38 +181,7 @@ def manual_input_section():
                 st.error(f'Manual Processing Error: {e}')
     with col2:
         if st.button('🧹 Clear Manual'):
-            # Reset hanya input area dan hasil parsing
             st.session_state.manual_input_area = ''
-            st.session_state.parsed_entries_manual = None
-
-# Panggil fungsi manual_input_section di entry point
-if __name__ == '__main__':
-    manual_input_section():
-    st.markdown('---')
-    st.subheader('2. Input Data Manual')
-
-    # Text area dengan key manual_text untuk menyimpan input
-    manual_text = st.text_area(
-        label='Masukkan Teks Manual',
-        value=st.session_state.manual_text,
-        height=200,
-        key='manual_text'
-    )
-
-    # Kolom untuk tombol proses dan clear
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button('🔍 Proses Manual'):
-            try:
-                df_man = pd.DataFrame(process_ocr_unified(manual_text))
-                st.dataframe(df_man, use_container_width=True)
-                st.session_state.parsed_entries_manual = df_man
-            except Exception as e:
-                st.error(f'Manual Processing Error: {e}')
-    with col2:
-        if st.button('🧹 Clear Manual'):
-            # Reset hanya manual_text dan hasil parsing
-            st.session_state.manual_text = ''
             st.session_state.parsed_entries_manual = None
 
 # Panggil fungsi manual_input_section di entry point

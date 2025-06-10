@@ -27,7 +27,7 @@ def connect_to_gsheet(SHEET_ID, worksheet_name="Data"):
 def load_data():
     ws = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
     df = pd.DataFrame(ws.get_all_records())
-    st.write("📌 Kolom ditemukan:", df.columns.tolist())
+    st.write("📌 Kolom ditemukan:")
 
     # Ubah format tanggal
     if "Tgl Pemesanan" in df.columns:
@@ -100,7 +100,7 @@ st.dataframe(filtered_df)
 selected_rows = st.multiselect(
     "Pilih baris untuk invoice:",
     filtered_df.index.tolist(),
-    format_func=lambda x: f"{filtered_df.loc[x, 'Nama Pemesan']} | {filtered_df.loc[x, 'Item']}"
+    format_func=lambda x: f"{filtered_df.loc[x, 'Pemesan']} | {filtered_df.loc[x, 'Item']}"
 )
 
 # === Buat PDF ===

@@ -80,7 +80,7 @@ def buat_invoice_pdf(data, output_path="invoice_output.pdf"):
 
 # --- UI Streamlit ---
 st.set_page_config(page_title="Buat Invoice Tiket", layout="centered")
-st.title("🧾 Buat Invoice dari Google Sheets")
+st.title("🧾 Buat Invoice")
 
 df = load_data()
 

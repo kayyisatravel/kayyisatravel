@@ -44,7 +44,10 @@ def load_data():
         st.error("❌ Kolom 'Tgl Pemesanan' tidak ditemukan.")
         st.stop()
     return df
-df = load_data()
+# Tombol Refresh
+if st.button("🔄 Refresh Data"):
+    st.cache_data.clear()
+    
 # === Fungsi PDF ===
 def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
     pdf = FPDF(orientation="L", unit="mm", format="A4")

@@ -134,7 +134,7 @@ editable_df = filtered_df.copy()
 editable_df.insert(0, 'Pilih', False)
 
 #if "editable_df" not in st.session_state:
-    st.session_state.editable_df = editable_df
+st.session_state.editable_df = editable_df
 
 select_all = st.checkbox("Pilih Semua", value=False)
 st.session_state.editable_df["Pilih"] = select_all

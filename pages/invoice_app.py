@@ -40,38 +40,44 @@ def load_data():
 def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
     pdf = FPDF()
     pdf.add_page()
+
+    # Header
     pdf.set_font("Arial", "B", 16)
     pdf.cell(0, 10, "INVOICE PEMESANAN", ln=True, align="C")
+
     pdf.set_font("Arial", "", 12)
     pdf.ln(10)
     pdf.cell(0, 10, f"Nama: {nama}", ln=True)
     pdf.cell(0, 10, f"Tanggal: {tanggal.strftime('%d-%m-%Y')}", ln=True)
     pdf.ln(5)
 
+    # Kolom yang tidak ingin ditampilkan
+    kolom_dikecualikan = ["Harga Beli", "Nama Pemesan", "Admin", "%Laba"]
+
+    # Ambil kolom dari data pertama
+    if not data:
+        pdf.cell(0, 10, "Tidak ada data untuk ditampilkan.", ln=True)
+        pdf.output(output_path)
+        return output_path
+
+    kolom_ditampilkan = [col for col in data[0].keys() if col not in kolom_dikecualikan]
+
+    # Buat header tabel
     pdf.set_font("Arial", "B", 12)
-    pdf.cell(80, 10, "Item", 1)
-    pdf.cell(40, 10, "Harga", 1)
+    for col in kolom_ditampilkan:
+        pdf.cell(50, 10, col[:15], 1)  # Truncating panjang header kalau perlu
     pdf.ln()
 
-    total = 0
+    # Isi tabel
     pdf.set_font("Arial", "", 12)
     for row in data:
-        pdf.cell(80, 10, str(row['Tgl Pemesanan']), 1)
-        harga_str = str(row['Harga Jual'])
-        harga_clean = harga_str.replace('Rp', '').replace('.', '').replace(',', '').strip()
-        try:
-            harga = float(harga_clean)
-        except ValueError:
-            harga = 0
-        total += harga
-        pdf.cell(40, 10, f"Rp {harga:,.0f}", 1)
+        for col in kolom_ditampilkan:
+            pdf.cell(50, 10, str(row[col])[:15], 1)  # Hindari text terlalu panjang
         pdf.ln()
 
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(80, 10, "Total", 1)
-    pdf.cell(40, 10, f"Rp {total:,.0f}", 1)
     pdf.output(output_path)
     return output_path
+
 
 # === UI Streamlit ===
 st.set_page_config(page_title="Buat Invoice Tiket", layout="centered")

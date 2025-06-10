@@ -99,21 +99,17 @@ if filtered_df.empty:
 
 # === Editor dengan checkbox ===
 st.subheader("✅ Pilih Data untuk Invoice")
+
+# Salin data filter dan tambahkan kolom 'Pilih' di posisi pertama
 editable_df = filtered_df.copy()
-editable_df["Pilih"] = False
-
-selected_df = st.data_editor(
-    editable_df = filtered_df.copy()
-
-# Tambahkan kolom 'Pilih' di posisi pertama
 editable_df.insert(0, 'Pilih', False)
 
-# Tampilkan data editor dengan checkbox di kiri
+# Tampilkan data editor dengan checkbox di kolom paling kiri
 selected_df = st.data_editor(
     editable_df,
     use_container_width=True,
     num_rows="fixed",
-    disabled=[col for col in editable_df.columns if col != "Pilih"],
+    disabled=[col for col in editable_df.columns if col != "Pilih"],  # hanya 'Pilih' bisa diedit
     column_config={
         "Pilih": st.column_config.CheckboxColumn("Pilih", help="Centang untuk buat invoice")
     }
@@ -122,7 +118,7 @@ selected_df = st.data_editor(
 # Ambil data yang dicentang
 selected_data = selected_df[selected_df['Pilih'] == True]
 
-# Fungsi untuk parsing harga jual
+# Fungsi parsing harga jual, bersihkan format string ke float
 def parse_harga(harga_str):
     if pd.isna(harga_str):
         return 0
@@ -132,8 +128,8 @@ def parse_harga(harga_str):
     except:
         return 0
 
+# Hitung total harga jual dari data yang dicentang
 total_harga = selected_data['Harga Jual'].apply(parse_harga).sum()
-
 st.markdown(f"**Total Harga Jual dari data yang dicentang: Rp {total_harga:,.0f}**")
 
 

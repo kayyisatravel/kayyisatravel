@@ -92,21 +92,30 @@ df = load_data()
 
 # === Filter UI ===
 st.sidebar.header("Filter Data")
-tanggal_range = st.sidebar.date_input("Rentang Tanggal", [datetime.today(), datetime.today()])
+
+# Default range: hari ini saja
+tanggal_range = st.sidebar.date_input("Rentang Tanggal", [date.today(), date.today()])
+
+# Pastikan tanggal_range adalah list/tuple dua tanggal
+if not isinstance(tanggal_range, (list, tuple)):
+    tanggal_range = [tanggal_range, tanggal_range]
+elif len(tanggal_range) == 1:
+    tanggal_range = [tanggal_range[0], tanggal_range[0]]
+
+# Pastikan semua elemen tanggal_range adalah datetime.date (bukan datetime.datetime)
+tanggal_range = [d if isinstance(d, date) else d.date() for d in tanggal_range]
 nama_filter = st.sidebar.text_input("Cari Nama Pemesan")
 
+# Filter data
 filtered_df = df[
     (df["Tgl Pemesanan"] >= tanggal_range[0]) &
     (df["Tgl Pemesanan"] <= tanggal_range[1])
 ]
-
 if nama_filter:
     filtered_df = filtered_df[filtered_df["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
-
 if filtered_df.empty:
     st.warning("❌ Tidak ada data yang cocok.")
     st.stop()
-
 # === Editor dengan checkbox dan pilih semua ===
 st.subheader("✅ Pilih Data untuk Invoice")
 

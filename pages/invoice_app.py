@@ -40,28 +40,41 @@ def load_data():
 from fpdf import FPDF
 
 def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
-    pdf = FPDF(orientation='L', unit='mm', format='A4')  # 📌 Mode landscape
+    pdf = FPDF(orientation="L", unit="mm", format="A4")
     pdf.add_page()
-
-    # Header
     pdf.set_font("Arial", "B", 16)
     pdf.cell(0, 10, "INVOICE PEMESANAN", ln=True, align="C")
-
     pdf.set_font("Arial", "", 12)
-    pdf.ln(10)
+    pdf.ln(5)
     pdf.cell(0, 10, f"Nama: {nama}", ln=True)
     pdf.cell(0, 10, f"Tanggal: {tanggal.strftime('%d-%m-%Y')}", ln=True)
     pdf.ln(5)
 
-    # Kolom yang tidak ditampilkan
-    kolom_abaikan = ["Harga Beli", "Nama Pemesan", "Admin", "%Laba", "Pilih"]
+    # Drop kolom yang tidak perlu ditampilkan
+    kolom_abaikan = ["Pilih", "Harga Beli", "Admin", "%Laba"]
+    kolom_ditampilkan = [col for col in data[0].keys() if col not in kolom_abaikan]
 
-    # Ambil kolom yang ingin ditampilkan
-    if not data:
-        pdf.cell(0, 10, "Tidak ada data yang dicentang.", ln=True)
-        pdf.output(output_path)
-        return output_path
+    # Hitung lebar kolom dinamis
+    halaman_lebar = 277  # A4 landscape, margin dikurangi
+    jumlah_kolom = len(kolom_ditampilkan) + 1  # +1 untuk No
+    lebar_kolom = halaman_lebar / jumlah_kolom
 
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(lebar_kolom, 8, "No", 1)
+    for col in kolom_ditampilkan:
+        pdf.cell(lebar_kolom, 8, col[:30], 1)
+    pdf.ln()
+
+    pdf.set_font("Arial", "", 10)
+    for idx, row in enumerate(data, 1):
+        pdf.cell(lebar_kolom, 8, str(idx), 1)
+        for col in kolom_ditampilkan:
+            value = str(row.get(col, ""))[:40]
+            pdf.cell(lebar_kolom, 8, value, 1)
+        pdf.ln()
+
+    pdf.output(output_path)
+    return output_path
     semua_kolom = list(data[0].keys())
     kolom_ditampilkan = [col for col in semua_kolom if col not in kolom_abaikan]
 
@@ -167,6 +180,23 @@ if not selected_data.empty:
         pdf_path = buat_invoice_pdf(records, nama, tanggal)
         with open(pdf_path, "rb") as f:
             st.download_button("💾 Unduh Invoice", f, file_name="invoice.pdf", mime="application/pdf")
+            
+import io
+
+# Hapus kolom yang tidak dicetak
+excel_data = selected_data.drop(columns=["Pilih", "Harga Beli", "Admin", "%Laba"], errors="ignore")
+
+# Buat buffer Excel
+excel_buffer = io.BytesIO()
+excel_data.to_excel(excel_buffer, index=False, engine="openpyxl")
+excel_buffer.seek(0)
+
+st.download_button(
+    "📥 Unduh Excel",
+    data=excel_buffer,
+    file_name="invoice.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
 
     email = st.text_input("Email (opsional) untuk kirim invoice")
     if st.button("📧 Kirim Email"):

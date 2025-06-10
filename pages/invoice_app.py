@@ -100,7 +100,7 @@ st.dataframe(filtered_df)
 selected_rows = st.multiselect(
     "Pilih baris untuk invoice:",
     filtered_df.index.tolist(),
-    format_func=lambda x: f"{filtered_df.loc[x, 'Pemesan']} | {filtered_df.loc[x, 'Item']}"
+    format_func=lambda x: f"{filtered_df.loc[x, 'Nama Pemesan']} | {filtered_df.loc[x, 'Item']}"
 )
 
 # === Buat PDF ===

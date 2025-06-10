@@ -91,9 +91,9 @@ def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
 #st.title("🧾 Buat Invoice")
 
 df = load_data()
-st.write("Data contoh Tgl Pemesanan (5 pertama):", df["Tgl Pemesanan"].head())
-st.write("Tipe data kolom Tgl Pemesanan:", df["Tgl Pemesanan"].apply(type).unique())
-st.write("Tanggal filter:", tanggal_range)
+#st.write("Data contoh Tgl Pemesanan (5 pertama):", df["Tgl Pemesanan"].head())
+#st.write("Tipe data kolom Tgl Pemesanan:", df["Tgl Pemesanan"].apply(type).unique())
+#st.write("Tanggal filter:", tanggal_range)
 
 # === Filter UI ===
 st.sidebar.header("Filter Data")
@@ -102,7 +102,7 @@ st.sidebar.header("Filter Data")
 tanggal_range = st.sidebar.date_input("Rentang Tanggal", [date.today(), date.today()])
 
 # Pastikan tanggal_range adalah list/tuple dua tanggal
-if not isinstance(tanggal_range, (list, tuple)):
+if isinstance(tanggal_range, date):
     tanggal_range = [tanggal_range, tanggal_range]
 elif len(tanggal_range) == 1:
     tanggal_range = [tanggal_range[0], tanggal_range[0]]
@@ -119,6 +119,11 @@ filtered_df = df[
 st.write("Data setelah filter tanggal:", filtered_df)
 if nama_filter:
     filtered_df = filtered_df[filtered_df["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
+# Debug output opsional
+st.write("🛠 Debug: Rentang tanggal", tanggal_range)
+st.write("🛠 Debug: Jumlah data hasil filter", len(filtered_df))
+st.write("🛠 Debug: Data hasil filter", filtered_df.head())
+    
 if filtered_df.empty:
     st.warning("❌ Tidak ada data yang cocok.")
     st.stop()

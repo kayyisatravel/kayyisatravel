@@ -133,7 +133,7 @@ st.subheader("✅ Pilih Data untuk Invoice")
 editable_df = filtered_df.copy()
 editable_df.insert(0, 'Pilih', False)
 
-if "editable_df" not in st.session_state:
+#if "editable_df" not in st.session_state:
     st.session_state.editable_df = editable_df
 
 select_all = st.checkbox("Pilih Semua", value=False)

@@ -58,7 +58,7 @@ def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
     pdf.set_font("Arial", "", 12)
     for row in data:
         pdf.cell(80, 10, str(row['Tgl Pemesanan']), 1)
-        harga = float(row['Harga'])
+        harga = float(row['Harga Jual'])
         total += harga
         pdf.cell(40, 10, f"Rp {harga:,.0f}", 1)
         pdf.ln()

@@ -27,8 +27,8 @@ st.set_page_config(page_title="Buat Invoice Tiket", layout="centered")
 st.title("🧾 Buat Invoice")
 
 # Tombol Refresh
-if st.button("🔄 Refresh Data"):
-    st.cache_data.clear()
+#if st.button("🔄 Refresh Data"):
+    #st.cache_data.clear()
 
 # === Ambil data dan olah ===
 @st.cache_data(ttl=300)  # Refresh otomatis setiap 5 menit

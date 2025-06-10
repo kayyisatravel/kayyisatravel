@@ -4,6 +4,7 @@ from datetime import datetime
 from fpdf import FPDF
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+import io
 
 # === Konfigurasi ===
 SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
@@ -180,8 +181,6 @@ if not selected_data.empty:
         pdf_path = buat_invoice_pdf(records, nama, tanggal)
         with open(pdf_path, "rb") as f:
             st.download_button("💾 Unduh Invoice", f, file_name="invoice.pdf", mime="application/pdf")
-            
-import io
 
 # Hapus kolom yang tidak dicetak
 excel_data = selected_data.drop(columns=["Pilih", "Harga Beli", "Admin", "%Laba"], errors="ignore")

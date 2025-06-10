@@ -29,7 +29,7 @@ def load_data():
     ws = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
     records = ws.get_all_records()
     df = pd.DataFrame(records)
-    df['Tanggal Pemesanan'] = pd.to_datetime(df['Tanggal Pemesanan'], errors='coerce')
+    df['Tanggal Pemesanan'] = pd.to_datetime(df['Tgl Pemesanan'], errors='coerce')
     return df
 
 # --- Fungsi buat invoice PDF ---

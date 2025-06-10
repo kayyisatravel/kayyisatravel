@@ -21,3 +21,4 @@ jinja2
 weasyprint
 yagmail
 fpdf2
+openpyxl

@@ -197,7 +197,7 @@ st.download_button(
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
 email = st.text_input("Email (opsional) untuk kirim invoice")
-    if st.button("📧 Kirim Email"):
+if st.button("📧 Kirim Email"):
         try:
             import yagmail
             yag = yagmail.SMTP(user="emailanda@gmail.com", oauth2_file="oauth2_creds.json")

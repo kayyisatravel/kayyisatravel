@@ -110,6 +110,21 @@ if selected_rows:
     nama = selected_data["Nama Pemesan"].iloc[0]
     tanggal = selected_data["Tgl Pemesanan"].iloc[0]
 
+    # Di dalam fungsi buat_invoice_pdf
+    for row in data:
+        pdf.cell(80, 10, str(row['Tgl Pemesanan']), 1)
+    
+    # ✅ Perubahan di sini
+    harga_str = str(row['Harga Jual'])
+    harga_clean = harga_str.replace('Rp', '').replace('.', '').replace(',', '').strip()
+    try:
+        harga = float(harga_clean)
+    except ValueError:
+        harga = 0  # Atau bisa raise error jika perlu
+    total += harga
+    pdf.cell(40, 10, f"Rp {harga:,.0f}", 1)
+    pdf.ln()
+
     if st.button("📄 Buat Invoice PDF"):
         pdf_path = buat_invoice_pdf(records, nama, tanggal)
         with open(pdf_path, "rb") as f:

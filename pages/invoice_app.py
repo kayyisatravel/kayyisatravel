@@ -38,8 +38,6 @@ def load_data():
     return df
 
 # === Fungsi PDF ===
-from fpdf import FPDF
-
 def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
     pdf = FPDF(orientation="L", unit="mm", format="A4")
     pdf.add_page()
@@ -51,12 +49,10 @@ def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
     pdf.cell(0, 10, f"Tanggal: {tanggal.strftime('%d-%m-%Y')}", ln=True)
     pdf.ln(5)
 
-    # Drop kolom yang tidak perlu ditampilkan
-    kolom_abaikan = ["Pilih", "Harga Beli", "Admin", "%Laba"]
+    kolom_abaikan = ["Pilih", "Harga Beli", "Admin", "%Laba", "Nama Pemesan"]
     kolom_ditampilkan = [col for col in data[0].keys() if col not in kolom_abaikan]
 
-    # Hitung lebar kolom dinamis
-    halaman_lebar = 277  # A4 landscape, margin dikurangi
+    halaman_lebar = 277  # A4 landscape
     jumlah_kolom = len(kolom_ditampilkan) + 1  # +1 untuk No
     lebar_kolom = halaman_lebar / jumlah_kolom
 
@@ -76,28 +72,6 @@ def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
 
     pdf.output(output_path)
     return output_path
-    semua_kolom = list(data[0].keys())
-    kolom_ditampilkan = [col for col in semua_kolom if col not in kolom_abaikan]
-
-    # Header tabel
-    pdf.set_font("Arial", "B", 10)
-    pdf.cell(10, 8, "No", 1)  # Kolom No Urut
-    for col in kolom_ditampilkan:
-        pdf.cell(40, 8, col[:20], 1)  # Maks 20 karakter per kolom header
-    pdf.ln()
-
-    # Isi data tabel
-    pdf.set_font("Arial", "", 10)
-    for idx, row in enumerate(data, start=1):
-        pdf.cell(10, 8, str(idx), 1)  # No urut
-        for col in kolom_ditampilkan:
-            cell_value = str(row.get(col, ""))[:40]  # Hindari nilai panjang
-            pdf.cell(40, 8, cell_value, 1)
-        pdf.ln()
-
-    pdf.output(output_path)
-    return output_path
-
 
 # === UI Streamlit ===
 st.set_page_config(page_title="Buat Invoice Tiket", layout="centered")
@@ -110,7 +84,6 @@ st.sidebar.header("Filter Data")
 tanggal_range = st.sidebar.date_input("Rentang Tanggal", [datetime.today(), datetime.today()])
 nama_filter = st.sidebar.text_input("Cari Nama Pemesan")
 
-# === Filter data ===
 filtered_df = df[
     (df["Tgl Pemesanan"].dt.date >= tanggal_range[0]) &
     (df["Tgl Pemesanan"].dt.date <= tanggal_range[1])
@@ -129,18 +102,12 @@ st.subheader("✅ Pilih Data untuk Invoice")
 editable_df = filtered_df.copy()
 editable_df.insert(0, 'Pilih', False)
 
-# Session state untuk simpan dataframe checkbox
 if "editable_df" not in st.session_state:
     st.session_state.editable_df = editable_df
 
-# Checkbox pilih semua
 select_all = st.checkbox("Pilih Semua", value=False)
-if select_all:
-    st.session_state.editable_df['Pilih'] = True
-else:
-    st.session_state.editable_df['Pilih'] = False
+st.session_state.editable_df["Pilih"] = select_all
 
-# Tampilkan data editor dengan checkbox di kiri
 selected_df = st.data_editor(
     st.session_state.editable_df,
     use_container_width=True,
@@ -151,13 +118,10 @@ selected_df = st.data_editor(
     }
 )
 
-# Simpan perubahan checkbox ke session state agar persist
 st.session_state.editable_df = selected_df
-
-# Ambil data yang dicentang
 selected_data = selected_df[selected_df['Pilih'] == True]
 
-# Fungsi parsing harga jual
+# === Total Harga ===
 def parse_harga(harga_str):
     if pd.isna(harga_str):
         return 0
@@ -170,7 +134,6 @@ def parse_harga(harga_str):
 total_harga = selected_data['Harga Jual'].apply(parse_harga).sum()
 st.markdown(f"**Total Harga Jual dari data yang dicentang: Rp {total_harga:,.0f}**")
 
-
 # === Buat PDF ===
 if not selected_data.empty:
     records = selected_data.to_dict(orient="records")
@@ -182,10 +145,8 @@ if not selected_data.empty:
         with open(pdf_path, "rb") as f:
             st.download_button("💾 Unduh Invoice", f, file_name="invoice.pdf", mime="application/pdf")
 
-# Hapus kolom yang tidak dicetak
-excel_data = selected_data.drop(columns=["Pilih", "Harga Beli", "Admin", "%Laba"], errors="ignore")
-
-# Buat buffer Excel
+# === Buat Excel ===
+excel_data = selected_data.drop(columns=["Pilih", "Harga Beli", "Admin", "%Laba", "Nama Pemesan"], errors="ignore")
 excel_buffer = io.BytesIO()
 excel_data.to_excel(excel_buffer, index=False, engine="openpyxl")
 excel_buffer.seek(0)
@@ -196,17 +157,19 @@ st.download_button(
     file_name="invoice.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
+
+# === Kirim Email ===
 email = st.text_input("Email (opsional) untuk kirim invoice")
 if st.button("📧 Kirim Email"):
-        try:
-            import yagmail
-            yag = yagmail.SMTP(user="emailanda@gmail.com", oauth2_file="oauth2_creds.json")
-            yag.send(
-                to=email,
-                subject="Invoice Pemesanan",
-                contents="Berikut invoice pemesanan Anda",
-                attachments=pdf_path
-            )
-            st.success("✅ Email berhasil dikirim.")
-        except Exception as e:
-            st.error(f"❌ Gagal kirim email: {e}")
+    try:
+        import yagmail
+        yag = yagmail.SMTP(user="emailanda@gmail.com", oauth2_file="oauth2_creds.json")
+        yag.send(
+            to=email,
+            subject="Invoice Pemesanan",
+            contents="Berikut invoice pemesanan Anda",
+            attachments=pdf_path
+        )
+        st.success("✅ Email berhasil dikirim.")
+    except Exception as e:
+        st.error(f"❌ Gagal kirim email: {e}")

@@ -29,7 +29,6 @@ def load_data():
     df = pd.DataFrame(ws.get_all_records())
     st.write("📌 Kolom ditemukan:")
 
-    # Ubah format tanggal
     if "Tgl Pemesanan" in df.columns:
         df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce")
     else:
@@ -58,7 +57,12 @@ def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
     pdf.set_font("Arial", "", 12)
     for row in data:
         pdf.cell(80, 10, str(row['Tgl Pemesanan']), 1)
-        harga = float(row['Harga Jual'])
+        harga_str = str(row['Harga Jual'])
+        harga_clean = harga_str.replace('Rp', '').replace('.', '').replace(',', '').strip()
+        try:
+            harga = float(harga_clean)
+        except ValueError:
+            harga = 0
         total += harga
         pdf.cell(40, 10, f"Rp {harga:,.0f}", 1)
         pdf.ln()
@@ -93,37 +97,28 @@ if filtered_df.empty:
     st.warning("❌ Tidak ada data yang cocok.")
     st.stop()
 
-st.subheader("📋 Data Ditemukan")
-st.dataframe(filtered_df)
+# === Editor dengan checkbox ===
+st.subheader("✅ Pilih Data untuk Invoice")
+editable_df = filtered_df.copy()
+editable_df["Pilih"] = False
 
-# === Pilih data ===
-selected_rows = st.multiselect(
-    "Pilih baris untuk invoice:",
-    filtered_df.index.tolist(),
-    format_func=lambda x: f"{filtered_df.loc[x, 'Tgl Pemesanan']}|{filtered_df.loc[x, 'Kode Booking']}|{filtered_df.loc[x, 'No Penerbangan / Hotel / Kereta']}|{filtered_df.loc[x, 'Nama Pemesan']}"
+selected_df = st.data_editor(
+    editable_df,
+    use_container_width=True,
+    num_rows="fixed",
+    disabled=[col for col in editable_df.columns if col != "Pilih"],
+    column_config={
+        "Pilih": st.column_config.CheckboxColumn("Pilih", help="Centang untuk buat invoice")
+    }
 )
 
+selected_data = selected_df[selected_df["Pilih"] == True]
+
 # === Buat PDF ===
-if selected_rows:
-    selected_data = filtered_df.loc[selected_rows]
+if not selected_data.empty:
     records = selected_data.to_dict(orient="records")
     nama = selected_data["Nama Pemesan"].iloc[0]
     tanggal = selected_data["Tgl Pemesanan"].iloc[0]
-
-    # Di dalam fungsi buat_invoice_pdf
-    for row in data:
-        pdf.cell(80, 10, str(row['Tgl Pemesanan']), 1)
-    
-    # ✅ Perubahan di sini
-    harga_str = str(row['Harga Jual'])
-    harga_clean = harga_str.replace('Rp', '').replace('.', '').replace(',', '').strip()
-    try:
-        harga = float(harga_clean)
-    except ValueError:
-        harga = 0  # Atau bisa raise error jika perlu
-    total += harga
-    pdf.cell(40, 10, f"Rp {harga:,.0f}", 1)
-    pdf.ln()
 
     if st.button("📄 Buat Invoice PDF"):
         pdf_path = buat_invoice_pdf(records, nama, tanggal)

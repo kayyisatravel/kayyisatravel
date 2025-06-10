@@ -1,17 +1,16 @@
 import streamlit as st
-import gspread
 import pandas as pd
-from fpdf import FPDF
 from datetime import datetime
+from fpdf import FPDF
+import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-# --- Konstanta ---
+# === Konfigurasi ===
 SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 WORKSHEET_NAME = "Data"
 
-# --- Koneksi Google Sheets ---
-@st.cache_resource
-def connect_to_gsheet(sheet_id: str, worksheet_name: str = "Data"):
+# === Koneksi GSheet via secrets ===
+def connect_to_gsheet(SHEET_ID, worksheet_name="Data"):
     scope = [
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/drive"
@@ -19,103 +18,114 @@ def connect_to_gsheet(sheet_id: str, worksheet_name: str = "Data"):
     creds_dict = st.secrets["gcp_service_account"]
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
-    sheet = client.open_by_key(sheet_id)
+    sheet = client.open_by_key(SHEET_ID)
     worksheet = sheet.worksheet(worksheet_name)
     return worksheet
 
-# --- Ambil data dari worksheet dan konversi ke DataFrame ---
+# === Ambil data dan olah ===
 @st.cache_data
 def load_data():
     ws = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
-    records = ws.get_all_records()
-    df = pd.DataFrame(records)
-    df['Tanggal Pemesanan'] = pd.to_datetime(df['Tgl Pemesanan'], errors='coerce')
+    df = pd.DataFrame(ws.get_all_records())
+    st.write("📌 Kolom ditemukan:", df.columns.tolist())
+
+    # Ubah format tanggal
+    if "Tgl Pemesanan" in df.columns:
+        df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce")
+    else:
+        st.error("❌ Kolom 'Tgl Pemesanan' tidak ditemukan.")
+        st.stop()
     return df
 
-# --- Fungsi buat invoice PDF ---
-def buat_invoice_pdf(data, output_path="invoice_output.pdf"):
+# === Fungsi PDF ===
+def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(0, 10, "INVOICE PEMESANAN TIKET", ln=True, align="C")
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "INVOICE PEMESANAN", ln=True, align="C")
+    pdf.set_font("Arial", "", 12)
     pdf.ln(10)
-
-    nama = data[0]['Nama Pemesan']
-    tanggal = data[0]['Tanggal Pemesanan']
-    tanggal_str = tanggal.strftime('%d-%m-%Y') if not pd.isna(tanggal) else "-"
-
-    pdf.set_font("Arial", size=12)
-    pdf.cell(0, 10, f"Nama Pemesan: {nama}", ln=True)
-    pdf.cell(0, 10, f"Tanggal Pemesanan: {tanggal_str}", ln=True)
+    pdf.cell(0, 10, f"Nama: {nama}", ln=True)
+    pdf.cell(0, 10, f"Tanggal: {tanggal.strftime('%d-%m-%Y')}", ln=True)
     pdf.ln(5)
 
-    pdf.set_font("Arial", 'B', 12)
-    pdf.cell(100, 10, "Item", border=1)
-    pdf.cell(40, 10, "Harga (Rp)", border=1, align="R")
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(80, 10, "Item", 1)
+    pdf.cell(40, 10, "Harga", 1)
     pdf.ln()
 
     total = 0
-    pdf.set_font("Arial", size=12)
-    for item in data:
-        nama_item = item.get('Item', '-')
-        harga_str = item.get('Harga', '0')
-        try:
-            harga = float(harga_str)
-        except:
-            harga = 0
+    pdf.set_font("Arial", "", 12)
+    for row in data:
+        pdf.cell(80, 10, str(row['Item']), 1)
+        harga = float(row['Harga'])
         total += harga
-        pdf.cell(100, 10, nama_item, border=1)
-        pdf.cell(40, 10, f"{harga:,.2f}", border=1, align="R")
+        pdf.cell(40, 10, f"Rp {harga:,.0f}", 1)
         pdf.ln()
 
-    pdf.set_font("Arial", 'B', 12)
-    pdf.cell(100, 10, "TOTAL", border=1)
-    pdf.cell(40, 10, f"{total:,.2f}", border=1, align="R")
-    pdf.ln(20)
-
-    pdf.set_font("Arial", size=11)
-    pdf.cell(0, 10, "Terima kasih atas pemesanannya.", ln=True, align="C")
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(80, 10, "Total", 1)
+    pdf.cell(40, 10, f"Rp {total:,.0f}", 1)
     pdf.output(output_path)
     return output_path
 
-# --- UI Streamlit ---
+# === UI Streamlit ===
 st.set_page_config(page_title="Buat Invoice Tiket", layout="centered")
-st.title("🧾 Buat Invoice")
+st.title("🧾 Buat Invoice dari Google Sheets")
 
 df = load_data()
 
-# --- Filter UI ---
-st.sidebar.header("Filter")
-tanggal_filter = st.sidebar.date_input("Tanggal Pemesanan", value=datetime.today())
-nama_filter = st.sidebar.text_input("Nama Pemesan")
+# === Filter UI ===
+st.sidebar.header("Filter Data")
+tanggal_range = st.sidebar.date_input("Rentang Tanggal", [datetime.today(), datetime.today()])
+nama_filter = st.sidebar.text_input("Cari Nama Pemesan")
 
+# === Filter data ===
 filtered_df = df[
-    (df['Tgl Pemesanan'].dt.date == tanggal_filter) &
-    (df['Pemesan'].str.contains(nama_filter, case=False, na=False))
+    (df["Tgl Pemesanan"].dt.date >= tanggal_range[0]) &
+    (df["Tgl Pemesanan"].dt.date <= tanggal_range[1])
 ]
 
+if nama_filter:
+    filtered_df = filtered_df[filtered_df["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
+
 if filtered_df.empty:
-    st.warning("Tidak ada data yang cocok.")
+    st.warning("❌ Tidak ada data yang cocok.")
     st.stop()
 
-st.subheader("📋 Data yang Ditemukan")
+st.subheader("📋 Data Ditemukan")
 st.dataframe(filtered_df)
 
+# === Pilih data ===
 selected_rows = st.multiselect(
     "Pilih baris untuk invoice:",
     filtered_df.index.tolist(),
-    format_func=lambda i: f"{filtered_df.loc[i, 'Item']} - Rp{filtered_df.loc[i, 'Harga']}"
+    format_func=lambda x: f"{filtered_df.loc[x, 'Nama Pemesan']} | {filtered_df.loc[x, 'Item']}"
 )
 
+# === Buat PDF ===
 if selected_rows:
-    data_selected = filtered_df.loc[selected_rows].to_dict(orient='records')
+    selected_data = filtered_df.loc[selected_rows]
+    records = selected_data.to_dict(orient="records")
+    nama = selected_data["Nama Pemesan"].iloc[0]
+    tanggal = selected_data["Tgl Pemesanan"].iloc[0]
 
     if st.button("📄 Buat Invoice PDF"):
-        pdf_path = buat_invoice_pdf(data_selected)
+        pdf_path = buat_invoice_pdf(records, nama, tanggal)
         with open(pdf_path, "rb") as f:
-            st.download_button(
-                "💾 Unduh Invoice",
-                data=f,
-                file_name="invoice.pdf",
-                mime="application/pdf"
+            st.download_button("💾 Unduh Invoice", f, file_name="invoice.pdf", mime="application/pdf")
+
+    email = st.text_input("Email (opsional) untuk kirim invoice")
+    if st.button("📧 Kirim Email"):
+        try:
+            import yagmail
+            yag = yagmail.SMTP(user="emailanda@gmail.com", oauth2_file="oauth2_creds.json")
+            yag.send(
+                to=email,
+                subject="Invoice Pemesanan",
+                contents="Berikut invoice pemesanan Anda",
+                attachments=pdf_path
             )
+            st.success("✅ Email berhasil dikirim.")
+        except Exception as e:
+            st.error(f"❌ Gagal kirim email: {e}")

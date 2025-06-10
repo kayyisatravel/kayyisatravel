@@ -57,7 +57,7 @@ def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
     total = 0
     pdf.set_font("Arial", "", 12)
     for row in data:
-        pdf.cell(80, 10, str(row['Item']), 1)
+        pdf.cell(80, 10, str(row['Tgl Pemesanan']), 1)
         harga = float(row['Harga'])
         total += harga
         pdf.cell(40, 10, f"Rp {harga:,.0f}", 1)
@@ -100,7 +100,7 @@ st.dataframe(filtered_df)
 selected_rows = st.multiselect(
     "Pilih baris untuk invoice:",
     filtered_df.index.tolist(),
-    format_func=lambda x: f"{filtered_df.loc[x, 'Tgl Pemesanan']} | {filtered_df.loc[x, 'Nama Pemesan']}"
+    format_func=lambda x: f"{filtered_df.loc[x, 'Tgl Pemesanan']}|{filtered_df.loc[x, 'Kode Booking']}|{filtered_df.loc[x, 'No Penerbangan / Hotel / Kereta']}|{filtered_df.loc[x, 'Nama Pemesan']}"
 )
 
 # === Buat PDF ===

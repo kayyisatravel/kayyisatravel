@@ -20,3 +20,4 @@ pygsheets
 jinja2
 weasyprint
 yagmail
+fpdf2

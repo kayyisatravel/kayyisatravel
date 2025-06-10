@@ -37,8 +37,10 @@ def load_data():
     return df
 
 # === Fungsi PDF ===
+from fpdf import FPDF
+
 def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
-    pdf = FPDF()
+    pdf = FPDF(orientation='L', unit='mm', format='A4')  # 📌 Mode landscape
     pdf.add_page()
 
     # Header
@@ -51,28 +53,32 @@ def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
     pdf.cell(0, 10, f"Tanggal: {tanggal.strftime('%d-%m-%Y')}", ln=True)
     pdf.ln(5)
 
-    # Kolom yang tidak ingin ditampilkan
-    kolom_dikecualikan = ["Harga Beli", "Nama Pemesan", "Admin", "%Laba"]
+    # Kolom yang tidak ditampilkan
+    kolom_abaikan = ["Harga Beli", "Nama Pemesan", "Admin", "%Laba", "Pilih"]
 
-    # Ambil kolom dari data pertama
+    # Ambil kolom yang ingin ditampilkan
     if not data:
-        pdf.cell(0, 10, "Tidak ada data untuk ditampilkan.", ln=True)
+        pdf.cell(0, 10, "Tidak ada data yang dicentang.", ln=True)
         pdf.output(output_path)
         return output_path
 
-    kolom_ditampilkan = [col for col in data[0].keys() if col not in kolom_dikecualikan]
+    semua_kolom = list(data[0].keys())
+    kolom_ditampilkan = [col for col in semua_kolom if col not in kolom_abaikan]
 
-    # Buat header tabel
-    pdf.set_font("Arial", "B", 12)
+    # Header tabel
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(10, 8, "No", 1)  # Kolom No Urut
     for col in kolom_ditampilkan:
-        pdf.cell(50, 10, col[:15], 1)  # Truncating panjang header kalau perlu
+        pdf.cell(40, 8, col[:20], 1)  # Maks 20 karakter per kolom header
     pdf.ln()
 
-    # Isi tabel
-    pdf.set_font("Arial", "", 12)
-    for row in data:
+    # Isi data tabel
+    pdf.set_font("Arial", "", 10)
+    for idx, row in enumerate(data, start=1):
+        pdf.cell(10, 8, str(idx), 1)  # No urut
         for col in kolom_ditampilkan:
-            pdf.cell(50, 10, str(row[col])[:15], 1)  # Hindari text terlalu panjang
+            cell_value = str(row.get(col, ""))[:40]  # Hindari nilai panjang
+            pdf.cell(40, 8, cell_value, 1)
         pdf.ln()
 
     pdf.output(output_path)

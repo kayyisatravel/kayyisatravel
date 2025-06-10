@@ -23,20 +23,28 @@ def connect_to_gsheet(SHEET_ID, worksheet_name="Data"):
     worksheet = sheet.worksheet(worksheet_name)
     return worksheet
 
+st.set_page_config(page_title="Buat Invoice Tiket", layout="centered")
+st.title("🧾 Buat Invoice")
+
+# Tombol Refresh
+if st.button("🔄 Refresh Data"):
+    st.cache_data.clear()
+
 # === Ambil data dan olah ===
-@st.cache_data
+@st.cache_data(ttl=300)  # Refresh otomatis setiap 5 menit
 def load_data():
     ws = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
     df = pd.DataFrame(ws.get_all_records())
     st.write("📌 Kolom ditemukan:")
 
     if "Tgl Pemesanan" in df.columns:
-        df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce")
+        # Ubah menjadi hanya tanggal
+        df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce").dt.date
     else:
         st.error("❌ Kolom 'Tgl Pemesanan' tidak ditemukan.")
         st.stop()
     return df
-
+df = load_data()
 # === Fungsi PDF ===
 def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
     pdf = FPDF(orientation="L", unit="mm", format="A4")
@@ -74,8 +82,8 @@ def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
     return output_path
 
 # === UI Streamlit ===
-st.set_page_config(page_title="Buat Invoice Tiket", layout="centered")
-st.title("🧾 Buat Invoice")
+#st.set_page_config(page_title="Buat Invoice Tiket", layout="centered")
+#st.title("🧾 Buat Invoice")
 
 df = load_data()
 
@@ -85,8 +93,8 @@ tanggal_range = st.sidebar.date_input("Rentang Tanggal", [datetime.today(), date
 nama_filter = st.sidebar.text_input("Cari Nama Pemesan")
 
 filtered_df = df[
-    (df["Tgl Pemesanan"].dt.date >= tanggal_range[0]) &
-    (df["Tgl Pemesanan"].dt.date <= tanggal_range[1])
+    (df["Tgl Pemesanan"] >= tanggal_range[0]) &
+    (df["Tgl Pemesanan"] <= tanggal_range[1])
 ]
 
 if nama_filter:

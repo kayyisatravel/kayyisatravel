@@ -145,8 +145,8 @@ def extract_booking_code(text: str) -> str:
     - 'No. Pesanan Traveloka 112233'
     """
     m = re.search(
-        r'(?:Order\s*ID|ID\s*Pesanan|No\.?\s*Pesanan(?:\s*Traveloka)?)\D*(\d+)', 
-        text, 
+        r'(?:Order\s*ID|ID\s*Pesanan|No\.?\s*Pesanan(?:\s*Traveloka)?)\D*([A-Za-z0-9\-]+)',
+        text,
         re.IGNORECASE
     )
     return m.group(1) if m else None

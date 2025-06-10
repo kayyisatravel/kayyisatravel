@@ -118,9 +118,11 @@ selected_df = st.data_editor(
         "Pilih": st.column_config.CheckboxColumn("Pilih", help="Centang untuk buat invoice")
     }
 )
+
 # Ambil data yang dicentang
 selected_data = selected_df[selected_df['Pilih'] == True]
-# Hitung total harga jual, bersihkan format dulu kalau perlu
+
+# Fungsi untuk parsing harga jual
 def parse_harga(harga_str):
     if pd.isna(harga_str):
         return 0
@@ -131,7 +133,9 @@ def parse_harga(harga_str):
         return 0
 
 total_harga = selected_data['Harga Jual'].apply(parse_harga).sum()
+
 st.markdown(f"**Total Harga Jual dari data yang dicentang: Rp {total_harga:,.0f}**")
+
 
 # === Buat PDF ===
 if not selected_data.empty:

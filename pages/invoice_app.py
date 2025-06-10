@@ -47,7 +47,9 @@ def load_data():
 # Tombol Refresh
 if st.button("🔄 Refresh Data"):
     st.cache_data.clear()
-    
+     df = load_data()
+else:
+    df = load_data()
 # === Fungsi PDF ===
 def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
     pdf = FPDF(orientation="L", unit="mm", format="A4")
@@ -89,6 +91,9 @@ def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
 #st.title("🧾 Buat Invoice")
 
 df = load_data()
+st.write("Data contoh Tgl Pemesanan (5 pertama):", df["Tgl Pemesanan"].head())
+st.write("Tipe data kolom Tgl Pemesanan:", df["Tgl Pemesanan"].apply(type).unique())
+st.write("Tanggal filter:", tanggal_range)
 
 # === Filter UI ===
 st.sidebar.header("Filter Data")
@@ -111,6 +116,7 @@ filtered_df = df[
     (df["Tgl Pemesanan"] >= tanggal_range[0]) &
     (df["Tgl Pemesanan"] <= tanggal_range[1])
 ]
+st.write("Data setelah filter tanggal:", filtered_df)
 if nama_filter:
     filtered_df = filtered_df[filtered_df["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
 if filtered_df.empty:

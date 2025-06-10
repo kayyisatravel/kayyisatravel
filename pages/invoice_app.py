@@ -8,9 +8,10 @@ from oauth2client.service_account import ServiceAccountCredentials
 # === Konfigurasi ===
 SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 WORKSHEET_NAME = "Data"
+REQUIRED_COLUMNS = ["Nama Pemesan", "Item", "Harga", "Tgl Pemesanan"]
 
 # === Koneksi GSheet via secrets ===
-def connect_to_gsheet(SHEET_ID, worksheet_name="Data"):
+def connect_to_gsheet(sheet_id, worksheet_name):
     scope = [
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/drive"
@@ -18,26 +19,28 @@ def connect_to_gsheet(SHEET_ID, worksheet_name="Data"):
     creds_dict = st.secrets["gcp_service_account"]
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
-    sheet = client.open_by_key(SHEET_ID)
-    worksheet = sheet.worksheet(worksheet_name)
-    return worksheet
+    sheet = client.open_by_key(sheet_id)
+    return sheet.worksheet(worksheet_name)
 
-# === Ambil data dan olah ===
+# === Ambil dan validasi data ===
 @st.cache_data
 def load_data():
     ws = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
     df = pd.DataFrame(ws.get_all_records())
-    st.write("📌 Kolom ditemukan:")
+    df.columns = df.columns.str.strip()  # Hilangkan spasi tersembunyi
 
-    # Ubah format tanggal
-    if "Tgl Pemesanan" in df.columns:
-        df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce")
-    else:
-        st.error("❌ Kolom 'Tgl Pemesanan' tidak ditemukan.")
+    # Validasi kolom
+    missing_cols = [col for col in REQUIRED_COLUMNS if col not in df.columns]
+    if missing_cols:
+        st.error(f"❌ Kolom yang wajib ada tidak ditemukan: {', '.join(missing_cols)}")
         st.stop()
+
+    # Format tanggal
+    df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce")
+
     return df
 
-# === Fungsi PDF ===
+# === Fungsi Buat PDF ===
 def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
     pdf = FPDF()
     pdf.add_page()
@@ -57,9 +60,10 @@ def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
     total = 0
     pdf.set_font("Arial", "", 12)
     for row in data:
-        pdf.cell(80, 10, str(row['Item']), 1)
-        harga = float(row['Harga'])
+        item = str(row["Item"])
+        harga = float(row["Harga"])
         total += harga
+        pdf.cell(80, 10, item, 1)
         pdf.cell(40, 10, f"Rp {harga:,.0f}", 1)
         pdf.ln()
 
@@ -75,12 +79,11 @@ st.title("🧾 Buat Invoice dari Google Sheets")
 
 df = load_data()
 
-# === Filter UI ===
+# === Sidebar Filter ===
 st.sidebar.header("Filter Data")
-tanggal_range = st.sidebar.date_input("Rentang Tanggal", [datetime.today(), datetime.today()])
+tanggal_range = st.sidebar.date_input("Rentang Tanggal Pemesanan", [datetime.today(), datetime.today()])
 nama_filter = st.sidebar.text_input("Cari Nama Pemesan")
 
-# === Filter data ===
 filtered_df = df[
     (df["Tgl Pemesanan"].dt.date >= tanggal_range[0]) &
     (df["Tgl Pemesanan"].dt.date <= tanggal_range[1])
@@ -96,14 +99,14 @@ if filtered_df.empty:
 st.subheader("📋 Data Ditemukan")
 st.dataframe(filtered_df)
 
-# === Pilih data ===
+# === Pilih Baris ===
 selected_rows = st.multiselect(
     "Pilih baris untuk invoice:",
     filtered_df.index.tolist(),
-    format_func=lambda x: f"{filtered_df.loc[x, 'Pemesan']} | {filtered_df.loc[x, 'Item']}"
+    format_func=lambda x: f"{filtered_df.loc[x, 'Nama Pemesan']} | {filtered_df.loc[x, 'Item']}"
 )
 
-# === Buat PDF ===
+# === Generate Invoice PDF ===
 if selected_rows:
     selected_data = filtered_df.loc[selected_rows]
     records = selected_data.to_dict(orient="records")

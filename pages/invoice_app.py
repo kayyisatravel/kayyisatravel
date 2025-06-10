@@ -197,8 +197,7 @@ st.download_button(
     file_name="invoice.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
-
-    email = st.text_input("Email (opsional) untuk kirim invoice")
+email = st.text_input("Email (opsional) untuk kirim invoice")
     if st.button("📧 Kirim Email"):
         try:
             import yagmail

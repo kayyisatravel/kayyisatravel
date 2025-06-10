@@ -103,6 +103,13 @@ editable_df = filtered_df.copy()
 editable_df["Pilih"] = False
 
 selected_df = st.data_editor(
+    editable_df = filtered_df.copy()
+
+# Tambahkan kolom 'Pilih' di posisi pertama
+editable_df.insert(0, 'Pilih', False)
+
+# Tampilkan data editor dengan checkbox di kiri
+selected_df = st.data_editor(
     editable_df,
     use_container_width=True,
     num_rows="fixed",

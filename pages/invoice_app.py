@@ -75,7 +75,7 @@ def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
 
 # === UI Streamlit ===
 st.set_page_config(page_title="Buat Invoice Tiket", layout="centered")
-st.title("🧾 Buat Invoice dari Google Sheets")
+st.title("🧾 Buat Invoice")
 
 df = load_data()
 
@@ -163,7 +163,7 @@ email = st.text_input("Email (opsional) untuk kirim invoice")
 if st.button("📧 Kirim Email"):
     try:
         import yagmail
-        yag = yagmail.SMTP(user="emailanda@gmail.com", oauth2_file="oauth2_creds.json")
+        yag = yagmail.SMTP(user="tiketkay98@gmail.com", oauth2_file="oauth2_creds.json")
         yag.send(
             to=email,
             subject="Invoice Pemesanan",

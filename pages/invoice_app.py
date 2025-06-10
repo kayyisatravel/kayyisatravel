@@ -90,8 +90,8 @@ tanggal_filter = st.sidebar.date_input("Tanggal Pemesanan", value=datetime.today
 nama_filter = st.sidebar.text_input("Nama Pemesan")
 
 filtered_df = df[
-    (df['Tanggal Pemesanan'].dt.date == tanggal_filter) &
-    (df['Nama Pemesan'].str.contains(nama_filter, case=False, na=False))
+    (df['Tgl Pemesanan'].dt.date == tanggal_filter) &
+    (df['Pemesan'].str.contains(nama_filter, case=False, na=False))
 ]
 
 if filtered_df.empty:

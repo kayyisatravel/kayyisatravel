@@ -25,5 +25,4 @@ openpyxl
 imapclient 
 mail-parser
 spacy
-sklearn
 scikit-learn

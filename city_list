@@ -1,4 +1,4 @@
-Banda Aceh (Ibukota)
+Banda Aceh
 Langsa
 Lhokseumawe
 Meulaboh
@@ -6,43 +6,45 @@ Sabang
 Subulussalam
 Sumatera Utara	Binjai
 Gunungsitoli
-Medan (Ibukota)
+Medan
 Padang Sidempuan
 Pematangsiantar
 Sibolga
 Tanjungbalai
 Tebingtinggi
 Sumatera Barat	Bukittinggi
-Padang (Ibukota)
+Padang
 Padangpanjang
 Pariaman
 Payakumbuh
 Sawahlunto
 Solok
 Riau	Dumai
-Pekanbaru (Ibukota)
-Jambi	Jambi (Ibukota)
+Pekanbaru
+Jambi	Jambi
 Sungai Penuh
 Sumatera Selatan	Lubuklinggau
 Pagaralam
-Palembang (Ibukota)
+Palembang
 Prabumulih
-Bengkulu	Bengkulu (Ibukota)
-Lampung	Bandar Lampung (Ibukota)
+Bengkulu	Bengkulu
+Lampung	Bandar Lampung
 Metro
-Kepulauan Riau	Kepulauan Riau	Batam
-Tanjungpinang (Ibukota)
-Kepulauan Bangka Belitung	Kepulauan Bangka Belitung	Pangkalpinang (Ibukota)
+Riau	Riau	Batam
+Tanjungpinang
+Bangka Belitung	
+Bangka Belitung	
+Pangkalpinang
 Cilegon
-Serang (Ibukota)
+Serang
 Tangerang
 Tangerang Selatan
-DKI Jakarta	Administrasi Jakarta Barat
-Administrasi Jakarta Pusat
-Administrasi Jakarta Selatan
-Administrasi Jakarta Timur
-Administrasi Jakarta Utara
-Jawa Barat	Bandung (Ibukota)
+Jakarta Barat
+Jakarta Pusat
+Jakarta Selatan
+Jakarta Timur
+Jakarta Utara
+Jawa Barat	Bandung
 Banjar
 Bekasi
 Bogor
@@ -55,10 +57,10 @@ Jawa Tengah	Magelang
 Pekalongan
 Purwokerto
 Salatiga
-Semarang (Ibukota)
+Semarang
 Surakarta
 Tegal
-Daerah Istimewa (DI) Yogyakarta	Yogyakarta (Ibukota)
+Daerah Istimewa (DI) Yogyakarta	Yogyakarta
 Sleman
 Bantul
 Jawa Timur	Batu
@@ -70,15 +72,15 @@ Mojokerto
 Pasuruan
 Probolinggo
 Surabaya
-Denpasar (Ibukota)
+Denpasar
 Nusa Tenggara	Nusa Tenggara Barat	Bima
-Mataram (Ibukota)
+Mataram
 Kupang
-Pontianak (Ibukota)
+Pontianak
 Singkawang
-Kalimantan Tengah	Palangkaraya (Ibukota)
+Kalimantan Tengah	Palangkaraya
 Kalimantan Selatan	Banjarbaru
-Banjarmasin (Ibukota)
+Banjarmasin
 Kalimantan Timur	Balikpapan
 Bontang
 Samarinda 
@@ -86,18 +88,18 @@ Kalimantan Utara
 Tarakan 
 Bitung
 Kotamobagu
-Manado (Ibukota)
+Manado
 Tomohon
-Gorontalo	Gorontalo (Ibukota)
-Sulawesi Tengah	Palu (Ibukota)
-Sulawesi Selatan	Makassar (Ibukota)
+Gorontalo	Gorontalo
+Sulawesi Tengah	Palu
+Sulawesi Selatan	Makassar
 Palopo
 Parepare
 Sulawesi Tenggara	Bau-Bau
 Kendari
 Ambon
 Tual
-Ternate (Ibukota)
+Ternate
 Tidore Kepulauan
 Sorong
 Jayapura
@@ -158,7 +160,7 @@ Medan
 Binjai
 Padangsidimpuan
 Gunungsitoli
-Kepulauan Mentawai
+Mentawai
 Pesisir Selatan
 Solok
 Sijunjung
@@ -186,7 +188,7 @@ Kampar
 Rokan Hulu
 Bengkalis
 Rokan Hilir
-Kepulauan Meranti
+Meranti
 Pekanbaru
 D U M A I
 Kerinci
@@ -253,10 +255,10 @@ Karimun
 Bintan
 Natuna
 Lingga
-Kepulauan Anambas
+Anambas
 BATAM
 Tanjung Pinang
-Kepulauan Seribu
+Seribu
 Jakarta Selatan
 Jakarta Timur
 Jakarta Pusat
@@ -474,8 +476,8 @@ Nunukan
 Tarakan
 Bolaang Mongondow
 Minahasa
-Kepulauan Sangihe
-Kepulauan Talaud
+Sangihe
+Talaud
 Minahasa Selatan
 Minahasa Utara
 Bolaang Mongondow Utara
@@ -500,7 +502,7 @@ Sigi
 Banggai Laut
 Morowali Utara
 Palu
-Kepulauan Selayar
+Selayar
 Bulukumba
 Bantaeng
 Jeneponto
@@ -558,7 +560,7 @@ Maluku Tenggara Barat
 Maluku Tenggara
 Maluku Tengah
 Buru
-Kepulauan Aru
+Aru
 Seram Bagian Barat
 Seram Bagian Timur
 Maluku Barat Daya
@@ -567,7 +569,7 @@ Ambon
 Tual
 Halmahera Barat
 Halmahera Tengah
-Kepulauan Sula
+Sula
 Halmahera Selatan
 Halmahera Utara
 Halmahera Timur
@@ -592,7 +594,7 @@ Merauke
 Jayawijaya
 Jayapura
 Nabire
-Kepulauan Yapen
+Yapen
 Biak Numfor
 Paniai
 Puncak Jaya

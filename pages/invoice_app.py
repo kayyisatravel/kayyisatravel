@@ -51,40 +51,234 @@ if st.button("🔄 Refresh Data"):
 #else:
     #df = load_data()
 # === Fungsi PDF ===
-def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
+import math # Untuk pembulatan jika diperlukan
+
+def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_output.pdf"):
+    """
+    Membuat file PDF invoice dengan lebar kolom dan font yang menyesuaikan ukuran kertas A4 landscape.
+
+    Args:
+        data (list of dict): Data yang akan ditampilkan dalam tabel invoice.
+                             Setiap dict merepresentasikan baris data.
+        nama_pemesan (str): Nama pemesan untuk invoice.
+        tanggal_invoice (date): Tanggal pembuatan invoice.
+        output_path (str): Path untuk menyimpan file PDF.
+    """
     pdf = FPDF(orientation="L", unit="mm", format="A4")
     pdf.add_page()
-    pdf.set_font("Arial", "B", 16)
+    
+    # --- Header Invoice ---
+    pdf.set_font("Arial", "B", 18) # Judul lebih besar
     pdf.cell(0, 10, "INVOICE PEMESANAN", ln=True, align="C")
     pdf.set_font("Arial", "", 12)
     pdf.ln(5)
-    pdf.cell(0, 10, f"Nama: {nama}", ln=True)
-    pdf.cell(0, 10, f"Tanggal: {tanggal.strftime('%d-%m-%Y')}", ln=True)
-    pdf.ln(5)
+    pdf.cell(0, 7, f"Nama Pemesan: {nama_pemesan}", ln=True) # Gunakan nama_pemesan dari parameter
+    pdf.cell(0, 7, f"Tanggal Invoice: {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True) # Gunakan tanggal_invoice dari parameter
+    pdf.ln(10) # Spasi sebelum tabel
 
-    kolom_abaikan = ["Pilih", "Harga Beli", "Admin", "%Laba", "Nama Pemesan"]
-    kolom_ditampilkan = [col for col in data[0].keys() if col not in kolom_abaikan]
+    # --- Persiapan Kolom ---
+    # Definisikan kolom yang akan ditampilkan dan urutannya
+    # Sesuaikan urutan ini jika Anda ingin tampilan berbeda
+    kolom_prioritas = [
+        "Tgl Pemesanan",
+        "Tgl Berangkat",
+        "Kode Booking",
+        "No Penerbangan / Nama Hotel / Kereta",
+        "Durasi",
+        "Nama Customer",
+        "Rute/Kota",
+        "Harga Jual",
+        "Laba",
+        "BF/NBF",
+        "No Invoice",
+        "Keterangan",
+        "Pemesan" # 'Admin' dan '% Laba' sudah diabaikan di kolom_abaikan
+    ]
 
-    halaman_lebar = 277  # A4 landscape
-    jumlah_kolom = len(kolom_ditampilkan) + 1  # +1 untuk No
-    lebar_kolom = halaman_lebar / jumlah_kolom
+    kolom_abaikan = ["Pilih", "Harga Beli", "Admin", "% Laba", "Nama Pemesan"] # Nama Pemesan juga bisa diabaikan jika sudah ada di header invoice
+    
+    # Filter kolom_prioritas berdasarkan kolom yang ada di data
+    # (data[0] untuk mengambil keys dari entry pertama sebagai referensi)
+    kolom_ditampilkan = [col for col in kolom_prioritas if col in data[0].keys() and col not in kolom_abaikan]
 
-    pdf.set_font("Arial", "B", 10)
-    pdf.cell(lebar_kolom, 8, "No", 1)
+    # --- Perhitungan Lebar Kolom ---
+    halaman_lebar_efektif = pdf.w - 2 * pdf.l_margin # Lebar area konten tanpa margin kiri-kanan
+    
+    # Definisikan lebar untuk kolom tertentu, sisanya akan dibagi rata
+    lebar_spesifik = {
+        "No": 10, # Kolom nomor urut
+        "Tgl Pemesanan": 25,
+        "Tgl Berangkat": 25,
+        "Kode Booking": 20,
+        "Durasi": 15,
+        "Harga Jual": 25,
+        "Laba": 20,
+        "BF/NBF": 15,
+        "No Invoice": 20,
+        "Pemesan": 25,
+        "Nama Customer": 40, # Perkiraan nama cukup panjang
+        "Rute/Kota": 35, # Rute/Kota bisa panjang
+        "Keterangan": 40 # Keterangan bisa sangat panjang
+    }
+
+    lebar_kolom_final = {}
+    total_lebar_spesifik = 0
+    kolom_sisa = []
+
+    # Hitung total lebar spesifik dan identifikasi kolom yang belum punya lebar spesifik
+    for col in ["No"] + kolom_ditampilkan: # 'No' adalah kolom tambahan
+        if col in lebar_spesifik:
+            lebar_kolom_final[col] = lebar_spesifik[col]
+            total_lebar_spesifik += lebar_spesifik[col]
+        else:
+            kolom_sisa.append(col)
+            
+    # Distribusikan lebar sisa ke kolom yang belum punya lebar spesifik
+    if kolom_sisa:
+        lebar_rata_rata_sisa = (halaman_lebar_efektif - total_lebar_spesifik) / len(kolom_sisa)
+        for col in kolom_sisa:
+            lebar_kolom_final[col] = lebar_rata_rata_sisa
+            
+    # Pastikan total lebar tidak melebihi lebar efektif halaman (untuk jaga-jaga pembulatan)
+    if sum(lebar_kolom_final.values()) > halaman_lebar_efektif:
+         # Jika ada kelebihan, kurangi dari kolom yang paling fleksibel (misal, Keterangan)
+         # Atau bagi rata ke semua kolom. Untuk simplicity, kita bisa kurangi dari salah satu.
+         lebar_kolom_final['Keterangan'] = lebar_kolom_final.get('Keterangan', lebar_rata_rata_sisa) - (sum(lebar_kolom_final.values()) - halaman_lebar_efektif)
+
+
+    # --- Header Tabel ---
+    pdf.set_font("Arial", "B", 8) # Font header tabel lebih kecil agar pas
+    pdf.set_fill_color(200, 220, 255) # Warna latar header
+    
+    pdf.cell(lebar_kolom_final["No"], 8, "No", 1, 0, 'C', 1)
     for col in kolom_ditampilkan:
-        pdf.cell(lebar_kolom, 8, col[:30], 1)
+        pdf.cell(lebar_kolom_final[col], 8, col, 1, 0, 'C', 1) # 'C' untuk center
     pdf.ln()
 
-    pdf.set_font("Arial", "", 10)
+    # --- Isi Tabel ---
+    pdf.set_font("Arial", "", 8) # Font isi tabel lebih kecil
+    row_height = 7 # Tinggi baris default
+
     for idx, row in enumerate(data, 1):
-        pdf.cell(lebar_kolom, 8, str(idx), 1)
+        # Tambahkan page break jika baris berikutnya tidak muat
+        if pdf.get_y() + row_height > pdf.page_break_trigger:
+            pdf.add_page()
+            pdf.set_font("Arial", "B", 8) # Ulangi header pada halaman baru
+            pdf.set_fill_color(200, 220, 255)
+            pdf.cell(lebar_kolom_final["No"], 8, "No", 1, 0, 'C', 1)
+            for col in kolom_ditampilkan:
+                pdf.cell(lebar_kolom_final[col], 8, col, 1, 0, 'C', 1)
+            pdf.ln()
+            pdf.set_font("Arial", "", 8) # Kembali ke font isi tabel
+
+        start_x = pdf.get_x() # Simpan posisi X awal untuk baris ini
+        start_y = pdf.get_y() # Simpan posisi Y awal untuk baris ini
+        
+        # Kolom "No"
+        pdf.cell(lebar_kolom_final["No"], row_height, str(idx), 1, 0, 'C')
+
+        # Isi kolom lainnya
         for col in kolom_ditampilkan:
-            value = str(row.get(col, ""))[:40]
-            pdf.cell(lebar_kolom, 8, value, 1)
-        pdf.ln()
+            current_x = pdf.get_x() # Posisi X sebelum mengisi cell
+            current_y = pdf.get_y() # Posisi Y sebelum mengisi cell
+            
+            value = str(row.get(col, ""))
+            
+            # Khusus untuk kolom yang berpotensi panjang, gunakan multi_cell
+            if col in ["No Penerbangan / Nama Hotel / Kereta", "Keterangan", "Nama Customer", "Rute/Kota"]:
+                pdf.multi_cell(lebar_kolom_final[col], row_height / 2, value, border=0, align='L', ln=0)
+                # Kembali ke posisi setelah multi_cell untuk kolom berikutnya
+                pdf.set_xy(current_x + lebar_kolom_final[col], current_y)
+            else:
+                # Untuk kolom lain, gunakan cell biasa dan potong jika terlalu panjang
+                pdf.cell(lebar_kolom_final[col], row_height, value, 1, 0, 'L') # 'L' untuk Left align
+        
+        pdf.ln() # Pindah ke baris berikutnya setelah semua kolom diisi
 
     pdf.output(output_path)
     return output_path
+
+# --- Contoh Penggunaan ---
+if __name__ == "__main__":
+    # Contoh data dummy yang mirip dengan struktur Anda
+    dummy_data = [
+        {
+            "Tgl Pemesanan": date(2025, 6, 10),
+            "Tgl Berangkat": date(2025, 10, 15),
+            "Kode Booking": "ABC12345",
+            "No Penerbangan / Nama Hotel / Kereta": "Garuda Indonesia GA200 Jakarta",
+            "Durasi": "2 jam",
+            "Nama Customer": "Budi Pratama Wijaya Santoso",
+            "Rute/Kota": "CGK - SUB",
+            "Harga Beli": 700000,
+            "Harga Jual": 850000,
+            "Laba": 150000,
+            "BF/NBF": "BF",
+            "No Invoice": "INV001",
+            "Keterangan": "Penerbangan domestik dengan bagasi 20kg",
+            "Pemesan": "Agen A",
+            "Admin": "Admin Y",
+            "% Laba": "21.43%"
+        },
+        {
+            "Tgl Pemesanan": date(2025, 6, 11),
+            "Tgl Berangkat": date(2025, 11, 20),
+            "Kode Booking": "HOTEL987",
+            "No Penerbangan / Nama Hotel / Kereta": "Puri Indah Hotel & Convention",
+            "Durasi": "3 mlm",
+            "Nama Customer": "Ayu Lestari Dewi",
+            "Rute/Kota": "Lombok Barat",
+            "Harga Beli": 335000,
+            "Harga Jual": 400000,
+            "Laba": 65000,
+            "BF/NBF": "NBF",
+            "No Invoice": "INV002",
+            "Keterangan": "Kamar Standard Room Only, view kolam renang",
+            "Pemesan": "Agen B",
+            "Admin": "Admin Z",
+            "% Laba": "19.4%"
+        },
+         {
+            "Tgl Pemesanan": date(2025, 6, 12),
+            "Tgl Berangkat": date(2025, 12, 1),
+            "Kode Booking": "KAI12345",
+            "No Penerbangan / Nama Hotel / Kereta": "KA Argo Wilis (EKO 7/8A)",
+            "Durasi": "8 jam",
+            "Nama Customer": "Siti Aminah Purnomo",
+            "Rute/Kota": "Bandung - Yogyakarta",
+            "Harga Beli": 150000,
+            "Harga Jual": 180000,
+            "Laba": 30000,
+            "BF/NBF": "-",
+            "No Invoice": "INV003",
+            "Keterangan": "Kursi dekat jendela, gerbong 5",
+            "Pemesan": "Agen C",
+            "Admin": "Admin X",
+            "% Laba": "20.0%"
+        },
+        {
+            "Tgl Pemesanan": date(2025, 6, 12),
+            "Tgl Berangkat": date(2025, 12, 1),
+            "Kode Booking": "KAI12345",
+            "No Penerbangan / Nama Hotel / Kereta": "KA Argo Wilis (EKO 7/8A)",
+            "Durasi": "8 jam",
+            "Nama Customer": "Siti Aminah Purnomo Kedua Dengan Nama Yang Lebih Panjang Untuk Tes Multi Cell",
+            "Rute/Kota": "Bandung - Yogyakarta",
+            "Harga Beli": 150000,
+            "Harga Jual": 180000,
+            "Laba": 30000,
+            "BF/NBF": "-",
+            "No Invoice": "INV003",
+            "Keterangan": "Kursi dekat jendela, gerbong 5, sangat panjang untuk tes multi cell di keterangan juga",
+            "Pemesan": "Agen C",
+            "Admin": "Admin X",
+            "% Laba": "20.0%"
+        }
+    ]
+
+    # Coba buat PDF
+    output_pdf_path = buat_invoice_pdf(dummy_data, "PT Travel Gemilang", date.today(), "invoice_contoh.pdf")
+    print(f"Invoice berhasil dibuat: {output_pdf_path}")
 
 # === UI Streamlit ===
 #st.set_page_config(page_title="Buat Invoice Tiket", layout="centered")

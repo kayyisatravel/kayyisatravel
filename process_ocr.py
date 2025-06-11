@@ -561,8 +561,6 @@ def process_ocr_pesawat(text: str) -> list:
 
     return results
 
----
-
 ## D. KERETA PROCESSOR FUNCTIONS
 
 def extract_kereta_passengers(text_keep_lines: str) -> list:
@@ -690,7 +688,7 @@ def process_ocr_kereta(text: str) -> list:
 
     return results
 
----
+
 
 ## E. MASTER PROCESSOR FUNCTION
 

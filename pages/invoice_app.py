@@ -116,7 +116,7 @@ filtered_df = df[
     (df["Tgl Pemesanan"] >= tanggal_range[0]) &
     (df["Tgl Pemesanan"] <= tanggal_range[1])
 ]
-st.write("Data setelah filter tanggal:", filtered_df)
+#st.write("Data setelah filter tanggal:", filtered_df)
 if nama_filter:
     filtered_df = filtered_df[filtered_df["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
 # Debug output opsional

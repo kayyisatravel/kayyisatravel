@@ -16,8 +16,13 @@ def clean_text_keep_lines(text: str) -> str:
     """
     Menghapus baris kosong, memangkas spasi di awal/akhir tiap baris,
     lalu menggabungkan kembali dengan newline per baris yang tersisa.
+    Fokus hanya pada pembersihan spasi berlebih dan karakter non-print (kecuali newline).
     """
-    return re.sub(r'[^\x20-\x7E\n\r\u00C0-\u024F\u1E00-\u1EFF]', '', text)
+    # Menghapus karakter non-ASCII yang bukan newline atau carriage return
+    # Mengizinkan karakter Unicode umum (misalnya di luar ASCII) jika diperlukan
+    cleaned = re.sub(r'[^\x00-\x7F\n\r]+', ' ', text) # Hapus non-ASCII, ganti dengan spasi
+    cleaned_lines = [line.strip() for line in cleaned.splitlines() if line.strip()]
+    return '\n'.join(cleaned_lines)
 
 def normalize_price(raw_price: str) -> int:
     """
@@ -26,12 +31,19 @@ def normalize_price(raw_price: str) -> int:
     """
     if not raw_price:
         return None
-    raw_price = raw_price.replace("Rp", "").replace("IDR", "").strip()
-    # Contoh: "2,730,000.00" ➜ "2730000.00" ➜ ambil integer bagian
-    # Ganti koma jadi kosong, hilangkan titik desimal
-    cleaned = raw_price.replace(",", "").split(".")[0]
-    # Hapus semua karakter kecuali digit
-    digits = re.sub(r"[^\d]", "", cleaned)
+    
+    # Hapus spasi, simbol mata uang, dan tanda ribuan (titik atau koma, tergantung lokal)
+    # Kemudian ambil bagian sebelum desimal jika ada
+    cleaned = re.sub(r'[Rr][Pp]\s*|\bIDR\b|\s+|\.', '', raw_price) # Hapus Rp, IDR, spasi, titik
+    cleaned = cleaned.replace(',', '') # Hapus koma (untuk ribuan)
+    
+    # Jika ada desimal (koma atau titik), ambil bagian integer
+    if '.' in cleaned:
+        cleaned = cleaned.split('.')[0]
+    elif ',' in cleaned: # Jika koma digunakan sebagai desimal
+        cleaned = cleaned.split(',')[0]
+        
+    digits = re.sub(r"[^\d]", "", cleaned) # Hapus semua kecuali digit
     return int(digits) if digits else None
 
 def extract_price_info(text: str) -> (int, int):
@@ -42,79 +54,99 @@ def extract_price_info(text: str) -> (int, int):
     """
     harga_beli = None
     harga_jual = None
-    text_joined = text.replace('\n', ' ').replace('\r', ' ')
+    text_lower = text.lower().replace('\n', ' ').replace('\r', ' ')
 
+    # Pola untuk harga beli (lebih spesifik)
     beli_patterns = [
-        r'\bHarga\s*Beli\s*Total\s*(?:IDR|Rp)?\s*([\d.,]+)',
-        r'\bHarga\s*Beli\s*(?:IDR|Rp)?\s*([\d.,]+)',
-        r'\bTotal\s*Beli\s*(?:IDR|Rp)?\s*([\d.,]+)',
-        r'\bBiaya\s*Beli\s*(?:IDR|Rp)?\s*([\d.,]+)',
-        r'\bBeli[\s:]*Rp?\s*([\d.,]+)',
-        r'\bBeli[\s:]+([\d.,]+)',
-        r'\bBeli\s+([\d.,]+)',
-        r'\bHarga\s*Beli\s*Total\s*[:\-]?\s*(?:Rp)?\s*([\d.,]+)',
-        r'\bHarga\s*Beli\s*[:\-]?\s*(?:Rp)?\s*([\d.,]+)',
-        r'\bBeli\s*[:\-]?\s*Rp[\s.]?([\d.,]+)',
+        r'\bharga\s*beli\s*total\s*(?:idr|rp)?\s*([\d.,]+)',
+        r'\b(harga\s*beli|hb|beli)\s*[:\s]*[rp\.]*([\d.,]+)', # Menangkap 'Beli:' atau 'HB'
+        r'\b(total\s*beli|biaya\s*beli)\s*(?:idr|rp)?\s*([\d.,]+)',
     ]
 
-
+    # Pola untuk harga jual (lebih spesifik)
     jual_patterns = [
-        r'\bHarga\s*Jual\s*(?:IDR|Rp)?\s*([\d.,]+)',
-        r'\bHarga\s*Jual\s*([\d.,]+)',
-        r'\bTotal\s*Harga\s*(?:IDR|Rp)?\s*([\d.,]+)',
-        r'\bJual\s*Total\s*([\d.,]+)',
-        r'\bJual\s*[:\-]?\s*Rp[\s.]?([\d.,]+)',
-        r'\bTotal\s*(?:IDR|Rp)?\s*([\d.,]+)',
-        r'\bHarga\s*per\s*(malam|mlm|night)\s*(?:IDR|Rp)?\s*([\d.,]+)',
-        r'\bTarif\s*(?:IDR|Rp)?\s*([\d.,]+)',
-        r'Rp\s*([\d.,]+)\s*/\s*mlm',
-        r'Jual\s*([\d.,]+)',
-        r'\bHarga\s*Jual\s*Total\s*[:\-]?\s*(?:Rp)?\s*([\d.,]+)',
-        r'\bHarga\s*Jual\s*[:\-]?\s*(?:Rp)?\s*([\d.,]+)'
+        r'\bharga\s*jual\s*total\s*(?:idr|rp)?\s*([\d.,]+)',
+        r'\b(harga\s*jual|hj|jual)\s*[:\s]*[rp\.]*([\d.,]+)', # Menangkap 'Jual:' atau 'HJ'
+        r'\b(total\s*harga|total\s*jual)\s*(?:idr|rp)?\s*([\d.,]+)',
+        r'\b(tarif)\s*(?:idr|rp)?\s*([\d.,]+)',
+        r'(?:rp)?\s*([\d.,]+)\s*/\s*mlm' # Untuk harga per malam (hotel)
     ]
 
     # Coba pola harga beli
     for pat in beli_patterns:
-        m = re.search(pat, text_joined, re.IGNORECASE)
+        m = re.search(pat, text_lower)
         if m:
-            harga_beli = normalize_price(m.group(1))
+            # Group 1 jika ada kata kunci, Group 2 jika ada kata kunci yang lebih spesifik
+            # Pastikan mengambil group yang benar sesuai pola
+            harga_beli = normalize_price(m.group(m.lastindex)) # Ambil grup terakhir yang cocok
             break
 
     # Coba pola harga jual
     for pat in jual_patterns:
-        m = re.search(pat, text_joined, re.IGNORECASE)
+        m = re.search(pat, text_lower)
         if m:
-            harga_jual = normalize_price(m.group(1))
+            harga_jual = normalize_price(m.group(m.lastindex)) # Ambil grup terakhir yang cocok
             break
+            
+    # Fallback untuk total (jika tidak ada keyword "jual") - hindari tumpang tindih
+    if harga_jual is None:
+        m_total_fallback = re.search(r'\b(total)\s*(?:idr|rp)?\s*([\d.,]+)', text_lower)
+        if m_total_fallback:
+            harga_jual = normalize_price(m_total_fallback.group(2))
 
     return harga_beli, harga_jual
 
-import re
-
-def detect_document_type(text: str) -> str:
+def extract_general_booking_code(text: str) -> str:
     """
-    Deteksi apakah teks OCR milik 'kereta', 'pesawat', atau 'hotel'.
-    Prioritas: kereta → pesawat → hotel. Jika tidak ada kata kunci, 'unknown'.
+    Fungsi universal untuk mengekstrak kode booking (baik hotel, pesawat, atau kereta).
+    Mencari pola umum seperti PNR, Order ID, Kode Booking, No. Pesanan.
     """
-    tl = text.lower()
+    m = re.search(
+        r"(?:PNR|Kode\s*booking|Booking\s*Code|Order\s*ID|ID\s*Pesanan|No\.?\s*Pesanan(?:\s*Traveloka)?)[ :\-\_]*([A-Z0-9]{5,10})\b", 
+        text, 
+        re.IGNORECASE
+    )
+    return m.group(1).upper() if m else None
 
-    # Kereta
-    if re.search(r'\b(kereta|ka\s+[a-z]+|stasiun|eksekutif|ekonomi|bisnis|kode\s*booking\s*[a-z0-9]{3,})', tl):
-        return 'kereta'
+def parse_date_from_str(s: str) -> datetime:
+    """
+    Mencari pola tanggal '(\\d{1,2}) <nama_bulan> (\\d{4})' atau '<nama_bulan> (\\d{1,2}), (\\d{4})' di s,
+    mengembalikan datetime atau None.
+    """
+    month_map = {
+        'jan': 1, 'januari': 1, 'feb': 2, 'februari': 2, 'mar': 3, 'maret': 3,
+        'apr': 4, 'april': 4, 'mei': 5, 'jun': 6, 'juni': 6,
+        'jul': 7, 'juli': 7, 'aug': 8, 'agustus': 8, 'sep': 9, 'september': 9,
+        'okt': 10, 'oktober': 10, 'nov': 11, 'november': 11, 'des': 12, 'desember': 12
+    }
+    
+    # Format: DD Mon YYYY
+    m_dmy = re.search(r'(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})', s, re.IGNORECASE)
+    if m_dmy:
+        day, month_str, year = m_dmy.groups()
+        mm = month_map.get(month_str.lower()[:3])
+        if mm:
+            try:
+                return datetime(int(year), mm, int(day))
+            except ValueError:
+                pass
 
-    # Pesawat
-    if re.search(r'\b(flight|airlines|maskapai|pnr|kode\s*penerbangan|bandara|terminal|air\s*asia|airasia|citilink|garuda\s*Indonesia|jet|nam\s*air|batik\s*air|wings\s*air|susi\s*air|pelita\s*air|sriwijaya\s*air|lion\s*air)\b', tl):
-        return 'pesawat'
+    # Format: Mon DD, YYYY
+    m_mdy = re.search(r'([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})', s, re.IGNORECASE)
+    if m_mdy:
+        month_str, day, year = m_mdy.groups()
+        mm = month_map.get(month_str.lower()[:3])
+        if mm:
+            try:
+                return datetime(int(year), mm, int(day))
+            except ValueError:
+                pass
+                
+    return None
 
-    # Hotel
-    if re.search(r'\b(hotel|check[-\s]?in|check[-\s]?out|tipe\s*kamar|nama\s*tamu)\b', tl):
-        return 'hotel'
+---
 
-    return 'unknown'
-
-# =================================
-# === HOTEL PROCESSOR FUNCTIONS ===
-# =================================
+## B. HOTEL PROCESSOR FUNCTIONS
 
 def load_city_list(filepath="city_list.txt") -> list:
     """
@@ -136,78 +168,83 @@ def load_city_list(filepath="city_list.txt") -> list:
         print(f"[WARNING] File {filepath} tidak ditemukan. Daftar kota akan kosong.")
         return []
 
-def extract_booking_code(text: str) -> str:
-    """
-    Ekstrak kode booking dari teks.
-    Contoh pola yang dicari:
-    - 'Order ID 123456'
-    - 'ID Pesanan: 78910'
-    - 'No. Pesanan Traveloka 112233'
-    - 'Kode Booking: ABC123DEF' <-- Sekarang bisa mendeteksi huruf
-    """
-    m = re.search(
-        # Mengganti (\d+) menjadi ([a-zA-Z0-9]+)
-        r'(?:Order\s*ID|ID\s*Pesanan|No\.?\s*Pesanan(?:\s*Traveloka)?|Kode\s*Booking):\s*([a-zA-Z0-9]+)', 
-        text, 
-        re.IGNORECASE
-    )
-    return m.group(1) if m else None
-
-
 def extract_hotel_name(text_keep_lines: str) -> str:
     """
     Heuristik mengekstrak nama hotel dari blok teks (per baris).
     - Abaikan baris yang mengandung stopwords tertentu (alamat, jl, tipe kamar, dsb).
-    - Jika baris sebelumnya mengandung 'Order ID' atau 'Itinerary', maka baris ini dianggap nama hotel.
-    - Atau: jika baris berikutnya mengandung 'jl' atau 'jalan', baris ini dianggap nama hotel.
+    - Prioritaskan baris setelah 'Order ID' atau 'Itinerary'.
+    - Prioritaskan baris sebelum 'jl' atau 'jalan'.
+    - Coba baris paling atas yang tidak mengandung stopwords.
     """
     stopwords = [
-        'alamat', 'jl', 'jalan', 'tipe kamar', 'check-in', 'check out',
-        'makanan', 'nama tamu', 'jual', 'beli', 'order id', 'itinerary'
+        'alamat', 'jl', 'jalan', 'tipe kamar', 'check-in', 'check out', 'makanan', 
+        'nama tamu', 'jual', 'beli', 'order id', 'itinerary', 'total', 'harga', 
+        'tanggal', 'jam', 'pnr', 'kode booking', 'no. pesanan', 'hotel' # Tambah stopwords
     ]
-    lines = text_keep_lines.splitlines()
+    lines = [line.strip() for line in text_keep_lines.splitlines() if line.strip()]
+
+    # Pencarian berbasis konteks (sebelum/sesudah kata kunci)
     for idx, line in enumerate(lines):
         lowercase = line.lower()
-        if any(sw in lowercase for sw in stopwords):
-            continue
+        
+        # Prioritas 1: Baris setelah "Order ID" atau "Itinerary"
+        if idx > 0 and re.search(r'(order\s*id|itinerary|pemesanan)', lines[idx - 1], re.IGNORECASE):
+            if not any(sw in lowercase for sw in stopwords): # Pastikan bukan stopwords
+                return line.strip()
 
-        # Jika baris sebelumnya mengandung 'order id' atau 'itinerary'
-        if idx > 0 and re.search(r'(order\s*id|itinerary)', lines[idx - 1], re.IGNORECASE):
-            return line.strip()
-
-        # Jika baris berikutnya mengandung 'jl' atau 'jalan'
+        # Prioritas 2: Baris sebelum "jl" atau "jalan"
         if idx + 1 < len(lines) and re.search(r'\b(jl|jalan)\b', lines[idx + 1], re.IGNORECASE):
-            return line.strip()
+            if not any(sw in lowercase for sw in stopwords):
+                return line.strip()
+    
+    # Prioritas 3: Coba baris paling atas yang bersih dari stopwords dan bukan angka
+    for line in lines:
+        lowercase = line.lower()
+        if not any(sw in lowercase for sw in stopwords) and not line.strip().isdigit():
+            # Cek jika baris terlihat seperti kode pos, telepon, atau harga
+            if not re.search(r'^\d{5,}$|^\+?\d{7,}|[\d.,]{4,}', line): # Angka panjang, telepon, harga
+                 return line.strip()
 
     return None
 
 def clean_hotel_name(name: str) -> str:
     """
-    Jika perlu, bersihkan trailing karakter seperti ')'.
+    Jika perlu, bersihkan trailing karakter seperti ')', tanda baca, atau kata-kata umum.
     """
     if not name:
         return None
-    return name.rstrip(' )')
+    # Hapus spasi di akhir, tanda kurung, titik, koma
+    name = re.sub(r'[)\.,]+$', '', name.strip())
+    # Hapus "Hotel" jika ada di akhir dan bukan bagian dari nama unik
+    name = re.sub(r'\bHotel\b$', '', name, flags=re.IGNORECASE).strip()
+    return name if name else None
 
 def extract_city(text: str, city_list: list) -> str:
     """
     Mencari kota dari teks dengan dua metode:
     1. Langsung mencari pola 'Kota Xxxx' atau 'Kabupaten Xxxx'
-    2. Jika gagal, cari salah satu kota di city_list yang muncul di teks (case-insensitive).
+    2. Jika gagal, cari salah satu kota di city_list yang muncul di teks (case-insensitive, word boundary).
     """
-    m = re.search(r'\b(Kota|Kabupaten)\s+([A-Za-z\s]+)', text, re.IGNORECASE)
+    text_lower = text.lower()
+    
+    # Metode 1: Cari pola 'Kota Xxxx' atau 'Kabupaten Xxxx'
+    m = re.search(r'\b(kota|kabupaten)\s+([a-z\s]+)', text_lower)
     if m:
         candidate = m.group(2).strip()
         # Cocokkan dengan daftar kota (case-insensitive)
         for city in city_list:
-            if city.lower() == candidate.lower():
+            if city.lower() == candidate:
                 return city
-        return candidate
+        return candidate # Jika tidak ada di city_list tapi polanya kuat
 
-    tl = text.lower()
-    for city in city_list:
-        if city.lower() in tl:
+    # Metode 2: Cari salah satu kota di city_list
+    # Urutkan city_list dari yang terpanjang agar nama kota multi-kata cocok lebih dulu
+    sorted_cities = sorted(city_list, key=len, reverse=True)
+    for city in sorted_cities:
+        # Gunakan word boundary untuk menghindari pencocokan parsial (misal: "solo" di "konsolo")
+        if re.search(r'\b' + re.escape(city.lower()) + r'\b', text_lower):
             return city
+            
     return None
 
 def extract_room_count(text: str) -> int:
@@ -215,7 +252,7 @@ def extract_room_count(text: str) -> int:
     Mencari pola seperti '2 x Kamar' → kembalikan 2.
     Jika tidak ketemu, default 1.
     """
-    m = re.search(r'(\d+)\s*[xX]\s*Kamar', text, re.IGNORECASE)
+    m = re.search(r'(\d+)\s*(x|kali)\s*(kamar|room)', text, re.IGNORECASE)
     if m:
         return int(m.group(1))
     return 1
@@ -228,95 +265,77 @@ def extract_bf(text: str) -> str:
     - Jika tidak jelas, return 'N/A'
     """
     tl = text.lower()
+    
+    # Pola NBF (lebih spesifik)
     nbf_patterns = [
-        r'tidak\s+termasuk\s+sarapan',
-        r'tidak.*sarapan',
-        r'non[-\s]?breakfast',
-        r'room\s+only',
-        r'makanan\s*[:\-]?\s*(tidak ada|tidak tersedia|tidak disediakan|-)',
-        r'makanan\s*[:\-]?\s*$'
+        r'\b(tidak\s+termasuk\s+sarapan|tidak.*sarapan|non[-\s]?breakfast|room\s+only|tanpa\s+sarapan)\b',
+        r'\bmakanan\s*[:\-]?\s*(tidak ada|tidak tersedia|tidak disediakan|[-]|x)\b' # Pola untuk "makanan: -"
     ]
     for pat in nbf_patterns:
-        if re.search(r'makanan\s*[:\-]?\s*$', tl, re.MULTILINE) or 'makanan:' in tl and 'sarapan' not in tl:
-
+        if re.search(pat, tl):
             return 'NBF'
 
+    # Pola BF (lebih spesifik)
     bf_patterns = [
-        r'termasuk\s+sarapan',
-        r'sarapan\s+termasuk',
-        r'free\s+breakfast',
-        r'breakfast\s+included',
-        r'makanan\s*[:\-]?\s*sarapan'
+        r'\b(termasuk\s+sarapan|sarapan\s+termasuk|free\s+breakfast|breakfast\s+included|dengan\s+sarapan)\b',
+        r'\bmakanan\s*[:\-]?\s*sarapan\b'
     ]
     for pat in bf_patterns:
-        if re.search(pat, tl, re.MULTILINE):
+        if re.search(pat, tl):
             return 'BF'
+
+    # Jika ada keyword "makanan" tapi tidak ada "sarapan" di dekatnya (ambigu)
+    if re.search(r'\bmakanan\b', tl) and not re.search(r'\b(sarapan|breakfast)\b', tl):
+        return 'N/A' # Ini bisa jadi "N/A" atau default ke "NBF" tergantung aturan bisnis
 
     return 'N/A'
 
 def extract_customer_names(text_keep_lines: str) -> list:
     """
     Mencari blok 'Nama Tamu:' dan mengumpulkan semua nama yang tertera hingga menemukan
-    kata kunci selanjutnya (Check-in, Check-out, Permintaan, atau akhir blok).
-    Format nama asumsi tiap baris di awal diberi nomor '1. Nama', '2. Nama', dsb.
+    kata kunci selanjutnya (Check-in, Check-out, Permintaan, Harga, Jual, Beli, atau akhir blok).
+    Mendukung format nama dengan atau tanpa penomoran '1. Nama', '2. Nama', dsb.
     """
-    m = re.search(
-        r'Nama(?:\s+(?:Tamu|Penumpang|Customer))?\s*:?\s*((?:.*\n)+?)(?:Check[-\s]?in|Check[-\s]?out|Permintaan|$)',
-        text_keep_lines,
-        re.IGNORECASE
-    )
-    if not m:
-        return []
-
-    block = m.group(1).strip()
     names = []
-    for line in block.splitlines():
-        # Hapus prefix angka “1.” atau “2.”
-        nm = re.sub(r'^\d+\.\s*', '', line.strip())
-        if nm:
-            names.append(nm)
-    return names
+    # Pola untuk menangkap blok teks setelah "Nama (Tamu/Penumpang/Customer):"
+    m = re.search(
+        r'Nama(?:\s+(?:Tamu|Penumpang|Customer))?\s*[:\-]?\s*((?:[^\n]*\n?)+?)(?=\n\s*(?:Check[-\s]?in|Check[-\s]?out|Permintaan|Harga|Jual|Beli|Total|No\.?\s*Invoice|\d+\.\s*[\w\s]+:\s*\d+|Pembayaran)|$)',
+        text_keep_lines,
+        re.IGNORECASE | re.DOTALL # re.DOTALL agar '.' cocok dengan newline
+    )
+    
+    if m:
+        raw_block = m.group(1).strip()
+        lines = [line.strip() for line in raw_block.splitlines() if line.strip()] # Filter baris kosong
+        
+        for line in lines:
+            # Hapus prefix angka "1." atau "2."
+            name_match = re.match(r'^\d+\.\s*(.+)', line) 
+            if name_match:
+                name = name_match.group(1).strip()
+            else:
+                name = line.strip() # Jika tidak ada penomoran
+
+            # Hapus gelar seperti Tn, Ny, Mr, Mrs, Ms, Sdr
+            name = re.sub(r"\b(Tn|Ny|Nn|Mr|Mrs|Ms|Sdr|Bapak|Ibu)\.?\s+", "", name, flags=re.IGNORECASE).strip()
+            
+            # Tambahkan nama hanya jika bukan string kosong atau hanya angka
+            if name and not name.isdigit():
+                names.append(name)
+    
+    return names if names else []
 
 def extract_dates_hotel(text: str) -> (datetime, datetime):
     """
-    Mencari tanggal Check-in & Check-out di korpus teks. 
-    Input contoh:
-      'Check-in: 28 Mei 2025' (atau variasi spasi/strip).
-      'Check-out: 30 Mei 2025'
-    Mengembalikan tuple (checkin_datetime, checkout_datetime). 
+    Mencari tanggal Check-in & Check-out di korpus teks.
+    Mengembalikan tuple (checkin_datetime, checkout_datetime).
     Jika salah satu tidak ditemukan, kembalikan None untuk yang tidak ada.
     """
-    def parse_date_from_str(s: str) -> datetime:
-        """
-        Mencari pola tanggal '(\\d{1,2}) <nama_bulan> (\\d{4})' di s, 
-        mengembalikan datetime atau None.
-        """
-        m = re.search(r'(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})', s)
-        if not m:
-            return None
-
-        day, month_str, year = m.groups()
-        month_map = {
-            'jan': 1, 'januari': 1, 'feb': 2, 'februari': 2, 'mar': 3, 'maret': 3,
-            'apr': 4, 'april': 4, 'may': 5, 'mei': 5, 'jun': 6, 'juni': 6,
-            'jul': 7, 'juli': 7, 'aug': 8, 'agustus': 8, 'sep': 9, 'september': 9,
-            'oct': 10, 'oktober': 10, 'nov': 11, 'november': 11, 'dec': 12, 'desember': 12
-        }
-        m3 = month_map.get(month_str.strip().lower())
-        if not m3:
-            return None
-        try:
-            return datetime(int(year), m3, int(day))
-        except ValueError:
-            return None
-
-    # Cari Check-in
     checkin = None
     m_in = re.search(r'Check[-\s]?in\s*[:\-]?\s*(\d{1,2}\s+[A-Za-z]+\s+\d{4})', text, re.IGNORECASE)
     if m_in:
         checkin = parse_date_from_str(m_in.group(1))
 
-    # Cari Check-out
     checkout = None
     m_out = re.search(r'Check[-\s]?out\s*[:\-]?\s*(\d{1,2}\s+[A-Za-z]+\s+\d{4})', text, re.IGNORECASE)
     if m_out:
@@ -336,42 +355,57 @@ def extract_duration_days_hotel(checkin: datetime, checkout: datetime) -> int:
 
 def process_ocr_text_multiple(text: str) -> list:
     """
-    Memproses OCR hotel, mengembalikan list of dict. 
+    Memproses OCR hotel, mengembalikan list of dict.
     Dicetak satu per kamar/tamu.
     """
     city_list = load_city_list()
-    cleaned = clean_text(text)
-    cleaned_lines = clean_text_keep_lines(text)
+    cleaned = clean_text(text) # Untuk pencarian global (regex tanpa newline)
+    cleaned_lines = clean_text_keep_lines(text) # Untuk ekstraksi berbasis baris (nama, hotel name)
 
-    kode_booking = extract_booking_code(cleaned)
+    kode_booking = extract_general_booking_code(cleaned)
     hotel_name = clean_hotel_name(extract_hotel_name(cleaned_lines))
-    durasi_night = None
+    
     checkin_dt, checkout_dt = extract_dates_hotel(cleaned)
     durasi_night = extract_duration_days_hotel(checkin_dt, checkout_dt)
 
     jumlah_kamar = extract_room_count(cleaned)
     harga_beli_total, harga_jual_total = extract_price_info(cleaned)
     customer_names = extract_customer_names(cleaned_lines)
-
-    # Debug print (optional)
-    #print(f"[DEBUG] Jumlah kamar: {jumlah_kamar}, Nama Tamu: {customer_names}")
-
-    # Hitung per-kamar
-    harga_beli_per_kamar = (harga_beli_total // jumlah_kamar) if (harga_beli_total and jumlah_kamar) else None
-    harga_jual_per_kamar = (harga_jual_total // jumlah_kamar) if (harga_jual_total and jumlah_kamar) else None
-
-    # Sesuaikan panjang customer_names dengan jumlah_kamar
-    if len(customer_names) < jumlah_kamar:
-        customer_names += [None] * (jumlah_kamar - len(customer_names))
-    elif len(customer_names) > jumlah_kamar:
-        customer_names = customer_names[:jumlah_kamar]
-
+    
     kota = extract_city(cleaned, city_list)
     bf_status = extract_bf(cleaned)
 
+    # Sesuaikan panjang customer_names dengan jumlah_kamar
+    # Jika jumlah_kamar lebih besar dari jumlah nama, tambahkan None
+    # Jika jumlah_kamar lebih kecil, potong daftar nama
+    if len(customer_names) < jumlah_kamar:
+        customer_names.extend([None] * (jumlah_kamar - len(customer_names)))
+    elif len(customer_names) > jumlah_kamar and jumlah_kamar > 0: # Cek jumlah_kamar > 0 untuk menghindari pemotongan nama jadi []
+        customer_names = customer_names[:jumlah_kamar]
+    
+    # Jika tidak ada nama dan jumlah kamar 1, gunakan None sebagai nama default
+    if not customer_names and jumlah_kamar == 1:
+        customer_names = [None]
+    elif not customer_names and jumlah_kamar > 1: # Jika tidak ada nama, tapi banyak kamar, isi dengan None
+        customer_names = [None] * jumlah_kamar
+
+
+    # Hitung harga per-kamar
+    harga_beli_per_kamar = (harga_beli_total // jumlah_kamar) if (harga_beli_total is not None and jumlah_kamar > 0) else None
+    harga_jual_per_kamar = (harga_jual_total // jumlah_kamar) if (harga_jual_total is not None and jumlah_kamar > 0) else None
+
     results = []
-    for idx in range(jumlah_kamar):
+    # Iterasi berdasarkan jumlah kamar untuk membuat entri
+    for idx in range(jumlah_kamar if jumlah_kamar > 0 else 1): # Pastikan setidaknya satu iterasi jika jumlah_kamar = 0 atau nama kosong
         nama_tamu = customer_names[idx] if idx < len(customer_names) else None
+        
+        laba = None
+        persen_laba = ''
+        if harga_beli_per_kamar is not None and harga_jual_per_kamar is not None:
+            laba = harga_jual_per_kamar - harga_beli_per_kamar
+            if harga_beli_per_kamar > 0:
+                persen_laba = f"{round((laba / harga_beli_per_kamar) * 100, 2)}%"
+
         data = {
             'Tgl Pemesanan': datetime.today().strftime('%Y-%m-%d'),
             'Tgl Berangkat': checkin_dt.strftime('%Y-%m-%d') if checkin_dt else '',
@@ -382,30 +416,21 @@ def process_ocr_text_multiple(text: str) -> list:
             'Rute/Kota': kota,
             'Harga Beli': harga_beli_per_kamar,
             'Harga Jual': harga_jual_per_kamar,
-            'Laba': None,
+            'Laba': laba,
             'BF/NBF': bf_status,
             'No Invoice': '',
             'Keterangan': '',
             'Pemesan': '',
             'Admin': '',
-            '% Laba': ''
+            '% Laba': persen_laba
         }
-        # Hitung laba dan persentase
-        if data['Harga Beli'] is not None and data['Harga Jual'] is not None:
-            data['Laba'] = data['Harga Jual'] - data['Harga Beli']
-            if data['Harga Beli'] > 0:
-                data['% Laba'] = f"{round((data['Laba'] / data['Harga Beli']) * 100, 2)}%"
-
         results.append(data)
 
     return results
 
-# ===================================
-import re
-from datetime import datetime
+---
 
-# === PESAWAT PROCESSOR FUNCTIONS ===
-# ===================================
+## C. PESAWAT PROCESSOR FUNCTIONS
 
 def process_ocr_pesawat(text: str) -> list:
     """
@@ -413,119 +438,123 @@ def process_ocr_pesawat(text: str) -> list:
     Mengembalikan list of dict berisi detail pemesanan.
     """
     cleaned = text.strip()
+    tl = cleaned.lower()
 
-    # 1. Kode Booking / PNR
-    kode_booking = None
-    m_code = re.search(r"(?:PNR|Kode\s*booking)[:\-]?\s*([A-Z0-9]{5,8})", cleaned, re.IGNORECASE)
-    if m_code:
-        kode_booking = m_code.group(1)
+    # 1. Kode Booking / PNR (menggunakan fungsi universal)
+    kode_booking = extract_general_booking_code(cleaned)
 
     # 2. Nama Maskapai + Kode Penerbangan (IATA + nomor)
     penerbangan = None
-    m_maskapai = re.search(r"\b(garuda|citilink|lion|batik|airasia|super\s*air\s*jet|pelita)\b.*?([A-Z]{2})[- ]?(\d{2,4})", cleaned, re.IGNORECASE)
+    maskapai_keywords = r"(garuda|citilink|lion|batik|airasia|super\s*air\s*jet|pelita|sriwijaya|nam\s*air|wings\s*air|susi\s*air)"
+    
+    # Pola pertama: Cari maskapai, lalu kode penerbangan
+    m_maskapai = re.search(rf"{maskapai_keywords}.*?([A-Z]{2}[- ]?\d{{2,4}})\b", tl, re.IGNORECASE)
     if m_maskapai:
-        penerbangan = m_maskapai.group(2) + m_maskapai.group(3)
+        penerbangan = m_maskapai.group(2).replace(" ", "").upper()
     else:
-        # fallback, ambil pola umum XX123
-        m_fallback = re.search(r"\b([A-Z]{2})[- ]?(\d{2,4})\b", cleaned)
+        # Fallback: Cari pola XX123 di mana saja
+        m_fallback = re.search(r"\b([A-Z]{2}[- ]?\d{2,4})\b", tl)
         if m_fallback:
-            penerbangan = m_fallback.group(1) + m_fallback.group(2)
+            penerbangan = m_fallback.group(1).replace(" ", "").upper()
 
-    # 3. Durasi jam (berangkat - tiba)
-    durasi = None
-    m_times = re.findall(r"(\d{1,2}[:.]\d{2}(?:AM|PM)?)", cleaned, re.IGNORECASE)
-    if len(m_times) >= 2:
-        durasi = f"{m_times[0]} - {m_times[1]}"
+    # 3. Waktu Berangkat dan Tiba (bukan durasi)
+    waktu_berangkat_tiba = None
+    # Prioritaskan waktu setelah 'Berangkat' dan 'Tiba'/'Datang'
+    m_berangkat_time = re.search(r'(?:berangkat|depart)\s*.*?(\d{1,2}[:.]\d{2}(?:\s*(?:am|pm))?)', tl, re.IGNORECASE)
+    m_tiba_time = re.search(r'(?:tiba|datang|arrive)\s*.*?(\d{1,2}[:.]\d{2}(?:\s*(?:am|pm))?)', tl, re.IGNORECASE)
+
+    if m_berangkat_time and m_tiba_time:
+        t_berangkat = m_berangkat_time.group(1).replace('.', ':').replace(' ', '').upper()
+        t_tiba = m_tiba_time.group(1).replace('.', ':').replace(' ', '').upper()
+        waktu_berangkat_tiba = f"{t_berangkat} - {t_tiba}"
+    else: # Fallback ke pola jam umum (jika tidak ada keyword berangkat/tiba)
+        m_times_general = re.findall(r"(\d{1,2}[:.]\d{2}(?:\s*(?:am|pm))?)", tl, re.IGNORECASE)
+        if len(m_times_general) >= 2:
+            t_berangkat = m_times_general[0].replace('.', ':').replace(' ', '').upper()
+            t_tiba = m_times_general[1].replace('.', ':').replace(' ', '').upper()
+            waktu_berangkat_tiba = f"{t_berangkat} - {t_tiba}"
 
     # 4. Rute bandara (kode IATA)
-    iata_codes = re.findall(r"\(([A-Z]{3})\)", cleaned)
-    excluded = {'PNR', 'ECO', 'VIP', 'BUS', 'TBA'}
-    valid_routes = [code for code in iata_codes if code not in excluded]
+    iata_codes_raw = re.findall(r"\b([A-Z]{3})\b", tl)
+    # Perluas daftar excluded dengan common non-airport codes
+    excluded_iata = {'PNR', 'ECO', 'VIP', 'BUS', 'TBA', 'STD', 'DPR', 'JKT', 'KUL', 'SIN', 'IDR', 'USD'} # Tambahkan lebih banyak
+    
+    valid_routes = [code.upper() for code in iata_codes_raw if code.upper() not in excluded_iata]
     rute_final = None
-    if len(valid_routes) >= 2:
+    
+    # Prioritaskan rute berpasangan seperti CGK-SUB atau dari konteks 'dari'/'ke'
+    m_rute_dash = re.search(r"\b([A-Z]{3})[- ]?([A-Z]{3})\b", tl) # CGK-SUB atau CGK SUB
+    if m_rute_dash:
+        from_iata = m_rute_dash.group(1).upper()
+        to_iata = m_rute_dash.group(2).upper()
+        if from_iata not in excluded_iata and to_iata not in excluded_iata:
+            rute_final = f"{from_iata} - {to_iata}"
+    
+    # Fallback jika tidak ada rute dash, ambil 2 IATA valid pertama
+    if not rute_final and len(valid_routes) >= 2:
         rute_final = f"{valid_routes[0]} - {valid_routes[1]}"
 
     # 5. Tanggal Berangkat
-    tgl_berangkat = ''
-    # dua format: '10 Jun 2025' atau 'Jun 10, 2025'
-    m_date = re.search(
-        r"\b(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\b|\b([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})\b",
-        cleaned
+    tgl_berangkat_str = ''
+    # Prioritaskan tanggal setelah 'Berangkat', 'Departs', atau 'Tanggal'
+    m_date_after_keyword = re.search(
+        r"(?:berangkat|depart|tanggal)\s*[:,\-]?\s*(\d{1,2}\s+[A-Za-z]+\s+\d{4})", 
+        tl,
+        re.IGNORECASE
     )
-    if m_date:
-        # grup 1-3 untuk format DMY, 4-6 untuk MDY
-        if m_date.group(1):
-            day, month_str, year = m_date.group(1), m_date.group(2), m_date.group(3)
-        else:
-            month_str, day, year = m_date.group(4), m_date.group(5), m_date.group(6)
+    if m_date_after_keyword:
+        tgl_berangkat_dt = parse_date_from_str(m_date_after_keyword.group(1))
+        if tgl_berangkat_dt:
+            tgl_berangkat_str = tgl_berangkat_dt.strftime('%Y-%m-%d')
+    else: # Fallback ke pola tanggal umum jika tidak ada keyword
+        m_date_general = re.search(
+            r"(\d{1,2}\s+[A-Za-z]+\s+\d{4})|([A-Za-z]+\s+\d{1,2},\s*\d{4})", # DD Mon YYYY atau Mon DD, YYYY
+            tl
+        )
+        if m_date_general:
+            date_str_to_parse = m_date_general.group(1) if m_date_general.group(1) else m_date_general.group(2)
+            tgl_berangkat_dt = parse_date_from_str(date_str_to_parse)
+            if tgl_berangkat_dt:
+                tgl_berangkat_str = tgl_berangkat_dt.strftime('%Y-%m-%d')
 
-        month_map = {
-            'jan': 1, 'januari': 1, 'feb': 2, 'februari': 2, 'mar': 3, 'maret': 3,
-            'apr': 4, 'april': 4, 'mei': 5, 'jun': 6, 'juni': 6,
-            'jul': 7, 'juli': 7, 'aug': 8, 'agustus': 8, 'sep': 9, 'september': 9,
-            'okt': 10, 'oktober': 10, 'nov': 11, 'november': 11, 'des': 12, 'desember': 12
-        }
-        mm = month_map.get(month_str.lower()[:3])
-        if mm:
-            try:
-                tgl_berangkat = datetime(int(year), mm, int(day)).strftime('%Y-%m-%d')
-            except ValueError:
-                tgl_berangkat = ''
-
-    # 6. Harga Beli dan Harga Jual
-    harga_beli = harga_jual = None
-    # regex diperbarui: cari 'Beli' atau 'BELI' tanpa memperhatikan urutan kata
-    hb_match = re.search(r"(?:Beli|HB|Harga\s*Beli)[:\s]*[Rp\.]*([\d,\.]+)", cleaned, re.IGNORECASE)
-    hj_match = re.search(r"(?:Jual|HJ|Harga\s*Jual)[:\s]*[Rp\.]*([\d,\.]+)", cleaned, re.IGNORECASE)
-    if hb_match:
-        harga_beli = int(re.sub(r"[^\d]", "", hb_match.group(1)))
-    if hj_match:
-        harga_jual = int(re.sub(r"[^\d]", "", hj_match.group(1)))
+    # 6. Harga Beli dan Harga Jual (menggunakan fungsi universal)
+    harga_beli, harga_jual = extract_price_info(cleaned)
 
     # 7. Nama penumpang
     names = []
-    m_cust = re.search(
-        r"nama\s*(?:penumpang|customer|tamu)?\s*[:\-]?\s*((?:.*\n?)+?)(?:\n\s*\n|Harga|Check[-\s]?in|Check[-\s]?out|$)",
-        cleaned,
-        re.IGNORECASE
-    )
-    if m_cust:
-        raw_block = m_cust.group(1)
-        lines = [line.strip() for line in raw_block.strip().splitlines()]
-        for line in lines:
-            match = re.match(r"^\d+\.\s*(.+)", line)
-            if match:
-                name = re.sub(r"\b(Tn|Ny|Nn|Mr|Mrs|Ms)\.?\s+", "", match.group(1)).strip()
-                if name:
-                    names.append(name)
+    # Re-use extract_customer_names dari modul hotel, atau modifikasi sedikit jika perlu
+    # Asumsi Nama Penumpang: di pesawat juga pakai format yang mirip (1. Nama, 2. Nama)
+    names = extract_customer_names(cleaned) # Menggunakan clean_text untuk nama juga bisa, tapi lebih baik clean_text_keep_lines
+
     if not names:
-        names = [None]
+        names = [None] # Pastikan minimal satu entri jika tidak ada nama
 
     # 8. Hitung harga per orang dan laba
-    per_orang_beli = harga_beli // len(names) if harga_beli else None
-    per_orang_jual = harga_jual // len(names) if harga_jual else None
+    # Menggunakan None jika harga atau jumlah penumpang tidak valid
+    per_orang_beli = harga_beli // len(names) if harga_beli is not None and len(names) > 0 else None
+    per_orang_jual = harga_jual // len(names) if harga_jual is not None and len(names) > 0 else None
 
     results = []
     for name in names:
         laba = None
         persen_laba = ''
-        if per_orang_beli and per_orang_jual:
+        if per_orang_beli is not None and per_orang_jual is not None:
             laba = per_orang_jual - per_orang_beli
             if per_orang_beli > 0:
                 persen_laba = f"{round((laba / per_orang_beli) * 100, 2)}%"
 
         entry = {
             'Tgl Pemesanan': datetime.today().strftime('%Y-%m-%d'),
-            'Tgl Berangkat': tgl_berangkat,
+            'Tgl Berangkat': tgl_berangkat_str,
             'Kode Booking': kode_booking,
             'No Penerbangan / Nama Hotel / Kereta': penerbangan,
-            'Durasi': durasi,
+            'Durasi': waktu_berangkat_tiba,
             'Nama Customer': name,
             'Rute/Kota': rute_final,
             'Harga Beli': per_orang_beli,
             'Harga Jual': per_orang_jual,
             'Laba': laba,
-            'BF/NBF': '',
+            'BF/NBF': '', # N/A untuk pesawat
             'No Invoice': '',
             'Keterangan': '',
             'Pemesan': '',
@@ -536,100 +565,105 @@ def process_ocr_pesawat(text: str) -> list:
 
     return results
 
+---
 
-# ===================================
-# === KERETA PROCESSOR FUNCTIONS ===
-# ===================================
-
-import re
+## D. KERETA PROCESSOR FUNCTIONS
 
 def extract_kereta_passengers(text_keep_lines: str) -> list:
-    m_train = re.search(r'^(KA\s+[A-Za-z ]+$)', text_keep_lines, re.MULTILINE) #hanya mengambil 1 baris setelah KA
-    kereta_name = m_train.group(1).strip() if m_train else None
-
-    # Tangkap baris seperti: "1. Nama Penumpang    EKO 7/8A"
-    pattern = re.compile(r'^\d+\.\s*(.+?)\s+((EKS|BIS|EKO|PRE|PAN)\s+\d+/\d+[A-Za-z]?)\s*$', re.IGNORECASE | re.MULTILINE)
+    """
+    Mencari nama kereta dan penumpang dari teks OCR kereta.
+    Mengembalikan list of tuples: (nama_penumpang, info_kereta_kursi).
+    """
+    kereta_name = None
+    # Lebih fleksibel mencari nama kereta
+    m_train_name = re.search(r'(?:Kereta\s*Api|KA)\s+([A-Za-z\s]+)', text_keep_lines, re.IGNORECASE)
+    if m_train_name:
+        kereta_name = m_train_name.group(1).strip()
+    
+    # Cari pola penumpang dan info kursi
+    # Contoh: "1. Nama Penumpang EKO 7/8A"
+    pattern = re.compile(
+        r'^\d+\.\s*(.+?)\s+((?:EKS|BIS|EKO|PRE|PAN|KLS)\s+\d+(?:/\d+)?[A-Za-z]?)\s*$', 
+        re.IGNORECASE | re.MULTILINE
+    )
 
     result = []
     for m in pattern.finditer(text_keep_lines):
         name = m.group(1).strip()
         seat = m.group(2).strip()
-        full_info = f"{kereta_name}  {seat}" if kereta_name else seat
+        
+        # Hapus gelar dari nama penumpang
+        name = re.sub(r"\b(Tn|Ny|Nn|Mr|Mrs|Ms|Sdr|Bapak|Ibu)\.?\s+", "", name, flags=re.IGNORECASE).strip()
+
+        full_info = f"{kereta_name} {seat}" if kereta_name else seat
         result.append((name, full_info))
     return result
 
-
 def process_ocr_kereta(text: str) -> list:
     """
-    Memproses OCR teks tiket kereta, mengembalikan satu dict per penumpang. 
-    Field yang dihasilkan serupa dengan hotel/pesawat, namun:
-    - 'No Penerbangan / Nama Hotel / Kereta' diisi “KA <NamaKereta>  EKS xx/xA”
-    - 'Nama Customer' diisi nama penumpang
-    - Rute: misal 'SLO - GMR'
-    - Durasi: jam berangkat – jam tiba
-    - Tanggal berangkat diambil dari pola '28 Mei 2025'
-    - Harga beli/jual dibagi per penumpang jika total diketahui.
+    Memproses OCR teks tiket kereta, mengembalikan satu dict per penumpang.
     """
     cleaned = clean_text(text)
     cleaned_lines = clean_text_keep_lines(text)
+    tl = cleaned.lower()
 
-    # --- Kode Booking ---
-    m_kode = re.search(r'kode\s*booking\s*[:\-]?\s*([A-Z0-9]+)', cleaned, re.IGNORECASE)
-    kode_booking = m_kode.group(1) if m_kode else None
+    # --- Kode Booking (menggunakan fungsi universal) ---
+    kode_booking = extract_general_booking_code(cleaned)
 
     # --- Rute stasiun (asal dan tujuan) ---
-    stasiun_asal = None
-    stasiun_tujuan = None
-     # --- Ambil rute dari stasiun: (SGU) - (GMR) ---
-    stasiun_asal = re.search(r'Berangkat.*?\(([A-Z]{2,3})\)', cleaned_lines, re.DOTALL | re.IGNORECASE)
-    stasiun_tujuan = re.search(r'Datang.*?\(([A-Z]{2,3})\)', cleaned_lines, re.DOTALL | re.IGNORECASE)
-    rute = f"{stasiun_asal.group(1)} - {stasiun_tujuan.group(1)}" if stasiun_asal and stasiun_tujuan else None
+    rute = None
+    # Prioritaskan pola "Xxx - Yyy" atau "Xxx to Yyy"
+    m_rute_dash = re.search(r'\b([A-Za-z\s]+)\s*[-–]\s*([A-Za-z\s]+)\b', tl)
+    if m_rute_dash:
+        stasiun_asal = m_rute_dash.group(1).strip().title() # Title case untuk nama stasiun
+        stasiun_tujuan = m_rute_dash.group(2).strip().title()
+        rute = f"{stasiun_asal} - {stasiun_tujuan}"
+    else:
+        # Fallback: Cari kode stasiun 3-huruf dalam kurung (SGU) - (GMR)
+        stasiun_asal_code = re.search(r'berangkat.*?\(([A-Z]{2,3})\)', tl, re.DOTALL)
+        stasiun_tujuan_code = re.search(r'datang.*?\(([A-Z]{2,3})\)', tl, re.DOTALL)
+        if stasiun_asal_code and stasiun_tujuan_code:
+            rute = f"{stasiun_asal_code.group(1).upper()} - {stasiun_tujuan_code.group(1).upper()}"
+        # Fallback lain: mencari nama kota di text (misal, "Surabaya" atau "Gambir")
+        # Perlu list kota/stasiun kereta jika ingin ini lebih akurat
 
     # --- Jam berangkat dan tiba (durasi) ---
     durasi = None
-    m_jb = re.search(r'berangkat.*?(\d{1,2}[:.]\d{2})', cleaned, re.IGNORECASE)
-    m_jt = re.search(r'datang.*?(\d{1,2}[:.]\d{2})', cleaned, re.IGNORECASE)
+    m_jb = re.search(r'(?:berangkat|depart).*?(\d{1,2}[:.]\d{2})', tl)
+    m_jt = re.search(r'(?:datang|arrive).*?(\d{1,2}[:.]\d{2})', tl)
     if m_jb and m_jt:
         durasi = f"{m_jb.group(1)} - {m_jt.group(1)}"
-    else:
-        # fallback: cari pola jam lain
-        m_time = re.search(r'(\d{1,2}[:.]\d{2})\s*[-–]\s*(\d{1,2}[:.]\d{2})', cleaned)
-        if m_time:
-            durasi = f"{m_time.group(1)} - {m_time.group(2)}"
+    else: # Fallback ke pola jam umum HH:MM - HH:MM
+        m_time_range = re.search(r'(\d{1,2}[:.]\d{2})\s*[-–]\s*(\d{1,2}[:.]\d{2})', tl)
+        if m_time_range:
+            durasi = f"{m_time_range.group(1)} - {m_time_range.group(2)}"
 
     # --- Tanggal berangkat ---
-    tgl_berangkat = ''
-    # Pola '28 Mei 2025' (mungkin setelah “Rab,” atau “berangkat”)
-    m_tg = re.search(r'\b(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\b', cleaned)
+    tgl_berangkat_str = ''
+    # Prioritaskan tanggal setelah 'Berangkat', 'Tanggal', atau hari dalam seminggu
+    m_tg = re.search(r'(?:(?:berangkat|tanggal|senin|selasa|rabu|kamis|jumat|sabtu|minggu|mon|tue|wed|thu|fri|sat|sun)[,:\s]*)*(\d{1,2}\s+[A-Za-z]+\s+\d{4})', tl, re.IGNORECASE)
     if m_tg:
-        day, month_str, year = m_tg.groups()
-        month_map = {
-            'jan': 1, 'januari': 1, 'feb': 2, 'februari': 2,
-            'mar': 3, 'maret': 3, 'apr': 4, 'april': 4,
-            'mei': 5, 'jun': 6, 'juni': 6,
-            'jul': 7, 'juli': 7, 'aug': 8, 'agustus': 8,
-            'sep': 9, 'september': 9, 'okt': 10, 'oktober': 10,
-            'nov': 11, 'november': 11, 'des': 12, 'desember': 12
-        }
-        mm = month_map.get(month_str.lower()[:3])
-        if mm:
-            try:
-                tgl_berangkat = datetime(int(year), mm, int(day)).strftime('%Y-%m-%d')
-            except ValueError:
-                tgl_berangkat = ''
+        tgl_berangkat_dt = parse_date_from_str(m_tg.group(1))
+        if tgl_berangkat_dt:
+            tgl_berangkat_str = tgl_berangkat_dt.strftime('%Y-%m-%d')
 
-    # --- Harga total beli/jual ---
+
+    # --- Harga total beli/jual (menggunakan fungsi universal) ---
     harga_beli_total, harga_jual_total = extract_price_info(cleaned)
 
-    # --- Data penumpang: nama + kode EKS ---
+    # --- Data penumpang: nama + info kereta/kursi ---
     passenger_data = extract_kereta_passengers(cleaned_lines)
-    jumlah_penumpang = len(passenger_data)
+    jumlah_penumpang = len(passenger_data) if passenger_data else 1 # Default 1 jika tidak ada penumpang terdeteksi
 
     # Hitung per-penumpang jika total diketahui
-    harga_beli_per = harga_beli_total // jumlah_penumpang if harga_beli_total and jumlah_penumpang else None
-    harga_jual_per = (harga_jual_total // jumlah_penumpang) if (harga_jual_total and jumlah_penumpang) else None
+    harga_beli_per = (harga_beli_total // jumlah_penumpang) if (harga_beli_total is not None and jumlah_penumpang > 0) else None
+    harga_jual_per = (harga_jual_total // jumlah_penumpang) if (harga_jual_total is not None and jumlah_penumpang > 0) else None
 
     results = []
+    # Jika tidak ada penumpang terdeteksi tapi ada info harga, buat 1 entri default
+    if not passenger_data and (harga_beli_total or harga_jual_total):
+        passenger_data = [(None, None)] # Buat entri dummy untuk loop
+
     for (nama_penumpang, kereta_info) in passenger_data:
         laba = None
         persen_laba = ''
@@ -640,7 +674,7 @@ def process_ocr_kereta(text: str) -> list:
 
         data = {
             'Tgl Pemesanan': datetime.today().strftime('%Y-%m-%d'),
-            'Tgl Berangkat': tgl_berangkat,
+            'Tgl Berangkat': tgl_berangkat_str,
             'Kode Booking': kode_booking,
             'No Penerbangan / Nama Hotel / Kereta': kereta_info,
             'Durasi': durasi,
@@ -649,7 +683,7 @@ def process_ocr_kereta(text: str) -> list:
             'Harga Beli': harga_beli_per,
             'Harga Jual': harga_jual_per,
             'Laba': laba,
-            'BF/NBF': '',
+            'BF/NBF': '', # N/A untuk kereta
             'No Invoice': '',
             'Keterangan': '',
             'Pemesan': '',
@@ -660,9 +694,9 @@ def process_ocr_kereta(text: str) -> list:
 
     return results
 
-# ===================================
-# === MASTER PROCESSOR FUNCTION ===
-# ===================================
+---
+
+## E. MASTER PROCESSOR FUNCTION
 
 def process_ocr_unified(text: str) -> list:
     """
@@ -670,7 +704,7 @@ def process_ocr_unified(text: str) -> list:
     Jika unknown, kembalikan list kosong.
     """
     tipe = detect_document_type(text)
-    print(f"DEBUG: detect_document_type result: '{tipe}'", flush=True)
+    print(f"DEBUG: detect_document_type result: '{tipe}'", flush=True) # Tambahkan flush=True untuk log segera
     if tipe == 'hotel':
         return process_ocr_text_multiple(text)
     elif tipe == 'pesawat':
@@ -686,13 +720,78 @@ def process_ocr_unified(text: str) -> list:
 # ===============================================
 
 if __name__ == "__main__":
-    # Contoh: baca dari file OCR
-    with open("ocr_output.txt", "r", encoding="utf-8") as f:
-        ocr_text = f.read()
+    # Ini adalah contoh input teks yang kita diskusikan sebelumnya
+    pesawat_example_text = """
+Kode Booking: TTES2
+Berangkat
+Sel, 10 Jun 2025
+08:35
+Soekarno Hatta (CGK)
 
-    results = process_ocr_unified(ocr_text)
-    for idx, entry in enumerate(results, start=1):
-        print(f"\n--- Entry {idx} ---")
-        for k, v in entry.items():
-            print(f"{k}: {v}")
+Garuda Indonesia
+GA123
 
+Datang
+Sel, 10 Jun 2025
+09.20
+Radin Inten II (TKG)
+Nama Penumpang:
+1.Sontoloyo
+JUAL 940000
+Beli 786446
+"""
+
+    hotel_example_text = """
+Order ID 987654321
+Grand Hyatt Jakarta
+Jl. M.H. Thamrin Kav. 28-30, Jakarta
+Check-in: 15 Agustus 2025
+Check-out: 17 Agustus 2025
+2 x Kamar Deluxe (termasuk sarapan)
+Nama Tamu:
+1. Ibu Budi Santoso
+2. Mr. Alex Cokro
+Harga Beli Total: Rp 1.500.000
+Harga Jual: 2.000.000
+"""
+    
+    kereta_example_text = """
+No. Pesanan: XYZ789
+Kereta Api Argo Bromo Anggrek
+Berangkat: 28 Mei 2025, 09:00
+Stasiun Surabaya Pasar Turi (SBI)
+Tiba: 28 Mei 2025, 17:00
+Stasiun Gambir (GMR)
+Nama Penumpang:
+1. Tn. Joko Susilo EKS 5/12A
+2. Ny. Ayu Lestari EKS 5/12B
+Jual: 600.000
+Beli: 450.000
+"""
+
+    unknown_example_text = """
+Ini adalah teks acak.
+Tidak ada pola yang dikenali.
+"""
+
+    test_cases = {
+        "Pesawat Example": pesawat_example_text,
+        "Hotel Example": hotel_example_text,
+        "Kereta Example": kereta_example_text,
+        "Unknown Example": unknown_example_text,
+    }
+
+    # Testing process_ocr_unified dengan contoh-contoh
+    for name, text_input in test_cases.items():
+        print(f"\n--- Processing: {name} ---")
+        print(f"DEBUG: Input text to detect_document_type:\n---START TEXT---\n{text_input}\n---END TEXT---", flush=True)
+        results = process_ocr_unified(text_input)
+        
+        if results:
+            for idx, entry in enumerate(results, start=1):
+                print(f"\n--- Extracted Data ({name}) - Entry {idx} ---")
+                for k, v in entry.items():
+                    print(f"{k}: {v}")
+        else:
+            print(f"Tidak ada data yang diekstrak untuk {name}.")
+        print("=" * 50)

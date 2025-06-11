@@ -334,54 +334,54 @@ def extract_duration_days_hotel(checkin: datetime, checkout: datetime) -> int:
         return max(delta.days, 1)
     return 1
 
-def process_ocr_text_multiple(text: str) -> list:
-    """
-    Memproses OCR hotel, mengembalikan list of dict. 
-    Dicetak satu per kamar/tamu.
-    """
+def process_ocr_text_multiple(text):
     city_list = load_city_list()
     cleaned = clean_text(text)
     cleaned_lines = clean_text_keep_lines(text)
 
     kode_booking = extract_booking_code(cleaned)
-    hotel_name = clean_hotel_name(extract_hotel_name(cleaned_lines))
-    durasi_night = None
-    checkin_dt, checkout_dt = extract_dates_hotel(cleaned)
-    durasi_night = extract_duration_days_hotel(checkin_dt, checkout_dt)
-
+    hotel = clean_hotel_name(extract_hotel_name(cleaned_lines))
+    durasi = extract_duration(cleaned)
     jumlah_kamar = extract_room_count(cleaned)
     harga_beli_total, harga_jual_total = extract_price_info(cleaned)
     customer_names = extract_customer_names(cleaned_lines)
 
-    # Debug print (optional)
-    #print(f"[DEBUG] Jumlah kamar: {jumlah_kamar}, Nama Tamu: {customer_names}")
+    print(f"[DEBUG] Jumlah kamar terdeteksi: {jumlah_kamar}")
+    print(f"[DEBUG] Nama tamu terdeteksi: {customer_names}")
 
-    # Hitung per-kamar
-    harga_beli_per_kamar = (harga_beli_total // jumlah_kamar) if (harga_beli_total and jumlah_kamar) else None
-    harga_jual_per_kamar = (harga_jual_total // jumlah_kamar) if (harga_jual_total and jumlah_kamar) else None
+    if harga_jual_total and jumlah_kamar:
+        harga_jual_total_per_kamar = harga_jual_total // jumlah_kamar
+    else:
+        harga_jual_total_per_kamar = None
 
-    # Sesuaikan panjang customer_names dengan jumlah_kamar
+    if harga_beli_total and jumlah_kamar:
+        harga_beli_per_kamar = harga_beli_total // jumlah_kamar
+    else:
+        harga_beli_per_kamar = None
+
     if len(customer_names) < jumlah_kamar:
         customer_names += [None] * (jumlah_kamar - len(customer_names))
     elif len(customer_names) > jumlah_kamar:
         customer_names = customer_names[:jumlah_kamar]
 
     kota = extract_city(cleaned, city_list)
+    checkin = extract_dates(cleaned)
+    tgl_berangkat = checkin.strftime('%Y-%m-%d') if checkin else ''
     bf_status = extract_bf(cleaned)
 
     results = []
-    for idx in range(jumlah_kamar):
-        nama_tamu = customer_names[idx] if idx < len(customer_names) else None
+    for i in range(jumlah_kamar):
+        nama_tamu = customer_names[i] if i < len(customer_names) else None
         data = {
             'Tgl Pemesanan': datetime.today().strftime('%Y-%m-%d'),
-            'Tgl Berangkat': checkin_dt.strftime('%Y-%m-%d') if checkin_dt else '',
+            'Tgl Berangkat': tgl_berangkat,
             'Kode Booking': kode_booking,
-            'No Penerbangan / Nama Hotel / Kereta': hotel_name,
-            'Durasi': f"{durasi_night} mlm" if durasi_night else None,
+            'No Penerbangan / Nama Hotel / Kereta': hotel,
+            'Durasi': f"{durasi} mlm" if durasi else None,
             'Nama Customer': nama_tamu,
             'Rute/Kota': kota,
             'Harga Beli': harga_beli_per_kamar,
-            'Harga Jual': harga_jual_per_kamar,
+            'Harga Jual': harga_jual_total_per_kamar,
             'Laba': None,
             'BF/NBF': bf_status,
             'No Invoice': '',
@@ -390,12 +390,10 @@ def process_ocr_text_multiple(text: str) -> list:
             'Admin': '',
             '% Laba': ''
         }
-        # Hitung laba dan persentase
         if data['Harga Beli'] is not None and data['Harga Jual'] is not None:
             data['Laba'] = data['Harga Jual'] - data['Harga Beli']
             if data['Harga Beli'] > 0:
                 data['% Laba'] = f"{round((data['Laba'] / data['Harga Beli']) * 100, 2)}%"
-
         results.append(data)
 
     return results

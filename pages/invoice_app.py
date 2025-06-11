@@ -58,13 +58,15 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
     Semua teks dalam tabel diratakan tengah.
     Kolom "No Invoice", "Laba", "% Laba", dan "Pemesan" tidak ditampilkan dalam tabel.
     No Invoice unik otomatis dibuat dan dicetak di bagian detail.
-    Kolom "Service Fee" dan "Total Harga" ditambahkan dengan nilai tetap 20.000 untuk Service Fee.
+    Kolom "Service Fee" (Rp 20.000) ditambahkan.
+    Kolom "Total Harga" berisi harga jual dari GSheets.
+    Kolom "Harga" adalah "Total Harga" dikurangi "Service Fee".
     Baris penjumlahan total di bagian bawah dihapus.
 
     Args:
         data (list of dict): Data yang akan ditampilkan dalam tabel invoice.
                              Setiap dict merepresentasikan baris data.
-        nama_pemesan (str): Nama pemesan untuk invoice.
+        nama_pemesan (str): Nama pemesan untuk invoice (akan diabaikan karena sudah di-hardcode).
         tanggal_invoice (date): Tanggal pembuatan invoice.
         output_path (str): Path untuk menyimpan file PDF.
     """
@@ -72,6 +74,7 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
     pdf.add_page()
     
     # Generate No Invoice unik 12 digit: ddmmyyhhmmss (tanggal bulan tahun jam menit detik)
+    # Gunakan waktu saat ini di Indonesia (WIB)
     unique_invoice_no = datetime.now().strftime("%d%m%y%H%M%S")
 
     # --- Header Invoice ---
@@ -79,7 +82,7 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
     pdf.cell(0, 10, "INVOICE PEMESANAN", ln=True, align="C")
     pdf.set_font("Arial", "", 12)
     pdf.ln(5)
-    # Nama Pemesan diganti menjadi PT ENDO Indonesia
+    # Nama Pemesan di-hardcode menjadi PT ENDO Indonesia
     pdf.cell(0, 7, "Nama Pemesan: PT ENDO Indonesia", ln=True) 
     pdf.cell(0, 7, f"Tanggal Invoice: {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
     pdf.cell(0, 7, f"No. Invoice: {unique_invoice_no}", ln=True)
@@ -94,9 +97,9 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
         "Durasi",
         "Nama Customer",
         "Rute/Kota",
-        "Harga Jual",
+        "Harga Jual", # Ini sekarang akan menjadi "Harga" setelah perhitungan
         "Tax & Service", # Akan di-mapping ke "Service Fee"
-        "Total Harga",
+        "Total Harga",   # Ini akan menjadi "Total Harga" dari GSheets
         "BF/NBF",
         "Keterangan" 
     ]
@@ -107,11 +110,32 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
         "% Laba", "Pemesan"
     ] 
     
-    kolom_ditampilkan = [col for col in kolom_prioritas if col in data[0].keys() or col in ["Tax & Service", "Total Harga"] and col not in kolom_abaikan]
+    # Perhatikan urutan di kolom_ditampilkan sesuai urutan yang Anda inginkan
+    kolom_ditampilkan_final = [
+        "No", # Akan ditambahkan secara manual
+        "Tgl Pemesanan",
+        "Tgl Berangkat",
+        "Kode Booking",
+        "No Penerbangan / Nama Hotel / Kereta",
+        "Durasi",
+        "Nama Customer",
+        "Rute/Kota",
+        "Harga Jual", # Ini yang akan direname jadi "Harga"
+        "Tax & Service", # Ini yang akan direname jadi "Service Fee"
+        "Total Harga", # Ini yang akan menjadi Total Harga dari GSheets
+        "BF/NBF",
+        "Keterangan" 
+    ]
+    # Filter kolom_ditampilkan_final agar hanya menyertakan kolom yang ada di data atau yang baru
+    kolom_ditampilkan = [col for col in kolom_ditampilkan_final if col == "No" or col in data[0].keys() or col in ["Tax & Service", "Total Harga"]]
+    # Hapus "No" dari kolom_ditampilkan karena akan ditambahkan secara manual di cell pertama
+    if "No" in kolom_ditampilkan:
+        kolom_ditampilkan.remove("No")
+
 
     header_mapping = {
-        "Harga Jual": "Harga",
-        "Tax & Service": "Service Fee" # Mapping baru
+        "Harga Jual": "Harga",    # Header "Harga Jual" di data menjadi "Harga" di PDF
+        "Tax & Service": "Service Fee" # Header "Tax & Service" di data menjadi "Service Fee" di PDF
     }
 
     # --- Perhitungan Lebar Kolom yang Lebih Robust ---
@@ -122,10 +146,10 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
         "Tgl Pemesanan": 22,
         "Tgl Berangkat": 22,
         "Kode Booking": 18 + 4,
-        "Durasi": 12 + 4 + 2 + 3, # Ditambah lagi 3 (total 9 dari 12 asli)
-        "Harga Jual": 22,
-        "Tax & Service": 22, # Lebar untuk "Service Fee"
-        "Total Harga": 22,
+        "Durasi": 12 + 4 + 2 + 3, # Total penambahan 9 spasi
+        "Harga Jual": 22, # Lebar untuk kolom "Harga" (Hasil perhitungan)
+        "Tax & Service": 22, # Lebar untuk kolom "Service Fee" (Nilai tetap 20.000)
+        "Total Harga": 22, # Lebar untuk kolom "Total Harga" (Harga Jual dari GSheets)
         "BF/NBF": 12,
     }
 
@@ -178,27 +202,32 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
     multi_cell_line_height = row_height / 2.5 
 
     for idx, row in enumerate(data, 1):
-        harga_jual_raw = row.get("Harga Jual", "0") 
-        
-        harga_jual_row_calc = 0.0
+        # --- LOGIKA PERHITUNGAN BARU ---
+        # 1. Ambil "Total Harga" dari GSheets (yang ada di kolom "Harga Jual" di data asli)
+        total_harga_raw_from_gsheets = row.get("Harga Jual", "0") 
+        total_harga_calc = 0.0
 
-        if isinstance(harga_jual_raw, str):
-            harga_jual_cleaned = harga_jual_raw.replace("Rp", "").replace(".", "").replace(",", "").strip()
+        if isinstance(total_harga_raw_from_gsheets, str):
+            total_harga_cleaned = total_harga_raw_from_gsheets.replace("Rp", "").replace(".", "").replace(",", "").strip()
             try:
-                harga_jual_row_calc = float(harga_jual_cleaned)
+                total_harga_calc = float(total_harga_cleaned)
             except ValueError:
-                print(f"Peringatan: Gagal mengonversi '{harga_jual_raw}' ke angka. Menggunakan 0.0.")
-                harga_jual_row_calc = 0.0
+                print(f"Peringatan: Gagal mengonversi 'Total Harga' '{total_harga_raw_from_gsheets}' ke angka. Menggunakan 0.0.")
+                total_harga_calc = 0.0
         else:
-            harga_jual_row_calc = float(harga_jual_raw)
+            total_harga_calc = float(total_harga_raw_from_gsheets)
 
-        # Service Fee sekarang 20.000, bukan dihitung dari Harga Jual
+        # 2. Service Fee tetap 20.000
         service_fee_row = 20000.0 
-        total_harga_row = harga_jual_row_calc + service_fee_row # Total Harga = Harga Jual + Service Fee
+        
+        # 3. Hitung "Harga" baru (Total Harga - Service Fee)
+        harga_row_calc = total_harga_calc - service_fee_row 
 
-        row["Harga Jual"] = harga_jual_row_calc 
-        row["Tax & Service"] = service_fee_row # Simpan sebagai "Tax & Service" agar bisa diambil di loop cetak
-        row["Total Harga"] = total_harga_row
+        # 4. Simpan nilai-nilai yang sudah dihitung ke dalam dictionary 'row'
+        #    Pastikan kolom yang sesuai diperbarui.
+        row["Total Harga"] = total_harga_calc # Ini adalah harga jual dari GSheets
+        row["Tax & Service"] = service_fee_row # Ini adalah Service Fee
+        row["Harga Jual"] = harga_row_calc # Ini adalah "Harga" setelah perhitungan
 
         max_row_height_this_row = row_height
         for col_name in kolom_fleksibel: 
@@ -235,8 +264,8 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
             col_width = max(0.1, lebar_kolom_final.get(col, 10))
             value_to_print = row.get(col, "") 
             
-            # Format harga dan angka (termasuk "Service Fee" dan "Total Harga")
-            if col in ["Harga Jual", "Tax & Service", "Total Harga"]: # "Tax & Service" adalah "Service Fee"
+            # Format harga dan angka
+            if col in ["Harga Jual", "Tax & Service", "Total Harga"]: 
                 try:
                     value_to_print = f"{float(value_to_print):,.0f}".replace(",", ".")
                 except ValueError:
@@ -246,21 +275,18 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
             
             # Khusus untuk kolom yang berpotensi panjang (kolom fleksibel), gunakan multi_cell
             if col in kolom_fleksibel:
-                # Perhitungan posisi Y untuk memusatkan teks secara vertikal
                 num_lines_needed = math.ceil(pdf.get_string_width(value_to_print) / col_width) if col_width > 0 else 1
                 effective_text_height = num_lines_needed * multi_cell_line_height
                 
-                # Menyesuaikan Y untuk rata tengah vertikal di dalam sel
                 y_offset_for_center = (max_row_height_this_row - effective_text_height) / 2
                 
                 pdf.set_xy(pdf.get_x(), initial_y_for_row + y_offset_for_center)
                 pdf.multi_cell(col_width, multi_cell_line_height, value_to_print, border=0, align='C') 
                 
                 x_next_col = current_x_for_row_start + lebar_kolom_final["No"] + sum(lebar_kolom_final.get(c,0) for c in kolom_ditampilkan[:kolom_ditampilkan.index(col)+1])
-                pdf.set_xy(x_next_col, initial_y_for_row) # Set ulang Y ke awal baris untuk border
+                pdf.set_xy(x_next_col, initial_y_for_row)
 
             else:
-                # Untuk kolom lain (non-fleksibel), gunakan cell biasa (rata tengah)
                 pdf.set_xy(pdf.get_x(), initial_y_for_row) 
                 pdf.cell(col_width, max_row_height_this_row, value_to_print, 1, 0, 'C')
         
@@ -271,9 +297,6 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
             pdf.cell(cell_width_for_border, max_row_height_this_row, "", 1, 0, 'C') 
         pdf.ln() 
     
-    # Penjumlahan Total di Bawah Tabel tetap dihapus
-    # Variabel total juga sudah dihapus
-
     pdf.output(output_path)
     return output_path
 # === UI Streamlit ===

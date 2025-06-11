@@ -31,7 +31,7 @@ st.title("🧾 Buat Invoice")
     #st.cache_data.clear()
 
 # === Ambil data dan olah ===
-@st.cache_data(ttl=300)  # Refresh otomatis setiap 5 menit
+@st.cache_data  # Refresh 
 def load_data():
     ws = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
     df = pd.DataFrame(ws.get_all_records())

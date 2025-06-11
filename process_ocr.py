@@ -341,7 +341,7 @@ def process_ocr_text_multiple(text):
 
     kode_booking = extract_booking_code(cleaned)
     hotel = clean_hotel_name(extract_hotel_name(cleaned_lines))
-    durasi = extract_duration(cleaned)
+    durasi = extract_duration_days_hotel(cleaned)
     jumlah_kamar = extract_room_count(cleaned)
     harga_beli_total, harga_jual_total = extract_price_info(cleaned)
     customer_names = extract_customer_names(cleaned_lines)

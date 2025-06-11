@@ -70,6 +70,7 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
     pdf.add_page()
     
     # Generate No Invoice unik 12 digit: ssmmhhyymmdd (detik menit jam bulan tanggal tahun)
+    # Perhatikan bahwa bulan ini Juni, tahun 2025.
     unique_invoice_no = datetime.now().strftime("%S%M%H%d%m%y")
 
     # --- Header Invoice ---
@@ -83,7 +84,6 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
     pdf.ln(10)
 
     # --- Persiapan Kolom ---
-    # Daftar kolom yang akan ditampilkan di tabel, sesuai permintaan Anda
     kolom_prioritas = [
         "Tgl Pemesanan",
         "Tgl Berangkat",
@@ -99,17 +99,14 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
         "Keterangan" 
     ]
 
-    # Kolom yang akan selalu diabaikan dari tabel
     kolom_abaikan = [
         "Pilih", "Harga Beli", "Admin", 
         "Nama Pemesan", "No Invoice", "Laba", 
         "% Laba", "Pemesan"
     ] 
     
-    # Filter kolom_prioritas berdasarkan kolom yang ada di data
     kolom_ditampilkan = [col for col in kolom_prioritas if col in data[0].keys() or col in ["Tax & Service", "Total Harga"] and col not in kolom_abaikan]
 
-    # Mapping nama kolom untuk header PDF
     header_mapping = {
         "Harga Jual": "Harga"
     }
@@ -117,43 +114,37 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
     # --- Perhitungan Lebar Kolom yang Lebih Robust ---
     halaman_lebar_efektif = pdf.w - 2 * pdf.l_margin 
     
-    # Definisi lebar minimum untuk kolom-kolom yang harus punya lebar tertentu
     min_lebar_wajib = {
         "No": 8, 
         "Tgl Pemesanan": 22,
         "Tgl Berangkat": 22,
-        "Kode Booking": 18 + 4, # Ditambah 4
-        "Durasi": 12 + 4,     # Ditambah 4
-        "Harga Jual": 22,     # Harga Jual adalah "Harga"
-        "Tax & Service": 22,  # Lebar standar untuk Tax & Service
-        "Total Harga": 22,    # Lebar standar untuk Total Harga
+        "Kode Booking": 18 + 4,
+        "Durasi": 12 + 4,
+        "Harga Jual": 22,
+        "Tax & Service": 22,
+        "Total Harga": 22,
         "BF/NBF": 12,
     }
 
-    # Kolom yang bisa fleksibel (mendapatkan sisa lebar)
     kolom_fleksibel = [
-        "Nama Customer",    # Dikurangi 15 nanti dalam alokasi
+        "Nama Customer",
         "Rute/Kota",
         "No Penerbangan / Nama Hotel / Kereta",
         "Keterangan"
     ]
     
-    # Sesuaikan lebar awal untuk "Nama Customer"
-    min_lebar_wajib["Nama Customer"] = max(1, min_lebar_wajib.get("Nama Customer", 40) - 15) # Minimum 1mm
+    min_lebar_wajib["Nama Customer"] = max(1, min_lebar_wajib.get("Nama Customer", 40) - 15)
 
     lebar_kolom_final = {}
     total_lebar_wajib = 0
 
-    # Alokasikan lebar minimum untuk kolom wajib
     for col in ["No"] + kolom_ditampilkan: 
         if col in min_lebar_wajib:
             lebar_kolom_final[col] = min_lebar_wajib[col]
             total_lebar_wajib += min_lebar_wajib[col]
-        # Pastikan kolom fleksibel yang tidak ada di min_lebar_wajib juga diinisialisasi
         elif col in kolom_fleksibel:
-             lebar_kolom_final[col] = 0 # Akan dihitung nanti
+             lebar_kolom_final[col] = 0
 
-    # Identifikasi kolom fleksibel yang benar-benar ada di `kolom_ditampilkan`
     fleksibel_yang_ada = [col for col in kolom_fleksibel if col in kolom_ditampilkan]
     
     sisa_lebar_untuk_fleksibel = halaman_lebar_efektif - total_lebar_wajib
@@ -174,7 +165,7 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
     
     pdf.cell(max(0.1, lebar_kolom_final["No"]), 8, "No", 1, 0, 'C', 1)
     for col in kolom_ditampilkan:
-        header_text = header_mapping.get(col, col) # Gunakan mapping untuk header
+        header_text = header_mapping.get(col, col)
         pdf.cell(max(0.1, lebar_kolom_final.get(col, 10)), 8, header_text, 1, 0, 'C', 1)
     pdf.ln()
 
@@ -188,23 +179,32 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
     total_total_harga = 0
 
     for idx, row in enumerate(data, 1):
-        # Tambahkan nilai Tax & Service dan Total Harga ke row jika belum ada
-        # Asumsi Tax & Service adalah 10% dari Harga Jual, dan Total Harga = Harga Jual + Tax & Service
-        harga_jual_row = float(row.get("Harga Jual", 0)) # Ambil Harga Jual
-        tax_service_row = harga_jual_row * 0.10 # Hitung Tax & Service (10%)
-        total_harga_row = harga_jual_row + tax_service_row # Hitung Total Harga
+        # --- START FIX: Clean "Harga Jual" string before converting to float ---
+        harga_jual_raw = row.get("Harga Jual", "0")
+        if isinstance(harga_jual_raw, str):
+            # Hapus "Rp", kemudian hapus titik (pemisah ribuan)
+            # Jika ada koma sebagai desimal, bisa ditambahkan .replace(',', '.')
+            harga_jual_cleaned = harga_jual_raw.replace("Rp", "").replace(".", "").strip() # .strip() untuk menghapus spasi ekstra
+            try:
+                harga_jual_row = float(harga_jual_cleaned)
+            except ValueError:
+                print(f"Peringatan: Gagal mengonversi '{harga_jual_raw}' ke angka. Menggunakan 0.0.")
+                harga_jual_row = 0.0 # Default ke 0 jika konversi gagal
+        else:
+            # Jika sudah berupa angka (int atau float), langsung gunakan
+            harga_jual_row = float(harga_jual_raw)
+        # --- END FIX ---
 
-        # Perbarui row dengan nilai Tax & Service dan Total Harga yang baru dihitung
-        # Ini penting agar kolom ini bisa diambil saat iterasi
+        tax_service_row = harga_jual_row * 0.10
+        total_harga_row = harga_jual_row + tax_service_row
+
         row["Tax & Service"] = tax_service_row
         row["Total Harga"] = total_harga_row
 
-        # Akumulasi total
         total_harga_jual += harga_jual_row
         total_tax_service += tax_service_row
         total_total_harga += total_harga_row
 
-        # Prediksi tinggi baris maksimum yang dibutuhkan multi_cell untuk page break
         max_row_height_this_row = row_height
         for col_name in kolom_fleksibel: 
             if col_name in kolom_ditampilkan and col_name in lebar_kolom_final:
@@ -219,7 +219,6 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
 
         if pdf.get_y() + max_row_height_this_row + 2 > pdf.page_break_trigger:
             pdf.add_page()
-            # Cetak ulang header tabel di halaman baru
             pdf.set_font("Arial", "B", 8)
             pdf.set_fill_color(200, 220, 255)
             pdf.cell(max(0.1, lebar_kolom_final["No"]), 8, "No", 1, 0, 'C', 1)
@@ -268,14 +267,17 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
         pdf.ln() 
     
     # --- Penjumlahan Total di Bawah Tabel ---
-    pdf.ln(2) # Sedikit spasi sebelum total
+    pdf.ln(2) 
     pdf.set_font("Arial", "B", 8)
 
-    # Hitung lebar kumulatif kolom sampai sebelum Harga Jual untuk menggeser teks "Total"
-    lebar_sebelum_harga_jual = lebar_kolom_final["No"] + sum(lebar_kolom_final.get(col, 0) for col in kolom_ditampilkan if col != "Harga Jual" and col != "Tax & Service" and col != "Total Harga")
+    lebar_sebelum_harga_jual = lebar_kolom_final["No"] + sum(lebar_kolom_final.get(col, 0) for col in kolom_ditampilkan if col not in ["Harga Jual", "Tax & Service", "Total Harga"])
     
-    # Kolom "Total"
-    pdf.cell(lebar_sebelum_harga_jual - lebar_kolom_final.get("Harga Jual", 0) - lebar_kolom_final.get("Tax & Service", 0) - lebar_kolom_final.get("Total Harga", 0) + sum(lebar_kolom_final.get(c,0) for c in kolom_ditampilkan if c not in ["Harga Jual", "Tax & Service", "Total Harga"]), row_height, "TOTAL", 1, 0, 'R', 1) # 'R' untuk Right align
+    # Kolom "TOTAL"
+    # Pastikan lebarnya positif. Jika tidak, sesuaikan manual atau logikanya.
+    total_label_width = lebar_sebelum_harga_jual - lebar_kolom_final.get("Harga Jual", 0) - lebar_kolom_final.get("Tax & Service", 0) - lebar_kolom_final.get("Total Harga", 0) + sum(lebar_kolom_final.get(c,0) for c in kolom_ditampilkan if c not in ["Harga Jual", "Tax & Service", "Total Harga"])
+    
+    # Jika total_label_width sangat kecil atau negatif, kita bisa paksakan minimal
+    pdf.cell(max(0.1, total_label_width), row_height, "TOTAL", 1, 0, 'R', 1) 
 
     # Tampilkan total Harga Jual
     pdf.cell(max(0.1, lebar_kolom_final.get("Harga Jual", 0)), row_height, f"{total_harga_jual:,.0f}".replace(",", "."), 1, 0, 'R', 1)
@@ -285,7 +287,7 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
 
     # Tampilkan total Total Harga
     pdf.cell(max(0.1, lebar_kolom_final.get("Total Harga", 0)), row_height, f"{total_total_harga:,.0f}".replace(",", "."), 1, 0, 'R', 1)
-    pdf.ln() # Pindah baris
+    pdf.ln()
 
     pdf.output(output_path)
     return output_path

@@ -143,9 +143,11 @@ def extract_booking_code(text: str) -> str:
     - 'Order ID 123456'
     - 'ID Pesanan: 78910'
     - 'No. Pesanan Traveloka 112233'
+    - 'Kode Booking: ABC123DEF' <-- Sekarang bisa mendeteksi huruf
     """
     m = re.search(
-        r'(?:Order\s*ID|ID\s*Pesanan|No\.?\s*Pesanan(?:\s*Traveloka)?)\D*(\d+)', 
+        # Mengganti (\d+) menjadi ([a-zA-Z0-9]+)
+        r'(?:Order\s*ID|ID\s*Pesanan|No\.?\s*Pesanan(?:\s*Traveloka)?|Kode\s*Booking):\s*([a-zA-Z0-9]+)', 
         text, 
         re.IGNORECASE
     )

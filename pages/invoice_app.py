@@ -53,9 +53,25 @@ if st.button("🔄 Refresh Data"):
 # === Fungsi PDF ===
 import math # Untuk pembulatan jika diperlukan
 def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_output.pdf"):
+    """
+    Membuat file PDF invoice dengan lebar kolom dan font yang menyesuaikan ukuran kertas A4 landscape.
+    Semua teks dalam tabel diratakan tengah.
+    Kolom "No Invoice", "Laba", "% Laba", dan "Pemesan" tidak ditampilkan dalam tabel.
+    No Invoice unik otomatis dibuat dan dicetak di bagian detail.
+    Kolom "Tax & Service" dan "Total Harga" ditambahkan.
+    Baris penjumlahan total di bagian bawah dihapus.
+
+    Args:
+        data (list of dict): Data yang akan ditampilkan dalam tabel invoice.
+                             Setiap dict merepresentasikan baris data.
+        nama_pemesan (str): Nama pemesan untuk invoice.
+        tanggal_invoice (date): Tanggal pembuatan invoice.
+        output_path (str): Path untuk menyimpan file PDF.
+    """
     pdf = FPDF(orientation="L", unit="mm", format="A4")
     pdf.add_page()
     
+    # Generate No Invoice unik 12 digit: ssmmhhyymmdd
     unique_invoice_no = datetime.now().strftime("%S%M%H%d%m%y")
 
     # --- Header Invoice ---
@@ -103,8 +119,8 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
         "No": 8, 
         "Tgl Pemesanan": 22,
         "Tgl Berangkat": 22,
-        "Kode Booking": 18 + 4,
-        "Durasi": 12 + 4,
+        "Kode Booking": 18 + 4, # Ditambah 4
+        "Durasi": 12 + 4 + 2, # Ditambah lagi 2 (total 6)
         "Harga Jual": 22,
         "Tax & Service": 22,
         "Total Harga": 22,
@@ -118,6 +134,7 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
         "Keterangan"
     ]
     
+    # Sesuaikan lebar awal untuk "Nama Customer"
     min_lebar_wajib["Nama Customer"] = max(1, min_lebar_wajib.get("Nama Customer", 40) - 15)
 
     lebar_kolom_final = {}
@@ -148,10 +165,11 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
     pdf.set_font("Arial", "B", 8) 
     pdf.set_fill_color(200, 220, 255) 
     
-    pdf.cell(max(0.1, lebar_kolom_final["No"]), 8, "No", 1, 0, 'C', 1)
+    # Rata tengah untuk header
+    pdf.cell(max(0.1, lebar_kolom_final["No"]), 8, "No", 1, 0, 'C', 1) # 'C' for Center
     for col in kolom_ditampilkan:
         header_text = header_mapping.get(col, col)
-        pdf.cell(max(0.1, lebar_kolom_final.get(col, 10)), 8, header_text, 1, 0, 'C', 1)
+        pdf.cell(max(0.1, lebar_kolom_final.get(col, 10)), 8, header_text, 1, 0, 'C', 1) # 'C' for Center
     pdf.ln()
 
     # --- Isi Tabel ---
@@ -159,20 +177,17 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
     row_height = 7 
     multi_cell_line_height = row_height / 2.5 
 
-    total_harga_jual = 0
-    total_tax_service = 0
-    total_total_harga = 0
+    # Variabel total dihapus karena penjumlahan di bawah tabel dihilangkan
+    # total_harga_jual = 0
+    # total_tax_service = 0
+    # total_total_harga = 0
 
     for idx, row in enumerate(data, 1):
-        # --- FIX: Clean "Harga Jual" string BEFORE calculating and storing in 'row' ---
-        # Get raw value, default to "0" if not found
         harga_jual_raw = row.get("Harga Jual", "0") 
         
-        # Initialize harga_jual_row for calculation
         harga_jual_row_calc = 0.0
 
         if isinstance(harga_jual_raw, str):
-            # Clean the string: remove "Rp", ".", and ","
             harga_jual_cleaned = harga_jual_raw.replace("Rp", "").replace(".", "").replace(",", "").strip()
             try:
                 harga_jual_row_calc = float(harga_jual_cleaned)
@@ -180,28 +195,24 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
                 print(f"Peringatan: Gagal mengonversi '{harga_jual_raw}' ke angka. Menggunakan 0.0.")
                 harga_jual_row_calc = 0.0
         else:
-            # If it's already a number (int or float), just convert to float
             harga_jual_row_calc = float(harga_jual_raw)
 
-        # Now use the cleaned/converted value for calculations
         tax_service_row = harga_jual_row_calc * 0.10
         total_harga_row = harga_jual_row_calc + tax_service_row
 
-        # Store the CLEANED/CALCULATED values back into the 'row' dictionary
-        # This ensures that when we iterate to print, the values are already numeric or clean strings
-        row["Harga Jual"] = harga_jual_row_calc # Store the numeric value back
+        row["Harga Jual"] = harga_jual_row_calc
         row["Tax & Service"] = tax_service_row
         row["Total Harga"] = total_harga_row
 
-        # Accumulate totals
-        total_harga_jual += harga_jual_row_calc
-        total_tax_service += tax_service_row
-        total_total_harga += total_harga_row
+        # Akumulasi total dihapus
+        # total_harga_jual += harga_jual_row_calc
+        # total_tax_service += tax_service_row
+        # total_total_harga += total_harga_row
 
         max_row_height_this_row = row_height
         for col_name in kolom_fleksibel: 
             if col_name in kolom_ditampilkan and col_name in lebar_kolom_final:
-                value_for_height_check = str(row.get(col_name, "")) # Use string for text width check
+                value_for_height_check = str(row.get(col_name, ""))
                 col_width = lebar_kolom_final[col_name]
                 if col_width > 0: 
                     text_width = pdf.get_string_width(value_for_height_check)
@@ -225,37 +236,48 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
         initial_y_for_row = pdf.get_y()
         current_x_for_row_start = pdf.get_x() 
 
-        # Cetak kolom "No"
-        pdf.cell(max(0.1, lebar_kolom_final["No"]), max_row_height_this_row, str(idx), 1, 0, 'C')
+        # Cetak kolom "No" (rata tengah)
+        pdf.cell(max(0.1, lebar_kolom_final["No"]), max_row_height_this_row, str(idx), 1, 0, 'C') # 'C' for Center
 
         # Cetak kolom lainnya
         for col in kolom_ditampilkan:
             col_width = max(0.1, lebar_kolom_final.get(col, 10))
-            # NOW, 'value' taken from 'row' is already cleaned or numeric
             value_to_print = row.get(col, "") 
             
             # Format harga dan angka
             if col in ["Harga Jual", "Tax & Service", "Total Harga"]:
-                # Ensure it's a float before formatting
                 try:
-                    value_to_print = f"{float(value_to_print):,.0f}".replace(",", ".") # Format angka ribuan dengan titik
+                    value_to_print = f"{float(value_to_print):,.0f}".replace(",", ".")
                 except ValueError:
-                    value_to_print = "0" # Fallback if somehow still non-numeric
+                    value_to_print = "0"
             else:
                 value_to_print = str(value_to_print)
             
             # Khusus untuk kolom yang berpotensi panjang, gunakan multi_cell
             if col in kolom_fleksibel:
-                pdf.set_xy(pdf.get_x(), initial_y_for_row)
-                pdf.multi_cell(col_width, multi_cell_line_height, value_to_print, border=0, align='L')
+                # Untuk rata tengah multi_cell, kita perlu sedikit trik:
+                # Menggambar sel tanpa border, lalu mengatur posisi X
+                # Agar teks multi_cell di tengah.
+                # Penanganan posisi Y untuk multi_cell relatif kompleks dengan FPDF
+                # Posisikan Y untuk multi_cell agar sedikit lebih rendah untuk "Nama Customer"
+                if col == "Nama Customer":
+                    # Menyesuaikan posisi Y awal sedikit ke bawah untuk "Nama Customer"
+                    # Nilai 0.5-1.0 mungkin perlu disesuaikan tergantung font dan ukuran
+                    pdf.set_xy(pdf.get_x(), initial_y_for_row + (max_row_height_this_row - multi_cell_line_height * math.ceil(pdf.get_string_width(value_to_print) / col_width)) / 2)
+                else:
+                    pdf.set_xy(pdf.get_x(), initial_y_for_row + (max_row_height_this_row - multi_cell_line_height * math.ceil(pdf.get_string_width(value_to_print) / col_width)) / 2)
                 
+                pdf.multi_cell(col_width, multi_cell_line_height, value_to_print, border=0, align='C') # 'C' for Center alignment in multi_cell
+                
+                # Setelah multi_cell, kita harus set ulang X ke posisi setelah kolom ini berakhir
+                # dan Y ke initial_y_for_row untuk menggambar border berikutnya
                 x_next_col = current_x_for_row_start + lebar_kolom_final["No"] + sum(lebar_kolom_final.get(c,0) for c in kolom_ditampilkan[:kolom_ditampilkan.index(col)+1])
                 pdf.set_xy(x_next_col, initial_y_for_row)
 
             else:
-                # Untuk kolom lain, gunakan cell biasa
+                # Untuk kolom lain, gunakan cell biasa (rata tengah)
                 pdf.set_xy(pdf.get_x(), initial_y_for_row) 
-                pdf.cell(col_width, max_row_height_this_row, value_to_print, 1, 0, 'L')
+                pdf.cell(col_width, max_row_height_this_row, value_to_print, 1, 0, 'C') # 'C' for Center
         
         # Gambar border untuk setiap sel di baris ini secara manual setelah semua teks dicetak
         pdf.set_xy(current_x_for_row_start, initial_y_for_row)
@@ -264,25 +286,20 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
             pdf.cell(cell_width_for_border, max_row_height_this_row, "", 1, 0, 'C') 
         pdf.ln() 
     
-    # --- Penjumlahan Total di Bawah Tabel ---
-    pdf.ln(2) 
-    pdf.set_font("Arial", "B", 8)
+    # --- Penjumlahan Total di Bawah Tabel Dihapus ---
+    # pdf.ln(2) 
+    # pdf.set_font("Arial", "B", 8)
 
-    lebar_sebelum_harga_jual = lebar_kolom_final["No"] + sum(lebar_kolom_final.get(col, 0) for col in kolom_ditampilkan if col not in ["Harga Jual", "Tax & Service", "Total Harga"])
+    # lebar_sebelum_harga_jual = lebar_kolom_final["No"] + sum(lebar_kolom_final.get(col, 0) for col in kolom_ditampilkan if col not in ["Harga Jual", "Tax & Service", "Total Harga"])
     
-    total_label_width = lebar_sebelum_harga_jual - lebar_kolom_final.get("Harga Jual", 0) - lebar_kolom_final.get("Tax & Service", 0) - lebar_kolom_final.get("Total Harga", 0) + sum(lebar_kolom_final.get(c,0) for c in kolom_ditampilkan if c not in ["Harga Jual", "Tax & Service", "Total Harga"])
+    # total_label_width = lebar_sebelum_harga_jual - lebar_kolom_final.get("Harga Jual", 0) - lebar_kolom_final.get("Tax & Service", 0) - lebar_kolom_final.get("Total Harga", 0) + sum(lebar_kolom_final.get(c,0) for c in kolom_ditampilkan if c not in ["Harga Jual", "Tax & Service", "Total Harga"])
     
-    pdf.cell(max(0.1, total_label_width), row_height, "TOTAL", 1, 0, 'R', 1) 
+    # pdf.cell(max(0.1, total_label_width), row_height, "TOTAL", 1, 0, 'R', 1) 
 
-    # Tampilkan total Harga Jual
-    pdf.cell(max(0.1, lebar_kolom_final.get("Harga Jual", 0)), row_height, f"{total_harga_jual:,.0f}".replace(",", "."), 1, 0, 'R', 1)
-    
-    # Tampilkan total Tax & Service
-    pdf.cell(max(0.1, lebar_kolom_final.get("Tax & Service", 0)), row_height, f"{total_tax_service:,.0f}".replace(",", "."), 1, 0, 'R', 1)
-
-    # Tampilkan total Total Harga
-    pdf.cell(max(0.1, lebar_kolom_final.get("Total Harga", 0)), row_height, f"{total_total_harga:,.0f}".replace(",", "."), 1, 0, 'R', 1)
-    pdf.ln()
+    # pdf.cell(max(0.1, lebar_kolom_final.get("Harga Jual", 0)), row_height, f"{total_harga_jual:,.0f}".replace(",", "."), 1, 0, 'R', 1)
+    # pdf.cell(max(0.1, lebar_kolom_final.get("Tax & Service", 0)), row_height, f"{total_tax_service:,.0f}".replace(",", "."), 1, 0, 'R', 1)
+    # pdf.cell(max(0.1, lebar_kolom_final.get("Total Harga", 0)), row_height, f"{total_total_harga:,.0f}".replace(",", "."), 1, 0, 'R', 1)
+    # pdf.ln()
 
     pdf.output(output_path)
     return output_path

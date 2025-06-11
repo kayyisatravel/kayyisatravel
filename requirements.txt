@@ -22,3 +22,8 @@ weasyprint
 yagmail
 fpdf2
 openpyxl
+imapclient 
+mail-parser
+spacy
+sklearn
+scikit-learn

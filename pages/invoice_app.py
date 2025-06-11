@@ -120,9 +120,9 @@ st.write("Data setelah filter tanggal:", filtered_df)
 if nama_filter:
     filtered_df = filtered_df[filtered_df["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
 # Debug output opsional
-st.write("🛠 Debug: Rentang tanggal", tanggal_range)
-st.write("🛠 Debug: Jumlah data hasil filter", len(filtered_df))
-st.write("🛠 Debug: Data hasil filter", filtered_df.head())
+#st.write("🛠 Debug: Rentang tanggal", tanggal_range)
+#st.write("🛠 Debug: Jumlah data hasil filter", len(filtered_df))
+#st.write("🛠 Debug: Data hasil filter", filtered_df.head())
     
 if filtered_df.empty:
     st.warning("❌ Tidak ada data yang cocok.")

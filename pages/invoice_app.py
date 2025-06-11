@@ -52,36 +52,168 @@ if st.button("🔄 Refresh Data"):
     #df = load_data()
 # === Fungsi PDF ===
 import math # Untuk pembulatan jika diperlukan
+def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_output.pdf"):
+    pdf = FPDF(orientation="L", unit="mm", format="A4")
+    pdf.add_page()
+    
+    # Generate No Invoice unik 12 digit: ssmmhhyymmdd (detik menit jam bulan tanggal tahun)
+    unique_invoice_no = datetime.now().strftime("%S%M%H%d%m%y")
 
-def buat_invoice_pdf(data, nama, tanggal, output_path="invoice_output.pdf"):
-    pdf = FPDF(orientation="L", unit="mm", format="A4")
-    pdf.add_page()
-    pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, "INVOICE PEMESANAN", ln=True, align="C")
-    pdf.set_font("Arial", "", 12)
-    pdf.ln(5)
-    pdf.cell(0, 10, f"Nama: {nama}", ln=True)
-    pdf.cell(0, 10, f"Tanggal: {tanggal.strftime('%d-%m-%Y')}", ln=True)
-    pdf.ln(5)
-    kolom_abaikan = ["Pilih", "Harga Beli", "Admin", "%Laba", "Nama Pemesan"]
-    kolom_ditampilkan = [col for col in data[0].keys() if col not in kolom_abaikan]
-    halaman_lebar = 277  # A4 landscape
-    jumlah_kolom = len(kolom_ditampilkan) + 1  # +1 untuk No
-    lebar_kolom = halaman_lebar / jumlah_kolom
-    pdf.set_font("Arial", "B", 10)
-    pdf.cell(lebar_kolom, 8, "No", 1)
-    for col in kolom_ditampilkan:
-        pdf.cell(lebar_kolom, 8, col[:30], 1)
-    pdf.ln()
-    pdf.set_font("Arial", "", 10)
-    for idx, row in enumerate(data, 1):
-        pdf.cell(lebar_kolom, 8, str(idx), 1)
-        for col in kolom_ditampilkan:
-            value = str(row.get(col, ""))[:40]
-            pdf.cell(lebar_kolom, 8, value, 1)
-        pdf.ln()
-    pdf.output(output_path)
-    return output_path
+    # --- Header Invoice ---
+    pdf.set_font("Arial", "B", 18)
+    pdf.cell(0, 10, "INVOICE PEMESANAN", ln=True, align="C")
+    pdf.set_font("Arial", "", 12)
+    pdf.ln(5)
+    pdf.cell(0, 7, f"Nama Pemesan: {nama_pemesan}", ln=True)
+    pdf.cell(0, 7, f"Tanggal Invoice: {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
+    pdf.cell(0, 7, f"No. Invoice: {unique_invoice_no}", ln=True) # Cetak No. Invoice unik di sini
+    pdf.ln(10)
+
+    # --- Persiapan Kolom ---
+    # Daftar kolom yang akan ditampilkan di tabel, sesuai permintaan Anda
+    kolom_prioritas = [
+        "Tgl Pemesanan",
+        "Tgl Berangkat",
+        "Kode Booking",
+        "No Penerbangan / Nama Hotel / Kereta",
+        "Durasi",
+        "Nama Customer",
+        "Rute/Kota",
+        "Harga Jual",
+        "BF/NBF",
+        "Keterangan" 
+    ]
+
+    # Kolom yang akan selalu diabaikan dari tabel
+    kolom_abaikan = [
+        "Pilih", "Harga Beli", "Admin", 
+        "Nama Pemesan", "No Invoice", "Laba", 
+        "% Laba", "Pemesan" # "Pemesan" sekarang ada di sini
+    ] 
+    
+    # Filter kolom_prioritas berdasarkan kolom yang ada di data
+    kolom_ditampilkan = [col for col in kolom_prioritas if col in data[0].keys() and col not in kolom_abaikan]
+
+    # --- Perhitungan Lebar Kolom yang Lebih Robust ---
+    halaman_lebar_efektif = pdf.w - 2 * pdf.l_margin 
+    
+    # Definisi lebar minimum untuk kolom-kolom yang harus punya lebar tertentu
+    min_lebar_wajib = {
+        "No": 8, 
+        "Tgl Pemesanan": 22,
+        "Tgl Berangkat": 22,
+        "Kode Booking": 18,
+        "Durasi": 12,
+        "Harga Jual": 22, 
+        "BF/NBF": 12,
+        # "Pemesan" sudah dihapus dari sini
+    }
+
+    # Kolom yang bisa fleksibel (mendapatkan sisa lebar)
+    kolom_fleksibel = [
+        "Nama Customer",
+        "Rute/Kota",
+        "No Penerbangan / Nama Hotel / Kereta",
+        "Keterangan"
+    ]
+
+    lebar_kolom_final = {}
+    total_lebar_wajib = 0
+
+    # Alokasikan lebar minimum untuk kolom wajib
+    for col in ["No"] + kolom_ditampilkan: 
+        if col in min_lebar_wajib:
+            lebar_kolom_final[col] = min_lebar_wajib[col]
+            total_lebar_wajib += min_lebar_wajib[col]
+
+    # Identifikasi kolom fleksibel yang benar-benar ada di `kolom_ditampilkan`
+    fleksibel_yang_ada = [col for col in kolom_fleksibel if col in kolom_ditampilkan]
+    
+    sisa_lebar_untuk_fleksibel = halaman_lebar_efektif - total_lebar_wajib
+
+    if fleksibel_yang_ada:
+        if sisa_lebar_untuk_fleksibel > 0:
+            lebar_per_fleksibel = sisa_lebar_untuk_fleksibel / len(fleksibel_yang_ada)
+            for col in fleksibel_yang_ada:
+                lebar_kolom_final[col] = lebar_per_fleksibel
+        else:
+            min_flex_width = 1 # Minimum 1mm untuk kolom fleksibel agar tidak error single char
+            for col in fleksibel_yang_ada:
+                lebar_kolom_final[col] = min_flex_width
+
+    # --- Header Tabel ---
+    pdf.set_font("Arial", "B", 8) 
+    pdf.set_fill_color(200, 220, 255) 
+    
+    pdf.cell(max(0.1, lebar_kolom_final["No"]), 8, "No", 1, 0, 'C', 1)
+    for col in kolom_ditampilkan:
+        pdf.cell(max(0.1, lebar_kolom_final.get(col, 10)), 8, col, 1, 0, 'C', 1)
+    pdf.ln()
+
+    # --- Isi Tabel ---
+    pdf.set_font("Arial", "", 8) 
+    row_height = 7 
+    multi_cell_line_height = row_height / 2.5 
+
+    for idx, row in enumerate(data, 1):
+        # Prediksi tinggi baris maksimum yang dibutuhkan multi_cell untuk page break
+        max_row_height_this_row = row_height
+        for col_name in kolom_fleksibel: 
+            if col_name in kolom_ditampilkan and col_name in lebar_kolom_final:
+                value = str(row.get(col_name, ""))
+                col_width = lebar_kolom_final[col_name]
+                if col_width > 0: 
+                    text_width = pdf.get_string_width(value)
+                    num_lines = math.ceil(text_width / col_width) if text_width > 0 else 1
+                    if num_lines > 1:
+                        required_height_for_multi_cell = num_lines * multi_cell_line_height
+                        max_row_height_this_row = max(max_row_height_this_row, required_height_for_multi_cell)
+
+        if pdf.get_y() + max_row_height_this_row + 2 > pdf.page_break_trigger:
+            pdf.add_page()
+            # Cetak ulang header tabel di halaman baru
+            pdf.set_font("Arial", "B", 8)
+            pdf.set_fill_color(200, 220, 255)
+            pdf.cell(max(0.1, lebar_kolom_final["No"]), 8, "No", 1, 0, 'C', 1)
+            for col in kolom_ditampilkan:
+                pdf.cell(max(0.1, lebar_kolom_final.get(col, 10)), 8, col, 1, 0, 'C', 1)
+            pdf.ln()
+            pdf.set_font("Arial", "", 8)
+
+        # Simpan posisi Y awal untuk baris ini
+        initial_y_for_row = pdf.get_y()
+        current_x_for_row_start = pdf.get_x() 
+
+        # Cetak kolom "No"
+        pdf.cell(max(0.1, lebar_kolom_final["No"]), max_row_height_this_row, str(idx), 1, 0, 'C')
+
+        # Cetak kolom lainnya
+        for col in kolom_ditampilkan:
+            col_width = max(0.1, lebar_kolom_final.get(col, 10))
+            value = str(row.get(col, ""))
+            
+            # Khusus untuk kolom yang berpotensi panjang, gunakan multi_cell
+            if col in kolom_fleksibel: # Cek apakah kolom ini termasuk fleksibel
+                pdf.set_xy(pdf.get_x(), initial_y_for_row)
+                pdf.multi_cell(col_width, multi_cell_line_height, value, border=0, align='L')
+                
+                x_next_col = current_x_for_row_start + lebar_kolom_final["No"] + sum(lebar_kolom_final.get(c,0) for c in kolom_ditampilkan[:kolom_ditampilkan.index(col)+1])
+                pdf.set_xy(x_next_col, initial_y_for_row)
+
+            else:
+                # Untuk kolom lain, gunakan cell biasa
+                pdf.set_xy(pdf.get_x(), initial_y_for_row) 
+                pdf.cell(col_width, max_row_height_this_row, value, 1, 0, 'L')
+        
+        # Gambar border untuk setiap sel di baris ini secara manual setelah semua teks dicetak
+        pdf.set_xy(current_x_for_row_start, initial_y_for_row)
+        for col_name_for_border in ["No"] + kolom_ditampilkan:
+            cell_width_for_border = max(0.1, lebar_kolom_final.get(col_name_for_border, 10))
+            pdf.cell(cell_width_for_border, max_row_height_this_row, "", 1, 0, 'C') 
+        pdf.ln() 
+
+    pdf.output(output_path)
+    return output_path
 # === UI Streamlit ===
 #st.set_page_config(page_title="Buat Invoice Tiket", layout="centered")
 #st.title("🧾 Buat Invoice")

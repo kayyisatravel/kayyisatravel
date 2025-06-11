@@ -366,7 +366,7 @@ def process_ocr_text_multiple(text):
         customer_names = customer_names[:jumlah_kamar]
 
     kota = extract_city(cleaned, city_list)
-    checkin = extract_dates_hotel(cleaned)
+    checkin, checkout = extract_dates_hotel(cleaned)
     tgl_berangkat = checkin.strftime('%Y-%m-%d') if checkin else ''
     bf_status = extract_bf(cleaned)
 

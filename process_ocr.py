@@ -143,7 +143,41 @@ def parse_date_from_str(s: str) -> datetime:
                 pass
                 
     return None
+# --- Document Type Detection Function ---
+def detect_document_type(text: str) -> str:
+    """
+    Mendeteksi jenis dokumen (hotel, pesawat, atau kereta) berdasarkan keyword.
+    Mengembalikan 'hotel', 'pesawat', 'kereta', atau 'unknown'.
+    """
+    tl = text.lower()
 
+    # Keywords untuk hotel
+    hotel_keywords = r'\b(hotel|check[-\s]?in|check[-\s]?out|malam|room)\b'
+    if re.search(hotel_keywords, tl):
+        # Periksa juga jika ada nama hotel/kota yang jelas dan bukan bandara/stasiun
+        if re.search(r'\b(grand\s+hyatt|ritz\s+carlton|shangri-la|aston|swiss-belhotel|novotel|ibis|harris|pop!|favehotel)\b', tl):
+            return 'hotel'
+        if re.search(r'\b(jl\.|jalan|kota|kabupaten)\b', tl) and not re.search(r'\b(penerbangan|maskapai|stasiun)\b', tl):
+            return 'hotel'
+
+
+    # Keywords untuk pesawat
+    pesawat_keywords = r'\b(flight|airlines|maskapai|pnr|kode\s*penerbangan|bandara|terminal|air\s*asia|airasia|citilink|garuda\s*Indonesia|jet|nam\s*air|batik\s*air|wings\s*air|susi\s*air|pelita\s*air|sriwijaya\s*air|lion\s*air|berangkat|tiba)\b'
+    # Prioritas lebih tinggi jika ada kode IATA
+    if re.search(r'\b([A-Z]{3})\s*-\s*([A-Z]{3})\b', tl) or re.search(r'\b([A-Z]{2}\d{2,4})\b', tl): # CGK-SUB atau GA123
+        return 'pesawat'
+    if re.search(pesawat_keywords, tl):
+        return 'pesawat'
+
+    # Keywords untuk kereta
+    kereta_keywords = r'\b(kereta|stasiun|kai|eksekutif|bisnis|ekonomi|argolow|sindoro|ekonomi|eksekutif|bisnis|prameks|jayabaya|bima)\b'
+    # Lebih spesifik: cari pola kode booking kereta atau kelas/nomor kursi
+    if re.search(r'\b(ekspress|eksekutif|bisnis|ekonomi|panoramic|priority)\b', tl) and re.search(r'\d+[A-Z]?\/\d+[A-Z]?\b', tl):
+        return 'kereta'
+    if re.search(kereta_keywords, tl):
+        return 'kereta'
+        
+    return 'unknown'
 ## B. HOTEL PROCESSOR FUNCTIONS
 
 def load_city_list(filepath="city_list.txt") -> list:

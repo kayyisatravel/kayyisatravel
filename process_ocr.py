@@ -144,8 +144,6 @@ def parse_date_from_str(s: str) -> datetime:
                 
     return None
 
----
-
 ## B. HOTEL PROCESSOR FUNCTIONS
 
 def load_city_list(filepath="city_list.txt") -> list:

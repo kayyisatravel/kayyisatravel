@@ -426,8 +426,6 @@ def process_ocr_text_multiple(text: str) -> list:
 
     return results
 
----
-
 ## C. PESAWAT PROCESSOR FUNCTIONS
 
 def process_ocr_pesawat(text: str) -> list:

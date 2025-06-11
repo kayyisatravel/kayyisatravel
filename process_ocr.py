@@ -103,7 +103,7 @@ def detect_document_type(text: str) -> str:
         return 'kereta'
 
     # Pesawat
-    if re.search(r'\b(flight|airlines|maskapai|pnr|kode\s*penerbangan|bandara|terminal|air\s*asia|airasia|citilink|garuda|super|nam\s*air|batik|wings|susi\s*air|pelita\s*air|sriwijaya|lion)\b', tl):
+    if re.search(r'\b(flight|airlines|maskapai|pnr|kode\s*penerbangan|bandara|terminal|air\s*asia|airasia|citilink|garuda\s*Indonesia|jet|nam\s*air|batik\s*air|wings\s*air|susi\s*air|pelita\s*air|sriwijaya\s*air|lion\s*air)\b', tl):
         return 'pesawat'
 
     # Hotel
@@ -145,8 +145,8 @@ def extract_booking_code(text: str) -> str:
     - 'No. Pesanan Traveloka 112233'
     """
     m = re.search(
-        r'(?:Order\s*ID|ID\s*Pesanan|No\.?\s*Pesanan(?:\s*Traveloka)?)\D*([A-Za-z0-9\-]+)',
-        text,
+        r'(?:Order\s*ID|ID\s*Pesanan|No\.?\s*Pesanan(?:\s*Traveloka)?)\D*(\d+)', 
+        text, 
         re.IGNORECASE
     )
     return m.group(1) if m else None
@@ -668,6 +668,7 @@ def process_ocr_unified(text: str) -> list:
     Jika unknown, kembalikan list kosong.
     """
     tipe = detect_document_type(text)
+    print(f"DEBUG: detect_document_type result: '{tipe}'", flush=True)
     if tipe == 'hotel':
         return process_ocr_text_multiple(text)
     elif tipe == 'pesawat':

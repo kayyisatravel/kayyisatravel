@@ -47,7 +47,7 @@ def load_data():
 # Tombol Refresh
 if st.button("🔄 Refresh Data"):
     st.cache_data.clear()
-    #df = load_data()
+    df = load_data()
 #else:
     #df = load_data()
 # === Fungsi PDF ===

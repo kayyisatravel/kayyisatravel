@@ -76,6 +76,9 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
     # Generate No Invoice unik 12 digit: ddmmyyhhmmss (tanggal bulan tahun jam menit detik)
     # Gunakan waktu saat ini di Indonesia (WIB)
     unique_invoice_no = datetime.now().strftime("%d%m%y%H%M%S")
+    pdf_filename = f"INV_{unique_invoice_no}.pdf"
+    pdf.output(pdf_filename) # Menggunakan nama file yang baru dibuat
+    print(f"Invoice berhasil dibuat: {pdf_filename}")
 
     # --- Header Invoice ---
     pdf.set_font("Arial", "B", 18)

@@ -68,16 +68,35 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
                              Setiap dict merepresentasikan baris data.
         nama_pemesan (str): Nama pemesan untuk invoice (akan diabaikan karena sudah di-hardcode).
         tanggal_invoice (date): Tanggal pembuatan invoice.
-        output_path (str): Path untuk menyimpan file PDF.
+        output_path (str): Path untuk menyimpan file PDF (nilai ini akan diabaikan karena nama file otomatis).
     """
     pdf = FPDF(orientation="L", unit="mm", format="A4")
     pdf.add_page()
     
     # Generate No Invoice unik 12 digit: ddmmyyhhmmss (tanggal bulan tahun jam menit detik)
-    # Gunakan waktu saat ini di Indonesia (WIB)
     unique_invoice_no = datetime.now().strftime("%d%m%y%H%M%S")
     pdf_filename = f"INV_{unique_invoice_no}.pdf"
-    pdf.output(pdf_filename) # Menggunakan nama file yang baru dibuat
+    
+    # --- MULAI TAMBAHKAN SEMUA KONTEN PDF ANDA DI SINI ---
+    # Contoh:
+    # pdf.set_font("Arial", size=16)
+    # pdf.cell(0, 10, "INVOICE PEMESANAN", ln=True, align="C")
+    # pdf.ln(10) # Line break
+
+    # # Contoh menampilkan No Invoice, tanggal, dan pemesan di header
+    # pdf.set_font("Arial", size=10)
+    # pdf.cell(0, 7, f"No Invoice: {unique_invoice_no}", ln=True)
+    # pdf.cell(0, 7, f"Tanggal: {tanggal_invoice.strftime('%d %B %Y')}", ln=True)
+    # pdf.cell(0, 7, f"Pemesan: {nama_pemesan}", ln=True)
+    # pdf.ln(10)
+
+    # ... (Semua kode Anda untuk mengatur lebar kolom, membuat header tabel,
+    #        mengisi data tabel dengan loop, menghitung total, dll.) ...
+
+    # --- PASTIKAN SEMUA KONTEN SUDAH DITAMBAHKAN SEBELUM BARIS DI BAWAH INI ---
+
+    # --- PENTING: PANGGIL pdf.output() DI SINI, DI BAGIAN PALING AKHIR FUNGSI ---
+    pdf.output(pdf_filename)
     print(f"Invoice berhasil dibuat: {pdf_filename}")
 
     # --- Header Invoice ---

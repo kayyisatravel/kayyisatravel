@@ -143,11 +143,9 @@ def extract_booking_code(text: str) -> str:
     - 'Order ID 123456'
     - 'ID Pesanan: 78910'
     - 'No. Pesanan Traveloka 112233'
-    - 'Kode Booking: ABC123DEF' <-- Sekarang bisa mendeteksi huruf
     """
     m = re.search(
-        # Mengganti (\d+) menjadi ([a-zA-Z0-9]+)
-        r'(?:Order\s*ID|ID\s*Pesanan|No\.?\s*Pesanan(?:\s*Traveloka)?|Kode\s*Booking):\s*([a-zA-Z0-9]+)', 
+        r'(?:Order\s*ID|ID\s*Pesanan|Kode\s*Booking|No\.?\s*Pesanan(?:\s*Traveloka)?)\D*(\d+)', 
         text, 
         re.IGNORECASE
     )
@@ -334,55 +332,54 @@ def extract_duration_days_hotel(checkin: datetime, checkout: datetime) -> int:
         return max(delta.days, 1)
     return 1
 
-def process_ocr_text_multiple(text):
+def process_ocr_text_multiple(text: str) -> list:
+    """
+    Memproses OCR hotel, mengembalikan list of dict. 
+    Dicetak satu per kamar/tamu.
+    """
     city_list = load_city_list()
     cleaned = clean_text(text)
     cleaned_lines = clean_text_keep_lines(text)
 
     kode_booking = extract_booking_code(cleaned)
-    hotel = clean_hotel_name(extract_hotel_name(cleaned_lines))
-    checkin, checkout = extract_dates_hotel(cleaned)
-    durasi = extract_duration_days_hotel(checkin, checkout)
+    hotel_name = clean_hotel_name(extract_hotel_name(cleaned_lines))
+    durasi_night = None
+    checkin_dt, checkout_dt = extract_dates_hotel(cleaned)
+    durasi_night = extract_duration_days_hotel(checkin_dt, checkout_dt)
+
     jumlah_kamar = extract_room_count(cleaned)
     harga_beli_total, harga_jual_total = extract_price_info(cleaned)
     customer_names = extract_customer_names(cleaned_lines)
 
-    print(f"[DEBUG] Jumlah kamar terdeteksi: {jumlah_kamar}")
-    print(f"[DEBUG] Nama tamu terdeteksi: {customer_names}")
+    # Debug print (optional)
+    #print(f"[DEBUG] Jumlah kamar: {jumlah_kamar}, Nama Tamu: {customer_names}")
 
-    if harga_jual_total and jumlah_kamar:
-        harga_jual_total_per_kamar = harga_jual_total // jumlah_kamar
-    else:
-        harga_jual_total_per_kamar = None
+    # Hitung per-kamar
+    harga_beli_per_kamar = (harga_beli_total // jumlah_kamar) if (harga_beli_total and jumlah_kamar) else None
+    harga_jual_per_kamar = (harga_jual_total // jumlah_kamar) if (harga_jual_total and jumlah_kamar) else None
 
-    if harga_beli_total and jumlah_kamar:
-        harga_beli_per_kamar = harga_beli_total // jumlah_kamar
-    else:
-        harga_beli_per_kamar = None
-
+    # Sesuaikan panjang customer_names dengan jumlah_kamar
     if len(customer_names) < jumlah_kamar:
         customer_names += [None] * (jumlah_kamar - len(customer_names))
     elif len(customer_names) > jumlah_kamar:
         customer_names = customer_names[:jumlah_kamar]
 
     kota = extract_city(cleaned, city_list)
-    checkin, checkout = extract_dates_hotel(cleaned)
-    tgl_berangkat = checkin.strftime('%Y-%m-%d') if checkin else ''
     bf_status = extract_bf(cleaned)
 
     results = []
-    for i in range(jumlah_kamar):
-        nama_tamu = customer_names[i] if i < len(customer_names) else None
+    for idx in range(jumlah_kamar):
+        nama_tamu = customer_names[idx] if idx < len(customer_names) else None
         data = {
             'Tgl Pemesanan': datetime.today().strftime('%Y-%m-%d'),
-            'Tgl Berangkat': tgl_berangkat,
+            'Tgl Berangkat': checkin_dt.strftime('%Y-%m-%d') if checkin_dt else '',
             'Kode Booking': kode_booking,
-            'No Penerbangan / Nama Hotel / Kereta': hotel,
-            'Durasi': f"{durasi} mlm" if durasi else None,
+            'No Penerbangan / Nama Hotel / Kereta': hotel_name,
+            'Durasi': f"{durasi_night} mlm" if durasi_night else None,
             'Nama Customer': nama_tamu,
             'Rute/Kota': kota,
             'Harga Beli': harga_beli_per_kamar,
-            'Harga Jual': harga_jual_total_per_kamar,
+            'Harga Jual': harga_jual_per_kamar,
             'Laba': None,
             'BF/NBF': bf_status,
             'No Invoice': '',
@@ -391,10 +388,12 @@ def process_ocr_text_multiple(text):
             'Admin': '',
             '% Laba': ''
         }
+        # Hitung laba dan persentase
         if data['Harga Beli'] is not None and data['Harga Jual'] is not None:
             data['Laba'] = data['Harga Jual'] - data['Harga Beli']
             if data['Harga Beli'] > 0:
                 data['% Laba'] = f"{round((data['Laba'] / data['Harga Beli']) * 100, 2)}%"
+
         results.append(data)
 
     return results
@@ -547,8 +546,10 @@ def extract_kereta_passengers(text_keep_lines: str) -> list:
     kereta_name = m_train.group(1).strip() if m_train else None
 
     # Tangkap baris seperti: "1. Nama Penumpang    EKO 7/8A"
-    pattern = re.compile(r'^\d+\.\s*(.+?)\s+((EKS|BIS|EKO|PRE|PAN)\s+\d+/\d+[A-Za-z]?)\s*$', re.IGNORECASE | re.MULTILINE)
-
+    pattern = re.compile(
+        r'^\d+\.\s*(.+?)\s+((?:EKS|BIS|EKO|PRE|PAN|KLS)\s*\d+\s*[\/\\]?\s*\d*[A-Za-z]?)\s*$', # <--- Perubahan di sini!
+    re.IGNORECASE | re.MULTILINE
+    )
     result = []
     for m in pattern.finditer(text_keep_lines):
         name = m.group(1).strip()
@@ -571,6 +572,8 @@ def process_ocr_kereta(text: str) -> list:
     """
     cleaned = clean_text(text)
     cleaned_lines = clean_text_keep_lines(text)
+    print(f"DEBUG Kereta Cleaned Text:\n{cleaned}\n---", flush=True)
+    print(f"DEBUG Kereta Cleaned Lines Text:\n{cleaned_lines}\n---", flush=True)
 
     # --- Kode Booking ---
     m_kode = re.search(r'kode\s*booking\s*[:\-]?\s*([A-Z0-9]+)', cleaned, re.IGNORECASE)
@@ -694,3 +697,4 @@ if __name__ == "__main__":
         print(f"\n--- Entry {idx} ---")
         for k, v in entry.items():
             print(f"{k}: {v}")
+

@@ -77,28 +77,6 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
     unique_invoice_no = datetime.now().strftime("%d%m%y%H%M%S")
     pdf_filename = f"INV_{unique_invoice_no}.pdf"
     
-    # --- MULAI TAMBAHKAN SEMUA KONTEN PDF ANDA DI SINI ---
-    # Contoh:
-    # pdf.set_font("Arial", size=16)
-    # pdf.cell(0, 10, "INVOICE PEMESANAN", ln=True, align="C")
-    # pdf.ln(10) # Line break
-
-    # # Contoh menampilkan No Invoice, tanggal, dan pemesan di header
-    # pdf.set_font("Arial", size=10)
-    # pdf.cell(0, 7, f"No Invoice: {unique_invoice_no}", ln=True)
-    # pdf.cell(0, 7, f"Tanggal: {tanggal_invoice.strftime('%d %B %Y')}", ln=True)
-    # pdf.cell(0, 7, f"Pemesan: {nama_pemesan}", ln=True)
-    # pdf.ln(10)
-
-    # ... (Semua kode Anda untuk mengatur lebar kolom, membuat header tabel,
-    #        mengisi data tabel dengan loop, menghitung total, dll.) ...
-
-    # --- PASTIKAN SEMUA KONTEN SUDAH DITAMBAHKAN SEBELUM BARIS DI BAWAH INI ---
-
-    # --- PENTING: PANGGIL pdf.output() DI SINI, DI BAGIAN PALING AKHIR FUNGSI ---
-    pdf.output(pdf_filename)
-    print(f"Invoice berhasil dibuat: {pdf_filename}")
-
     # --- Header Invoice ---
     pdf.set_font("Arial", "B", 18)
     pdf.cell(0, 10, "INVOICE PEMESANAN", ln=True, align="C")
@@ -111,6 +89,9 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
     pdf.ln(10)
 
     # --- Persiapan Kolom ---
+    # kolom_prioritas dan kolom_abaikan tidak digunakan langsung dalam loop tampilan,
+    # jadi saya biarkan mereka seperti adanya.
+    # Namun, `kolom_ditampilkan_final` akan jadi dasar utama.
     kolom_prioritas = [
         "Tgl Pemesanan",
         "Tgl Berangkat",
@@ -121,7 +102,7 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
         "Rute/Kota",
         "Harga Jual", # Ini sekarang akan menjadi "Harga" setelah perhitungan
         "Tax & Service", # Akan di-mapping ke "Service Fee"
-        "Total Harga",   # Ini akan menjadi "Total Harga" dari GSheets
+        "Total Harga",    # Ini akan menjadi "Total Harga" dari GSheets
         "BF/NBF",
         "Keterangan" 
     ]
@@ -149,7 +130,7 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
         "Keterangan" 
     ]
     # Filter kolom_ditampilkan_final agar hanya menyertakan kolom yang ada di data atau yang baru
-    kolom_ditampilkan = [col for col in kolom_ditampilkan_final if col == "No" or col in data[0].keys() or col in ["Tax & Service", "Total Harga"]]
+    kolom_ditampilkan = [col for col in kolom_ditampilkan_final if col == "No" or (data and col in data[0].keys()) or col in ["Tax & Service", "Total Harga"]]
     # Hapus "No" dari kolom_ditampilkan karena akan ditambahkan secara manual di cell pertama
     if "No" in kolom_ditampilkan:
         kolom_ditampilkan.remove("No")
@@ -167,7 +148,7 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
         "No": 8, 
         "Tgl Pemesanan": 22,
         "Tgl Berangkat": 22,
-        #"Kode Booking": 18 + 4 + 5,
+        #"Kode Booking": 18 + 4 + 5, # Dikomentari, tidak akan mempengaruhi
         "Durasi": 12 + 4 + 2 + 3, # Total penambahan 9 spasi
         "Harga Jual": 22, # Lebar untuk kolom "Harga" (Hasil perhitungan)
         "Tax & Service": 22, # Lebar untuk kolom "Service Fee" (Nilai tetap 20.000)
@@ -177,14 +158,23 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
 
     kolom_fleksibel = [
         "Nama Customer",
-        "Kode Booking",
+        "Kode Booking", # Pastikan Kode Booking ada di sini jika lebarnya fleksibel
         "Rute/Kota",
         "No Penerbangan / Nama Hotel / Kereta",
         "Keterangan"
     ]
     
+    # Perbaikan untuk Nama Customer (menghapus -15)
     min_lebar_wajib["Nama Customer"] = max(1, min_lebar_wajib.get("Nama Customer", 40))
     
+    # Jika Kode Booking ingin lebar wajib, tambahkan di min_lebar_wajib.
+    # Jika tidak, biarkan di kolom_fleksibel
+    if "Kode Booking" not in min_lebar_wajib and "Kode Booking" in kolom_fleksibel:
+        # Menambahkan lebar wajib 18+4+5 untuk Kode Booking jika belum ada di min_lebar_wajib
+        # Ini penting agar tidak dianggap fleksibel dan mendapat lebar minimal jika sisa lebar kurang
+        min_lebar_wajib["Kode Booking"] = 18 + 4 + 5 # Atau nilai yang Anda inginkan
+    
+
     lebar_kolom_final = {}
     total_lebar_wajib = 0
     
@@ -229,7 +219,9 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
         total_harga_raw_from_gsheets = row.get("Harga Jual", "0") 
         total_harga_calc = 0.0
 
-        if isinstance(total_harga_raw_from_gsheets, str):
+        if isinstance(total_harga_raw_from_gsheets, (int, float)): # Pastikan handle jika sudah angka
+            total_harga_calc = float(total_harga_raw_from_gsheets)
+        elif isinstance(total_harga_raw_from_gsheets, str):
             total_harga_cleaned = total_harga_raw_from_gsheets.replace("Rp", "").replace(".", "").replace(",", "").strip()
             try:
                 total_harga_calc = float(total_harga_cleaned)
@@ -237,7 +229,8 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
                 print(f"Peringatan: Gagal mengonversi 'Total Harga' '{total_harga_raw_from_gsheets}' ke angka. Menggunakan 0.0.")
                 total_harga_calc = 0.0
         else:
-            total_harga_calc = float(total_harga_raw_from_gsheets)
+            total_harga_calc = 0.0
+
 
         # 2. Service Fee tetap 20.000
         service_fee_row = 20000.0 
@@ -289,7 +282,8 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
             # Format harga dan angka
             if col in ["Harga Jual", "Tax & Service", "Total Harga"]: 
                 try:
-                    value_to_print = f"{float(value_to_print):,.0f}".replace(",", ".")
+                    # Convert to float first, then format with comma for thousands
+                    value_to_print = f"{float(value_to_print):,.0f}".replace(",", ".") # Use .replace(",", ".") for IDR format
                 except ValueError:
                     value_to_print = "0"
             else:
@@ -305,6 +299,8 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
                 pdf.set_xy(pdf.get_x(), initial_y_for_row + y_offset_for_center)
                 pdf.multi_cell(col_width, multi_cell_line_height, value_to_print, border=0, align='C') 
                 
+                # Setelah multi_cell, X tidak berpindah. Atur X secara manual untuk kolom berikutnya
+                # Lebar total dari kolom 'No' + semua kolom yang sudah ditampilkan sebelumnya
                 x_next_col = current_x_for_row_start + lebar_kolom_final["No"] + sum(lebar_kolom_final.get(c,0) for c in kolom_ditampilkan[:kolom_ditampilkan.index(col)+1])
                 pdf.set_xy(x_next_col, initial_y_for_row)
 
@@ -313,14 +309,18 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
                 pdf.cell(col_width, max_row_height_this_row, value_to_print, 1, 0, 'C')
         
         # Gambar border untuk setiap sel di baris ini secara manual setelah semua teks dicetak
+        # Ini perlu dilakukan karena multi_cell tidak menggambar border secara otomatis saat align='C'
         pdf.set_xy(current_x_for_row_start, initial_y_for_row)
         for col_name_for_border in ["No"] + kolom_ditampilkan:
             cell_width_for_border = max(0.1, lebar_kolom_final.get(col_name_for_border, 10))
             pdf.cell(cell_width_for_border, max_row_height_this_row, "", 1, 0, 'C') 
         pdf.ln() 
     
-    pdf.output(output_path)
-    return output_path
+    # --- PENTING: PANGGIL pdf.output() DI SINI, DI BAGIAN PALING AKHIR FUNGSI ---
+    pdf.output(pdf_filename) # Menggunakan nama file yang baru dibuat
+
+    # Mengembalikan path PDF agar bisa digunakan oleh Streamlit untuk download/email
+    return pdf_filename
 # === UI Streamlit ===
 #st.set_page_config(page_title="Buat Invoice Tiket", layout="centered")
 #st.title("🧾 Buat Invoice")

@@ -145,7 +145,7 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
         "No": 8, 
         "Tgl Pemesanan": 22,
         "Tgl Berangkat": 22,
-        "Kode Booking": 18 + 4,
+        "Kode Booking": 18 + 4 + 3,
         "Durasi": 12 + 4 + 2 + 3, # Total penambahan 9 spasi
         "Harga Jual": 22, # Lebar untuk kolom "Harga" (Hasil perhitungan)
         "Tax & Service": 22, # Lebar untuk kolom "Service Fee" (Nilai tetap 20.000)

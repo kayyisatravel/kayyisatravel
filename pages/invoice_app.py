@@ -145,7 +145,7 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
         "No": 8, 
         "Tgl Pemesanan": 22,
         "Tgl Berangkat": 22,
-        "Kode Booking": 18 + 4 + 3,
+        #"Kode Booking": 18 + 4 + 5,
         "Durasi": 12 + 4 + 2 + 3, # Total penambahan 9 spasi
         "Harga Jual": 22, # Lebar untuk kolom "Harga" (Hasil perhitungan)
         "Tax & Service": 22, # Lebar untuk kolom "Service Fee" (Nilai tetap 20.000)
@@ -155,36 +155,37 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, output_path="invoice_o
 
     kolom_fleksibel = [
         "Nama Customer",
+        "Kode Booking",
         "Rute/Kota",
         "No Penerbangan / Nama Hotel / Kereta",
         "Keterangan"
     ]
     
-    min_lebar_wajib["Nama Customer"] = max(1, min_lebar_wajib.get("Nama Customer", 40) - 15)
-
-    lebar_kolom_final = {}
-    total_lebar_wajib = 0
-
-    for col in ["No"] + kolom_ditampilkan: 
-        if col in min_lebar_wajib:
-            lebar_kolom_final[col] = min_lebar_wajib[col]
-            total_lebar_wajib += min_lebar_wajib[col]
-        elif col in kolom_fleksibel:
-             lebar_kolom_final[col] = 0
-
-    fleksibel_yang_ada = [col for col in kolom_fleksibel if col in kolom_ditampilkan]
+        min_lebar_wajib["Nama Customer"] = max(1, min_lebar_wajib.get("Nama Customer", 40))
     
-    sisa_lebar_untuk_fleksibel = halaman_lebar_efektif - total_lebar_wajib
-
-    if fleksibel_yang_ada:
-        if sisa_lebar_untuk_fleksibel > 0:
-            lebar_per_fleksibel = sisa_lebar_untuk_fleksibel / len(fleksibel_yang_ada)
-            for col in fleksibel_yang_ada:
-                lebar_kolom_final[col] = lebar_per_fleksibel
-        else:
-            min_flex_width = 1 
-            for col in fleksibel_yang_ada:
-                lebar_kolom_final[col] = min_flex_width
+        lebar_kolom_final = {}
+        total_lebar_wajib = 0
+    
+        for col in ["No"] + kolom_ditampilkan: 
+            if col in min_lebar_wajib:
+                lebar_kolom_final[col] = min_lebar_wajib[col]
+                total_lebar_wajib += min_lebar_wajib[col]
+            elif col in kolom_fleksibel:
+                 lebar_kolom_final[col] = 0
+    
+        fleksibel_yang_ada = [col for col in kolom_fleksibel if col in kolom_ditampilkan]
+        
+        sisa_lebar_untuk_fleksibel = halaman_lebar_efektif - total_lebar_wajib
+    
+        if fleksibel_yang_ada:
+            if sisa_lebar_untuk_fleksibel > 0:
+                lebar_per_fleksibel = sisa_lebar_untuk_fleksibel / len(fleksibel_yang_ada)
+                for col in fleksibel_yang_ada:
+                    lebar_kolom_final[col] = lebar_per_fleksibel
+            else:
+                min_flex_width = 1 
+                for col in fleksibel_yang_ada:
+                    lebar_kolom_final[col] = min_flex_width
 
     # --- Header Tabel ---
     pdf.set_font("Arial", "B", 8) 

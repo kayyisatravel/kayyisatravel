@@ -51,7 +51,6 @@ else:
 
 ## Fungsi `buat_invoice_pdf` (Direvisi)
 
-```python
 # === Fungsi PDF ===
 def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, unique_invoice_no, output_pdf_filename, logo_path=None):
     """

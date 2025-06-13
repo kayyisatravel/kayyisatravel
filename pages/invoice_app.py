@@ -49,8 +49,6 @@ if st.button("🔄 Refresh Data"):
 else:
     df = load_data()
 
----
-
 ## Fungsi `buat_invoice_pdf` (Direvisi)
 
 ```python

@@ -350,8 +350,10 @@ else:
         except:
             return 0
 
-    total_harga = selected_data['Harga Jual'].apply(parse_harga).sum()
-    st.markdown(f"**Total Harga Jual dari data yang dicentang: Rp {total_harga:,.0f}**")
+    total_harga_jual = selected_data['Harga Jual'].apply(parse_harga).sum()
+    total_laba = selected_data['Laba'].apply(parse_harga).sum()
+    st.markdown(f"**Total Harga Jual yang dipilih: Rp {total_harga_jual:,.0f}**")
+    st.markdown(f"**Total Laba yang dipilih: Rp {total_laba:,.0f}**")
 
     # === Tombol Aksi ===
     col_pdf, col_excel, col_email = st.columns(3)

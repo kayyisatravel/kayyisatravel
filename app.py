@@ -122,30 +122,30 @@ if file:
 
 # --- SECTION 2: MANUAL INPUT ---
 """
-def manual_input_section():
-    st.markdown('---')
-    st.subheader('2a. Input Data Manual')
-    input_text = st.text_area(
-        'Masukkan Teks Manual',
-        value=st.session_state.manual_input_area,
-        height=200,
-        key='manual_input_area'
-    )
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button('🔍 Proses Manual'):
-            try:
-                df_man = pd.DataFrame(process_ocr_unified(input_text))
-                st.dataframe(df_man, use_container_width=True)
-                st.session_state.parsed_entries_manual = df_man
-            except Exception as e:
-                st.error(f"Manual Processing Error: {e}")
-    with col2:
-        if st.button('🧹 Clear Manual'):
-            st.session_state.manual_input_area = ''
-            st.session_state.parsed_entries_manual = None
+#def manual_input_section():
+#    st.markdown('---')
+#    st.subheader('2a. Input Data Manual')
+#    input_text = st.text_area(
+ #       'Masukkan Teks Manual',
+  #      value=st.session_state.manual_input_area,
+   #     height=200,
+    #    key='manual_input_area'
+#    )
+ #   col1, col2 = st.columns(2)
+  #  with col1:
+   #     if st.button('🔍 Proses Manual'):
+    #        try:
+     #           df_man = pd.DataFrame(process_ocr_unified(input_text))
+      #          st.dataframe(df_man, use_container_width=True)
+       #         st.session_state.parsed_entries_manual = df_man
+        #    except Exception as e:
+         #       st.error(f"Manual Processing Error: {e}")
+#    with col2:
+ #       if st.button('🧹 Clear Manual'):
+  #          st.session_state.manual_input_area = ''
+   #         st.session_state.parsed_entries_manual = None
 
-manual_input_section()
+#manual_input_section()
 """
 # --- SECTION 2: BULK MANUAL INPUT ---
 st.markdown('---')

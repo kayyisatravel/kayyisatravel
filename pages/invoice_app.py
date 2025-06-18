@@ -383,7 +383,7 @@ else:
                 current_pdf_filename = f"INV_{st.session_state.current_unique_invoice_no}.pdf"
                 current_excel_filename = f"INV_{st.session_state.current_unique_invoice_no}.xlsx"
 
-                pdf_path_generated = buat_invoice_pdf(records, nama, tanggal, st.session_state.current_unique_invoice_no, current_pdf_filename, LOGO_PATH) 
+                pdf_path_generated = buat_invoice_pdf(records, nama, tanggal, st.session_state.current_unique_invoice_no, current_pdf_filename) 
                 
                 with open(pdf_path_generated, "rb") as f:
                     st.download_button(

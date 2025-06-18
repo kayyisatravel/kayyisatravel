@@ -121,7 +121,7 @@ if file:
                 st.error(f"OCR Processing Error: {e}")
 
 # --- SECTION 2: MANUAL INPUT ---
-"""
+
 #def manual_input_section():
 #    st.markdown('---')
 #    st.subheader('2a. Input Data Manual')
@@ -146,7 +146,7 @@ if file:
    #         st.session_state.parsed_entries_manual = None
 
 #manual_input_section()
-"""
+
 # --- SECTION 2: BULK MANUAL INPUT ---
 st.markdown('---')
 st.subheader('2b. Bulk Manual Input')

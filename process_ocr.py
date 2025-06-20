@@ -366,7 +366,7 @@ def process_ocr_text_multiple(text: str) -> list:
 
     kota = extract_city(cleaned, city_list)
     bf_status = extract_bf(cleaned)
-
+    tipe = detect_document_type(text)
     results = []
     for idx in range(jumlah_kamar):
         nama_tamu = customer_names[idx] if idx < len(customer_names) else None
@@ -381,6 +381,7 @@ def process_ocr_text_multiple(text: str) -> list:
             'Harga Beli': harga_beli_per_kamar,
             'Harga Jual': harga_jual_per_kamar,
             'Laba': None,
+            'Tipe' : tipe,
             'BF/NBF': bf_status,
             'No Invoice': '',
             'Keterangan': '',
@@ -502,8 +503,8 @@ def process_ocr_pesawat(text: str) -> list:
     # 8. Hitung harga per orang dan laba
     per_orang_beli = harga_beli // len(names) if harga_beli else None
     per_orang_jual = harga_jual // len(names) if harga_jual else None
-
     results = []
+    tipe = detect_document_type(text)
     for name in names:
         laba = None
         persen_laba = ''
@@ -523,6 +524,7 @@ def process_ocr_pesawat(text: str) -> list:
             'Harga Beli': per_orang_beli,
             'Harga Jual': per_orang_jual,
             'Laba': laba,
+            'Tipe' : tipe,
             'BF/NBF': '',
             'No Invoice': '',
             'Keterangan': '',
@@ -632,6 +634,7 @@ def process_ocr_kereta(text: str) -> list:
     harga_jual_per = (harga_jual_total // jumlah_penumpang) if (harga_jual_total and jumlah_penumpang) else None
 
     results = []
+    tipe = detect_document_type(text)
     for (nama_penumpang, kereta_info) in passenger_data:
         laba = None
         persen_laba = ''
@@ -651,6 +654,7 @@ def process_ocr_kereta(text: str) -> list:
             'Harga Beli': harga_beli_per,
             'Harga Jual': harga_jual_per,
             'Laba': laba,
+            'Tipe' : tipe,
             'BF/NBF': '',
             'No Invoice': '',
             'Keterangan': '',

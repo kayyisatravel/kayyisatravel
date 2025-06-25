@@ -86,7 +86,7 @@ img { border-radius:8px; margin-bottom:10px; }
 st.markdown("""
 <div style="display:flex;align-items:center;gap:15px;margin-bottom:1rem;">
   <img src="https://cdn-icons-png.flaticon.com/512/201/201623.png" width="40">
-  <div><h1 style="margin:0;font-size:1.8rem;color:#2d3748;">Dashboard Tiket | Kayyisa Tour</h1>
+  <div><h1 style="margin:0;font-size:1.8rem;color:#2d3748;">Dashboard Tiket | Kayyisa Tour & Travel</h1>
   <p style="margin:0;color:#2d3748;font-size:0.9rem;">Input & Simpan Data Pesanan</p></div>
 </div>
 """, unsafe_allow_html=True)

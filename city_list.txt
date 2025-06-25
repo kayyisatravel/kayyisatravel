@@ -1,0 +1,621 @@
+Banda Aceh
+Langsa
+Lhokseumawe
+Meulaboh
+Sabang
+Subulussalam
+Sumatera Utara	Binjai
+Gunungsitoli
+Medan
+Padang Sidempuan
+Pematangsiantar
+Sibolga
+Tanjungbalai
+Tebingtinggi
+Sumatera Barat	Bukittinggi
+Padang
+Padangpanjang
+Pariaman
+Payakumbuh
+Sawahlunto
+Solok
+Riau	Dumai
+Pekanbaru
+Jambi	Jambi
+Sungai Penuh
+Sumatera Selatan	Lubuklinggau
+Pagaralam
+Palembang
+Prabumulih
+Bengkulu	Bengkulu
+Lampung	Bandar Lampung
+Metro
+Riau	Riau	Batam
+Tanjungpinang
+Bangka Belitung	
+Bangka Belitung	
+Pangkalpinang
+Cilegon
+Serang
+Tangerang
+Tangerang Selatan
+Jakarta Barat
+Jakarta Pusat
+Jakarta Selatan
+Jakarta Timur
+Jakarta Utara
+Jawa Barat	Bandung
+Banjar
+Bekasi
+Bogor
+Cimahi
+Cirebon
+Depok
+Sukabumi
+Tasikmalaya
+Jawa Tengah	Magelang
+Pekalongan
+Purwokerto
+Salatiga
+Semarang
+Surakarta
+Tegal
+Daerah Istimewa (DI) Yogyakarta	Yogyakarta
+Sleman
+Bantul
+Jawa Timur	Batu
+Blitar
+Kediri
+Madiun
+Malang
+Mojokerto
+Pasuruan
+Probolinggo
+Surabaya
+Denpasar
+Nusa Tenggara	Nusa Tenggara Barat	Bima
+Mataram
+Kupang
+Pontianak
+Singkawang
+Kalimantan Tengah	Palangkaraya
+Kalimantan Selatan	Banjarbaru
+Banjarmasin
+Kalimantan Timur	Balikpapan
+Bontang
+Samarinda 
+Kalimantan Utara	
+Tarakan 
+Bitung
+Kotamobagu
+Manado
+Tomohon
+Gorontalo	Gorontalo
+Sulawesi Tengah	Palu
+Sulawesi Selatan	Makassar
+Palopo
+Parepare
+Sulawesi Tenggara	Bau-Bau
+Kendari
+Ambon
+Tual
+Ternate
+Tidore Kepulauan
+Sorong
+Jayapura
+Pelabuhanratu
+Simeulue
+Aceh Singkil
+Aceh Selatan
+Aceh Tenggara
+Aceh Timur
+Aceh Tengah
+Aceh Barat
+Aceh Besar
+Pidie
+Bireuen
+Aceh Utara
+Aceh Barat Daya
+Gayo Lues
+Aceh Tamiang
+Nagan Raya
+Aceh Jaya
+Bener Meriah
+Pidie Jaya
+Banda Aceh
+Sabang
+Langsa
+Lhokseumawe
+Subulussalam
+Nias
+Mandailing Natal
+Tapanuli Selatan
+Tapanuli Tengah
+Tapanuli Utara
+Toba
+Labuhan Batu
+Asahan
+Simalungun
+Dairi
+Karo
+Deli Serdang
+Langkat
+Nias Selatan
+Humbang Hasundutan
+Pakpak Bharat
+Samosir
+Serdang Bedagai
+Batu Bara
+Padang Lawas Utara
+Padang Lawas
+Labuhan Batu Selatan
+Labuhan Batu Utara
+Nias Utara
+Nias Barat
+Sibolga
+Tanjung Balai
+Pematang Siantar
+Tebing Tinggi
+Medan
+Binjai
+Padangsidimpuan
+Gunungsitoli
+Mentawai
+Pesisir Selatan
+Solok
+Sijunjung
+Tanah Datar
+Padang Pariaman
+Agam
+Lima Puluh Kota
+Pasaman
+Solok Selatan
+Dharmasraya
+Pasaman Barat
+Padang
+Solok
+Sawah Lunto
+Padang Panjang
+Bukittinggi
+Payakumbuh
+Pariaman
+Kuantan Singingi
+Indragiri Hulu
+Indragiri Hilir
+Pelalawan
+S I A K
+Kampar
+Rokan Hulu
+Bengkalis
+Rokan Hilir
+Meranti
+Pekanbaru
+D U M A I
+Kerinci
+Merangin
+Sarolangun
+Batang Hari
+Muaro Jambi
+Tanjung Jabung Timur
+Tanjung Jabung Barat
+Tebo
+Bungo
+Jambi
+Sungai Penuh
+Ogan Komering Ulu
+Ogan Komering Ilir
+Muara Enim
+Lahat
+Musi Rawas
+Musi Banyuasin
+Banyu Asin
+Ogan Komering Ulu Selatan
+Ogan Komering Ulu Timur
+Ogan Ilir
+Empat Lawang
+Penukal Abab Lematang Ilir
+Musi Rawas Utara
+Palembang
+Prabumulih
+Pagar Alam
+Lubuklinggau
+Bengkulu Selatan
+Rejang Lebong
+Bengkulu Utara
+Kaur
+Seluma
+Mukomuko
+Lebong
+Kepahiang
+Bengkulu Tengah
+Bengkulu
+Lampung Barat
+Tanggamus
+Lampung Selatan
+Lampung Timur
+Lampung Tengah
+Lampung Utara
+Way Kanan
+Tulangbawang
+Pesawaran
+Pringsewu
+Mesuji
+Tulang Bawang Barat
+Pesisir Barat
+Bandar Lampung
+Metro
+Bangka
+Belitung
+Bangka Barat
+Bangka Tengah
+Bangka Selatan
+Belitung Timur
+Pangkal Pinang
+Karimun
+Bintan
+Natuna
+Lingga
+Anambas
+BATAM
+Tanjung Pinang
+Seribu
+Jakarta Selatan
+Jakarta Timur
+Jakarta Pusat
+Jakarta Barat
+Jakarta Utara
+Bogor
+Sukabumi
+Cianjur
+Bandung
+Garut
+Tasikmalaya
+Ciamis
+Kuningan
+Cirebon
+Majalengka
+Sumedang
+Indramayu
+Subang
+Purwakarta
+Karawang
+Bekasi
+Bandung Barat
+Pangandaran
+Bogor
+Sukabumi
+Bandung
+Cirebon
+Bekasi
+Depok
+Cimahi
+Tasikmalaya
+Banjar
+Cilacap
+Banyumas
+Purbalingga
+Banjarnegara
+Kebumen
+Purworejo
+Wonosobo
+Magelang
+Boyolali
+Klaten
+Sukoharjo
+Wonogiri
+Karanganyar
+Sragen
+Grobogan
+Blora
+Rembang
+Pati
+Kudus
+Jepara
+Demak
+Semarang
+Temanggung
+Kendal
+Batang
+Pekalongan
+Pemalang
+Tegal
+Brebes
+Magelang
+Surakarta
+Salatiga
+Semarang
+Pekalongan
+Tegal
+Kulon Progo
+Bantul
+Gunung Kidul
+Sleman
+Yogyakarta
+Pacitan
+Ponorogo
+Trenggalek
+Tulungagung
+Blitar
+Kediri
+Malang
+Lumajang
+Jember
+Banyuwangi
+Bondowoso
+Situbondo
+Probolinggo
+Pasuruan
+Sidoarjo
+Mojokerto
+Jombang
+Nganjuk
+Madiun
+Magetan
+Ngawi
+Bojonegoro
+Tuban
+Lamongan
+Gresik
+Bangkalan
+Sampang
+Pamekasan
+Sumenep
+Kediri
+Blitar
+Malang
+Probolinggo
+Pasuruan
+Mojokerto
+Madiun
+Surabaya
+Batu
+Pandeglang
+Lebak
+Tangerang
+Serang
+Tangerang
+Cilegon
+Serang
+Tangerang Selatan
+Jembrana
+Tabanan
+Badung
+Gianyar
+Klungkung
+Bangli
+Karang Asem
+Buleleng
+Denpasar
+Lombok Barat
+Lombok Tengah
+Lombok Timur
+Sumbawa
+Dompu
+Bima
+Sumbawa Barat
+Lombok Utara
+Mataram
+Bima
+Sumba Barat
+Sumba Timur
+Kupang
+Timor Tengah Selatan
+Timor Tengah Utara
+Belu
+Alor
+Lembata
+Flores Timur
+Sikka
+Ende
+Ngada
+Manggarai
+Rote Ndao
+Manggarai Barat
+Sumba Tengah
+Sumba Barat Daya
+Nagekeo
+Manggarai Timur
+Sabu Raijua
+Malaka
+Kupang
+Sambas
+Bengkayang
+Landak
+Mempawah
+Sanggau
+Ketapang
+Sintang
+Kapuas Hulu
+Sekadau
+Melawi
+Kayong Utara
+Kubu Raya
+Pontianak
+Singkawang
+Kotawaringin Barat
+Kotawaringin Timur
+Kapuas
+Barito Selatan
+Barito Utara
+Sukamara
+Lamandau
+Seruyan
+Katingan
+Pulang Pisau
+Gunung Mas
+Barito Timur
+Murung Raya
+Palangka Raya
+Tanah Laut
+Baru
+Banjar
+Barito Kuala
+Tapin
+Hulu Sungai Selatan
+Hulu Sungai Tengah
+Hulu Sungai Utara
+Tabalong
+Tanah Bumbu
+Balangan
+Banjarmasin
+BanjarBaru
+Paser
+Kutai Barat
+Kutai Kartanegara
+Kutai Timur
+Berau
+Penajam Paser Utara
+Mahakam Hulu
+Balikpapan
+Samarinda
+Bontang
+Malinau
+Bulungan
+Tana Tidung
+Nunukan
+Tarakan
+Bolaang Mongondow
+Minahasa
+Sangihe
+Talaud
+Minahasa Selatan
+Minahasa Utara
+Bolaang Mongondow Utara
+Siau Tagulandang Biaro
+Minahasa Tenggara
+Bolaang Mongondow Selatan
+Bolaang Mongondow Timur
+Manado
+Bitung
+Tomohon
+Kotamobagu
+Banggai Kepulauan
+Banggai
+Morowali
+Poso
+Donggala
+Toli-Toli
+Buol
+Parigi Moutong
+Tojo Una-Una
+Sigi
+Banggai Laut
+Morowali Utara
+Palu
+Selayar
+Bulukumba
+Bantaeng
+Jeneponto
+Takalar
+Gowa
+Sinjai
+Maros
+Pangkajene Dan Kepulauan
+Barru
+Bone
+Soppeng
+Wajo
+Sidenreng Rappang
+Pinrang
+Enrekang
+Luwu
+Tana Toraja
+Luwu Utara
+Luwu Timur
+Toraja Utara
+Makassar
+Parepare
+Palopo
+Buton
+Muna
+Konawe
+Kolaka
+Konawe Selatan
+Bombana
+Wakatobi
+Kolaka Utara
+Buton Utara
+Konawe Utara
+Kolaka Timur
+Konawe Kepulauan
+Muna Barat
+Buton Tengah
+Buton Selatan
+Kendari
+Baubau
+Boalemo
+Gorontalo
+Pohuwato
+Bone Bolango
+Gorontalo Utara
+Gorontalo
+Majene
+Polewali Mandar
+Mamasa
+Mamuju
+Mamuju Utara
+Pasangkayu
+Mamuju Tengah
+Maluku Tenggara Barat
+Maluku Tenggara
+Maluku Tengah
+Buru
+Aru
+Seram Bagian Barat
+Seram Bagian Timur
+Maluku Barat Daya
+Buru Selatan
+Ambon
+Tual
+Halmahera Barat
+Halmahera Tengah
+Sula
+Halmahera Selatan
+Halmahera Utara
+Halmahera Timur
+Pulau Morotai
+Pulau Taliabu
+Ternate
+Tidore Kepulauan
+Fakfak
+Kaimana
+Teluk Wondama
+Teluk Bintuni
+Manokwari
+Sorong Selatan
+Sorong
+Raja Ampat
+Tambrauw
+Maybrat
+Manokwari Selatan
+Pegunungan Arfak
+Sorong
+Merauke
+Jayawijaya
+Jayapura
+Nabire
+Yapen
+Biak Numfor
+Paniai
+Puncak Jaya
+Mimika
+Boven Digoel
+Mappi
+Asmat
+Yahukimo
+Pegunungan Bintang
+Tolikara
+Sarmi
+Keerom
+Waropen
+Supiori
+Mamberamo Raya
+Nduga
+Lanny Jaya
+Mamberamo Tengah
+Yalimo
+Puncak
+Dogiyai
+Intan Jaya
+Deiyai
+Jayapura

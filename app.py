@@ -111,15 +111,27 @@ if file:
         reader = get_ocr_reader()
         result = reader.readtext(np.array(img), detail=0)
         ocr_text = "\n".join(result)
+
     if ocr_text:
         st.text_area('Hasil OCR', ocr_text, height=200, key='ocr_area')
+        
+        # Tampilkan tombol untuk Proses Data OCR
         if st.button('➡️ Proses Data OCR'):
             try:
+                # Proses OCR text menjadi DataFrame
                 df_ocr = pd.DataFrame(process_ocr_unified(ocr_text))
                 st.session_state.parsed_entries_ocr = df_ocr
-                st.subheader("Edit Data Hasil OCR (Opsional)")
+
+                # Tampilkan editor untuk edit hasil OCR
+                st.subheader("📝 Edit Data Hasil OCR (Opsional)")
                 edited_df = st.data_editor(df_ocr, num_rows="dynamic", use_container_width=True)
-                st.session_state.parsed_entries_ocr = edited_df  # Simpan hasil edit
+
+                # Simpan hasil edit ke session state
+                st.session_state.parsed_entries_ocr = edited_df
+
+                # Tampilkan data yang sudah diedit
+                st.markdown("#### Preview Data OCR Setelah Diedit")
+                st.dataframe(edited_df, use_container_width=True)
             except Exception as e:
                 st.error(f"OCR Processing Error: {e}")
 

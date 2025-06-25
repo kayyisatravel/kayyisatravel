@@ -103,11 +103,11 @@ st.markdown("""
 col1, col2 = st.columns([2, 1])
 
 with col1:
-    st.markdown('<div class="main-header">Dashboard Tiket |<span class="highlight">Kayyisa Tour & Travel</span></div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">Dashboard Tiket|<span class="highlight">Kayyisa Tour & Travel</span></div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Input & Simpan Data Pesanan</div>', unsafe_allow_html=True)
 
 with col2:
-    st.image("https://w7.pngwing.com/pngs/370/878/png-transparent-travel-graphic-design-world-travel-illustrator-world-transport.png", width=200)
+    st.image("https://www.vhv.rs/dpng/d/540-5404689_travel-earth-globe-png-transparent-image-vector-globe.png", width=200)
 
 st.markdown("""<hr style="border-top: 1px solid #7f8c8d;">""", unsafe_allow_html=True)
 

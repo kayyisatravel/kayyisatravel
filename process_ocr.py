@@ -99,7 +99,7 @@ def detect_document_type(text: str) -> str:
     tl = text.lower()
 
     # Kereta
-    if re.search(r'\b(kereta|ka\s+[a-z]+|stasiun|eksekutif|ekonomi|bisnis|kode\s*booking\s*[a-z0-9]{3,})', tl):
+    if re.search(r'\b(kereta|ka\s+[a-z]+|stasiun|eksekutif|kai|kereta\s*api|kode\s*booking\s*[a-z0-9]{3,})', tl):
         return 'kereta'
 
     # Pesawat
@@ -366,7 +366,7 @@ def process_ocr_text_multiple(text: str) -> list:
 
     kota = extract_city(cleaned, city_list)
     bf_status = extract_bf(cleaned)
-    tipe = detect_document_type(text)
+
     results = []
     for idx in range(jumlah_kamar):
         nama_tamu = customer_names[idx] if idx < len(customer_names) else None
@@ -381,7 +381,6 @@ def process_ocr_text_multiple(text: str) -> list:
             'Harga Beli': harga_beli_per_kamar,
             'Harga Jual': harga_jual_per_kamar,
             'Laba': None,
-            'Tipe' : tipe,
             'BF/NBF': bf_status,
             'No Invoice': '',
             'Keterangan': '',
@@ -421,7 +420,7 @@ def process_ocr_pesawat(text: str) -> list:
 
     # 2. Nama Maskapai + Kode Penerbangan (IATA + nomor)
     penerbangan = None
-    m_maskapai = re.search(r"\b(garuda|citilink|lion|batik|airasia|super\s*air\s*jet|pelita)\b.*?([A-Z]{2})[- ]?(\d{2,4})", cleaned, re.IGNORECASE)
+    m_maskapai = re.search(r"\b(garuda|citilink|lion|batik|airasia|super\s*air\s*jet|pelita|nam\s*air)\b.*?([A-Z]{2})[- ]?(\d{2,4})", cleaned, re.IGNORECASE)
     if m_maskapai:
         penerbangan = m_maskapai.group(2) + m_maskapai.group(3)
     else:
@@ -432,7 +431,7 @@ def process_ocr_pesawat(text: str) -> list:
 
     # 3. Durasi jam (berangkat - tiba)
     durasi = None
-    m_times = re.findall(r"(\d{1,2}[:.]\d{2}(?:AM|PM)?)", cleaned, re.IGNORECASE)
+    m_times = re.findall(r"(\b\d{1,2}[:.]\d{2}\b(?:AM|PM)?)", cleaned, re.IGNORECASE)
     if len(m_times) >= 2:
         durasi = f"{m_times[0]} - {m_times[1]}"
 
@@ -498,13 +497,16 @@ def process_ocr_pesawat(text: str) -> list:
                 if name:
                     names.append(name)
     if not names:
-        names = [None]
+        fallback_names = re.findall(r"^\d+\.\s*(.+)", cleaned, re.MULTILINE)
+        names = [re.sub(r"\b(Tn|Ny|Nn|Mr|Mrs|Ms)\.?\s+", "", n).strip() for n in fallback_names]
+        if not names:
+            names = [None]
 
     # 8. Hitung harga per orang dan laba
     per_orang_beli = harga_beli // len(names) if harga_beli else None
     per_orang_jual = harga_jual // len(names) if harga_jual else None
+
     results = []
-    tipe = detect_document_type(text)
     for name in names:
         laba = None
         persen_laba = ''
@@ -524,7 +526,6 @@ def process_ocr_pesawat(text: str) -> list:
             'Harga Beli': per_orang_beli,
             'Harga Jual': per_orang_jual,
             'Laba': laba,
-            'Tipe' : tipe,
             'BF/NBF': '',
             'No Invoice': '',
             'Keterangan': '',
@@ -634,7 +635,6 @@ def process_ocr_kereta(text: str) -> list:
     harga_jual_per = (harga_jual_total // jumlah_penumpang) if (harga_jual_total and jumlah_penumpang) else None
 
     results = []
-    tipe = detect_document_type(text)
     for (nama_penumpang, kereta_info) in passenger_data:
         laba = None
         persen_laba = ''
@@ -654,7 +654,6 @@ def process_ocr_kereta(text: str) -> list:
             'Harga Beli': harga_beli_per,
             'Harga Jual': harga_jual_per,
             'Laba': laba,
-            'Tipe' : tipe,
             'BF/NBF': '',
             'No Invoice': '',
             'Keterangan': '',
@@ -701,3 +700,4 @@ if __name__ == "__main__":
         print(f"\n--- Entry {idx} ---")
         for k, v in entry.items():
             print(f"{k}: {v}")
+

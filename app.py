@@ -11,6 +11,7 @@ from pdf2image import convert_from_bytes
 from process_ocr import process_ocr_unified
 from sheets_utils import connect_to_gsheet, append_dataframe_to_sheet
 
+#refresh
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="OCR & Dashboard Tiket", layout="centered")
 

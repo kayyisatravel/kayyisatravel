@@ -94,7 +94,7 @@ st.markdown("""
 
 # --- SECTION 1: UPLOAD & OCR ---
 st.markdown('---')
-st.expander("Upload Gambar atau PDF untuk OCR")
+with st.expander("Upload Gambar atau PDF untuk OCR")
     file = st.file_uploader(
         "Pilih file gambar (.jpg/.png) atau PDF",
         type=['jpg','jpeg','png','pdf'],
@@ -165,62 +165,62 @@ st.expander("Upload Gambar atau PDF untuk OCR")
 
 # --- SECTION 2: BULK MANUAL INPUT ---
 st.markdown('---')
-st.expander('Bulk Manual Input')
-raw = st.text_area(
-    "Masukkan banyak entri, pisahkan setiap entri dengan '==='",
-    key="bulk_input",
-    height=200
-)
-if st.button("🔍 Proses Bulk"):
-    entries = []
-    labels = []
-    for i, block in enumerate(raw.split("===")):
-        block = block.strip()
-        if block:
-            try:
-                df_block = pd.DataFrame(process_ocr_unified(block))
-                entries.append(df_block)
-                labels.append(f"Entri {i+1}")
-            except Exception as e:
-                st.error(f"Gagal parse blok ke-{i+1}: {e}")
-    if entries:
-        st.session_state.bulk_entries_raw = entries
-        st.session_state.bulk_labels = labels
-        st.session_state.bulk_parsed = pd.concat(entries, ignore_index=True)
-
-# Jika ada hasil bulk_entries_raw, tampilkan UI editing
-if "bulk_entries_raw" in st.session_state and st.session_state.bulk_entries_raw:
-    st.markdown("#### 📝 Edit Data per Entri (Opsional)")
+with st.expander('Bulk Manual Input')
+    raw = st.text_area(
+        "Masukkan banyak entri, pisahkan setiap entri dengan '==='",
+        key="bulk_input",
+        height=200
+    )
+    if st.button("🔍 Proses Bulk"):
+        entries = []
+        labels = []
+        for i, block in enumerate(raw.split("===")):
+            block = block.strip()
+            if block:
+                try:
+                    df_block = pd.DataFrame(process_ocr_unified(block))
+                    entries.append(df_block)
+                    labels.append(f"Entri {i+1}")
+                except Exception as e:
+                    st.error(f"Gagal parse blok ke-{i+1}: {e}")
+        if entries:
+            st.session_state.bulk_entries_raw = entries
+            st.session_state.bulk_labels = labels
+            st.session_state.bulk_parsed = pd.concat(entries, ignore_index=True)
     
-    selected_index = st.selectbox(
-        "Pilih entri untuk diedit",
-        range(len(st.session_state.bulk_entries_raw)),
-        format_func=lambda x: st.session_state.bulk_labels[x]
-    )
-
-    selected_df = st.session_state.bulk_entries_raw[selected_index]
-    edited_df = st.data_editor(
-        selected_df,
-        num_rows="dynamic",
-        use_container_width=True,
-        key=f"editor_bulk_{selected_index}"
-    )
-
-    # Simpan hasil edit ke entri yang dipilih
-    st.session_state.bulk_entries_raw[selected_index] = edited_df
-
-    # Gabungkan ulang semua data setelah edit
-    st.session_state.bulk_parsed = pd.concat(st.session_state.bulk_entries_raw, ignore_index=True)
-
-    st.markdown("#### 📊 Preview Gabungan Semua Entri Setelah Diedit")
-    st.dataframe(st.session_state.bulk_parsed, use_container_width=True)
-
-# Bulk save button
-if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bulk ke GSheet"):
-    save_gsheet(st.session_state.bulk_parsed)
-    for k in ["bulk_parsed", "bulk_input", "file_uploader"]:
-        st.session_state.pop(k, None)
-    st.rerun()
+    # Jika ada hasil bulk_entries_raw, tampilkan UI editing
+    if "bulk_entries_raw" in st.session_state and st.session_state.bulk_entries_raw:
+        st.markdown("#### 📝 Edit Data per Entri (Opsional)")
+        
+        selected_index = st.selectbox(
+            "Pilih entri untuk diedit",
+            range(len(st.session_state.bulk_entries_raw)),
+            format_func=lambda x: st.session_state.bulk_labels[x]
+        )
+    
+        selected_df = st.session_state.bulk_entries_raw[selected_index]
+        edited_df = st.data_editor(
+            selected_df,
+            num_rows="dynamic",
+            use_container_width=True,
+            key=f"editor_bulk_{selected_index}"
+        )
+    
+        # Simpan hasil edit ke entri yang dipilih
+        st.session_state.bulk_entries_raw[selected_index] = edited_df
+    
+        # Gabungkan ulang semua data setelah edit
+        st.session_state.bulk_parsed = pd.concat(st.session_state.bulk_entries_raw, ignore_index=True)
+    
+        st.markdown("#### 📊 Preview Gabungan Semua Entri Setelah Diedit")
+        st.dataframe(st.session_state.bulk_parsed, use_container_width=True)
+    
+    # Bulk save button
+    if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bulk ke GSheet"):
+        save_gsheet(st.session_state.bulk_parsed)
+        for k in ["bulk_parsed", "bulk_input", "file_uploader"]:
+            st.session_state.pop(k, None)
+        st.rerun()
 
 # --- SECTION 3: SAVE TO GOOGLE SHEETS ---
 st.markdown('---')

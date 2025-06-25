@@ -94,7 +94,7 @@ st.markdown("""
 
 # --- SECTION 1: UPLOAD & OCR ---
 st.markdown('---')
-with st.expander("Upload Gambar atau PDF untuk OCR")
+with st.expander("Upload Gambar atau PDF untuk OCR"):
     file = st.file_uploader(
         "Pilih file gambar (.jpg/.png) atau PDF",
         type=['jpg','jpeg','png','pdf'],
@@ -165,7 +165,7 @@ with st.expander("Upload Gambar atau PDF untuk OCR")
 
 # --- SECTION 2: BULK MANUAL INPUT ---
 st.markdown('---')
-with st.expander('Bulk Manual Input')
+with st.expander('Bulk Manual Input'):
     raw = st.text_area(
         "Masukkan banyak entri, pisahkan setiap entri dengan '==='",
         key="bulk_input",

@@ -69,28 +69,47 @@ def save_gsheet(df: pd.DataFrame):
     append_dataframe_to_sheet(df, ws)
     st.success('✅ Berhasil simpan ke Google Sheets')
 
-# --- INJECT CSS ---
+# --- TAMPILAN UTAMA ---
+# CSS custom
 st.markdown("""
-<style>
-.block-container { max-width:900px; margin:auto; padding:2rem; background-color:#97a0ad; color:#2d3748; font-family:'Segoe UI',sans-serif; }
-h1,h2,h3 { color:#2d3748!important; }
-textarea { color:#2d3748!important; background-color:#fff!important; border:1px solid #d1d5db!important; border-radius:6px!important; padding:10px; }
-section[data-testid="stDataFrameContainer"] { background-color:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:10px; }
-button[kind="primary"] { background-color:#2563eb!important; color:white!important; border-radius:6px; padding:10px 20px; font-weight:600; margin-top:10px; }
-hr { border:none; height:1px; background-color:#e5e7eb; margin:2rem 0; }
-img { border-radius:8px; margin-bottom:10px; }
-.element-container { margin-bottom:1.5rem; }
-</style>
+    <style>
+        html, body, [class*="css"] {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .main-header {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #f39c12;
+            padding-bottom: 0.2em;
+        }
+        .sub-header {
+            font-size: 1.2em;
+            color: #bdc3c7;
+            margin-bottom: 1em;
+        }
+        .highlight {
+            color: #ffffff;
+            background-color: #e67e22;
+            padding: 0.3em 0.6em;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+    </style>
 """, unsafe_allow_html=True)
 
-# HEADER
-st.markdown("""
-<div style="display:flex;align-items:center;gap:15px;margin-bottom:1rem;">
-  <img src="https://cdn-icons-png.flaticon.com/512/201/201623.png" width="40">
-  <div><h1 style="margin:0;font-size:1.8rem;color:#2d3748;">Dashboard Tiket | Kayyisa Tour & Travel</h1>
-  <p style="margin:0;color:#2d3748;font-size:0.9rem;">Input & Simpan Data Pesanan</p></div>
-</div>
-""", unsafe_allow_html=True)
+# Layout: 2 kolom
+col1, col2 = st.columns([2, 1])
+
+with col1:
+    st.markdown('<div class="main-header">Dashboard Tiket | <span class="highlight">Kayyisa Tour & Travel</span></div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">Input & Simpan Data Pesanan</div>', unsafe_allow_html=True)
+
+with col2:
+    st.image("https://borneoshops.com/image/marketplace/storeicon.png", width=200)
+
+st.markdown("""<hr style="border-top: 1px solid #7f8c8d;">""", unsafe_allow_html=True)
 
 # --- SECTION 1: UPLOAD & OCR ---
 st.markdown('---')

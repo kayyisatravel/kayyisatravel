@@ -95,45 +95,45 @@ st.markdown("""
 # --- SECTION 1: UPLOAD & OCR ---
 st.markdown('---')
 st.expander("Upload Gambar atau PDF untuk OCR")
-file = st.file_uploader(
-    "Pilih file gambar (.jpg/.png) atau PDF",
-    type=['jpg','jpeg','png','pdf'],
-    key='file_uploader'
-)
-ocr_text = ''
-if file:
-    if file.type == 'application/pdf':
-        ocr_text = extract_text_from_pdf(file)
-    else:
-        img = Image.open(file).convert('RGB')
-        img = resize_image(img)
-        st.image(img, caption='Gambar Terupload', use_column_width=True)
-        reader = get_ocr_reader()
-        result = reader.readtext(np.array(img), detail=0)
-        ocr_text = "\n".join(result)
-
-    if ocr_text:
-        st.text_area('Hasil OCR', ocr_text, height=200, key='ocr_area')
-        
-        # Tampilkan tombol untuk Proses Data OCR
-        if st.button('➡️ Proses Data OCR'):
-            try:
-                # Proses OCR text menjadi DataFrame
-                df_ocr = pd.DataFrame(process_ocr_unified(ocr_text))
-                st.session_state.parsed_entries_ocr = df_ocr
-
-                # Tampilkan editor untuk edit hasil OCR
-                st.subheader("📝 Edit Data Hasil OCR (Opsional)")
-                edited_df = st.data_editor(df_ocr, num_rows="dynamic", use_container_width=True)
-
-                # Simpan hasil edit ke session state
-                st.session_state.parsed_entries_ocr = edited_df
-
-                # Tampilkan data yang sudah diedit
-                st.markdown("#### Preview Data OCR Setelah Diedit")
-                st.dataframe(edited_df, use_container_width=True)
-            except Exception as e:
-                st.error(f"OCR Processing Error: {e}")
+    file = st.file_uploader(
+        "Pilih file gambar (.jpg/.png) atau PDF",
+        type=['jpg','jpeg','png','pdf'],
+        key='file_uploader'
+    )
+    ocr_text = ''
+    if file:
+        if file.type == 'application/pdf':
+            ocr_text = extract_text_from_pdf(file)
+        else:
+            img = Image.open(file).convert('RGB')
+            img = resize_image(img)
+            st.image(img, caption='Gambar Terupload', use_column_width=True)
+            reader = get_ocr_reader()
+            result = reader.readtext(np.array(img), detail=0)
+            ocr_text = "\n".join(result)
+    
+        if ocr_text:
+            st.text_area('Hasil OCR', ocr_text, height=200, key='ocr_area')
+            
+            # Tampilkan tombol untuk Proses Data OCR
+            if st.button('➡️ Proses Data OCR'):
+                try:
+                    # Proses OCR text menjadi DataFrame
+                    df_ocr = pd.DataFrame(process_ocr_unified(ocr_text))
+                    st.session_state.parsed_entries_ocr = df_ocr
+    
+                    # Tampilkan editor untuk edit hasil OCR
+                    st.subheader("📝 Edit Data Hasil OCR (Opsional)")
+                    edited_df = st.data_editor(df_ocr, num_rows="dynamic", use_container_width=True)
+    
+                    # Simpan hasil edit ke session state
+                    st.session_state.parsed_entries_ocr = edited_df
+    
+                    # Tampilkan data yang sudah diedit
+                    st.markdown("#### Preview Data OCR Setelah Diedit")
+                    st.dataframe(edited_df, use_container_width=True)
+                except Exception as e:
+                    st.error(f"OCR Processing Error: {e}")
 
 
 # --- SECTION 2: MANUAL INPUT ---

@@ -112,7 +112,7 @@ with col2:
 st.markdown("""<hr style="border-top: 1px solid #7f8c8d;">""", unsafe_allow_html=True)
 
 # --- SECTION 1: UPLOAD & OCR ---
-st.markdown('---')
+#st.markdown('---')
 with st.expander("Upload Gambar atau PDF untuk OCR"):
     file = st.file_uploader(
         "Pilih file gambar (.jpg/.png) atau PDF",
@@ -183,7 +183,7 @@ with st.expander("Upload Gambar atau PDF untuk OCR"):
 #manual_input_section()
 
 # --- SECTION 2: BULK MANUAL INPUT ---
-st.markdown('---')
+#st.markdown('---')
 with st.expander('Bulk Manual Input'):
     raw = st.text_area(
         "Masukkan banyak entri, pisahkan setiap entri dengan '==='",

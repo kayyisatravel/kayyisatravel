@@ -99,7 +99,7 @@ with st.expander("Upload Gambar atau PDF untuk OCR")
         "Pilih file gambar (.jpg/.png) atau PDF",
         type=['jpg','jpeg','png','pdf'],
         key='file_uploader'
-        )    
+    )    
     ocr_text = ''
     if file:
         if file.type == 'application/pdf':

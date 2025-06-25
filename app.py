@@ -190,7 +190,7 @@ if st.button("🔍 Proses Bulk"):
 
 # Jika ada hasil bulk_entries_raw, tampilkan UI editing
 if "bulk_entries_raw" in st.session_state and st.session_state.bulk_entries_raw:
-    st.subheader("📝 Edit Data per Entri (Opsional)")
+    st.markdown("#### 📝 Edit Data per Entri (Opsional)")
     
     selected_index = st.selectbox(
         "Pilih entri untuk diedit",

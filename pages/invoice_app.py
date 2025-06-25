@@ -26,7 +26,7 @@ def connect_to_gsheet(SHEET_ID, worksheet_name="Data"):
     return worksheet
 
 st.set_page_config(page_title="Buat Invoice Tiket", layout="centered")
-st.title("🧾 Buat Invoice")
+st.title("🧾 Dashboard Invoice")
 
 # === Ambil data dan olah ===
 @st.cache_data # Refresh 

@@ -107,7 +107,7 @@ with col1:
     st.markdown('<div class="sub-header">Input & Simpan Data Pesanan</div>', unsafe_allow_html=True)
 
 with col2:
-    st.image("https://www.pngmart.com/files/17/Travel-Icon-PNG-Image.png", width=200)
+    st.image("https://www.pngmart.com/files/17/Travel-Icon-PNG-Image.png", width=150)
 
 st.markdown("""<hr style="border-top: 1px solid #7f8c8d;">""", unsafe_allow_html=True)
 

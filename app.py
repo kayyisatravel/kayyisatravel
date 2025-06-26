@@ -117,151 +117,151 @@ with col2:
     st.image("https://www.pngmart.com/files/17/Travel-Icon-PNG-Image.png", width=150)
 
 st.markdown("""<hr style="border-top: 1px solid #7f8c8d;">""", unsafe_allow_html=True)
-with st.sidebar:
+#with st.sidebar:
     
-    # --- SECTION 1: UPLOAD & OCR ---
-    #st.markdown('---')
-    with st.expander("Upload Gambar atau PDF untuk OCR"):
-        file = st.file_uploader(
-            "Pilih file gambar (.jpg/.png) atau PDF",
-            type=['jpg','jpeg','png','pdf'],
-            key='file_uploader'
-        )    
-        ocr_text = ''
-        if file:
-            if file.type == 'application/pdf':
-                ocr_text = extract_text_from_pdf(file)
-            else:
-                img = Image.open(file).convert('RGB')
-                img = resize_image(img)
-                st.image(img, caption='Gambar Terupload', use_column_width=True)
-                reader = get_ocr_reader()
-                result = reader.readtext(np.array(img), detail=0)
-                ocr_text = "\n".join(result)
-        
-            if ocr_text:
-                st.text_area('Hasil OCR', ocr_text, height=200, key='ocr_area')
-                
-                # Tampilkan tombol untuk Proses Data OCR
-                if st.button('➡️ Proses Data OCR'):
-                    try:
-                        # Proses OCR text menjadi DataFrame
-                        df_ocr = pd.DataFrame(process_ocr_unified(ocr_text))
-                        st.session_state.parsed_entries_ocr = df_ocr
-        
-                        # Tampilkan editor untuk edit hasil OCR
-                        st.subheader("📝 Edit Data Hasil OCR (Opsional)")
-                        edited_df = st.data_editor(df_ocr, num_rows="dynamic", use_container_width=True)
-        
-                        # Simpan hasil edit ke session state
-                        st.session_state.parsed_entries_ocr = edited_df
-        
-                        # Tampilkan data yang sudah diedit
-                        st.markdown("#### Preview Data OCR Setelah Diedit")
-                        st.dataframe(edited_df, use_container_width=True)
-                    except Exception as e:
-                        st.error(f"OCR Processing Error: {e}")
+# --- SECTION 1: UPLOAD & OCR ---
+#st.markdown('---')
+with st.expander("Upload Gambar atau PDF untuk OCR"):
+    file = st.file_uploader(
+        "Pilih file gambar (.jpg/.png) atau PDF",
+        type=['jpg','jpeg','png','pdf'],
+        key='file_uploader'
+    )    
+    ocr_text = ''
+    if file:
+        if file.type == 'application/pdf':
+            ocr_text = extract_text_from_pdf(file)
+        else:
+            img = Image.open(file).convert('RGB')
+            img = resize_image(img)
+            st.image(img, caption='Gambar Terupload', use_column_width=True)
+            reader = get_ocr_reader()
+            result = reader.readtext(np.array(img), detail=0)
+            ocr_text = "\n".join(result)
     
-    
-    # --- SECTION 2: MANUAL INPUT ---
-    
-    #def manual_input_section():
-    #    st.markdown('---')
-    #    st.subheader('2a. Input Data Manual')
-    #    input_text = st.text_area(
-     #       'Masukkan Teks Manual',
-      #      value=st.session_state.manual_input_area,
-       #     height=200,
-        #    key='manual_input_area'
-    #    )
-     #   col1, col2 = st.columns(2)
-      #  with col1:
-       #     if st.button('🔍 Proses Manual'):
-        #        try:
-         #           df_man = pd.DataFrame(process_ocr_unified(input_text))
-          #          st.dataframe(df_man, use_container_width=True)
-           #         st.session_state.parsed_entries_manual = df_man
-            #    except Exception as e:
-             #       st.error(f"Manual Processing Error: {e}")
-    #    with col2:
-     #       if st.button('🧹 Clear Manual'):
-      #          st.session_state.manual_input_area = ''
-       #         st.session_state.parsed_entries_manual = None
-    
-    #manual_input_section()
-    
-    # --- SECTION 2: BULK MANUAL INPUT ---
-    #st.markdown('---')
-    with st.expander('Bulk Manual Input'):
-        raw = st.text_area(
-            "Masukkan banyak entri, pisahkan setiap entri dengan '==='",
-            key="bulk_input",
-            height=200
-        )
-        if st.button("🔍 Proses Bulk"):
-            entries = []
-            labels = []
-            for i, block in enumerate(raw.split("===")):
-                block = block.strip()
-                if block:
-                    try:
-                        df_block = pd.DataFrame(process_ocr_unified(block))
-                        entries.append(df_block)
-                        labels.append(f"Entri {i+1}")
-                    except Exception as e:
-                        st.error(f"Gagal parse blok ke-{i+1}: {e}")
-            if entries:
-                st.session_state.bulk_entries_raw = entries
-                st.session_state.bulk_labels = labels
-                st.session_state.bulk_parsed = pd.concat(entries, ignore_index=True)
-        
-        # Jika ada hasil bulk_entries_raw, tampilkan UI editing
-        if "bulk_entries_raw" in st.session_state and st.session_state.bulk_entries_raw:
-            st.markdown("#### 📝 Edit Data per Entri (Opsional)")
+        if ocr_text:
+            st.text_area('Hasil OCR', ocr_text, height=200, key='ocr_area')
             
-            selected_index = st.selectbox(
-                "Pilih entri untuk diedit",
-                range(len(st.session_state.bulk_entries_raw)),
-                format_func=lambda x: st.session_state.bulk_labels[x]
-            )
-        
-            selected_df = st.session_state.bulk_entries_raw[selected_index]
-            edited_df = st.data_editor(
-                selected_df,
-                num_rows="dynamic",
-                use_container_width=True,
-                key=f"editor_bulk_{selected_index}"
-            )
-        
-            # Simpan hasil edit ke entri yang dipilih
-            st.session_state.bulk_entries_raw[selected_index] = edited_df
-        
-            # Gabungkan ulang semua data setelah edit
-            st.session_state.bulk_parsed = pd.concat(st.session_state.bulk_entries_raw, ignore_index=True)
-        
-            st.markdown("#### 📊 Preview Gabungan Semua Entri Setelah Diedit")
-            st.dataframe(st.session_state.bulk_parsed, use_container_width=True)
-        
-        # Bulk save button
-        if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bulk ke GSheet"):
-            save_gsheet(st.session_state.bulk_parsed)
-            for k in ["bulk_parsed", "bulk_input", "file_uploader"]:
-                st.session_state.pop(k, None)
-            st.rerun()
+            # Tampilkan tombol untuk Proses Data OCR
+            if st.button('➡️ Proses Data OCR'):
+                try:
+                    # Proses OCR text menjadi DataFrame
+                    df_ocr = pd.DataFrame(process_ocr_unified(ocr_text))
+                    st.session_state.parsed_entries_ocr = df_ocr
     
-    # --- SECTION 3: SAVE TO GOOGLE SHEETS ---
-    st.markdown('---')
-    #st.subheader('3. Simpan ke Google Sheets')
-    if st.session_state.parsed_entries_ocr is not None and st.button('📤 Simpan OCR ke GSheet'):
-        save_gsheet(st.session_state.parsed_entries_ocr)
-        for k in [
-            'parsed_entries_ocr', 'parsed_entries_manual', 'manual_input_area', 'bulk_input', 'file_uploader'
-        ]:
+                    # Tampilkan editor untuk edit hasil OCR
+                    st.subheader("📝 Edit Data Hasil OCR (Opsional)")
+                    edited_df = st.data_editor(df_ocr, num_rows="dynamic", use_container_width=True)
+    
+                    # Simpan hasil edit ke session state
+                    st.session_state.parsed_entries_ocr = edited_df
+    
+                    # Tampilkan data yang sudah diedit
+                    st.markdown("#### Preview Data OCR Setelah Diedit")
+                    st.dataframe(edited_df, use_container_width=True)
+                except Exception as e:
+                    st.error(f"OCR Processing Error: {e}")
+
+
+# --- SECTION 2: MANUAL INPUT ---
+
+#def manual_input_section():
+#    st.markdown('---')
+#    st.subheader('2a. Input Data Manual')
+#    input_text = st.text_area(
+ #       'Masukkan Teks Manual',
+  #      value=st.session_state.manual_input_area,
+   #     height=200,
+    #    key='manual_input_area'
+#    )
+ #   col1, col2 = st.columns(2)
+  #  with col1:
+   #     if st.button('🔍 Proses Manual'):
+    #        try:
+     #           df_man = pd.DataFrame(process_ocr_unified(input_text))
+      #          st.dataframe(df_man, use_container_width=True)
+       #         st.session_state.parsed_entries_manual = df_man
+        #    except Exception as e:
+         #       st.error(f"Manual Processing Error: {e}")
+#    with col2:
+ #       if st.button('🧹 Clear Manual'):
+  #          st.session_state.manual_input_area = ''
+   #         st.session_state.parsed_entries_manual = None
+
+#manual_input_section()
+
+# --- SECTION 2: BULK MANUAL INPUT ---
+#st.markdown('---')
+with st.expander('Bulk Manual Input'):
+    raw = st.text_area(
+        "Masukkan banyak entri, pisahkan setiap entri dengan '==='",
+        key="bulk_input",
+        height=200
+    )
+    if st.button("🔍 Proses Bulk"):
+        entries = []
+        labels = []
+        for i, block in enumerate(raw.split("===")):
+            block = block.strip()
+            if block:
+                try:
+                    df_block = pd.DataFrame(process_ocr_unified(block))
+                    entries.append(df_block)
+                    labels.append(f"Entri {i+1}")
+                except Exception as e:
+                    st.error(f"Gagal parse blok ke-{i+1}: {e}")
+        if entries:
+            st.session_state.bulk_entries_raw = entries
+            st.session_state.bulk_labels = labels
+            st.session_state.bulk_parsed = pd.concat(entries, ignore_index=True)
+    
+    # Jika ada hasil bulk_entries_raw, tampilkan UI editing
+    if "bulk_entries_raw" in st.session_state and st.session_state.bulk_entries_raw:
+        st.markdown("#### 📝 Edit Data per Entri (Opsional)")
+        
+        selected_index = st.selectbox(
+            "Pilih entri untuk diedit",
+            range(len(st.session_state.bulk_entries_raw)),
+            format_func=lambda x: st.session_state.bulk_labels[x]
+        )
+    
+        selected_df = st.session_state.bulk_entries_raw[selected_index]
+        edited_df = st.data_editor(
+            selected_df,
+            num_rows="dynamic",
+            use_container_width=True,
+            key=f"editor_bulk_{selected_index}"
+        )
+    
+        # Simpan hasil edit ke entri yang dipilih
+        st.session_state.bulk_entries_raw[selected_index] = edited_df
+    
+        # Gabungkan ulang semua data setelah edit
+        st.session_state.bulk_parsed = pd.concat(st.session_state.bulk_entries_raw, ignore_index=True)
+    
+        st.markdown("#### 📊 Preview Gabungan Semua Entri Setelah Diedit")
+        st.dataframe(st.session_state.bulk_parsed, use_container_width=True)
+    
+    # Bulk save button
+    if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bulk ke GSheet"):
+        save_gsheet(st.session_state.bulk_parsed)
+        for k in ["bulk_parsed", "bulk_input", "file_uploader"]:
             st.session_state.pop(k, None)
         st.rerun()
-    
-    if st.session_state.parsed_entries_manual is not None and st.button('📤 Simpan Manual ke GSheet'):
-        save_gsheet(st.session_state.parsed_entries_manual)
-        for k in ['parsed_entries_manual', 'manual_input_area', 'file_uploader']:
-            st.session_state.pop(k, None)
-        st.rerun()
+
+# --- SECTION 3: SAVE TO GOOGLE SHEETS ---
+st.markdown('---')
+#st.subheader('3. Simpan ke Google Sheets')
+if st.session_state.parsed_entries_ocr is not None and st.button('📤 Simpan OCR ke GSheet'):
+    save_gsheet(st.session_state.parsed_entries_ocr)
+    for k in [
+        'parsed_entries_ocr', 'parsed_entries_manual', 'manual_input_area', 'bulk_input', 'file_uploader'
+    ]:
+        st.session_state.pop(k, None)
+    st.rerun()
+
+if st.session_state.parsed_entries_manual is not None and st.button('📤 Simpan Manual ke GSheet'):
+    save_gsheet(st.session_state.parsed_entries_manual)
+    for k in ['parsed_entries_manual', 'manual_input_area', 'file_uploader']:
+        st.session_state.pop(k, None)
+    st.rerun()

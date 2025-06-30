@@ -895,6 +895,42 @@ with st.expander('Database Pemesan', expanded=True):
             st.success(f"✅ Total penjualan mencapai Rp {total_harga_jual:,.0f} (batas 25 juta tercapai)")
         elif total_harga_jual >= MAX_TOTAL * 0.95:
             st.warning(f"⚠️ Total penjualan mendekati batas: Rp {total_harga_jual:,.0f}")
+
+        # === Hitung total harga jual data yang belum punya invoice ===
+        uninvoice_df = df[
+            (df["Tgl Pemesanan"] >= tanggal_range[0]) &
+            (df["Tgl Pemesanan"] <= tanggal_range[1]) &
+            (
+                df["No Invoice"].isna() |
+                (df["No Invoice"].astype(str).str.strip() == "")
+            )
+        ]
+        if nama_filter:
+            uninvoice_df = uninvoice_df[uninvoice_df["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
+        
+        # Fungsi bantu parsing harga jual
+        def parse_harga(harga_str):
+            if pd.isna(harga_str):
+                return 0
+            s = str(harga_str).replace('Rp', '').replace('.', '').replace(',', '').strip()
+            try:
+                return float(s)
+            except:
+                return 0
+        
+        total_uninvoice = uninvoice_df["Harga Jual"].apply(parse_harga).sum()
+        
+        # Tampilkan notifikasi di sidebar
+        with st.sidebar:
+            st.markdown("---")
+            st.markdown("### 💰 Ringkasan Tanpa Invoice")
+            st.info(f"Total penjualan tanpa invoice: **Rp {total_uninvoice:,.0f}**")
+            if total_uninvoice >= 25_000_000:
+                st.success("✅ Sudah mencapai 25 juta")
+            elif total_uninvoice >= 23_000_000:
+                st.warning("⚠️ Hampir mencapai 25 juta")
+
+        
         # === Tombol Aksi ===
         col_pdf, col_excel, col_email = st.columns(3)
     
@@ -909,7 +945,6 @@ with st.expander('Database Pemesan', expanded=True):
         # Simpan nama file terakhir yang dibuat di session state untuk pengiriman email
         if 'last_generated_pdf_path' not in st.session_state:
             st.session_state.last_generated_pdf_path = None
-    
     
         with col_pdf:
             if st.button("📄 Buat Invoice PDF"):

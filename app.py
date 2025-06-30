@@ -622,11 +622,11 @@ with st.expander('Database Pemesan', expanded=True):
     # ... (kode UI Streamlit di bagian atas) ...
     
     # === Filter UI ===
-    st.sidebar.header("Filter Data")
+    # === Sidebar Filter ===
+    st.sidebar.header("📊 Filter Data")
     
-    tampilkan_uninvoice_saja = st.sidebar.checkbox("Tampilkan hanya data yang belum punya Invoice")
-    auto_select_25jt = st.sidebar.checkbox("Auto-pilih sampai total penjualan Rp 25 juta")
-    
+    tampilkan_uninvoice_saja = st.sidebar.checkbox("🔍 Tampilkan hanya data yang belum punya Invoice")
+    auto_select_25jt = st.sidebar.checkbox("⚙️ Auto-pilih sampai total penjualan Rp 25 juta")
     tanggal_range = st.sidebar.date_input("Rentang Tanggal", [date.today(), date.today()])
     if isinstance(tanggal_range, date):
         tanggal_range = [tanggal_range, tanggal_range]
@@ -635,20 +635,22 @@ with st.expander('Database Pemesan', expanded=True):
     tanggal_range = [d if isinstance(d, date) else d.date() for d in tanggal_range]
     nama_filter = st.sidebar.text_input("Cari Nama Pemesan")
 
+    # === Filter DataFrame ===
     filtered_df = df[
         (df["Tgl Pemesanan"] >= tanggal_range[0]) &
         (df["Tgl Pemesanan"] <= tanggal_range[1])
     ]
     if nama_filter:
         filtered_df = filtered_df[filtered_df["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
+    
     if tampilkan_uninvoice_saja:
         filtered_df = filtered_df[filtered_df["No Invoice"].isna() | (filtered_df["No Invoice"].str.strip() == "")]
-        
+    
     if filtered_df.empty:
         st.warning("❌ Tidak ada data yang cocok.")
-    else: 
-        # === Editor dengan checkbox dan pilih semua ===
+    else:
         st.subheader("✅ Pilih Data untuk Edit & Invoice")
+
     
         editable_df = filtered_df.copy()
         editable_df.insert(0, 'Pilih', False)

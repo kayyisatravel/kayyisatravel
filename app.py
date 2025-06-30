@@ -35,6 +35,58 @@ def parse_harga(harga):
         return 0.0
 @st.cache_data
 
+from typing import List, Dict
+from gspread.utils import rowcol_to_a1
+
+def prepare_batch_update(
+    df_all: pd.DataFrame,
+    selected_norm: pd.DataFrame,
+    update_config: Dict[str, str],
+    worksheet_cols: List[str]
+) -> List[Dict[str, object]]:
+    """
+    Siapkan list update dalam format yang kompatibel dengan gspread's batch_update().
+    
+    Returns:
+        List of {"range": "A2:D2", "values": [["val1", "val2", "val3", "val4"]]}
+    """
+    updates = []
+
+    for _, row in selected_norm.iterrows():
+        mask = (
+            (df_all["Nama Pemesan_str"] == row["Nama Pemesan_str"]) &
+            (df_all["Kode Booking_str"] == row["Kode Booking_str"]) &
+            (df_all["Tgl Pemesanan_str"] == row["Tgl Pemesanan_str"])
+        )
+
+        if mask.any():
+            matching_index = df_all[mask].index[0]
+            row_number = matching_index + 2  # baris header +1
+
+            col_indices = []
+            values = []
+
+            for col_name, new_value in update_config.items():
+                if col_name in worksheet_cols:
+                    col_idx = worksheet_cols.index(col_name) + 1
+                    col_indices.append(col_idx)
+                    values.append(new_value)
+
+            if col_indices:
+                min_col = min(col_indices)
+                max_col = max(col_indices)
+                start_a1 = rowcol_to_a1(row_number, min_col)
+                end_a1 = rowcol_to_a1(row_number, max_col)
+                range_a1 = f"{start_a1}:{end_a1}"
+
+                # Susun list nilai (baris tunggal, bisa multiple kolom)
+                updates.append({
+                    "range": range_a1,
+                    "values": [values]
+                })
+
+    return updates
+
 def normalize_df(df):
     df = df.copy()
 
@@ -707,7 +759,7 @@ with st.expander('Database Pemesan', expanded=True):
             st.markdown("### 🛠️ Update Massal (Beberapa Baris)")
             st.info("Pilih beberapa baris untuk melakukan update massal pada kolom tertentu.")
         
-            # Kolom input untuk mass update
+            # Input kolom yang bisa diupdate
             no_invoice_mass = st.text_input("No Invoice (Mass Update)")
             kosongkan_invoice = st.checkbox("Kosongkan No Invoice")
         
@@ -726,42 +778,45 @@ with st.expander('Database Pemesan', expanded=True):
                     all_data = worksheet.get_all_records()
                     df_all = pd.DataFrame(all_data)
         
-                    # Normalisasi dataframe df_all dan selected_data
                     df_all = normalize_df(df_all)
                     selected_norm = normalize_df(selected_data)
         
+                    updates = []
                     count = 0
                     gagal = 0
                     tidak_ditemukan = []
         
                     for i, row in selected_norm.iterrows():
                         mask = (
-                            (df_all["Nama Pemesan_str"] == selected_norm.loc[0, "Nama Pemesan_str"]) &
-                            (df_all["Kode Booking_str"] == selected_norm.loc[0, "Kode Booking_str"]) &
-                            (df_all["Tgl Pemesanan_str"] == selected_norm.loc[0, "Tgl Pemesanan_str"])
+                            (df_all["Nama Pemesan_str"] == row["Nama Pemesan_str"]) &
+                            (df_all["Kode Booking_str"] == row["Kode Booking_str"]) &
+                            (df_all["Tgl Pemesanan_str"] == row["Tgl Pemesanan_str"])
                         )
         
                         if mask.any():
                             matching_index = df_all[mask].index[0]
-                            row_number = matching_index + 2  # Baris di GSheets (header + 1)
+                            row_number = matching_index + 2  # Baris di GSheets (1-based, header di baris 1)
         
                             if no_invoice_mass or kosongkan_invoice:
                                 nilai = "" if kosongkan_invoice else no_invoice_mass
-                                worksheet.update_cell(row_number, df_all.columns.get_loc("No Invoice") + 1, nilai)
+                                col = df_all.columns.get_loc("No Invoice") + 1
+                                updates.append((row_number, col, nilai))
         
                             if keterangan_mass or kosongkan_keterangan:
                                 nilai = "" if kosongkan_keterangan else keterangan_mass
-                                worksheet.update_cell(row_number, df_all.columns.get_loc("Keterangan") + 1, nilai)
+                                col = df_all.columns.get_loc("Keterangan") + 1
+                                updates.append((row_number, col, nilai))
         
                             if nama_pemesan_mass or kosongkan_nama_pemesan:
                                 nilai = "" if kosongkan_nama_pemesan else nama_pemesan_mass
-                                worksheet.update_cell(row_number, df_all.columns.get_loc("Nama Pemesan") + 1, nilai)
+                                col = df_all.columns.get_loc("Nama Pemesan") + 1
+                                updates.append((row_number, col, nilai))
         
                             if admin_mass or kosongkan_admin:
                                 nilai = "" if kosongkan_admin else admin_mass
-                                worksheet.update_cell(row_number, df_all.columns.get_loc("Admin") + 1, nilai)
+                                col = df_all.columns.get_loc("Admin") + 1
+                                updates.append((row_number, col, nilai))
         
-                            st.write(f"✅ Update row GSheets: {row_number} untuk: {row['Nama Pemesan_str']} - {row['Kode Booking_str']}")
                             count += 1
                         else:
                             gagal += 1
@@ -771,7 +826,15 @@ with st.expander('Database Pemesan', expanded=True):
                                 "Tgl Pemesanan": row["Tgl Pemesanan_str"]
                             })
         
-                    # Ringkasan hasil update
+                    # === EKSEKUSI UPDATE SEKALIGUS ===
+                    if updates:
+                        cell_updates = [(row, col, val) for row, col, val in updates]
+                        worksheet.batch_update([{
+                            "range": f"{gspread.utils.rowcol_to_a1(row, col)}",
+                            "values": [[val]]
+                        } for row, col, val in cell_updates], value_input_option="USER_ENTERED")
+        
+                    # Ringkasan hasil
                     if count:
                         st.success(f"✅ {count} baris berhasil diperbarui.")
                     if gagal:
@@ -789,6 +852,7 @@ with st.expander('Database Pemesan', expanded=True):
         
                 except Exception as e:
                     st.error(f"❌ Gagal update massal: {e}")
+
             
         # === Total Harga ===
         def parse_harga(harga_str):

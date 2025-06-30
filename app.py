@@ -17,6 +17,9 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import io
 import math # Untuk pembulatan jika diperlukan
+from typing import List, Dict
+from gspread.utils import rowcol_to_a1
+
 
 #refresh
 # --- PAGE CONFIG ---
@@ -34,9 +37,6 @@ def parse_harga(harga):
     except:
         return 0.0
 @st.cache_data
-
-from typing import List, Dict
-from gspread.utils import rowcol_to_a1
 
 def prepare_batch_update(
     df_all: pd.DataFrame,

@@ -248,7 +248,7 @@ with st.expander('Bulk Manual Input'):
         for k in ["bulk_parsed", "bulk_input", "file_uploader"]:
             st.session_state.pop(k, None)
         st.rerun()
-
+with st.expander('Invoice'):
 # --- SECTION 3: SAVE TO GOOGLE SHEETS ---
 st.markdown('---')
 #st.subheader('3. Simpan ke Google Sheets')

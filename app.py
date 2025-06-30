@@ -38,11 +38,12 @@ def parse_harga(harga):
 def normalize_df(df):
     df = df.copy()
 
-    # Pastikan kolom Tgl Pemesanan dalam datetime, lalu ubah ke string 'DD-MM-YYYY'
+    # Ubah Tgl Pemesanan jadi datetime dulu
     df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce")
+    # Baru ubah ke string format DD-MM-YYYY
     df["Tgl Pemesanan_str"] = df["Tgl Pemesanan"].dt.strftime("%d-%m-%Y")
 
-    # Normalize Kode Booking jadi string, trim, uppercase
+    # Normalize Kode Booking jadi string uppercase tanpa spasi
     df["Kode Booking_str"] = df["Kode Booking"].astype(str).str.strip().str.upper()
 
     # Normalize Nama Pemesan (jika ada)
@@ -663,13 +664,14 @@ with st.expander('Database Pemesan', expanded=True):
                     
                     # Normalisasi kedua dataframe
                     df_all = normalize_df(df_all)
-                    selected_data = normalize_df(selected_data)
-        
+                    selected_norm = normalize_df(pd.DataFrame([row_to_edit]))
+                    
                     mask = (
-                        (df_all["Nama Pemesan"] == row_to_edit["Nama Pemesan"]) &
-                        (df_all["Kode Booking"] == row_to_edit["Kode Booking"]) &
-                        (df_all["Tgl Pemesanan"] == row_to_edit["Tgl Pemesanan"])
+                        (df_all["Nama Pemesan_str"] == selected_norm.loc[0, "Nama Pemesan_str"]) &
+                        (df_all["Kode Booking_str"] == selected_norm.loc[0, "Kode Booking_str"]) &
+                        (df_all["Tgl Pemesanan_str"] == selected_norm.loc[0, "Tgl Pemesanan_str"])
                     )
+
         
                     if not mask.any():
                         st.warning("❌ Data asli tidak ditemukan di Google Sheets.")
@@ -735,9 +737,9 @@ with st.expander('Database Pemesan', expanded=True):
         
                     for i, row in selected_norm.iterrows():
                         mask = (
-                            (df_all["Nama Pemesan_str"] == row["Nama Pemesan_str"]) &
-                            (df_all["Kode Booking_str"] == row["Kode Booking_str"]) &
-                            (df_all["Tgl Pemesanan_str"] == row["Tgl Pemesanan_str"])
+                            (df_all["Nama Pemesan_str"] == selected_norm.loc[0, "Nama Pemesan_str"]) &
+                            (df_all["Kode Booking_str"] == selected_norm.loc[0, "Kode Booking_str"]) &
+                            (df_all["Tgl Pemesanan_str"] == selected_norm.loc[0, "Tgl Pemesanan_str"])
                         )
         
                         if mask.any():

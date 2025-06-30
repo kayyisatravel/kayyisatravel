@@ -36,19 +36,15 @@ def parse_harga(harga):
 @st.cache_data
 
 def normalize_df(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Normalisasi kolom-kolom penting untuk pencocokan:
-    - Pastikan 'Tgl Pemesanan' dalam format date
-    - Pastikan 'Kode Booking' bertipe string
-    - Pastikan 'Nama Pemesan' string dan strip whitespaces
-    """
     df = df.copy()
+    # Format tanggal
     if "Tgl Pemesanan" in df.columns:
         df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce").dt.date
+    # Tipe string dan strip
     if "Kode Booking" in df.columns:
         df["Kode Booking"] = df["Kode Booking"].astype(str).str.strip()
     if "Nama Pemesan" in df.columns:
-        df["Nama Pemesan"] = df["Nama Pemesan"].astype(str).str.strip()
+        df["Nama Pemesan"] = df["Nama Pemesan"].astype(str).str.strip().str.upper()
     return df
 
 def extract_text_from_pdf(pdf_bytes):
@@ -726,7 +722,7 @@ with st.expander('Database Pemesan', expanded=True):
             
                     count = 0
                     gagal = 0
-                    
+                    tidak_ditemukan = []
                     for i, row in selected_data.iterrows():
                         mask = (
                             (df_all["Nama Pemesan"] == row["Nama Pemesan"]) &
@@ -772,7 +768,10 @@ with st.expander('Database Pemesan', expanded=True):
                         st.write(df_all.head(3).to_dict())
                     if count == 0 and gagal == 0:
                         st.info("ℹ️ Tidak ada data diproses.")
-                    
+                    if tidak_ditemukan:
+                        st.warning(f"⚠️ {gagal} baris tidak ditemukan di GSheets.")
+                        with st.expander("🔍 Lihat baris yang gagal dicocokkan"):
+                            st.json(tidak_ditemukan)
                     st.cache_data.clear()
                 
             

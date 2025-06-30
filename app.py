@@ -780,7 +780,7 @@ with st.expander('Database Pemesan', expanded=True):
                     st.error(f"❌ Gagal update: {e}")
         
         elif len(selected_data) > 1:
-            with st.expander('Update Massal (Beberapa Baris)')
+            with st.expander('Update Massal (Beberapa Baris)'):
                 st.markdown("### 🛠️ Update Massal (Beberapa Baris)")
                 st.info("Pilih beberapa baris untuk melakukan update massal pada kolom tertentu.")
             

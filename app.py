@@ -35,18 +35,16 @@ def parse_harga(harga):
         return 0.0
 @st.cache_data
 
-def normalize_df(df: pd.DataFrame) -> pd.DataFrame:
+def normalize_df(df):
     df = df.copy()
 
-    # Normalisasi tanggal
-    for col in ["Tgl Pemesanan", "Tgl Berangkat"]:
-        if col in df.columns:
-            df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
+    # Pastikan tanggal jadi datetime lalu ubah ke string 'DD-MM-YYYY'
+    df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce")
+    df["Tgl Pemesanan_str"] = df["Tgl Pemesanan"].dt.strftime("%d-%m-%Y")
 
-    # Kolom string disamakan bentuknya (trim + upper)
+    # Normalize Nama dan Kode Booking
     df["Nama Pemesan_str"] = df["Nama Pemesan"].astype(str).str.strip().str.upper()
-    df["Kode Booking_str"] = df["Kode Booking"].astype(str).str.strip()
-    df["Tgl Pemesanan_str"] = df["Tgl Pemesanan"].apply(lambda d: d.strftime("%d-%m-%Y") if pd.notnull(d) else "")
+    df["Kode Booking_str"] = df["Kode Booking"].astype(str).str.strip().str.upper()
 
     return df
 

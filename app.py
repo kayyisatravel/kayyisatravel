@@ -250,18 +250,18 @@ with st.expander('Bulk Manual Input'):
         st.rerun()
 with st.expander('Invoice'):
 # --- SECTION 3: SAVE TO GOOGLE SHEETS ---
-st.markdown('---')
-#st.subheader('3. Simpan ke Google Sheets')
-if st.session_state.parsed_entries_ocr is not None and st.button('📤 Simpan OCR ke GSheet'):
-    save_gsheet(st.session_state.parsed_entries_ocr)
-    for k in [
-        'parsed_entries_ocr', 'parsed_entries_manual', 'manual_input_area', 'bulk_input', 'file_uploader'
-    ]:
-        st.session_state.pop(k, None)
-    st.rerun()
-
-if st.session_state.parsed_entries_manual is not None and st.button('📤 Simpan Manual ke GSheet'):
-    save_gsheet(st.session_state.parsed_entries_manual)
-    for k in ['parsed_entries_manual', 'manual_input_area', 'file_uploader']:
-        st.session_state.pop(k, None)
-    st.rerun()
+    st.markdown('---')
+    #st.subheader('3. Simpan ke Google Sheets')
+    if st.session_state.parsed_entries_ocr is not None and st.button('📤 Simpan OCR ke GSheet'):
+        save_gsheet(st.session_state.parsed_entries_ocr)
+        for k in [
+            'parsed_entries_ocr', 'parsed_entries_manual', 'manual_input_area', 'bulk_input', 'file_uploader'
+        ]:
+            st.session_state.pop(k, None)
+        st.rerun()
+    
+    if st.session_state.parsed_entries_manual is not None and st.button('📤 Simpan Manual ke GSheet'):
+        save_gsheet(st.session_state.parsed_entries_manual)
+        for k in ['parsed_entries_manual', 'manual_input_area', 'file_uploader']:
+            st.session_state.pop(k, None)
+        st.rerun()

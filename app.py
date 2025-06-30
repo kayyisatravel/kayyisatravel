@@ -26,7 +26,13 @@ st.set_page_config(page_title="OCR & Dashboard Tiket", layout="centered")
 @st.cache_resource
 def get_ocr_reader():
     return easyocr.Reader(['en', 'id'], gpu=False)
-
+def parse_harga(harga):
+    try:
+        if isinstance(harga, (int, float)):
+            return float(harga)
+        return float(str(harga).replace("Rp", "").replace(".", "").replace(",", "").strip())
+    except:
+        return 0.0
 @st.cache_data
 def extract_text_from_pdf(pdf_bytes):
     reader = get_ocr_reader()
@@ -591,7 +597,8 @@ with st.expander('Invoice'):
             nama_pemesan_form = st.text_input("Nama Pemesan", row_to_edit.get("Nama Pemesan", ""))
             tgl_pemesanan_form = st.date_input("Tgl Pemesanan", row_to_edit.get("Tgl Pemesanan", date.today()))
             kode_booking_form = st.text_input("Kode Booking", row_to_edit.get("Kode Booking", ""))
-            harga_jual_form = st.number_input("Harga Jual", value=float(row_to_edit.get("Harga Jual", 0)))
+            harga_jual_value = parse_harga(row_to_edit.get("Harga Jual", 0))
+            harga_jual_form = st.number_input("Harga Jual", value=harga_jual_value)
         
             if st.button("💾 Simpan Perubahan ke GSheet"):
                 try:

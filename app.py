@@ -574,7 +574,7 @@ with st.expander('Database Pemesan', expanded=True):
         st.warning("❌ Tidak ada data yang cocok.")
     else: 
         # === Editor dengan checkbox dan pilih semua ===
-        st.subheader("✅ Pilih Data untuk Invoice")
+        st.subheader("✅ Pilih Data untuk Edit & Invoice")
     
         editable_df = filtered_df.copy()
         editable_df.insert(0, 'Pilih', False)

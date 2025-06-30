@@ -734,7 +734,8 @@ with st.expander('Database Pemesan', expanded=True):
                                 nilai = "" if kosongkan_admin else admin_mass
                                 worksheet.update_cell(row_number, df_all.columns.get_loc("Admin") + 1, nilai)
                     
-                            st.write(f"✅ Update row GSheets: {row_number}")
+                            st.write(f"✅ Update row GSheets: {row_number} untuk: {row['Nama Pemesan']} - {row['Kode Booking']}")
+
                             count += 1
                         else:
                             gagal += 1

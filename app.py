@@ -729,7 +729,7 @@ with st.expander('Database Pemesan', expanded=True):
         
                     st.success(f"✅ {count} baris berhasil diperbarui.")
                     st.cache_data.clear()
-        
+                    st.write(f"Update ke baris GSheets: {row_number} (index DataFrame: {index})")
                 except Exception as e:
                     st.error(f"❌ Gagal update massal: {e}")
             

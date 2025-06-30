@@ -390,8 +390,8 @@ with st.expander('Database Pemesan', expanded=True):
     if st.button("🔄 Refresh Data"):
         st.cache_data.clear()
         df = load_data()
-    else:
-        df = load_data()
+    #else:
+        #df = load_data()
     
     ## Fungsi `buat_invoice_pdf` (Direvisi)
     

@@ -780,100 +780,101 @@ with st.expander('Database Pemesan', expanded=True):
                     st.error(f"❌ Gagal update: {e}")
         
         elif len(selected_data) > 1:
-            st.markdown("### 🛠️ Update Massal (Beberapa Baris)")
-            st.info("Pilih beberapa baris untuk melakukan update massal pada kolom tertentu.")
-        
-            # Checkbox filter data yang belum dibuat invoice
-            filter_uninvoice = st.checkbox("Belum dibuat INV (Tampilkan hanya data tanpa No Invoice)")
-        
-            # Kolom input untuk mass update
-            no_invoice_mass = st.text_input("No Invoice (Mass Update)")
-            kosongkan_invoice = st.checkbox("Kosongkan No Invoice")
-        
-            keterangan_mass = st.text_input("Keterangan (Mass Update)")
-            kosongkan_keterangan = st.checkbox("Kosongkan Keterangan")
-        
-            nama_pemesan_mass = st.text_input("Nama Pemesan (Mass Update)")
-            kosongkan_nama_pemesan = st.checkbox("Kosongkan Nama Pemesan")
-        
-            admin_mass = st.text_input("Admin (Mass Update)")
-            kosongkan_admin = st.checkbox("Kosongkan Admin")
-        
-            # Ambil data lengkap dari worksheet
-            worksheet = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
-            all_data = worksheet.get_all_records()
-            df_all = pd.DataFrame(all_data)
-        
-            # Normalisasi df_all dan selected_data
-            df_all = normalize_df(df_all)
-            selected_norm = normalize_df(selected_data)
-        
-            # Terapkan filter "Belum dibuat INV"
-            if filter_uninvoice:
-                df_all["No Invoice"] = df_all["No Invoice"].replace("", pd.NA)
-                df_all = df_all[df_all["No Invoice"].isna()]
-        
-            # Tampilkan data yang difilter jika ingin (opsional)
-            st.write("### Data yang akan diproses:")
-            st.dataframe(df_all)
-        
-            if st.button("🔁 Terapkan Update Massal"):
-                try:
-                    count = 0
-                    gagal = 0
-                    tidak_ditemukan = []
-        
-                    for i, row in selected_norm.iterrows():
-                        mask = (
-                            (df_all["Nama Pemesan_str"] == row["Nama Pemesan_str"]) &
-                            (df_all["Kode Booking_str"] == row["Kode Booking_str"]) &
-                            (df_all["Tgl Pemesanan_str"] == row["Tgl Pemesanan_str"])
-                        )
-        
-                        if mask.any():
-                            matching_index = df_all[mask].index[0]
-                            row_number = matching_index + 2  # Baris di GSheets (header + 1)
-        
-                            if no_invoice_mass or kosongkan_invoice:
-                                nilai = "" if kosongkan_invoice else no_invoice_mass
-                                worksheet.update_cell(row_number, df_all.columns.get_loc("No Invoice") + 1, nilai)
-        
-                            if keterangan_mass or kosongkan_keterangan:
-                                nilai = "" if kosongkan_keterangan else keterangan_mass
-                                worksheet.update_cell(row_number, df_all.columns.get_loc("Keterangan") + 1, nilai)
-        
-                            if nama_pemesan_mass or kosongkan_nama_pemesan:
-                                nilai = "" if kosongkan_nama_pemesan else nama_pemesan_mass
-                                worksheet.update_cell(row_number, df_all.columns.get_loc("Nama Pemesan") + 1, nilai)
-        
-                            if admin_mass or kosongkan_admin:
-                                nilai = "" if kosongkan_admin else admin_mass
-                                worksheet.update_cell(row_number, df_all.columns.get_loc("Admin") + 1, nilai)
-        
-                            st.write(f"✅ Update row GSheets: {row_number} untuk: {row['Nama Pemesan_str']} - {row['Kode Booking_str']}")
-                            count += 1
-                        else:
-                            gagal += 1
-                            tidak_ditemukan.append({
-                                "Nama Pemesan": row["Nama Pemesan_str"],
-                                "Kode Booking": row["Kode Booking_str"],
-                                "Tgl Pemesanan": row["Tgl Pemesanan_str"]
-                            })
-        
-                    # Ringkasan hasil update
-                    if count:
-                        st.success(f"✅ {count} baris berhasil diperbarui.")
-                    if gagal:
-                        st.warning(f"⚠️ {gagal} baris tidak ditemukan di GSheets.")
-                        with st.expander("🔍 Lihat baris yang gagal dicocokkan"):
-                            st.json(tidak_ditemukan)
-                    if count == 0 and gagal == 0:
-                        st.info("ℹ️ Tidak ada data diproses.")
-        
-                    st.cache_data.clear()
-        
-                except Exception as e:
-                    st.error(f"❌ Gagal update massal: {e}")
+            with st.expander('Update Massal (Beberapa Baris)')
+                st.markdown("### 🛠️ Update Massal (Beberapa Baris)")
+                st.info("Pilih beberapa baris untuk melakukan update massal pada kolom tertentu.")
+            
+                # Checkbox filter data yang belum dibuat invoice
+                filter_uninvoice = st.checkbox("Belum dibuat INV (Tampilkan hanya data tanpa No Invoice)")
+            
+                # Kolom input untuk mass update
+                no_invoice_mass = st.text_input("No Invoice (Mass Update)")
+                kosongkan_invoice = st.checkbox("Kosongkan No Invoice")
+            
+                keterangan_mass = st.text_input("Keterangan (Mass Update)")
+                kosongkan_keterangan = st.checkbox("Kosongkan Keterangan")
+            
+                nama_pemesan_mass = st.text_input("Nama Pemesan (Mass Update)")
+                kosongkan_nama_pemesan = st.checkbox("Kosongkan Nama Pemesan")
+            
+                admin_mass = st.text_input("Admin (Mass Update)")
+                kosongkan_admin = st.checkbox("Kosongkan Admin")
+            
+                # Ambil data lengkap dari worksheet
+                worksheet = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
+                all_data = worksheet.get_all_records()
+                df_all = pd.DataFrame(all_data)
+            
+                # Normalisasi df_all dan selected_data
+                df_all = normalize_df(df_all)
+                selected_norm = normalize_df(selected_data)
+            
+                # Terapkan filter "Belum dibuat INV"
+                if filter_uninvoice:
+                    df_all["No Invoice"] = df_all["No Invoice"].replace("", pd.NA)
+                    df_all = df_all[df_all["No Invoice"].isna()]
+            
+                # Tampilkan data yang difilter jika ingin (opsional)
+                st.write("### Data yang akan diproses:")
+                st.dataframe(df_all)
+            
+                if st.button("🔁 Terapkan Update Massal"):
+                    try:
+                        count = 0
+                        gagal = 0
+                        tidak_ditemukan = []
+            
+                        for i, row in selected_norm.iterrows():
+                            mask = (
+                                (df_all["Nama Pemesan_str"] == row["Nama Pemesan_str"]) &
+                                (df_all["Kode Booking_str"] == row["Kode Booking_str"]) &
+                                (df_all["Tgl Pemesanan_str"] == row["Tgl Pemesanan_str"])
+                            )
+            
+                            if mask.any():
+                                matching_index = df_all[mask].index[0]
+                                row_number = matching_index + 2  # Baris di GSheets (header + 1)
+            
+                                if no_invoice_mass or kosongkan_invoice:
+                                    nilai = "" if kosongkan_invoice else no_invoice_mass
+                                    worksheet.update_cell(row_number, df_all.columns.get_loc("No Invoice") + 1, nilai)
+            
+                                if keterangan_mass or kosongkan_keterangan:
+                                    nilai = "" if kosongkan_keterangan else keterangan_mass
+                                    worksheet.update_cell(row_number, df_all.columns.get_loc("Keterangan") + 1, nilai)
+            
+                                if nama_pemesan_mass or kosongkan_nama_pemesan:
+                                    nilai = "" if kosongkan_nama_pemesan else nama_pemesan_mass
+                                    worksheet.update_cell(row_number, df_all.columns.get_loc("Nama Pemesan") + 1, nilai)
+            
+                                if admin_mass or kosongkan_admin:
+                                    nilai = "" if kosongkan_admin else admin_mass
+                                    worksheet.update_cell(row_number, df_all.columns.get_loc("Admin") + 1, nilai)
+            
+                                st.write(f"✅ Update row GSheets: {row_number} untuk: {row['Nama Pemesan_str']} - {row['Kode Booking_str']}")
+                                count += 1
+                            else:
+                                gagal += 1
+                                tidak_ditemukan.append({
+                                    "Nama Pemesan": row["Nama Pemesan_str"],
+                                    "Kode Booking": row["Kode Booking_str"],
+                                    "Tgl Pemesanan": row["Tgl Pemesanan_str"]
+                                })
+            
+                        # Ringkasan hasil update
+                        if count:
+                            st.success(f"✅ {count} baris berhasil diperbarui.")
+                        if gagal:
+                            st.warning(f"⚠️ {gagal} baris tidak ditemukan di GSheets.")
+                            with st.expander("🔍 Lihat baris yang gagal dicocokkan"):
+                                st.json(tidak_ditemukan)
+                        if count == 0 and gagal == 0:
+                            st.info("ℹ️ Tidak ada data diproses.")
+            
+                        st.cache_data.clear()
+            
+                    except Exception as e:
+                        st.error(f"❌ Gagal update massal: {e}")
 
         # === Total Harga ===
         def parse_harga(harga_str):

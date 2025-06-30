@@ -38,15 +38,14 @@ def parse_harga(harga):
 def normalize_df(df):
     df = df.copy()
 
-    # Ubah Tgl Pemesanan jadi datetime dulu
-    df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce")
-    # Baru ubah ke string format DD-MM-YYYY
-    df["Tgl Pemesanan_str"] = df["Tgl Pemesanan"].dt.strftime("%d-%m-%Y")
+    # Pastikan tanggal di-parse dengan dayfirst=True
+    df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], dayfirst=True, errors="coerce")
+    df["Tgl Pemesanan_str"] = df["Tgl Pemesanan"].dt.strftime("%d-%m-%Y").fillna("")
 
-    # Normalize Kode Booking jadi string uppercase tanpa spasi
+    # Konversi kode booking ke string
     df["Kode Booking_str"] = df["Kode Booking"].astype(str).str.strip().str.upper()
 
-    # Normalize Nama Pemesan (jika ada)
+    # Nama Pemesan ke string uppercase
     if "Nama Pemesan" in df.columns:
         df["Nama Pemesan_str"] = df["Nama Pemesan"].astype(str).str.strip().str.upper()
     else:

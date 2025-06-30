@@ -279,8 +279,7 @@ with st.expander('Invoice'):
     
         if "Tgl Pemesanan" in df.columns:
             df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce").dt.date
-            st.write("🔍 Data awal:")
-            st.write(df.head())
+            st.write("✅ Tipe data 'Tgl Pemesanan':", df["Tgl Pemesanan"].apply(type).unique())
             
         else:
             st.error("❌ Kolom 'Tgl Pemesanan' tidak ditemukan.")
@@ -537,20 +536,19 @@ with st.expander('Invoice'):
     
     tanggal_range = [d if isinstance(d, date) else d.date() for d in tanggal_range]
     nama_filter = st.sidebar.text_input("Cari Nama Pemesan")
-    
+    st.write("🎯 Filter Tanggal Mulai:", tanggal_range[0])
+    st.write("🎯 Filter Tanggal Akhir:", tanggal_range[1])
+    st.write("📅 Nilai 'Tgl Pemesanan' di dataframe:", df["Tgl Pemesanan"].unique())
+
     filtered_df = df[
         (df["Tgl Pemesanan"] >= tanggal_range[0]) &
         (df["Tgl Pemesanan"] <= tanggal_range[1])
     ]
-    st.write("📊 Data setelah filter tanggal:", len(filtered_df))
-    st.write(filtered_df.head())
     if nama_filter:
         filtered_df = filtered_df[filtered_df["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
         
     if filtered_df.empty:
         st.warning("❌ Tidak ada data yang cocok.")
-        st.write("🔍 Cek hasil filter akhir:")
-        st.write(filtered_df)
     else: 
         # === Editor dengan checkbox dan pilih semua ===
         st.subheader("✅ Pilih Data untuk Invoice")
@@ -596,7 +594,50 @@ with st.expander('Invoice'):
     
         st.session_state.editable_df = selected_df
         selected_data = selected_df[selected_df['Pilih'] == True]
-    
+        # === Edit Form untuk 1 Baris ===
+        if len(selected_data) == 1:
+            st.markdown("### ✏️ Edit Data Terpilih")
+        
+            row_to_edit = selected_data.iloc[0]
+        
+            nama_pemesan_form = st.text_input("Nama Pemesan", row_to_edit.get("Nama Pemesan", ""))
+            tgl_pemesanan_form = st.date_input("Tgl Pemesanan", row_to_edit.get("Tgl Pemesanan", date.today()))
+            kode_booking_form = st.text_input("Kode Booking", row_to_edit.get("Kode Booking", ""))
+            harga_jual_form = st.number_input("Harga Jual", value=float(row_to_edit.get("Harga Jual", 0)))
+        
+            if st.button("💾 Simpan Perubahan ke GSheet"):
+                try:
+                    worksheet = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
+                    all_data = worksheet.get_all_records()
+                    df_all = pd.DataFrame(all_data)
+        
+                    df_all["Tgl Pemesanan"] = pd.to_datetime(df_all["Tgl Pemesanan"], errors="coerce").dt.date
+        
+                    # Gunakan kombinasi unik: Nama Pemesan + Kode Booking + Tgl Pemesanan
+                    mask = (
+                        (df_all["Nama Pemesan"] == row_to_edit["Nama Pemesan"]) &
+                        (df_all["Kode Booking"] == row_to_edit["Kode Booking"]) &
+                        (df_all["Tgl Pemesanan"] == row_to_edit["Tgl Pemesanan"])
+                    )
+        
+                    if not mask.any():
+                        st.warning("❌ Data asli tidak ditemukan di Google Sheets.")
+                    else:
+                        index_to_update = df_all[mask].index[0]
+        
+                        worksheet.update_cell(index_to_update + 2, df_all.columns.get_loc("Nama Pemesan") + 1, nama_pemesan_form)
+                        worksheet.update_cell(index_to_update + 2, df_all.columns.get_loc("Tgl Pemesanan") + 1, tgl_pemesanan_form.strftime('%Y-%m-%d'))
+                        worksheet.update_cell(index_to_update + 2, df_all.columns.get_loc("Kode Booking") + 1, kode_booking_form)
+                        worksheet.update_cell(index_to_update + 2, df_all.columns.get_loc("Harga Jual") + 1, harga_jual_form)
+        
+                        st.success("✅ Data berhasil diperbarui ke Google Sheets.")
+                        st.cache_data.clear()
+                except Exception as e:
+                    st.error(f"❌ Gagal update: {e}")
+        
+        elif len(selected_data) > 1:
+            st.info("⚠️ Harap pilih **hanya satu baris** untuk diedit.")
+
         # === Total Harga ===
         def parse_harga(harga_str):
             if pd.isna(harga_str):

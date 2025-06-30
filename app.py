@@ -686,9 +686,16 @@ with st.expander('Database Pemesan', expanded=True):
         
             # Kolom untuk update massal
             no_invoice_mass = st.text_input("No Invoice (Mass Update)")
+            kosongkan_invoice = st.checkbox("Kosongkan No Invoice")
+        
             keterangan_mass = st.text_input("Keterangan (Mass Update)")
+            kosongkan_keterangan = st.checkbox("Kosongkan Keterangan")
+        
             nama_pemesan_mass = st.text_input("Nama Pemesan (Mass Update)")
+            kosongkan_nama_pemesan = st.checkbox("Kosongkan Nama Pemesan")
+        
             admin_mass = st.text_input("Admin (Mass Update)")
+            kosongkan_admin = st.checkbox("Kosongkan Admin")
         
             if st.button("🔁 Terapkan Update Massal"):
                 try:
@@ -696,7 +703,7 @@ with st.expander('Database Pemesan', expanded=True):
                     all_data = worksheet.get_all_records()
                     df_all = pd.DataFrame(all_data)
                     df_all["Tgl Pemesanan"] = pd.to_datetime(df_all["Tgl Pemesanan"], errors="coerce").dt.date
-            
+        
                     count = 0
                     for _, row in selected_data.iterrows():
                         mask = (
@@ -704,30 +711,27 @@ with st.expander('Database Pemesan', expanded=True):
                             (df_all["Kode Booking"] == row["Kode Booking"]) &
                             (df_all["Tgl Pemesanan"] == row["Tgl Pemesanan"])
                         )
-            
+        
                         if mask.any():
-                            # Gunakan index baris pertama yang cocok
-                            index = df_all[mask].index[0]
-                            row_number = index + 2  # +2 karena header = baris 1
-            
-                            if no_invoice_mass:
-                                worksheet.update_cell(row_number, df_all.columns.get_loc("No Invoice") + 1, no_invoice_mass)
-                            if keterangan_mass:
-                                worksheet.update_cell(row_number, df_all.columns.get_loc("Keterangan") + 1, keterangan_mass)
-                            if nama_pemesan_mass:
-                                worksheet.update_cell(row_number, df_all.columns.get_loc("Nama Pemesan") + 1, nama_pemesan_mass)
-                            if admin_mass:
-                                worksheet.update_cell(row_number, df_all.columns.get_loc("Admin") + 1, admin_mass)
-            
+                            index = mask.idxmax()  # baris ke-n dalam DataFrame
+                            row_number = index + 2  # +2 karena header di baris pertama
+        
+                            if no_invoice_mass or kosongkan_invoice:
+                                worksheet.update_cell(row_number, df_all.columns.get_loc("No Invoice") + 1, no_invoice_mass if not kosongkan_invoice else "")
+                            if keterangan_mass or kosongkan_keterangan:
+                                worksheet.update_cell(row_number, df_all.columns.get_loc("Keterangan") + 1, keterangan_mass if not kosongkan_keterangan else "")
+                            if nama_pemesan_mass or kosongkan_nama_pemesan:
+                                worksheet.update_cell(row_number, df_all.columns.get_loc("Nama Pemesan") + 1, nama_pemesan_mass if not kosongkan_nama_pemesan else "")
+                            if admin_mass or kosongkan_admin:
+                                worksheet.update_cell(row_number, df_all.columns.get_loc("Admin") + 1, admin_mass if not kosongkan_admin else "")
+        
                             count += 1
-            
+        
                     st.success(f"✅ {count} baris berhasil diperbarui.")
-                    st.write(f"Update ke baris GSheets: {row_number} (index DataFrame: {index})")
                     st.cache_data.clear()
-            
+        
                 except Exception as e:
                     st.error(f"❌ Gagal update massal: {e}")
-
             
         # === Total Harga ===
         def parse_harga(harga_str):

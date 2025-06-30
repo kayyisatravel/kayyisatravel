@@ -34,6 +34,23 @@ def parse_harga(harga):
     except:
         return 0.0
 @st.cache_data
+
+def normalize_df(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Normalisasi kolom-kolom penting untuk pencocokan:
+    - Pastikan 'Tgl Pemesanan' dalam format date
+    - Pastikan 'Kode Booking' bertipe string
+    - Pastikan 'Nama Pemesan' string dan strip whitespaces
+    """
+    df = df.copy()
+    if "Tgl Pemesanan" in df.columns:
+        df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce").dt.date
+    if "Kode Booking" in df.columns:
+        df["Kode Booking"] = df["Kode Booking"].astype(str).str.strip()
+    if "Nama Pemesan" in df.columns:
+        df["Nama Pemesan"] = df["Nama Pemesan"].astype(str).str.strip()
+    return df
+
 def extract_text_from_pdf(pdf_bytes):
     reader = get_ocr_reader()
     pages = convert_from_bytes(pdf_bytes.read(), dpi=300)
@@ -641,7 +658,10 @@ with st.expander('Database Pemesan', expanded=True):
                     worksheet = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
                     all_data = worksheet.get_all_records()
                     df_all = pd.DataFrame(all_data)
-                    df_all["Tgl Pemesanan"] = pd.to_datetime(df_all["Tgl Pemesanan"], errors="coerce").dt.date
+                    
+                    # Normalisasi kedua dataframe
+                    df_all = normalize_df(df_all)
+                    selected_data = normalize_df(selected_data)
         
                     mask = (
                         (df_all["Nama Pemesan"] == row_to_edit["Nama Pemesan"]) &

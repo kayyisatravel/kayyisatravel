@@ -745,6 +745,11 @@ with st.expander('Database Pemesan', expanded=True):
                         st.success(f"✅ {count} baris berhasil diperbarui.")
                     if gagal:
                         st.warning(f"⚠️ {gagal} baris tidak ditemukan di GSheets.")
+                    if gagal > 0:
+                        st.write("🔍 Contoh baris yang gagal dicocokkan:")
+                        st.write(selected_data.head(3).to_dict())
+                        st.write("🔍 Contoh dari df_all:")
+                        st.write(df_all.head(3).to_dict())
                     if count == 0 and gagal == 0:
                         st.info("ℹ️ Tidak ada data diproses.")
                     

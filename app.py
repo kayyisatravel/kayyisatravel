@@ -277,7 +277,7 @@ with st.expander('Bulk Manual Input'):
         for k in ["bulk_parsed", "bulk_input", "file_uploader"]:
             st.session_state.pop(k, None)
         st.rerun()
-with st.expander('Invoice', expanded=True):
+with st.expander('Database Pemesan', expanded=True):
     # === Konfigurasi ===
     SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
     WORKSHEET_NAME = "Data"
@@ -297,7 +297,7 @@ with st.expander('Invoice', expanded=True):
         return worksheet
     
     st.set_page_config(page_title="Buat Invoice Tiket", layout="centered")
-    st.title("🧾 Dashboard Invoice")
+    #st.title("🧾 Dashboard Invoice")
     
     # === Ambil data dan olah ===
     @st.cache_data # Refresh 

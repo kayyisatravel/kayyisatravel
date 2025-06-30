@@ -277,7 +277,7 @@ with st.expander('Bulk Manual Input'):
         for k in ["bulk_parsed", "bulk_input", "file_uploader"]:
             st.session_state.pop(k, None)
         st.rerun()
-with st.expander('Invoice'):
+with st.expander('Invoice', expanded=True):
     # === Konfigurasi ===
     SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
     WORKSHEET_NAME = "Data"

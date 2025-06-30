@@ -696,7 +696,7 @@ with st.expander('Database Pemesan', expanded=True):
                     all_data = worksheet.get_all_records()
                     df_all = pd.DataFrame(all_data)
                     df_all["Tgl Pemesanan"] = pd.to_datetime(df_all["Tgl Pemesanan"], errors="coerce").dt.date
-        
+            
                     count = 0
                     for _, row in selected_data.iterrows():
                         mask = (
@@ -704,24 +704,29 @@ with st.expander('Database Pemesan', expanded=True):
                             (df_all["Kode Booking"] == row["Kode Booking"]) &
                             (df_all["Tgl Pemesanan"] == row["Tgl Pemesanan"])
                         )
-        
+            
                         if mask.any():
-                            index = mask.idxmax()
+                            # Gunakan index baris pertama yang cocok
+                            index = df_all[mask].index[0]
+                            row_number = index + 2  # +2 karena header = baris 1
+            
                             if no_invoice_mass:
-                                worksheet.update_cell(index + 2, df_all.columns.get_loc("No Invoice") + 1, no_invoice_mass)
+                                worksheet.update_cell(row_number, df_all.columns.get_loc("No Invoice") + 1, no_invoice_mass)
                             if keterangan_mass:
-                                worksheet.update_cell(index + 2, df_all.columns.get_loc("Keterangan") + 1, keterangan_mass)
+                                worksheet.update_cell(row_number, df_all.columns.get_loc("Keterangan") + 1, keterangan_mass)
                             if nama_pemesan_mass:
-                                worksheet.update_cell(index + 2, df_all.columns.get_loc("Nama Pemesan") + 1, nama_pemesan_mass)
+                                worksheet.update_cell(row_number, df_all.columns.get_loc("Nama Pemesan") + 1, nama_pemesan_mass)
                             if admin_mass:
-                                worksheet.update_cell(index + 2, df_all.columns.get_loc("Admin") + 1, admin_mass)
+                                worksheet.update_cell(row_number, df_all.columns.get_loc("Admin") + 1, admin_mass)
+            
                             count += 1
-        
+            
                     st.success(f"✅ {count} baris berhasil diperbarui.")
                     st.cache_data.clear()
-        
+            
                 except Exception as e:
                     st.error(f"❌ Gagal update massal: {e}")
+
             
         # === Total Harga ===
         def parse_harga(harga_str):

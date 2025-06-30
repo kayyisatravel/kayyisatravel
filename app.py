@@ -708,76 +708,77 @@ with st.expander('Database Pemesan', expanded=True):
         selected_data = selected_df[selected_df['Pilih'] == True]
         # === Edit Form untuk 1 Baris ===
         if len(selected_data) == 1:
-            st.markdown("### ✏️ Edit Data Terpilih")
-            row_to_edit = selected_data.iloc[0]
-        
-            # Fungsi bantu amankan tanggal
-            def safe_date(val):
-                return val if isinstance(val, date) else date.today()
-        
-            # Ambil dan validasi input
-            nama_pemesan_form = st.text_input("Nama Pemesan", row_to_edit.get("Nama Pemesan", ""))
-            tgl_pemesanan_form = st.date_input("Tgl Pemesanan", safe_date(row_to_edit.get("Tgl Pemesanan")))
-            tgl_berangkat_form = st.date_input("Tgl Berangkat", safe_date(row_to_edit.get("Tgl Berangkat")))
-            kode_booking_form = st.text_input("Kode Booking", row_to_edit.get("Kode Booking", ""))
-            no_penerbangan_form = st.text_input("No Penerbangan / Hotel / Kereta", row_to_edit.get("No Penerbangan / Hotel / Kereta", ""))
-            nama_customer_form = st.text_input("Nama Customer", row_to_edit.get("Nama Customer", ""))
-            rute_form = st.text_input("Rute", row_to_edit.get("Rute", ""))
-            harga_beli_form = st.number_input("Harga Beli", value=parse_harga(row_to_edit.get("Harga Beli", 0)), format="%.0f")
-            harga_jual_form = st.number_input("Harga Jual", value=parse_harga(row_to_edit.get("Harga Jual", 0)), format="%.0f")
-            #tipe_form = st.selectbox("Tipe", ["KERETA", "PESAWAT", "HOTEL"], index=["KERETA", "PESAWAT", "HOTEL"].index(str(row_to_edit.get("Tipe", "")).upper()))
-            #bf_nbf_form = st.text_input("BF/NBF", row_to_edit.get("BF/NBF", ""))
-            no_invoice_form = st.text_input("No Invoice", row_to_edit.get("No Invoice", ""))
-            keterangan_form = st.text_input("Keterangan", row_to_edit.get("Keterangan", ""))
-            admin_form = st.text_input("Admin", row_to_edit.get("Admin", ""))
-        
-            if st.button("💾 Simpan Perubahan ke GSheet"):
-                try:
-                    worksheet = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
-                    all_data = worksheet.get_all_records()
-                    df_all = pd.DataFrame(all_data)
-                    
-                    # Normalisasi kedua dataframe
-                    df_all = normalize_df(df_all)
-                    selected_norm = normalize_df(pd.DataFrame([row_to_edit]))
-                    
-                    mask = (
-                        (df_all["Nama Pemesan_str"] == selected_norm.loc[0, "Nama Pemesan_str"]) &
-                        (df_all["Kode Booking_str"] == selected_norm.loc[0, "Kode Booking_str"]) &
-                        (df_all["Tgl Pemesanan_str"] == selected_norm.loc[0, "Tgl Pemesanan_str"])
-                    )
-
-        
-                    if not mask.any():
-                        st.warning("❌ Data asli tidak ditemukan di Google Sheets.")
-                    else:
-                        index = mask.idxmax()
-                        colmap = {
-                            "Nama Pemesan": nama_pemesan_form,
-                            "Tgl Pemesanan": tgl_pemesanan_form.strftime('%Y-%m-%d'),
-                            "Tgl Berangkat": tgl_berangkat_form.strftime('%Y-%m-%d'),
-                            "Kode Booking": kode_booking_form,
-                            "No Penerbangan / Hotel / Kereta": no_penerbangan_form,
-                            "Nama Customer": nama_customer_form,
-                            "Rute": rute_form,
-                            "Harga Beli": harga_beli_form,
-                            "Harga Jual": harga_jual_form,
-                            "Tipe": tipe_form.upper(),
-                            "BF/NBF": bf_nbf_form,
-                            "No Invoice": no_invoice_form,
-                            "Keterangan": keterangan_form,
-                            "Admin": admin_form
-                        }
-        
-                        for col, val in colmap.items():
-                            if col in df_all.columns:
-                                worksheet.update_cell(index + 2, df_all.columns.get_loc(col) + 1, val)
-        
-                        st.success("✅ Data berhasil diperbarui ke Google Sheets.")
-                        st.cache_data.clear()
-        
-                except Exception as e:
-                    st.error(f"❌ Gagal update: {e}")
+            with st.expander('Edit Data yang dipilih'):
+                #st.markdown("### ✏️ Edit Data Terpilih")
+                row_to_edit = selected_data.iloc[0]
+            
+                # Fungsi bantu amankan tanggal
+                def safe_date(val):
+                    return val if isinstance(val, date) else date.today()
+            
+                # Ambil dan validasi input
+                nama_pemesan_form = st.text_input("Nama Pemesan", row_to_edit.get("Nama Pemesan", ""))
+                tgl_pemesanan_form = st.date_input("Tgl Pemesanan", safe_date(row_to_edit.get("Tgl Pemesanan")))
+                tgl_berangkat_form = st.date_input("Tgl Berangkat", safe_date(row_to_edit.get("Tgl Berangkat")))
+                kode_booking_form = st.text_input("Kode Booking", row_to_edit.get("Kode Booking", ""))
+                no_penerbangan_form = st.text_input("No Penerbangan / Hotel / Kereta", row_to_edit.get("No Penerbangan / Hotel / Kereta", ""))
+                nama_customer_form = st.text_input("Nama Customer", row_to_edit.get("Nama Customer", ""))
+                rute_form = st.text_input("Rute", row_to_edit.get("Rute", ""))
+                harga_beli_form = st.number_input("Harga Beli", value=parse_harga(row_to_edit.get("Harga Beli", 0)), format="%.0f")
+                harga_jual_form = st.number_input("Harga Jual", value=parse_harga(row_to_edit.get("Harga Jual", 0)), format="%.0f")
+                #tipe_form = st.selectbox("Tipe", ["KERETA", "PESAWAT", "HOTEL"], index=["KERETA", "PESAWAT", "HOTEL"].index(str(row_to_edit.get("Tipe", "")).upper()))
+                #bf_nbf_form = st.text_input("BF/NBF", row_to_edit.get("BF/NBF", ""))
+                no_invoice_form = st.text_input("No Invoice", row_to_edit.get("No Invoice", ""))
+                keterangan_form = st.text_input("Keterangan", row_to_edit.get("Keterangan", ""))
+                admin_form = st.text_input("Admin", row_to_edit.get("Admin", ""))
+            
+                if st.button("💾 Simpan Perubahan ke GSheet"):
+                    try:
+                        worksheet = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
+                        all_data = worksheet.get_all_records()
+                        df_all = pd.DataFrame(all_data)
+                        
+                        # Normalisasi kedua dataframe
+                        df_all = normalize_df(df_all)
+                        selected_norm = normalize_df(pd.DataFrame([row_to_edit]))
+                        
+                        mask = (
+                            (df_all["Nama Pemesan_str"] == selected_norm.loc[0, "Nama Pemesan_str"]) &
+                            (df_all["Kode Booking_str"] == selected_norm.loc[0, "Kode Booking_str"]) &
+                            (df_all["Tgl Pemesanan_str"] == selected_norm.loc[0, "Tgl Pemesanan_str"])
+                        )
+    
+            
+                        if not mask.any():
+                            st.warning("❌ Data asli tidak ditemukan di Google Sheets.")
+                        else:
+                            index = mask.idxmax()
+                            colmap = {
+                                "Nama Pemesan": nama_pemesan_form,
+                                "Tgl Pemesanan": tgl_pemesanan_form.strftime('%Y-%m-%d'),
+                                "Tgl Berangkat": tgl_berangkat_form.strftime('%Y-%m-%d'),
+                                "Kode Booking": kode_booking_form,
+                                "No Penerbangan / Hotel / Kereta": no_penerbangan_form,
+                                "Nama Customer": nama_customer_form,
+                                "Rute": rute_form,
+                                "Harga Beli": harga_beli_form,
+                                "Harga Jual": harga_jual_form,
+                                "Tipe": tipe_form.upper(),
+                                "BF/NBF": bf_nbf_form,
+                                "No Invoice": no_invoice_form,
+                                "Keterangan": keterangan_form,
+                                "Admin": admin_form
+                            }
+            
+                            for col, val in colmap.items():
+                                if col in df_all.columns:
+                                    worksheet.update_cell(index + 2, df_all.columns.get_loc(col) + 1, val)
+            
+                            st.success("✅ Data berhasil diperbarui ke Google Sheets.")
+                            st.cache_data.clear()
+            
+                    except Exception as e:
+                        st.error(f"❌ Gagal update: {e}")
         
         elif len(selected_data) > 1:
             with st.expander('Update Massal (Beberapa Baris)'):

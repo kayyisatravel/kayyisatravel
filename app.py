@@ -703,34 +703,47 @@ with st.expander('Database Pemesan', expanded=True):
                     all_data = worksheet.get_all_records()
                     df_all = pd.DataFrame(all_data)
                     df_all["Tgl Pemesanan"] = pd.to_datetime(df_all["Tgl Pemesanan"], errors="coerce").dt.date
-        
+            
                     count = 0
-                    for _, row in selected_data.iterrows():
+                    gagal = 0
+            
+                    for i, row in selected_data.iterrows():
                         mask = (
                             (df_all["Nama Pemesan"] == row["Nama Pemesan"]) &
                             (df_all["Kode Booking"] == row["Kode Booking"]) &
                             (df_all["Tgl Pemesanan"] == row["Tgl Pemesanan"])
                         )
-        
+            
                         if mask.any():
-                            row_number = df_all[mask].index[0] + 2  # baris asli di GSheet (+2: header + 1-indexed)
-                            st.write(f"➡️ Update row_number di GSheet: {row_number}")
-                            if no_invoice_mass or kosongkan_invoice:
-                                worksheet.update_cell(row_number, df_all.columns.get_loc("No Invoice") + 1, no_invoice_mass if not kosongkan_invoice else "")
-                            if keterangan_mass or kosongkan_keterangan:
-                                worksheet.update_cell(row_number, df_all.columns.get_loc("Keterangan") + 1, keterangan_mass if not kosongkan_keterangan else "")
-                            if nama_pemesan_mass or kosongkan_nama_pemesan:
-                                worksheet.update_cell(row_number, df_all.columns.get_loc("Nama Pemesan") + 1, nama_pemesan_mass if not kosongkan_nama_pemesan else "")
-                            if admin_mass or kosongkan_admin:
-                                worksheet.update_cell(row_number, df_all.columns.get_loc("Admin") + 1, admin_mass if not kosongkan_admin else "")
-        
+                            matching_index = df_all[mask].index[0]
+                            row_number = matching_index + 2
+            
+                            if no_invoice_mass:
+                                worksheet.update_cell(row_number, df_all.columns.get_loc("No Invoice") + 1, no_invoice_mass)
+                            if keterangan_mass:
+                                worksheet.update_cell(row_number, df_all.columns.get_loc("Keterangan") + 1, keterangan_mass)
+                            if nama_pemesan_mass:
+                                worksheet.update_cell(row_number, df_all.columns.get_loc("Nama Pemesan") + 1, nama_pemesan_mass)
+                            if admin_mass:
+                                worksheet.update_cell(row_number, df_all.columns.get_loc("Admin") + 1, admin_mass)
+            
                             count += 1
-        
-                    st.success(f"✅ {count} baris berhasil diperbarui.")
-                    st.cache_data.clear()
+                        else:
+                            gagal += 1  # Catat baris yang tidak ditemukan
+            
+                    if count:
+                        st.success(f"✅ {count} baris berhasil diperbarui.")
+                    if gagal:
+                        st.warning(f"⚠️ {gagal} baris tidak ditemukan di GSheets.")
+                    if count == 0 and gagal == 0:
+                        st.info("ℹ️ Tidak ada data diproses.")
                     st.write(f"Update ke baris GSheets: {row_number} (index DataFrame: {index})")
+                    st.cache_data.clear()
+                
+            
                 except Exception as e:
                     st.error(f"❌ Gagal update massal: {e}")
+
             
         # === Total Harga ===
         def parse_harga(harga_str):

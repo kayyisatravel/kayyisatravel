@@ -624,13 +624,14 @@ with st.expander('Database Pemesan', expanded=True):
     # === Filter UI ===
     st.sidebar.header("Filter Data")
     
-    tanggal_range = st.sidebar.date_input("Rentang Tanggal", [date.today(), date.today()])
+    tampilkan_uninvoice_saja = st.sidebar.checkbox("Tampilkan hanya data yang belum punya Invoice")
+    auto_select_25jt = st.sidebar.checkbox("Auto-pilih sampai total penjualan Rp 25 juta")
     
+    tanggal_range = st.sidebar.date_input("Rentang Tanggal", [date.today(), date.today()])
     if isinstance(tanggal_range, date):
         tanggal_range = [tanggal_range, tanggal_range]
     elif len(tanggal_range) == 1:
         tanggal_range = [tanggal_range[0], tanggal_range[0]]
-    
     tanggal_range = [d if isinstance(d, date) else d.date() for d in tanggal_range]
     nama_filter = st.sidebar.text_input("Cari Nama Pemesan")
 
@@ -640,6 +641,8 @@ with st.expander('Database Pemesan', expanded=True):
     ]
     if nama_filter:
         filtered_df = filtered_df[filtered_df["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
+    if tampilkan_uninvoice_saja:
+        filtered_df = filtered_df[filtered_df["No Invoice"].isna() | (filtered_df["No Invoice"].str.strip() == "")]
         
     if filtered_df.empty:
         st.warning("❌ Tidak ada data yang cocok.")
@@ -649,7 +652,26 @@ with st.expander('Database Pemesan', expanded=True):
     
         editable_df = filtered_df.copy()
         editable_df.insert(0, 'Pilih', False)
-    
+        def parse_harga(harga_str):
+            if pd.isna(harga_str):
+                return 0
+            s = str(harga_str).replace('Rp', '').replace('.', '').replace(',', '').strip()
+            try:
+                return float(s)
+            except:
+                return 0
+        
+        MAX_TOTAL = 25_000_000  # 25 juta
+        
+        if auto_select_25jt:
+            total = 0
+            for i in editable_df.index:
+                harga = parse_harga(editable_df.loc[i, "Harga Jual"])
+                if total + harga <= MAX_TOTAL:
+                    editable_df.at[i, "Pilih"] = True
+                    total += harga
+                else:
+                    break
         if "editable_df" not in st.session_state:
             st.session_state.editable_df = editable_df
         
@@ -865,7 +887,10 @@ with st.expander('Database Pemesan', expanded=True):
         total_laba = selected_data['Laba'].apply(parse_harga).sum()
         st.markdown(f"**Total Harga Jual yang dipilih: Rp {total_harga_jual:,.0f}**")
         st.markdown(f"**Total Laba yang dipilih: Rp {total_laba:,.0f}**")
-    
+        if total_harga_jual >= MAX_TOTAL:
+            st.success(f"✅ Total penjualan mencapai Rp {total_harga_jual:,.0f} (batas 25 juta tercapai)")
+        elif total_harga_jual >= MAX_TOTAL * 0.95:
+            st.warning(f"⚠️ Total penjualan mendekati batas: Rp {total_harga_jual:,.0f}")
         # === Tombol Aksi ===
         col_pdf, col_excel, col_email = st.columns(3)
     

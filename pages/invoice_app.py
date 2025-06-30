@@ -281,6 +281,9 @@ df = load_data()
 st.sidebar.header("Filter Data")
 
 tanggal_range = st.sidebar.date_input("Rentang Tanggal", [date.today(), date.today()])
+st.write("Tanggal filter:", tanggal_range)
+st.write(df["Tgl Pemesanan"].unique())
+
 
 if isinstance(tanggal_range, date):
     tanggal_range = [tanggal_range, tanggal_range]
@@ -303,6 +306,12 @@ if filtered_df.empty:
 else: 
     # === Editor dengan checkbox dan pilih semua ===
     st.subheader("✅ Pilih Data untuk Invoice")
+    st.write("Nama filter:", nama_filter)
+    st.write("Nama unik di data:", df["Nama Pemesan"].unique())
+    st.write("Jumlah data awal:", len(df))
+    st.write("Jumlah data setelah filter tanggal:", len(filtered_df))
+    if nama_filter:
+        st.write("Jumlah data setelah filter nama:", len(filtered_df))
 
     editable_df = filtered_df.copy()
     editable_df.insert(0, 'Pilih', False)

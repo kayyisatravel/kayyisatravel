@@ -713,9 +713,8 @@ with st.expander('Database Pemesan', expanded=True):
                         )
         
                         if mask.any():
-                            index = mask.idxmax()  # baris ke-n dalam DataFrame
-                            row_number = index + 2  # +2 karena header di baris pertama
-        
+                            row_number = df_all[mask].index[0] + 2  # baris asli di GSheet (+2: header + 1-indexed)
+                            
                             if no_invoice_mass or kosongkan_invoice:
                                 worksheet.update_cell(row_number, df_all.columns.get_loc("No Invoice") + 1, no_invoice_mass if not kosongkan_invoice else "")
                             if keterangan_mass or kosongkan_keterangan:

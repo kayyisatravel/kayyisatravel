@@ -74,13 +74,36 @@ SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 def save_gsheet(df: pd.DataFrame):
     """
     Kirim DataFrame ke Google Sheets pada worksheet 'Data'.
+    Mencegah kirim data duplikat berdasarkan kombinasi unik.
     """
     if df is None or df.empty:
-        st.warning('Data kosong atau invalid')
+        st.warning('❌ Data kosong atau invalid.')
         return
+
     ws = connect_to_gsheet(SHEET_ID, 'Data')
+    existing = pd.DataFrame(ws.get_all_records())
+
+    # Pastikan kolom datetime terkonversi
+    for col in ["Tgl Pemesanan"]:
+        if col in existing.columns:
+            existing[col] = pd.to_datetime(existing[col], errors="coerce").dt.date
+    for col in ["Tgl Pemesanan"]:
+        if col in df.columns:
+            df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
+
+    # Gabung dengan existing dan cari duplikat
+    key_cols = ["Nama Pemesan", "Kode Booking", "Tgl Pemesanan"]
+    merged = df.merge(existing, on=key_cols, how="inner", suffixes=('', '_existing'))
+
+    if not merged.empty:
+        st.error("❌ Ditemukan duplikat data yang sudah ada di GSheet:")
+        st.dataframe(merged[key_cols])
+        st.warning("Mohon periksa data sebelum mengirim ulang.")
+        return  # Batalkan simpan
+
+    # Jika aman, kirim
     append_dataframe_to_sheet(df, ws)
-    st.success('✅ Berhasil simpan ke Google Sheets')
+    st.success('✅ Berhasil simpan data ke Google Sheets.')
 
 # --- TAMPILAN UTAMA ---
 # CSS custom

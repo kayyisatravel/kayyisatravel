@@ -278,12 +278,10 @@ with st.expander('Invoice'):
         st.write("📌 Kolom ditemukan:")
     
         if "Tgl Pemesanan" in df.columns:
-            df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce").dt.date
+            df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], dayfirst=True, errors="coerce").dt.date
             df = df.dropna(subset=["Tgl Pemesanan"])
             st.write("✅ Tipe data 'Tgl Pemesanan':", df["Tgl Pemesanan"].apply(type).unique())
             st.write("Jumlah baris sebelum drop NaT:", len(df))
-            df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce").dt.date
-            df = df.dropna(subset=["Tgl Pemesanan"])
             st.write("Jumlah baris setelah drop NaT:", len(df))
             
         else:

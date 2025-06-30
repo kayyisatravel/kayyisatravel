@@ -280,9 +280,6 @@ with st.expander('Invoice'):
         if "Tgl Pemesanan" in df.columns:
             df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], dayfirst=True, errors="coerce").dt.date
             df = df.dropna(subset=["Tgl Pemesanan"])
-            st.write("✅ Tipe data 'Tgl Pemesanan':", df["Tgl Pemesanan"].apply(type).unique())
-            st.write("Jumlah baris sebelum drop NaT:", len(df))
-            st.write("Jumlah baris setelah drop NaT:", len(df))
             
         else:
             st.error("❌ Kolom 'Tgl Pemesanan' tidak ditemukan.")
@@ -528,9 +525,6 @@ with st.expander('Invoice'):
     st.sidebar.header("Filter Data")
     
     tanggal_range = st.sidebar.date_input("Rentang Tanggal", [date.today(), date.today()])
-    st.write("Tanggal filter:", tanggal_range)
-    st.write(df["Tgl Pemesanan"].unique())
-    
     
     if isinstance(tanggal_range, date):
         tanggal_range = [tanggal_range, tanggal_range]
@@ -539,9 +533,6 @@ with st.expander('Invoice'):
     
     tanggal_range = [d if isinstance(d, date) else d.date() for d in tanggal_range]
     nama_filter = st.sidebar.text_input("Cari Nama Pemesan")
-    st.write("🎯 Filter Tanggal Mulai:", tanggal_range[0])
-    st.write("🎯 Filter Tanggal Akhir:", tanggal_range[1])
-    st.write("📅 Nilai 'Tgl Pemesanan' di dataframe:", df["Tgl Pemesanan"].unique())
 
     filtered_df = df[
         (df["Tgl Pemesanan"] >= tanggal_range[0]) &

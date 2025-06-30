@@ -37,6 +37,9 @@ def load_data():
 
     if "Tgl Pemesanan" in df.columns:
         df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce").dt.date
+        st.write("🔍 Data awal:")
+        st.write(df.head())
+        
     else:
         st.error("❌ Kolom 'Tgl Pemesanan' tidak ditemukan.")
         st.stop()
@@ -297,12 +300,15 @@ filtered_df = df[
     (df["Tgl Pemesanan"] >= tanggal_range[0]) &
     (df["Tgl Pemesanan"] <= tanggal_range[1])
 ]
-
+st.write("📊 Data setelah filter tanggal:", len(filtered_df))
+st.write(filtered_df.head())
 if nama_filter:
     filtered_df = filtered_df[filtered_df["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
     
 if filtered_df.empty:
     st.warning("❌ Tidak ada data yang cocok.")
+    st.write("🔍 Cek hasil filter akhir:")
+    st.write(filtered_df)
 else: 
     # === Editor dengan checkbox dan pilih semua ===
     st.subheader("✅ Pilih Data untuk Invoice")

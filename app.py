@@ -37,14 +37,17 @@ def parse_harga(harga):
 
 def normalize_df(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
-    # Format tanggal
-    if "Tgl Pemesanan" in df.columns:
-        df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce").dt.date
-    # Tipe string dan strip
-    if "Kode Booking" in df.columns:
-        df["Kode Booking"] = df["Kode Booking"].astype(str).str.strip()
-    if "Nama Pemesan" in df.columns:
-        df["Nama Pemesan"] = df["Nama Pemesan"].astype(str).str.strip().str.upper()
+
+    # Normalisasi tanggal
+    for col in ["Tgl Pemesanan", "Tgl Berangkat"]:
+        if col in df.columns:
+            df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
+
+    # Kolom string disamakan bentuknya (trim + upper)
+    df["Nama Pemesan_str"] = df["Nama Pemesan"].astype(str).str.strip().str.upper()
+    df["Kode Booking_str"] = df["Kode Booking"].astype(str).str.strip()
+    df["Tgl Pemesanan_str"] = df["Tgl Pemesanan"].apply(lambda d: d.strftime("%d-%m-%Y") if pd.notnull(d) else "")
+
     return df
 
 def extract_text_from_pdf(pdf_bytes):
@@ -700,7 +703,7 @@ with st.expander('Database Pemesan', expanded=True):
             st.markdown("### 🛠️ Update Massal (Beberapa Baris)")
             st.info("Pilih beberapa baris untuk melakukan update massal pada kolom tertentu.")
         
-            # Kolom untuk update massal
+            # Kolom input
             no_invoice_mass = st.text_input("No Invoice (Mass Update)")
             kosongkan_invoice = st.checkbox("Kosongkan No Invoice")
         
@@ -718,66 +721,70 @@ with st.expander('Database Pemesan', expanded=True):
                     worksheet = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
                     all_data = worksheet.get_all_records()
                     df_all = pd.DataFrame(all_data)
-                    df_all["Tgl Pemesanan"] = pd.to_datetime(df_all["Tgl Pemesanan"], errors="coerce").dt.date
-            
+        
+                    # Normalize kedua dataframe
+                    df_all = normalize_df(df_all)
+                    selected_norm = normalize_df(selected_data)
+        
                     count = 0
                     gagal = 0
                     tidak_ditemukan = []
-                    for i, row in selected_data.iterrows():
+        
+                    for i, row in selected_norm.iterrows():
                         mask = (
-                            (df_all["Nama Pemesan"] == row["Nama Pemesan"]) &
-                            (df_all["Kode Booking"] == row["Kode Booking"]) &
-                            (df_all["Tgl Pemesanan"] == row["Tgl Pemesanan"])
+                            (df_all["Nama Pemesan_str"] == row["Nama Pemesan_str"]) &
+                            (df_all["Kode Booking_str"] == row["Kode Booking_str"]) &
+                            (df_all["Tgl Pemesanan_str"] == row["Tgl Pemesanan_str"])
                         )
-                    
+        
                         if mask.any():
                             matching_index = df_all[mask].index[0]
                             row_number = matching_index + 2  # baris aktual di GSheets
-                    
+        
                             if no_invoice_mass or kosongkan_invoice:
                                 nilai = "" if kosongkan_invoice else no_invoice_mass
                                 worksheet.update_cell(row_number, df_all.columns.get_loc("No Invoice") + 1, nilai)
-                    
+        
                             if keterangan_mass or kosongkan_keterangan:
                                 nilai = "" if kosongkan_keterangan else keterangan_mass
                                 worksheet.update_cell(row_number, df_all.columns.get_loc("Keterangan") + 1, nilai)
-                    
+        
                             if nama_pemesan_mass or kosongkan_nama_pemesan:
                                 nilai = "" if kosongkan_nama_pemesan else nama_pemesan_mass
                                 worksheet.update_cell(row_number, df_all.columns.get_loc("Nama Pemesan") + 1, nilai)
-                    
+        
                             if admin_mass or kosongkan_admin:
                                 nilai = "" if kosongkan_admin else admin_mass
                                 worksheet.update_cell(row_number, df_all.columns.get_loc("Admin") + 1, nilai)
-                    
-                            st.write(f"✅ Update row GSheets: {row_number} untuk: {row['Nama Pemesan']} - {row['Kode Booking']}")
-
+        
+                            st.write(f"✅ Update row GSheets: {row_number} untuk: {row['Nama Pemesan_str']} - {row['Kode Booking_str']}")
                             count += 1
                         else:
                             gagal += 1
-                    
+                            tidak_ditemukan.append({
+                                "Nama Pemesan": row["Nama Pemesan_str"],
+                                "Kode Booking": row["Kode Booking_str"],
+                                "Tgl Pemesanan": row["Tgl Pemesanan_str"]
+                            })
+        
                     # Ringkasan
                     if count:
                         st.success(f"✅ {count} baris berhasil diperbarui.")
                     if gagal:
                         st.warning(f"⚠️ {gagal} baris tidak ditemukan di GSheets.")
-                    if gagal > 0:
-                        st.write("🔍 Contoh baris yang gagal dicocokkan:")
-                        st.write(selected_data.head(3).to_dict())
-                        st.write("🔍 Contoh dari df_all:")
-                        st.write(df_all.head(3).to_dict())
-                    if count == 0 and gagal == 0:
-                        st.info("ℹ️ Tidak ada data diproses.")
-                    if tidak_ditemukan:
-                        st.warning(f"⚠️ {gagal} baris tidak ditemukan di GSheets.")
                         with st.expander("🔍 Lihat baris yang gagal dicocokkan"):
                             st.json(tidak_ditemukan)
+                        with st.expander("📄 Contoh selected_data (normalize)"):
+                            st.write(selected_norm.head(3).to_dict())
+                        with st.expander("📄 Contoh df_all (normalize)"):
+                            st.write(df_all.head(3).to_dict())
+                    if count == 0 and gagal == 0:
+                        st.info("ℹ️ Tidak ada data diproses.")
+        
                     st.cache_data.clear()
-                
-            
+        
                 except Exception as e:
                     st.error(f"❌ Gagal update massal: {e}")
-
             
         # === Total Harga ===
         def parse_harga(harga_str):

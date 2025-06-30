@@ -42,9 +42,14 @@ def normalize_df(df):
     df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce")
     df["Tgl Pemesanan_str"] = df["Tgl Pemesanan"].dt.strftime("%d-%m-%Y")
 
-    # Normalize Nama Pemesan dan Kode Booking: uppercase dan trim spasi
-    df["Nama Pemesan_str"] = df["Nama Pemesan"].astype(str).str.strip().str.upper()
+    # Normalize Kode Booking jadi string, trim, uppercase
     df["Kode Booking_str"] = df["Kode Booking"].astype(str).str.strip().str.upper()
+
+    # Normalize Nama Pemesan (jika ada)
+    if "Nama Pemesan" in df.columns:
+        df["Nama Pemesan_str"] = df["Nama Pemesan"].astype(str).str.strip().str.upper()
+    else:
+        df["Nama Pemesan_str"] = ""
 
     return df
 

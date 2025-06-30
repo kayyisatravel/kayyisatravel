@@ -625,8 +625,8 @@ with st.expander('Database Pemesan', expanded=True):
     # === Sidebar Filter ===
     st.sidebar.header("📊 Filter Data")
     
-    tampilkan_uninvoice_saja = st.sidebar.checkbox("🔍 Tampilkan hanya data yang belum punya Invoice")
-    auto_select_25jt = st.sidebar.checkbox("⚙️ Auto-pilih sampai total penjualan Rp 25 juta")
+    tampilkan_uninvoice_saja = st.sidebar.checkbox("🔍 Data yang belum punya Invoice")
+    auto_select_25jt = st.sidebar.checkbox("⚙️ Auto-pilih total penjualan Rp 25 juta")
     tanggal_range = st.sidebar.date_input("Rentang Tanggal", [date.today(), date.today()])
     if isinstance(tanggal_range, date):
         tanggal_range = [tanggal_range, tanggal_range]
@@ -923,7 +923,7 @@ with st.expander('Database Pemesan', expanded=True):
         # Tampilkan notifikasi di sidebar
         with st.sidebar:
             st.markdown("---")
-            st.markdown("### 💰 Ringkasan Tanpa Invoice")
+            st.markdown("### 💰 Belum dibuatkan Invoice")
             st.info(f"Total penjualan tanpa invoice: **Rp {total_uninvoice:,.0f}**")
             if total_uninvoice >= 25_000_000:
                 st.success("✅ Sudah mencapai 25 juta")

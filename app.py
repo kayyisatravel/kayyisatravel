@@ -590,32 +590,36 @@ with st.expander('Invoice'):
         selected_data = selected_df[selected_df['Pilih'] == True]
         # === Edit Form untuk 1 Baris ===
         if len(selected_data) == 1:
-            st.markdown("### ✏️ Edit Satu Baris")
+            st.markdown("### ✏️ Edit Data Terpilih")
             row_to_edit = selected_data.iloc[0]
         
-            col1, col2 = st.columns(2)
-            with col1:
-                nama_pemesan_form = st.text_input("Nama Pemesan", row_to_edit.get("Nama Pemesan", ""))
-                admin_form = st.text_input("Admin", row_to_edit.get("Admin", ""))
-                tipe_form = st.selectbox("Tipe", ["PESAWAT", "KERETA", "HOTEL"], index=0 if row_to_edit.get("Tipe", "").upper() == "PESAWAT" else 1)
-                keterangan_form = st.text_area("Keterangan", row_to_edit.get("Keterangan", ""))
+            # Fungsi bantu amankan tanggal
+            def safe_date(val):
+                return val if isinstance(val, date) else date.today()
         
-            with col2:
-                tgl_pemesanan_form = st.date_input("Tgl Pemesanan", row_to_edit.get("Tgl Pemesanan", date.today()))
-                tgl_berangkat_form = st.date_input("Tgl Berangkat", row_to_edit.get("Tgl Berangkat", date.today()))
-                kode_booking_form = st.text_input("Kode Booking", row_to_edit.get("Kode Booking", ""))
-                rute_form = st.text_input("Rute", row_to_edit.get("Rute", ""))
-                harga_beli_form = st.number_input("Harga Beli", value=float(row_to_edit.get("Harga Beli", 0)), format="%.0f")
-                harga_jual_form = st.number_input("Harga Jual", value=float(row_to_edit.get("Harga Jual", 0)), format="%.0f")
-                no_invoice_form = st.text_input("No Invoice", row_to_edit.get("No Invoice", ""))
+            # Ambil dan validasi input
+            nama_pemesan_form = st.text_input("Nama Pemesan", row_to_edit.get("Nama Pemesan", ""))
+            tgl_pemesanan_form = st.date_input("Tgl Pemesanan", safe_date(row_to_edit.get("Tgl Pemesanan")))
+            tgl_berangkat_form = st.date_input("Tgl Berangkat", safe_date(row_to_edit.get("Tgl Berangkat")))
+            kode_booking_form = st.text_input("Kode Booking", row_to_edit.get("Kode Booking", ""))
+            no_penerbangan_form = st.text_input("No Penerbangan / Hotel / Kereta", row_to_edit.get("No Penerbangan / Hotel / Kereta", ""))
+            nama_customer_form = st.text_input("Nama Customer", row_to_edit.get("Nama Customer", ""))
+            rute_form = st.text_input("Rute", row_to_edit.get("Rute", ""))
+            harga_beli_form = st.number_input("Harga Beli", value=parse_harga(row_to_edit.get("Harga Beli", 0)), format="%.0f")
+            harga_jual_form = st.number_input("Harga Jual", value=parse_harga(row_to_edit.get("Harga Jual", 0)), format="%.0f")
+            tipe_form = st.selectbox("Tipe", ["KERETA", "PESAWAT", "HOTEL"], index=["KERETA", "PESAWAT", "HOTEL"].index(str(row_to_edit.get("Tipe", "")).upper()))
+            bf_nbf_form = st.text_input("BF/NBF", row_to_edit.get("BF/NBF", ""))
+            no_invoice_form = st.text_input("No Invoice", row_to_edit.get("No Invoice", ""))
+            keterangan_form = st.text_input("Keterangan", row_to_edit.get("Keterangan", ""))
+            admin_form = st.text_input("Admin", row_to_edit.get("Admin", ""))
         
             if st.button("💾 Simpan Perubahan ke GSheet"):
                 try:
                     worksheet = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
-                    df_all = pd.DataFrame(worksheet.get_all_records())
+                    all_data = worksheet.get_all_records()
+                    df_all = pd.DataFrame(all_data)
                     df_all["Tgl Pemesanan"] = pd.to_datetime(df_all["Tgl Pemesanan"], errors="coerce").dt.date
         
-                    # Kunci pencarian unik:
                     mask = (
                         (df_all["Nama Pemesan"] == row_to_edit["Nama Pemesan"]) &
                         (df_all["Kode Booking"] == row_to_edit["Kode Booking"]) &
@@ -625,66 +629,72 @@ with st.expander('Invoice'):
                     if not mask.any():
                         st.warning("❌ Data asli tidak ditemukan di Google Sheets.")
                     else:
-                        idx = df_all[mask].index[0]
-                        update_map = {
+                        index = mask.idxmax()
+                        colmap = {
                             "Nama Pemesan": nama_pemesan_form,
-                            "Admin": admin_form,
-                            "Tipe": tipe_form.upper(),
-                            "Keterangan": keterangan_form,
-                            "Tgl Pemesanan": tgl_pemesanan_form.strftime("%Y-%m-%d"),
-                            "Tgl Berangkat": tgl_berangkat_form.strftime("%Y-%m-%d"),
+                            "Tgl Pemesanan": tgl_pemesanan_form.strftime('%Y-%m-%d'),
+                            "Tgl Berangkat": tgl_berangkat_form.strftime('%Y-%m-%d'),
                             "Kode Booking": kode_booking_form,
+                            "No Penerbangan / Hotel / Kereta": no_penerbangan_form,
+                            "Nama Customer": nama_customer_form,
                             "Rute": rute_form,
                             "Harga Beli": harga_beli_form,
                             "Harga Jual": harga_jual_form,
+                            "Tipe": tipe_form.upper(),
+                            "BF/NBF": bf_nbf_form,
                             "No Invoice": no_invoice_form,
+                            "Keterangan": keterangan_form,
+                            "Admin": admin_form
                         }
         
-                        for col, val in update_map.items():
-                            col_index = df_all.columns.get_loc(col)
-                            worksheet.update_cell(idx + 2, col_index + 1, val)
+                        for col, val in colmap.items():
+                            if col in df_all.columns:
+                                worksheet.update_cell(index + 2, df_all.columns.get_loc(col) + 1, val)
         
-                        st.success("✅ Data berhasil diperbarui.")
+                        st.success("✅ Data berhasil diperbarui ke Google Sheets.")
                         st.cache_data.clear()
+        
                 except Exception as e:
                     st.error(f"❌ Gagal update: {e}")
         
         elif len(selected_data) > 1:
-            st.markdown("### ✏️ Edit Beberapa Baris (Mass Update)")
-            st.info("Kolom lain tidak diedit. Yang bisa diubah: **No Invoice, Keterangan, Nama Pemesan, Admin**")
+            st.markdown("### 🛠️ Update Massal (Beberapa Baris)")
+            st.info("Pilih beberapa baris untuk melakukan update massal pada kolom tertentu.")
         
-            no_invoice_mass = st.text_input("No Invoice (Semua)", "")
-            keterangan_mass = st.text_area("Keterangan (Semua)", "")
-            nama_pemesan_mass = st.text_input("Nama Pemesan (Semua)", "")
-            admin_mass = st.text_input("Admin (Semua)", "")
+            # Kolom untuk update massal
+            no_invoice_mass = st.text_input("No Invoice (Mass Update)")
+            keterangan_mass = st.text_input("Keterangan (Mass Update)")
+            nama_pemesan_mass = st.text_input("Nama Pemesan (Mass Update)")
+            admin_mass = st.text_input("Admin (Mass Update)")
         
-            if st.button("🔁 Update Semua Data Terpilih"):
+            if st.button("🔁 Terapkan Update Massal"):
                 try:
                     worksheet = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
-                    df_all = pd.DataFrame(worksheet.get_all_records())
+                    all_data = worksheet.get_all_records()
+                    df_all = pd.DataFrame(all_data)
                     df_all["Tgl Pemesanan"] = pd.to_datetime(df_all["Tgl Pemesanan"], errors="coerce").dt.date
         
-                    update_count = 0
-        
+                    count = 0
                     for _, row in selected_data.iterrows():
                         mask = (
                             (df_all["Nama Pemesan"] == row["Nama Pemesan"]) &
                             (df_all["Kode Booking"] == row["Kode Booking"]) &
                             (df_all["Tgl Pemesanan"] == row["Tgl Pemesanan"])
                         )
-                        if mask.any():
-                            idx = df_all[mask].index[0]
-                            if no_invoice_mass:
-                                worksheet.update_cell(idx + 2, df_all.columns.get_loc("No Invoice") + 1, no_invoice_mass)
-                            if keterangan_mass:
-                                worksheet.update_cell(idx + 2, df_all.columns.get_loc("Keterangan") + 1, keterangan_mass)
-                            if nama_pemesan_mass:
-                                worksheet.update_cell(idx + 2, df_all.columns.get_loc("Nama Pemesan") + 1, nama_pemesan_mass)
-                            if admin_mass:
-                                worksheet.update_cell(idx + 2, df_all.columns.get_loc("Admin") + 1, admin_mass)
-                            update_count += 1
         
-                    st.success(f"✅ {update_count} baris berhasil diperbarui.")
+                        if mask.any():
+                            index = mask.idxmax()
+                            if no_invoice_mass:
+                                worksheet.update_cell(index + 2, df_all.columns.get_loc("No Invoice") + 1, no_invoice_mass)
+                            if keterangan_mass:
+                                worksheet.update_cell(index + 2, df_all.columns.get_loc("Keterangan") + 1, keterangan_mass)
+                            if nama_pemesan_mass:
+                                worksheet.update_cell(index + 2, df_all.columns.get_loc("Nama Pemesan") + 1, nama_pemesan_mass)
+                            if admin_mass:
+                                worksheet.update_cell(index + 2, df_all.columns.get_loc("Admin") + 1, admin_mass)
+                            count += 1
+        
+                    st.success(f"✅ {count} baris berhasil diperbarui.")
                     st.cache_data.clear()
         
                 except Exception as e:

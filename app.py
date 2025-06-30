@@ -38,11 +38,11 @@ def parse_harga(harga):
 def normalize_df(df):
     df = df.copy()
 
-    # Pastikan tanggal jadi datetime lalu ubah ke string 'DD-MM-YYYY'
+    # Pastikan kolom Tgl Pemesanan dalam datetime, lalu ubah ke string 'DD-MM-YYYY'
     df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce")
     df["Tgl Pemesanan_str"] = df["Tgl Pemesanan"].dt.strftime("%d-%m-%Y")
 
-    # Normalize Nama dan Kode Booking
+    # Normalize Nama Pemesan dan Kode Booking: uppercase dan trim spasi
     df["Nama Pemesan_str"] = df["Nama Pemesan"].astype(str).str.strip().str.upper()
     df["Kode Booking_str"] = df["Kode Booking"].astype(str).str.strip().str.upper()
 
@@ -701,7 +701,7 @@ with st.expander('Database Pemesan', expanded=True):
             st.markdown("### 🛠️ Update Massal (Beberapa Baris)")
             st.info("Pilih beberapa baris untuk melakukan update massal pada kolom tertentu.")
         
-            # Kolom input
+            # Kolom input untuk mass update
             no_invoice_mass = st.text_input("No Invoice (Mass Update)")
             kosongkan_invoice = st.checkbox("Kosongkan No Invoice")
         
@@ -720,7 +720,7 @@ with st.expander('Database Pemesan', expanded=True):
                     all_data = worksheet.get_all_records()
                     df_all = pd.DataFrame(all_data)
         
-                    # Normalize kedua dataframe
+                    # Normalisasi dataframe df_all dan selected_data
                     df_all = normalize_df(df_all)
                     selected_norm = normalize_df(selected_data)
         
@@ -737,7 +737,7 @@ with st.expander('Database Pemesan', expanded=True):
         
                         if mask.any():
                             matching_index = df_all[mask].index[0]
-                            row_number = matching_index + 2  # baris aktual di GSheets
+                            row_number = matching_index + 2  # Baris di GSheets (header + 1)
         
                             if no_invoice_mass or kosongkan_invoice:
                                 nilai = "" if kosongkan_invoice else no_invoice_mass
@@ -765,7 +765,7 @@ with st.expander('Database Pemesan', expanded=True):
                                 "Tgl Pemesanan": row["Tgl Pemesanan_str"]
                             })
         
-                    # Ringkasan
+                    # Ringkasan hasil update
                     if count:
                         st.success(f"✅ {count} baris berhasil diperbarui.")
                     if gagal:

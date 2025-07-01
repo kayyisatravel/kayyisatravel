@@ -650,95 +650,80 @@ with st.expander('Database Pemesan', expanded=True):
     # ... (kode UI Streamlit di bagian atas) ...
     
     # === Filter UI ===
+    # ==== Sidebar Filter ====
     st.sidebar.header("📊 Filter Data")
-
     tampilkan_uninvoice_saja = st.sidebar.checkbox("🔍 Data yang belum punya Invoice")
     auto_select_25jt = st.sidebar.checkbox("⚙️ Auto-pilih total penjualan Rp 25 juta")
+    
     tanggal_range = st.sidebar.date_input("Rentang Tanggal", [date.today(), date.today()])
     if isinstance(tanggal_range, date):
         tanggal_range = [tanggal_range, tanggal_range]
     elif len(tanggal_range) == 1:
         tanggal_range = [tanggal_range[0], tanggal_range[0]]
     tanggal_range = [d if isinstance(d, date) else d.date() for d in tanggal_range]
+    
     nama_filter = st.sidebar.text_input("Cari Nama Pemesan")
     
-    # === Filter DataFrame ===
+    # ==== Filter Data ====
     filtered_df = df[
-        (df["Tgl Pemesanan"] >= tanggal_range[0]) &
-        (df["Tgl Pemesanan"] <= tanggal_range[1])
+        (df["Tgl Pemesanan"] >= tanggal_range[0]) & (df["Tgl Pemesanan"] <= tanggal_range[1])
     ]
+    
     if nama_filter:
         filtered_df = filtered_df[filtered_df["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
     
     if tampilkan_uninvoice_saja:
-        filtered_df = filtered_df[filtered_df["No Invoice"].isna() | (filtered_df["No Invoice"].str.strip() == "")]
+        filtered_df = filtered_df[
+            filtered_df["No Invoice"].isna() | (filtered_df["No Invoice"].str.strip() == "")
+    ]
     
     if filtered_df.empty:
         st.warning("❌ Tidak ada data yang cocok.")
     else:
-        st.subheader("✅ Hasil Data Terfilter")
+        st.subheader("✅ Data Terfilter")
     
-        def parse_harga(harga_str):
-            if pd.isna(harga_str):
-                return 0
-            s = str(harga_str).replace('Rp', '').replace('.', '').replace(',', '').strip()
-            try:
-                return float(s)
-            except:
-                return 0
+        # Tambahkan kolom 'Pilih'
+        editable_df = filtered_df.copy()
+        editable_df.insert(0, 'Pilih', False)
     
-        # Gunakan session_state agar hanya diupdate saat filter berubah
-        if "display_df" not in st.session_state or st.session_state.get("filter_snapshot") != filtered_df.shape:
-            display_df = filtered_df.copy()
-            display_df.insert(0, "Pilih", False)
-            st.session_state.display_df = display_df
-            st.session_state.filter_snapshot = filtered_df.shape
-    
-        # Auto-select 25jt
+        # Auto-select maksimum Rp 25 juta
         if auto_select_25jt:
+            MAX_TOTAL = 25_000_000
             total = 0
-            for i in st.session_state.display_df.index:
-                harga = parse_harga(st.session_state.display_df.loc[i, "Harga Jual"])
-                if total + harga <= 25_000_000:
-                    st.session_state.display_df.at[i, "Pilih"] = True
+    
+            def parse_harga(harga_str):
+                if pd.isna(harga_str):
+                    return 0
+                s = str(harga_str).replace('Rp', '').replace('.', '').replace(',', '').strip()
+                try:
+                    return float(s)
+                except:
+                    return 0
+    
+            for i in editable_df.index:
+                harga = parse_harga(editable_df.loc[i, "Harga Jual"])
+                if total + harga <= MAX_TOTAL:
+                    editable_df.at[i, "Pilih"] = True
                     total += harga
                 else:
                     break
             st.sidebar.info(f"💰 Total otomatis terpilih: Rp{int(total):,}")
     
-        # Tampilkan DataFrame statis (tidak editable)
-        st.dataframe(st.session_state.display_df, use_container_width=True)
-
-        
-        # Perbarui editable_df di session_state jika filtered_df berubah
-        # (misal setelah filter baru diterapkan)
-        if not st.session_state.editable_df.equals(editable_df):
-            st.session_state.editable_df = editable_df.copy()
-            # Reset 'Pilih' status saat data filter berubah
-            st.session_state.editable_df['Pilih'] = False 
-    
-    
-        select_all = st.checkbox("Pilih Semua", value=False, key="select_all_checkbox")
-        if select_all:
-            st.session_state.editable_df["Pilih"] = True
-        else:
-            # Hanya reset jika sebelumnya semua terpilih dan checkbox di-uncheck
-            if st.session_state.editable_df["Pilih"].all() and st.session_state.get("last_select_all_state", False):
-                st.session_state.editable_df["Pilih"] = False
-        st.session_state.last_select_all_state = select_all # Simpan state checkbox
-    
+        # Tampilkan editor agar baris bisa dipilih
         selected_df = st.data_editor(
-            st.session_state.editable_df,
+            editable_df,
             use_container_width=True,
             num_rows="fixed",
-            disabled=[col for col in st.session_state.editable_df.columns if col != "Pilih"],
+            disabled=[col for col in editable_df.columns if col != "Pilih"],
             column_config={
                 "Pilih": st.column_config.CheckboxColumn("Pilih", help="Centang untuk buat invoice")
             }
         )
     
-        st.session_state.editable_df = selected_df
-        selected_data = selected_df[selected_df['Pilih'] == True]
+        # (Opsional) Ambil baris yang dipilih
+        dipilih_df = selected_df[selected_df["Pilih"] == True]
+        st.success(f"✅ {len(dipilih_df)} baris dipilih")
+
         # === Edit Form untuk 1 Baris ===
         if len(selected_data) == 1:
             with st.expander('Edit Data yang dipilih'):

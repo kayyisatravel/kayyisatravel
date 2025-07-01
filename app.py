@@ -203,6 +203,8 @@ def save_gsheet(df: pd.DataFrame):
 
     # Cek kolom kunci
     for col in key_cols:
+        df[col] = df[col].astype(str).str.strip().str.lower()
+        existing[col] = existing[col].astype(str).str.strip().str.lower()
         if col not in df.columns:
             st.error(f"❌ Kolom '{col}' tidak ditemukan di DataFrame upload.")
             return

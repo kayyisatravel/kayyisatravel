@@ -151,19 +151,32 @@ def save_gsheet(df: pd.DataFrame):
         st.warning('❌ Data kosong atau invalid.')
         return
 
+    # Inisialisasi key_cols lebih awal
+    key_cols = ["Nama Pemesan", "Kode Booking", "Tgl Pemesanan"]
+
+    # Normalisasi kolom
+    df.columns = df.columns.str.strip()
     ws = connect_to_gsheet(SHEET_ID, 'Data')
     existing = pd.DataFrame(ws.get_all_records())
+    existing.columns = existing.columns.str.strip()
+
+    # 🔍 Validasi kolom sebelum merge
+    missing_cols_df = [col for col in key_cols if col not in df.columns]
+    missing_cols_existing = [col for col in key_cols if col not in existing.columns]
+
+    if missing_cols_df:
+        st.error(f"❌ Kolom berikut tidak ditemukan di data upload: {', '.join(missing_cols_df)}")
+        return
+    if missing_cols_existing:
+        st.error(f"❌ Kolom berikut tidak ditemukan di Google Sheet: {', '.join(missing_cols_existing)}")
+        return
 
     # Pastikan kolom datetime terkonversi
     for col in ["Tgl Pemesanan"]:
-        if col in existing.columns:
-            existing[col] = pd.to_datetime(existing[col], errors="coerce").dt.date
-    for col in ["Tgl Pemesanan"]:
-        if col in df.columns:
-            df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
+        existing[col] = pd.to_datetime(existing[col], errors="coerce").dt.date
+        df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
 
-    # Gabung dengan existing dan cari duplikat
-    key_cols = ["Nama Pemesan", "Kode Booking", "Tgl Pemesanan"]
+    # Gabung dan cek duplikat
     merged = df.merge(existing, on=key_cols, how="inner", suffixes=('', '_existing'))
 
     if not merged.empty:
@@ -172,9 +185,10 @@ def save_gsheet(df: pd.DataFrame):
         st.warning("Mohon periksa data sebelum mengirim ulang.")
         return  # Batalkan simpan
 
-    # Jika aman, kirim
+    # Simpan ke sheet
     append_dataframe_to_sheet(df, ws)
     st.success('✅ Berhasil simpan data ke Google Sheets.')
+
     # Debug kolom
     print("📄 df.columns:", df.columns.tolist())
     print("📄 existing.columns:", existing.columns.tolist())

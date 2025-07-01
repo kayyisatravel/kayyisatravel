@@ -29,6 +29,7 @@ st.set_page_config(page_title="OCR & Dashboard Tiket", layout="centered")
 @st.cache_resource
 def get_ocr_reader():
     return easyocr.Reader(['en', 'id'], gpu=False)
+@st.cache_data
 def parse_harga(harga):
     try:
         if isinstance(harga, (int, float)):
@@ -36,7 +37,8 @@ def parse_harga(harga):
         return float(str(harga).replace("Rp", "").replace(".", "").replace(",", "").strip())
     except:
         return 0.0
-@st.cache_data
+
+MAX_TOTAL = 25_000_000
 
 def prepare_batch_update(
     df_all: pd.DataFrame,

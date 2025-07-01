@@ -335,7 +335,7 @@ with st.expander('Bulk Manual Input'):
             st.write("Kolom yang ada di data:", selected_df.columns.tolist())
             st.write("Contoh data baris pertama:", selected_df.head(1).to_dict())
 
-            st.dataframe(selected_df, use_container_width=False)
+            st.dataframe(selected_df, use_container_width=True)
             #edited_df = st.dataframe(
              #   selected_df,
               #  num_rows="dynamic",
@@ -344,16 +344,16 @@ with st.expander('Bulk Manual Input'):
             #)
     
             # Simpan hasil edit ke entri yang dipilih
-            st.session_state.bulk_entries_raw[selected_index] = edited_df
+            #st.session_state.bulk_entries_raw[selected_index] = edited_df
     
             # Filter hanya DataFrame valid (bukan None atau kosong)
-            valid_dfs = [df for df in st.session_state.bulk_entries_raw if df is not None and not df.empty]
+            #valid_dfs = [df for df in st.session_state.bulk_entries_raw if df is not None and not df.empty]
     
             # Gabungkan ulang semua data setelah edit
-            if valid_dfs:
-                st.session_state.bulk_parsed = pd.concat(valid_dfs, ignore_index=True)
-            else:
-                st.session_state.bulk_parsed = pd.DataFrame()
+            #if valid_dfs:
+                #st.session_state.bulk_parsed = pd.concat(valid_dfs, ignore_index=True)
+            #else:
+                #st.session_state.bulk_parsed = pd.DataFrame()
     
             #st.markdown("#### 📊 Preview Gabungan Semua Entri Setelah Diedit")
             #st.dataframe(st.session_state.bulk_parsed, use_container_width=True)

@@ -336,8 +336,18 @@ with st.expander('Bulk Manual Input'):
             updated_row = {}
     
             for col, val in row_data.items():
-                if pd.api.types.is_datetime64_any_dtype(df[col]):
-                    new_val = st.date_input(f"{col}", value=val if pd.notna(val) else pd.Timestamp.today())
+                # 💡 Pakai date_input hanya untuk kolom yang relevan
+                if col in ["Tgl Pemesanan", "Tgl Berangkat"]:
+                    # Pastikan val bisa dikonversi ke date
+                    if pd.isna(val) or val == "":
+                        val = pd.Timestamp.today()
+                    else:
+                        try:
+                            val = pd.to_datetime(val).date()
+                        except:
+                            val = pd.Timestamp.today().date()
+    
+                    new_val = st.date_input(f"{col}", value=val)
                 elif isinstance(val, (int, float)):
                     new_val = st.text_input(f"{col}", value=str(val))
                 else:
@@ -357,6 +367,7 @@ with st.expander('Bulk Manual Input'):
             st.session_state.edit_mode_bulk = False
             st.markdown("#### 📊 Data Gabungan Hasil Bulk")
             st.dataframe(st.session_state.bulk_parsed, use_container_width=True)
+
 
     
     # Bulk save button

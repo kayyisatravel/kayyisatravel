@@ -251,7 +251,7 @@ with st.expander("Upload Gambar atau PDF untuk OCR"):
     
                     # Tampilkan editor untuk edit hasil OCR
                     st.subheader("📝 Edit Data Hasil OCR (Opsional)")
-                    edited_df = st.data_editor(df_ocr, num_rows="dynamic", use_container_width=True)
+                    edited_df = st.dataframe(df_ocr, num_rows="dynamic", use_container_width=True)
     
                     # Simpan hasil edit ke session state
                     st.session_state.parsed_entries_ocr = edited_df
@@ -335,7 +335,7 @@ with st.expander('Bulk Manual Input'):
             st.write("Kolom yang ada di data:", selected_df.columns.tolist())
             st.write("Contoh data baris pertama:", selected_df.head(1).to_dict())
 
-            edited_df = st.data_editor(
+            edited_df = st.dataframe(
                 selected_df,
                 num_rows="dynamic",
                 use_container_width=True,
@@ -710,7 +710,7 @@ with st.expander('Database Pemesan', expanded=True):
                 st.session_state.editable_df["Pilih"] = False
         st.session_state.last_select_all_state = select_all # Simpan state checkbox
     
-        selected_df = st.data_editor(
+        selected_df = st.dataframe(
             st.session_state.editable_df,
             use_container_width=True,
             num_rows="fixed",

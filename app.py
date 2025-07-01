@@ -191,7 +191,7 @@ def save_gsheet(df: pd.DataFrame):
         st.error("❌ Ditemukan duplikat data yang sudah ada di GSheet:")
         st.dataframe(merged[key_cols])
         st.warning("Mohon periksa data sebelum mengirim ulang.")
-        return  # Batalkan simpan
+        st.stop()  # Batalkan simpan
 
     # ✅ Simpan ke Google Sheet (fungsi sudah aman secara internal)
     append_dataframe_to_sheet(df, ws)

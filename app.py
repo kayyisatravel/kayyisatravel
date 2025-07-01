@@ -650,11 +650,6 @@ with st.expander('Database Pemesan', expanded=True):
     # ... (kode UI Streamlit di bagian atas) ...
     
     # === Filter UI ===
-    # === Sidebar Filter ===
-    
-    df = pd.DataFrame(data)
-    
-    # === Sidebar Filter ===
     st.sidebar.header("📊 Filter Data")
     
     tampilkan_uninvoice_saja = st.sidebar.checkbox("🔍 Data yang belum punya Invoice")

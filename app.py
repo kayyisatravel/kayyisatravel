@@ -711,7 +711,7 @@ with st.expander('Database Pemesan', expanded=True):
                 st.session_state.editable_df["Pilih"] = False
         st.session_state.last_select_all_state = select_all # Simpan state checkbox
     
-        selected_df = st.dataframe(
+        selected_df = st.data_editor(
             st.session_state.editable_df,
             use_container_width=True,
             num_rows="fixed",

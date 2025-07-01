@@ -161,25 +161,25 @@ SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 
 def save_gsheet(df: pd.DataFrame):
     """
-    Menyimpan DataFrame ke Google Sheets worksheet 'Data'.
-    Mencegah penyimpanan duplikat berdasarkan kombinasi kolom kunci.
+    Menyimpan data ke GSheet dan mencegah duplikat menggunakan hash dari kolom kunci.
     """
     if df is None or df.empty:
         st.warning('❌ Data kosong atau invalid.')
         return
 
-    # 🗝 Kolom kunci untuk deteksi duplikat
+    # Kolom kunci untuk deteksi duplikat
     key_cols = ["Nama Customer", "Kode Booking", "Tgl Pemesanan"]
 
-    # 🚿 Bersihkan nama kolom
+    # Bersihkan kolom dan hapus baris kosong
     df.columns = df.columns.str.strip()
+    df = df.dropna(subset=key_cols, how='any')  # buang baris yang ada key-nya kosong
 
-    # 🔗 Ambil data dari worksheet Google Sheet
+    # Load data dari GSheet
     ws = connect_to_gsheet(SHEET_ID, 'Data')
     existing = pd.DataFrame(ws.get_all_records())
     existing.columns = existing.columns.str.strip()
 
-    # ✅ Validasi keberadaan kolom
+    # Validasi kolom kunci
     missing_df = [col for col in key_cols if col not in df.columns]
     missing_existing = [col for col in key_cols if col not in existing.columns]
     if missing_df:
@@ -189,22 +189,34 @@ def save_gsheet(df: pd.DataFrame):
         st.error(f"❌ Kolom tidak ditemukan di Google Sheet: {', '.join(missing_existing)}")
         return
 
-    # 🧽 Normalisasi dan konversi kolom kunci
-    df = normalize_key_columns(df, key_cols)
-    existing = normalize_key_columns(existing, key_cols)
+    # Normalisasi dan buat hash unik untuk tiap baris
+    def to_hashable(d: pd.DataFrame) -> pd.Series:
+        result = []
+        for col in key_cols:
+            if "tgl" in col.lower():
+                d[col] = pd.to_datetime(d[col], errors="coerce").dt.strftime("%Y-%m-%d")
+            else:
+                d[col] = d[col].astype(str).str.strip().str.lower()
+        return d[key_cols].agg('|'.join, axis=1)
 
-    # 🔍 Cari duplikat berdasarkan key_cols
-    merged = df.merge(existing, on=key_cols, how="inner")
+    df["dupe_hash"] = to_hashable(df)
+    existing["dupe_hash"] = to_hashable(existing)
 
-    if not merged.empty:
-        st.error("❌ Ditemukan duplikat data yang sudah ada di GSheet:")
-        st.dataframe(merged[key_cols])
-        st.warning("Mohon periksa data sebelum mengirim ulang.")
-        st.stop()  # Hentikan eksekusi, tampilkan error
+    # Cek duplikat via hash
+    dupes = df[df["dupe_hash"].isin(existing["dupe_hash"])]
 
-    # ✅ Simpan data baru
-    append_dataframe_to_sheet(df, ws)
-    st.success('✅ Berhasil simpan data ke Google Sheets.')
+    if not dupes.empty:
+        st.error("❌ Ditemukan duplikat berdasarkan kombinasi kunci:")
+        st.dataframe(dupes[key_cols])
+        st.stop()
+
+    # Simpan yang aman
+    df_to_save = df.drop(columns=["dupe_hash"])
+    append_dataframe_to_sheet(df_to_save, ws)
+    st.success('✅ Data berhasil disimpan ke Google Sheets.')
+    st.write("✅ Data yang akan disimpan:")
+    st.dataframe(df_to_save)
+
 
 # --- TAMPILAN UTAMA ---
 # CSS custom
@@ -371,7 +383,7 @@ with st.expander('Bulk Manual Input'):
     
         st.markdown("#### 📊 Preview Gabungan Semua Entri Setelah Diedit")
         st.dataframe(st.session_state.bulk_parsed, use_container_width=True)
-        st.write("###detect_document_type")
+        
     # Bulk save button
     if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bulk ke GSheet"):
         save_gsheet(st.session_state.bulk_parsed)

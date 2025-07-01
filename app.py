@@ -161,18 +161,6 @@ def save_gsheet(df: pd.DataFrame):
     for col in ["Tgl Pemesanan"]:
         if col in df.columns:
             df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
-        # Debug kolom
-    print("📄 df.columns:", df.columns.tolist())
-    print("📄 existing.columns:", existing.columns.tolist())
-
-    # Cek kolom kunci
-    for col in key_cols:
-        if col not in df.columns:
-            st.error(f"❌ Kolom '{col}' tidak ditemukan di DataFrame upload.")
-            return
-        if col not in existing.columns:
-            st.error(f"❌ Kolom '{col}' tidak ditemukan di Google Sheet.")
-            return
 
     # Gabung dengan existing dan cari duplikat
     key_cols = ["Nama Pemesan", "Kode Booking", "Tgl Pemesanan"]
@@ -187,7 +175,18 @@ def save_gsheet(df: pd.DataFrame):
     # Jika aman, kirim
     append_dataframe_to_sheet(df, ws)
     st.success('✅ Berhasil simpan data ke Google Sheets.')
+    # Debug kolom
+    print("📄 df.columns:", df.columns.tolist())
+    print("📄 existing.columns:", existing.columns.tolist())
 
+    # Cek kolom kunci
+    for col in key_cols:
+        if col not in df.columns:
+            st.error(f"❌ Kolom '{col}' tidak ditemukan di DataFrame upload.")
+            return
+        if col not in existing.columns:
+            st.error(f"❌ Kolom '{col}' tidak ditemukan di Google Sheet.")
+            return
 # --- TAMPILAN UTAMA ---
 # CSS custom
 st.markdown("""

@@ -100,15 +100,15 @@ def detect_document_type(text: str) -> str:
 
     # Kereta
     if re.search(r'\b(kereta|ka\s+[a-z]+|stasiun|eksekutif|kai|kereta\s*api|kode\s*booking\s*[a-z0-9]{3,})', tl):
-        return 'kereta'
+        return 'KERETA'
 
     # Pesawat
     if re.search(r'\b(flight|airlines|maskapai|pnr|kode\s*penerbangan|bandara|terminal|air\s*asia|airasia|citilink|garuda\s*Indonesia|jet|nam\s*air|batik\s*air|wings\s*air|susi\s*air|pelita\s*air|sriwijaya\s*air|lion\s*air)\b', tl):
-        return 'pesawat'
+        return 'PESAWAT'
 
     # Hotel
     if re.search(r'\b(hotel|check[-\s]?in|check[-\s]?out|tipe\s*kamar|nama\s*tamu)\b', tl):
-        return 'hotel'
+        return 'HOTEL'
 
     return 'unknown'
 

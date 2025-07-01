@@ -651,37 +651,49 @@ with st.expander('Database Pemesan', expanded=True):
     
     # === Filter UI ===
     # === Sidebar Filter ===
+    
+    df = pd.DataFrame(data)
+    
+    # === Sidebar Filter ===
     st.sidebar.header("📊 Filter Data")
     
     tampilkan_uninvoice_saja = st.sidebar.checkbox("🔍 Data yang belum punya Invoice")
     auto_select_25jt = st.sidebar.checkbox("⚙️ Auto-pilih total penjualan Rp 25 juta")
     tanggal_range = st.sidebar.date_input("Rentang Tanggal", [date.today(), date.today()])
+    
+    # Normalisasi tanggal_range agar selalu list 2 tanggal
     if isinstance(tanggal_range, date):
         tanggal_range = [tanggal_range, tanggal_range]
     elif len(tanggal_range) == 1:
         tanggal_range = [tanggal_range[0], tanggal_range[0]]
     tanggal_range = [d if isinstance(d, date) else d.date() for d in tanggal_range]
+    
     nama_filter = st.sidebar.text_input("Cari Nama Pemesan")
-
+    
     # === Filter DataFrame ===
     filtered_df = df[
         (df["Tgl Pemesanan"] >= tanggal_range[0]) &
         (df["Tgl Pemesanan"] <= tanggal_range[1])
     ]
+    
     if nama_filter:
         filtered_df = filtered_df[filtered_df["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
     
     if tampilkan_uninvoice_saja:
-        filtered_df = filtered_df[filtered_df["No Invoice"].isna() | (filtered_df["No Invoice"].str.strip() == "")]
+        filtered_df = filtered_df[
+            filtered_df["No Invoice"].isna() | (filtered_df["No Invoice"].str.strip() == "")
+        ]
     
     if filtered_df.empty:
         st.warning("❌ Tidak ada data yang cocok.")
     else:
-        st.subheader("✅ Pilih Data untuk Edit & Invoice")
-
+        st.subheader("✅ Hasil Data Terfilter")
     
+        # Salin filtered_df dan tambah kolom 'Pilih' default False
         editable_df = filtered_df.copy()
         editable_df.insert(0, 'Pilih', False)
+    
+        # Fungsi parsing harga string ke angka
         def parse_harga(harga_str):
             if pd.isna(harga_str):
                 return 0
@@ -690,9 +702,10 @@ with st.expander('Database Pemesan', expanded=True):
                 return float(s)
             except:
                 return 0
-        
+    
         MAX_TOTAL = 25_000_000  # 25 juta
-        
+    
+        # Auto-select hanya pada editable_df hasil filter
         if auto_select_25jt:
             total = 0
             for i in editable_df.index:
@@ -702,38 +715,23 @@ with st.expander('Database Pemesan', expanded=True):
                     total += harga
                 else:
                     break
-        if "editable_df" not in st.session_state:
-            st.session_state.editable_df = editable_df
-        
-        # Perbarui editable_df di session_state jika filtered_df berubah
-        # (misal setelah filter baru diterapkan)
-        if not st.session_state.editable_df.equals(editable_df):
-            st.session_state.editable_df = editable_df.copy()
-            # Reset 'Pilih' status saat data filter berubah
-            st.session_state.editable_df['Pilih'] = False 
+            st.sidebar.info(f"💰 Total otomatis terpilih: Rp{int(total):,}")
     
-    
-        select_all = st.checkbox("Pilih Semua", value=False, key="select_all_checkbox")
-        if select_all:
-            st.session_state.editable_df["Pilih"] = True
-        else:
-            # Hanya reset jika sebelumnya semua terpilih dan checkbox di-uncheck
-            if st.session_state.editable_df["Pilih"].all() and st.session_state.get("last_select_all_state", False):
-                st.session_state.editable_df["Pilih"] = False
-        st.session_state.last_select_all_state = select_all # Simpan state checkbox
-    
+        # Tampilkan dataframe dengan kolom "Pilih" editable, kolom lain disabled
         selected_df = st.data_editor(
-            st.session_state.editable_df,
+            editable_df,
             use_container_width=True,
             num_rows="fixed",
-            disabled=[col for col in st.session_state.editable_df.columns if col != "Pilih"],
+            disabled=[col for col in editable_df.columns if col != "Pilih"],
             column_config={
                 "Pilih": st.column_config.CheckboxColumn("Pilih", help="Centang untuk buat invoice")
             }
         )
     
-        st.session_state.editable_df = selected_df
-        selected_data = selected_df[selected_df['Pilih'] == True]
+        # Tampilkan ringkasan jumlah baris yang dipilih
+        dipilih_df = selected_df[selected_df["Pilih"] == True]
+        st.success(f"✅ {len(dipilih_df)} baris dipilih untuk dibuat invoice.")
+
         # === Edit Form untuk 1 Baris ===
         if len(selected_data) == 1:
             with st.expander('Edit Data yang dipilih'):

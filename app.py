@@ -651,18 +651,15 @@ with st.expander('Database Pemesan', expanded=True):
     
     # === Filter UI ===
     st.sidebar.header("📊 Filter Data")
-    
+
     tampilkan_uninvoice_saja = st.sidebar.checkbox("🔍 Data yang belum punya Invoice")
     auto_select_25jt = st.sidebar.checkbox("⚙️ Auto-pilih total penjualan Rp 25 juta")
     tanggal_range = st.sidebar.date_input("Rentang Tanggal", [date.today(), date.today()])
-    
-    # Normalisasi tanggal_range
     if isinstance(tanggal_range, date):
         tanggal_range = [tanggal_range, tanggal_range]
     elif len(tanggal_range) == 1:
         tanggal_range = [tanggal_range[0], tanggal_range[0]]
     tanggal_range = [d if isinstance(d, date) else d.date() for d in tanggal_range]
-    
     nama_filter = st.sidebar.text_input("Cari Nama Pemesan")
     
     # === Filter DataFrame ===
@@ -670,7 +667,6 @@ with st.expander('Database Pemesan', expanded=True):
         (df["Tgl Pemesanan"] >= tanggal_range[0]) &
         (df["Tgl Pemesanan"] <= tanggal_range[1])
     ]
-    
     if nama_filter:
         filtered_df = filtered_df[filtered_df["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
     
@@ -682,11 +678,6 @@ with st.expander('Database Pemesan', expanded=True):
     else:
         st.subheader("✅ Hasil Data Terfilter")
     
-        # Tambahkan kolom 'Pilih' default False
-        editable_df = filtered_df.copy()
-        editable_df.insert(0, 'Pilih', False)
-    
-        # Fungsi parsing harga
         def parse_harga(harga_str):
             if pd.isna(harga_str):
                 return 0
@@ -696,21 +687,27 @@ with st.expander('Database Pemesan', expanded=True):
             except:
                 return 0
     
-        MAX_TOTAL = 25_000_000  # 25 juta
+        # Gunakan session_state agar hanya diupdate saat filter berubah
+        if "display_df" not in st.session_state or st.session_state.get("filter_snapshot") != filtered_df.shape:
+            display_df = filtered_df.copy()
+            display_df.insert(0, "Pilih", False)
+            st.session_state.display_df = display_df
+            st.session_state.filter_snapshot = filtered_df.shape
     
+        # Auto-select 25jt
         if auto_select_25jt:
             total = 0
-            for i in editable_df.index:
-                harga = parse_harga(editable_df.loc[i, "Harga Jual"])
-                if total + harga <= MAX_TOTAL:
-                    editable_df.at[i, "Pilih"] = True
+            for i in st.session_state.display_df.index:
+                harga = parse_harga(st.session_state.display_df.loc[i, "Harga Jual"])
+                if total + harga <= 25_000_000:
+                    st.session_state.display_df.at[i, "Pilih"] = True
                     total += harga
                 else:
                     break
             st.sidebar.info(f"💰 Total otomatis terpilih: Rp{int(total):,}")
     
-        # Tampilkan ke UI
-        #st.dataframe(editable_df, use_container_width=True)
+        # Tampilkan DataFrame statis (tidak editable)
+        st.dataframe(st.session_state.display_df, use_container_width=True)
 
         
         # Perbarui editable_df di session_state jika filtered_df berubah

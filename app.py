@@ -105,6 +105,23 @@ def normalize_df(df):
 
     return df
 
+def normalize_key_columns(df: pd.DataFrame, key_cols: list) -> pd.DataFrame:
+    """
+    Normalisasi isi kolom kunci:
+    - Kolom tanggal diubah ke format 'YYYY-MM-DD' (string)
+    - Kolom teks diubah ke lowercase dan strip spasi
+    """
+    df = df.copy()
+    for col in key_cols:
+        if col not in df.columns:
+            continue
+        if "tgl" in col.lower():
+            df[col] = pd.to_datetime(df[col], errors="coerce").dt.strftime("%Y-%m-%d")
+        else:
+            df[col] = df[col].astype(str).str.strip().str.lower()
+    return df
+
+
 def extract_text_from_pdf(pdf_bytes):
     reader = get_ocr_reader()
     pages = convert_from_bytes(pdf_bytes.read(), dpi=300)

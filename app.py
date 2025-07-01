@@ -144,26 +144,27 @@ SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 
 def save_gsheet(df: pd.DataFrame):
     """
-    Kirim DataFrame ke Google Sheets pada worksheet 'Data'.
-    Mencegah kirim data duplikat berdasarkan kombinasi unik.
+    Menyimpan DataFrame ke Google Sheets worksheet 'Data'.
+    Mengecek duplikat berdasarkan kombinasi kolom unik, dan menghindari penyimpanan ulang.
     """
     if df is None or df.empty:
         st.warning('❌ Data kosong atau invalid.')
         return
 
-    # Inisialisasi key_cols lebih awal
+    # 🗝 Kolom kunci unik untuk deteksi duplikat
     key_cols = ["Nama Customer", "Kode Booking", "Tgl Pemesanan"]
 
-    # Normalisasi kolom
+    # 🚿 Bersihkan nama kolom dari spasi
     df.columns = df.columns.str.strip()
+
+    # 🔗 Koneksi ke worksheet Google Sheets
     ws = connect_to_gsheet(SHEET_ID, 'Data')
     existing = pd.DataFrame(ws.get_all_records())
     existing.columns = existing.columns.str.strip()
 
-    # 🔍 Validasi kolom sebelum merge
+    # ✅ Validasi: Pastikan semua kolom kunci ada
     missing_cols_df = [col for col in key_cols if col not in df.columns]
     missing_cols_existing = [col for col in key_cols if col not in existing.columns]
-
     if missing_cols_df:
         st.error(f"❌ Kolom berikut tidak ditemukan di data upload: {', '.join(missing_cols_df)}")
         return
@@ -171,12 +172,19 @@ def save_gsheet(df: pd.DataFrame):
         st.error(f"❌ Kolom berikut tidak ditemukan di Google Sheet: {', '.join(missing_cols_existing)}")
         return
 
-    # Pastikan kolom datetime terkonversi
+    # 🕓 Konversi kolom tanggal ke format yang konsisten
     for col in ["Tgl Pemesanan"]:
-        existing[col] = pd.to_datetime(existing[col], errors="coerce").dt.date
-        df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
+        if col in df.columns:
+            df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
+        if col in existing.columns:
+            existing[col] = pd.to_datetime(existing[col], errors="coerce").dt.date
 
-    # Gabung dan cek duplikat
+    # 🔄 Normalisasi isi kolom kunci (hilangkan spasi, lowercase, ubah ke string)
+    for col in key_cols:
+        df[col] = df[col].astype(str).str.strip().str.lower()
+        existing[col] = existing[col].astype(str).str.strip().str.lower()
+
+    # 🔍 Deteksi duplikat berdasarkan key_cols
     merged = df.merge(existing, on=key_cols, how="inner", suffixes=('', '_existing'))
 
     if not merged.empty:
@@ -185,7 +193,7 @@ def save_gsheet(df: pd.DataFrame):
         st.warning("Mohon periksa data sebelum mengirim ulang.")
         return  # Batalkan simpan
 
-    # Simpan ke sheet
+    # ✅ Simpan ke Google Sheet (fungsi sudah aman secara internal)
     append_dataframe_to_sheet(df, ws)
     st.success('✅ Berhasil simpan data ke Google Sheets.')
 

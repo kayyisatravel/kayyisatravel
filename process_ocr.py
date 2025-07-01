@@ -586,14 +586,14 @@ def process_ocr_kereta(text: str) -> list:
     stasiun_asal = None
     stasiun_tujuan = None
      # --- Ambil rute dari stasiun: (SGU) - (GMR) ---
-    stasiun_asal = re.search(r'Berangkat.*?\(([A-Z]{2,3})\)', cleaned_lines, re.DOTALL | re.IGNORECASE)
-    stasiun_tujuan = re.search(r'Datang.*?\(([A-Z]{2,3})\)', cleaned_lines, re.DOTALL | re.IGNORECASE)
+    stasiun_asal = re.search(r'Pergi.*?\(([A-Z]{2,3})\)', cleaned_lines, re.DOTALL | re.IGNORECASE)
+    stasiun_tujuan = re.search(r'Tiba.*?\(([A-Z]{2,3})\)', cleaned_lines, re.DOTALL | re.IGNORECASE)
     rute = f"{stasiun_asal.group(1)} - {stasiun_tujuan.group(1)}" if stasiun_asal and stasiun_tujuan else None
 
     # --- Jam berangkat dan tiba (durasi) ---
     durasi = None
-    m_jb = re.search(r'berangkat.*?(\d{1,2}[:.]\d{2})', cleaned, re.IGNORECASE)
-    m_jt = re.search(r'datang.*?(\d{1,2}[:.]\d{2})', cleaned, re.IGNORECASE)
+    m_jb = re.search(r'pergi.*?(\d{1,2}[:.]\d{2})', cleaned, re.IGNORECASE)
+    m_jt = re.search(r'tiba.*?(\d{1,2}[:.]\d{2})', cleaned, re.IGNORECASE)
     if m_jb and m_jt:
         durasi = f"{m_jb.group(1)} - {m_jt.group(1)}"
     else:
@@ -676,11 +676,11 @@ def process_ocr_unified(text: str) -> list:
     """
     tipe = detect_document_type(text)
     print(f"DEBUG: detect_document_type result: '{tipe}'", flush=True)
-    if tipe == 'hotel':
+    if tipe == 'HOTEL':
         return process_ocr_text_multiple(text)
-    elif tipe == 'pesawat':
+    elif tipe == 'PESAWAT':
         return process_ocr_pesawat(text)
-    elif tipe == 'kereta':
+    elif tipe == 'KERETA':
         return process_ocr_kereta(text)
     else:
         print("[INFO] Jenis dokumen tidak dikenali sebagai hotel, pesawat, atau kereta.")

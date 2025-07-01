@@ -145,72 +145,50 @@ SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 def save_gsheet(df: pd.DataFrame):
     """
     Menyimpan DataFrame ke Google Sheets worksheet 'Data'.
-    Mengecek duplikat berdasarkan kombinasi kolom unik, dan menghindari penyimpanan ulang.
+    Mencegah penyimpanan duplikat berdasarkan kombinasi kolom kunci.
     """
     if df is None or df.empty:
         st.warning('❌ Data kosong atau invalid.')
         return
 
-    # 🗝 Kolom kunci unik untuk deteksi duplikat
+    # 🗝 Kolom kunci untuk deteksi duplikat
     key_cols = ["Nama Customer", "Kode Booking", "Tgl Pemesanan"]
 
-    # 🚿 Bersihkan nama kolom dari spasi
+    # 🚿 Bersihkan nama kolom
     df.columns = df.columns.str.strip()
 
-    # 🔗 Koneksi ke worksheet Google Sheets
+    # 🔗 Ambil data dari worksheet Google Sheet
     ws = connect_to_gsheet(SHEET_ID, 'Data')
     existing = pd.DataFrame(ws.get_all_records())
     existing.columns = existing.columns.str.strip()
 
-    # ✅ Validasi: Pastikan semua kolom kunci ada
-    missing_cols_df = [col for col in key_cols if col not in df.columns]
-    missing_cols_existing = [col for col in key_cols if col not in existing.columns]
-    if missing_cols_df:
-        st.error(f"❌ Kolom berikut tidak ditemukan di data upload: {', '.join(missing_cols_df)}")
+    # ✅ Validasi keberadaan kolom
+    missing_df = [col for col in key_cols if col not in df.columns]
+    missing_existing = [col for col in key_cols if col not in existing.columns]
+    if missing_df:
+        st.error(f"❌ Kolom tidak ditemukan di data upload: {', '.join(missing_df)}")
         return
-    if missing_cols_existing:
-        st.error(f"❌ Kolom berikut tidak ditemukan di Google Sheet: {', '.join(missing_cols_existing)}")
+    if missing_existing:
+        st.error(f"❌ Kolom tidak ditemukan di Google Sheet: {', '.join(missing_existing)}")
         return
 
-    # 🕓 Konversi kolom tanggal ke format yang konsisten
-    for col in ["Tgl Pemesanan"]:
-        if col in df.columns:
-            df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
-        if col in existing.columns:
-            existing[col] = pd.to_datetime(existing[col], errors="coerce").dt.date
+    # 🧽 Normalisasi dan konversi kolom kunci
+    df = normalize_key_columns(df, key_cols)
+    existing = normalize_key_columns(existing, key_cols)
 
-    # 🔄 Normalisasi isi kolom kunci (hilangkan spasi, lowercase, ubah ke string)
-    for col in key_cols:
-        df[col] = df[col].astype(str).str.strip().str.lower()
-        existing[col] = existing[col].astype(str).str.strip().str.lower()
-
-    # 🔍 Deteksi duplikat berdasarkan key_cols
-    merged = df.merge(existing, on=key_cols, how="inner", suffixes=('', '_existing'))
+    # 🔍 Cari duplikat berdasarkan key_cols
+    merged = df.merge(existing, on=key_cols, how="inner")
 
     if not merged.empty:
         st.error("❌ Ditemukan duplikat data yang sudah ada di GSheet:")
         st.dataframe(merged[key_cols])
         st.warning("Mohon periksa data sebelum mengirim ulang.")
-        st.stop()  # Batalkan simpan
+        st.stop()  # Hentikan eksekusi, tampilkan error
 
-    # ✅ Simpan ke Google Sheet (fungsi sudah aman secara internal)
+    # ✅ Simpan data baru
     append_dataframe_to_sheet(df, ws)
     st.success('✅ Berhasil simpan data ke Google Sheets.')
 
-    # Debug kolom
-    print("📄 df.columns:", df.columns.tolist())
-    print("📄 existing.columns:", existing.columns.tolist())
-
-    # Cek kolom kunci
-    for col in key_cols:
-        df[col] = df[col].astype(str).str.strip().str.lower()
-        existing[col] = existing[col].astype(str).str.strip().str.lower()
-        if col not in df.columns:
-            st.error(f"❌ Kolom '{col}' tidak ditemukan di DataFrame upload.")
-            return
-        if col not in existing.columns:
-            st.error(f"❌ Kolom '{col}' tidak ditemukan di Google Sheet.")
-            return
 # --- TAMPILAN UTAMA ---
 # CSS custom
 st.markdown("""

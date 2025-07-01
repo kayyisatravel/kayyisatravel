@@ -335,12 +335,13 @@ with st.expander('Bulk Manual Input'):
             st.write("Kolom yang ada di data:", selected_df.columns.tolist())
             st.write("Contoh data baris pertama:", selected_df.head(1).to_dict())
 
-            edited_df = st.dataframe(
-                selected_df,
-                num_rows="dynamic",
-                use_container_width=True,
-                key=f"editor_bulk_{selected_index}"
-            )
+            st.dataframe(selected_df, use_container_width=False)
+            #edited_df = st.dataframe(
+             #   selected_df,
+              #  num_rows="dynamic",
+               # use_container_width=True,
+                #key=f"editor_bulk_{selected_index}"
+            #)
     
             # Simpan hasil edit ke entri yang dipilih
             st.session_state.bulk_entries_raw[selected_index] = edited_df

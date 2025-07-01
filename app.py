@@ -317,43 +317,43 @@ with st.expander('Bulk Manual Input'):
     
     # Jika ada hasil bulk_entries_raw, tampilkan UI editing
     if "bulk_entries_raw" in st.session_state and st.session_state.bulk_entries_raw:
-    st.markdown("#### 📝 Edit Data per Entri (Opsional)")
-
-    # Pastikan label dan entries count sama
-    labels = st.session_state.bulk_labels
-    entries = st.session_state.bulk_entries_raw
-    if len(labels) != len(entries):
-        st.error("⚠️ Jumlah label dan entri tidak sama!")
-    else:
-        selected_index = st.selectbox(
-            "Pilih entri untuk diedit",
-            range(len(entries)),
-            format_func=lambda x: labels[x]
-        )
-
-        selected_df = entries[selected_index]
-
-        edited_df = st.data_editor(
-            selected_df,
-            num_rows="dynamic",
-            use_container_width=True,
-            key=f"editor_bulk_{selected_index}"
-        )
-
-        # Simpan hasil edit ke entri yang dipilih
-        st.session_state.bulk_entries_raw[selected_index] = edited_df
-
-        # Filter hanya DataFrame valid (bukan None atau kosong)
-        valid_dfs = [df for df in st.session_state.bulk_entries_raw if df is not None and not df.empty]
-
-        # Gabungkan ulang semua data setelah edit
-        if valid_dfs:
-            st.session_state.bulk_parsed = pd.concat(valid_dfs, ignore_index=True)
+        st.markdown("#### 📝 Edit Data per Entri (Opsional)")
+    
+        # Pastikan label dan entries count sama
+        labels = st.session_state.bulk_labels
+        entries = st.session_state.bulk_entries_raw
+        if len(labels) != len(entries):
+            st.error("⚠️ Jumlah label dan entri tidak sama!")
         else:
-            st.session_state.bulk_parsed = pd.DataFrame()
-
-        #st.markdown("#### 📊 Preview Gabungan Semua Entri Setelah Diedit")
-        #st.dataframe(st.session_state.bulk_parsed, use_container_width=True)
+            selected_index = st.selectbox(
+                "Pilih entri untuk diedit",
+                range(len(entries)),
+                format_func=lambda x: labels[x]
+            )
+    
+            selected_df = entries[selected_index]
+    
+            edited_df = st.data_editor(
+                selected_df,
+                num_rows="dynamic",
+                use_container_width=True,
+                key=f"editor_bulk_{selected_index}"
+            )
+    
+            # Simpan hasil edit ke entri yang dipilih
+            st.session_state.bulk_entries_raw[selected_index] = edited_df
+    
+            # Filter hanya DataFrame valid (bukan None atau kosong)
+            valid_dfs = [df for df in st.session_state.bulk_entries_raw if df is not None and not df.empty]
+    
+            # Gabungkan ulang semua data setelah edit
+            if valid_dfs:
+                st.session_state.bulk_parsed = pd.concat(valid_dfs, ignore_index=True)
+            else:
+                st.session_state.bulk_parsed = pd.DataFrame()
+    
+            #st.markdown("#### 📊 Preview Gabungan Semua Entri Setelah Diedit")
+            #st.dataframe(st.session_state.bulk_parsed, use_container_width=True)
 
     
     # Bulk save button

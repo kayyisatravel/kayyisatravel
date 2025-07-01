@@ -710,7 +710,7 @@ with st.expander('Database Pemesan', expanded=True):
             st.sidebar.info(f"💰 Total otomatis terpilih: Rp{int(total):,}")
     
         # Tampilkan ke UI
-        st.dataframe(editable_df, use_container_width=True)
+        #st.dataframe(editable_df, use_container_width=True)
 
         
         # Perbarui editable_df di session_state jika filtered_df berubah

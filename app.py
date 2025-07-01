@@ -163,7 +163,7 @@ def save_gsheet(df: pd.DataFrame):
             df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
 
     # Gabung dengan existing dan cari duplikat
-    key_cols = ["Nama Pemesan", "Kode Booking", "Tgl Pemesanan"]
+    key_cols = ["Nama Customer", "Kode Booking", "Tgl Pemesanan"]
     merged = df.merge(existing, on=key_cols, how="inner", suffixes=('', '_existing'))
 
     if not merged.empty:

@@ -341,7 +341,7 @@ with st.expander('Bulk Manual Input'):
     
         st.markdown("#### 📊 Preview Gabungan Semua Entri Setelah Diedit")
         st.dataframe(st.session_state.bulk_parsed, use_container_width=True)
-        st.write("###document_type")
+        st.write("###detect_document_type")
     # Bulk save button
     if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bulk ke GSheet"):
         save_gsheet(st.session_state.bulk_parsed)

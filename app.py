@@ -674,6 +674,17 @@ with st.expander('Database Pemesan', expanded=True):
     if tampilkan_uninvoice_saja:
         filtered_df = filtered_df[filtered_df["No Invoice"].isna() | (filtered_df["No Invoice"].str.strip() == "")]
     
+        if auto_select_25jt:
+            total = 0
+            filtered_df["Pilih"] = False  # Inisialisasi kolom pilih
+            for i in filtered_df.index:
+                harga = parse_harga(filtered_df.loc[i, "Harga Jual"])
+                if total + harga <= MAX_TOTAL:
+                    filtered_df.at[i, "Pilih"] = True
+                    total += harga
+                else:
+                    break
+    
     if filtered_df.empty:
         st.warning("❌ Tidak ada data yang cocok.")
     else:

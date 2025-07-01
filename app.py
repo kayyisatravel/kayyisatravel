@@ -316,47 +316,47 @@ with st.expander('Bulk Manual Input'):
             st.session_state.bulk_parsed = pd.concat(entries, ignore_index=True)
     
     # Jika ada hasil bulk_entries_raw, tampilkan UI editing
-    if "bulk_entries_raw" in st.session_state and st.session_state.bulk_entries_raw:
-        st.markdown("#### 📝 Edit Data per Entri (Opsional)")
+    if "bulk_parsed" in st.session_state and not st.session_state.bulk_parsed.empty:
+        df = st.session_state.bulk_parsed
     
-        # Pastikan label dan entries count sama
-        labels = st.session_state.bulk_labels
-        entries = st.session_state.bulk_entries_raw
-        if len(labels) != len(entries):
-            st.error("⚠️ Jumlah label dan entri tidak sama!")
+        if "edit_mode_bulk" not in st.session_state:
+            st.session_state.edit_mode_bulk = False
+    
+        # Checkbox untuk mengaktifkan edit mode
+        edit_mode = st.checkbox("✏️ Edit Data Manual", value=st.session_state.edit_mode_bulk)
+    
+        if edit_mode:
+            st.session_state.edit_mode_bulk = True
+            st.markdown("#### 📝 Form Edit Manual Per Baris")
+    
+            # Pilih baris yang ingin diedit
+            row_index = st.number_input("Pilih baris ke-", min_value=0, max_value=len(df)-1, step=1)
+    
+            row_data = df.iloc[row_index].to_dict()
+            updated_row = {}
+    
+            for col, val in row_data.items():
+                if pd.api.types.is_datetime64_any_dtype(df[col]):
+                    new_val = st.date_input(f"{col}", value=val if pd.notna(val) else pd.Timestamp.today())
+                elif isinstance(val, (int, float)):
+                    new_val = st.text_input(f"{col}", value=str(val))
+                else:
+                    new_val = st.text_input(f"{col}", value=str(val) if pd.notna(val) else "")
+                updated_row[col] = new_val
+    
+            if st.button("💾 Simpan Perubahan"):
+                for col in updated_row:
+                    df.at[row_index, col] = updated_row[col]
+    
+                st.session_state.bulk_parsed = df
+                st.session_state.edit_mode_bulk = False
+                st.success("✅ Perubahan disimpan.")
+                st.rerun()
+    
         else:
-            selected_index = st.selectbox(
-                "Pilih entri untuk diedit",
-                range(len(entries)),
-                format_func=lambda x: labels[x]
-            )
-    
-            selected_df = entries[selected_index]
-            st.write("Kolom yang ada di data:", selected_df.columns.tolist())
-            st.write("Contoh data baris pertama:", selected_df.head(1).to_dict())
-
-            st.dataframe(selected_df, use_container_width=True)
-            #edited_df = st.dataframe(
-             #   selected_df,
-              #  num_rows="dynamic",
-               # use_container_width=True,
-                #key=f"editor_bulk_{selected_index}"
-            #)
-    
-            # Simpan hasil edit ke entri yang dipilih
-            #st.session_state.bulk_entries_raw[selected_index] = edited_df
-    
-            # Filter hanya DataFrame valid (bukan None atau kosong)
-            #valid_dfs = [df for df in st.session_state.bulk_entries_raw if df is not None and not df.empty]
-    
-            # Gabungkan ulang semua data setelah edit
-            #if valid_dfs:
-                #st.session_state.bulk_parsed = pd.concat(valid_dfs, ignore_index=True)
-            #else:
-                #st.session_state.bulk_parsed = pd.DataFrame()
-    
-            #st.markdown("#### 📊 Preview Gabungan Semua Entri Setelah Diedit")
-            #st.dataframe(st.session_state.bulk_parsed, use_container_width=True)
+            st.session_state.edit_mode_bulk = False
+            st.markdown("#### 📊 Data Gabungan Hasil Bulk")
+            st.dataframe(st.session_state.bulk_parsed, use_container_width=True)
 
     
     # Bulk save button

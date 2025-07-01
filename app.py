@@ -152,7 +152,7 @@ def save_gsheet(df: pd.DataFrame):
         return
 
     # Inisialisasi key_cols lebih awal
-    key_cols = ["Nama Pemesan", "Kode Booking", "Tgl Pemesanan"]
+    key_cols = ["Nama Customer", "Kode Booking", "Tgl Pemesanan"]
 
     # Normalisasi kolom
     df.columns = df.columns.str.strip()

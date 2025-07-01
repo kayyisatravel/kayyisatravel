@@ -105,23 +105,6 @@ def normalize_df(df):
 
     return df
 
-def normalize_key_columns(df: pd.DataFrame, key_cols: list) -> pd.DataFrame:
-    """
-    Normalisasi isi kolom kunci:
-    - Kolom tanggal diubah ke format 'YYYY-MM-DD' (string)
-    - Kolom teks diubah ke lowercase dan strip spasi
-    """
-    df = df.copy()
-    for col in key_cols:
-        if col not in df.columns:
-            continue
-        if "tgl" in col.lower():
-            df[col] = pd.to_datetime(df[col], errors="coerce").dt.strftime("%Y-%m-%d")
-        else:
-            df[col] = df[col].astype(str).str.strip().str.lower()
-    return df
-
-
 def extract_text_from_pdf(pdf_bytes):
     reader = get_ocr_reader()
     pages = convert_from_bytes(pdf_bytes.read(), dpi=300)
@@ -161,62 +144,37 @@ SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 
 def save_gsheet(df: pd.DataFrame):
     """
-    Menyimpan data ke GSheet dan mencegah duplikat menggunakan hash dari kolom kunci.
+    Kirim DataFrame ke Google Sheets pada worksheet 'Data'.
+    Mencegah kirim data duplikat berdasarkan kombinasi unik.
     """
     if df is None or df.empty:
         st.warning('❌ Data kosong atau invalid.')
         return
 
-    # Kolom kunci untuk deteksi duplikat
-    key_cols = ["Nama Customer", "Kode Booking", "Tgl Pemesanan"]
-
-    # Bersihkan kolom dan hapus baris kosong
-    df.columns = df.columns.str.strip()
-    df = df.dropna(subset=key_cols, how='any')  # buang baris yang ada key-nya kosong
-
-    # Load data dari GSheet
     ws = connect_to_gsheet(SHEET_ID, 'Data')
     existing = pd.DataFrame(ws.get_all_records())
-    existing.columns = existing.columns.str.strip()
 
-    # Validasi kolom kunci
-    missing_df = [col for col in key_cols if col not in df.columns]
-    missing_existing = [col for col in key_cols if col not in existing.columns]
-    if missing_df:
-        st.error(f"❌ Kolom tidak ditemukan di data upload: {', '.join(missing_df)}")
-        return
-    if missing_existing:
-        st.error(f"❌ Kolom tidak ditemukan di Google Sheet: {', '.join(missing_existing)}")
-        return
+    # Pastikan kolom datetime terkonversi
+    for col in ["Tgl Pemesanan"]:
+        if col in existing.columns:
+            existing[col] = pd.to_datetime(existing[col], errors="coerce").dt.date
+    for col in ["Tgl Pemesanan"]:
+        if col in df.columns:
+            df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
 
-    # Normalisasi dan buat hash unik untuk tiap baris
-    def to_hashable(d: pd.DataFrame) -> pd.Series:
-        result = []
-        for col in key_cols:
-            if "tgl" in col.lower():
-                d[col] = pd.to_datetime(d[col], errors="coerce").dt.strftime("%Y-%m-%d")
-            else:
-                d[col] = d[col].astype(str).str.strip().str.lower()
-        return d[key_cols].agg('|'.join, axis=1)
+    # Gabung dengan existing dan cari duplikat
+    key_cols = ["Nama Pemesan", "Kode Booking", "Tgl Pemesanan"]
+    merged = df.merge(existing, on=key_cols, how="inner", suffixes=('', '_existing'))
 
-    df["dupe_hash"] = to_hashable(df)
-    existing["dupe_hash"] = to_hashable(existing)
+    if not merged.empty:
+        st.error("❌ Ditemukan duplikat data yang sudah ada di GSheet:")
+        st.dataframe(merged[key_cols])
+        st.warning("Mohon periksa data sebelum mengirim ulang.")
+        return  # Batalkan simpan
 
-    # Cek duplikat via hash
-    dupes = df[df["dupe_hash"].isin(existing["dupe_hash"])]
-
-    if not dupes.empty:
-        st.error("❌ Ditemukan duplikat berdasarkan kombinasi kunci:")
-        st.dataframe(dupes[key_cols])
-        st.stop()
-
-    # Simpan yang aman
-    df_to_save = df.drop(columns=["dupe_hash"])
-    append_dataframe_to_sheet(df_to_save, ws)
-    st.success('✅ Data berhasil disimpan ke Google Sheets.')
-    st.write("✅ Data yang akan disimpan:")
-    st.dataframe(df_to_save)
-
+    # Jika aman, kirim
+    append_dataframe_to_sheet(df, ws)
+    st.success('✅ Berhasil simpan data ke Google Sheets.')
 
 # --- TAMPILAN UTAMA ---
 # CSS custom
@@ -383,7 +341,7 @@ with st.expander('Bulk Manual Input'):
     
         st.markdown("#### 📊 Preview Gabungan Semua Entri Setelah Diedit")
         st.dataframe(st.session_state.bulk_parsed, use_container_width=True)
-        
+    
     # Bulk save button
     if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bulk ke GSheet"):
         save_gsheet(st.session_state.bulk_parsed)

@@ -332,7 +332,9 @@ with st.expander('Bulk Manual Input'):
             )
     
             selected_df = entries[selected_index]
-    
+            st.write("Kolom yang ada di data:", selected_df.columns.tolist())
+            st.write("Contoh data baris pertama:", selected_df.head(1).to_dict())
+
             edited_df = st.data_editor(
                 selected_df,
                 num_rows="dynamic",

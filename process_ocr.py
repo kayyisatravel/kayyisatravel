@@ -351,6 +351,7 @@ def process_ocr_text_multiple(text: str) -> list:
     harga_beli_total, harga_jual_total = extract_price_info(cleaned)
     customer_names = extract_customer_names(cleaned_lines)
 
+    tipe = detect_document_type(text)
     # Debug print (optional)
     #print(f"[DEBUG] Jumlah kamar: {jumlah_kamar}, Nama Tamu: {customer_names}")
 
@@ -506,7 +507,7 @@ def process_ocr_pesawat(text: str) -> list:
     # 8. Hitung harga per orang dan laba
     per_orang_beli = harga_beli // len(names) if harga_beli else None
     per_orang_jual = harga_jual // len(names) if harga_jual else None
-
+    tipe = detect_document_type(text)
     results = []
     for name in names:
         laba = None
@@ -635,7 +636,7 @@ def process_ocr_kereta(text: str) -> list:
     # Hitung per-penumpang jika total diketahui
     harga_beli_per = harga_beli_total // jumlah_penumpang if harga_beli_total and jumlah_penumpang else None
     harga_jual_per = (harga_jual_total // jumlah_penumpang) if (harga_jual_total and jumlah_penumpang) else None
-
+    tipe = detect_document_type(text)
     results = []
     for (nama_penumpang, kereta_info) in passenger_data:
         laba = None

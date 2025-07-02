@@ -1002,7 +1002,7 @@ with st.expander('Database Pemesan', expanded=True):
     
         with col_excel:
             # === Buat Excel ===
-            if st.button("📥 Unduh Excel"):
+            if st.button("📄 Buat Excel"):
                 if not selected_data.empty:
                     excel_data = selected_data.drop(columns=["Pilih", "Harga Beli", "Laba", "Admin", "% Laba", "Nama Pemesan"], errors="ignore")
                     excel_buffer = io.BytesIO()

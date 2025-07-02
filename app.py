@@ -964,7 +964,7 @@ with st.expander('Database Pemesan', expanded=True):
     
         # Inisialisasi nomor invoice unik di session state jika belum ada
         if 'current_unique_invoice_no' not in st.session_state:
-            st.session_state.current_unique_invoice_no = datetime.now().strftime("%d%m%y%H%M%S")
+            st.session_state.current_unique_invoice_no = datetime.now().strftime("%y%m%d%H%M%S")
     
         # Generate nama file untuk PDF dan Excel
         current_pdf_filename = f"INV_{st.session_state.current_unique_invoice_no}.pdf"
@@ -982,7 +982,7 @@ with st.expander('Database Pemesan', expanded=True):
                     tanggal = selected_data["Tgl Pemesanan"].iloc[0]
     
                     # Update nomor invoice unik setiap kali tombol PDF diklik
-                    st.session_state.current_unique_invoice_no = datetime.now().strftime("%d%m%y%H%M%S")
+                    st.session_state.current_unique_invoice_no = datetime.now().strftime("%y%m%d%H%M%S")
                     current_pdf_filename = f"INV_{st.session_state.current_unique_invoice_no}.pdf"
                     current_excel_filename = f"INV_{st.session_state.current_unique_invoice_no}.xlsx"
     

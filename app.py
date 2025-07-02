@@ -19,7 +19,10 @@ import io
 import math # Untuk pembulatan jika diperlukan
 from typing import List, Dict
 from gspread.utils import rowcol_to_a1
+from datetime import datetime
+from zoneinfo import ZoneInfo  # Built-in mulai Python 3.9
 
+now = datetime.now(ZoneInfo("Asia/Jakarta"))
 
 #refresh
 # --- PAGE CONFIG ---
@@ -982,7 +985,7 @@ with st.expander('Database Pemesan', expanded=True):
                     tanggal = selected_data["Tgl Pemesanan"].iloc[0]
     
                     # Update nomor invoice unik setiap kali tombol PDF diklik
-                    st.session_state.current_unique_invoice_no = datetime.now().strftime("%y%m%d%H%M%S")
+                    st.session_state.current_unique_invoice_no = now.strftime("%y%m%d%H%M%S")
                     current_pdf_filename = f"INV_{st.session_state.current_unique_invoice_no}.pdf"
                     current_excel_filename = f"INV_{st.session_state.current_unique_invoice_no}.xlsx"
     

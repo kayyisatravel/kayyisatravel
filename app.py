@@ -812,6 +812,8 @@ with st.expander('Database Pemesan', expanded=True):
             
                     except Exception as e:
                         st.error(f"❌ Gagal update: {e}")
+                        st.text(f"📋 Type: {type(e)}")
+                        st.text(traceback.format_exc())
         
         elif len(selected_data) > 1:
             with st.expander('Update Massal (Beberapa Baris)'):

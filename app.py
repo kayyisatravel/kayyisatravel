@@ -848,7 +848,7 @@ with st.expander('Database Pemesan', expanded=True):
                 df_to_update = pd.merge(
                     selected_norm,
                     df_all,
-                    on=["Nama Pemesan_str", "Kode Booking_str", "Tgl Pemesanan_str"],
+                    on=["Nama Pemesan_str", "Kode Booking_str", "Tgl Berangkat_str"],
                     how="inner",
                     suffixes=('', '_matched')
                 )
@@ -866,7 +866,7 @@ with st.expander('Database Pemesan', expanded=True):
                             mask = (
                                 (df_all["Nama Pemesan_str"] == row["Nama Pemesan_str"]) &
                                 (df_all["Kode Booking_str"] == row["Kode Booking_str"]) &
-                                (df_all["Tgl Pemesanan_str"] == row["Tgl Pemesanan_str"])
+                                (df_all["Tgl Berangkat_str"] == row["Tgl Berangkat_str"])
                             )
             
                             if mask.any():

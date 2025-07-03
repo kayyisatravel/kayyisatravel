@@ -1102,11 +1102,15 @@ with st.expander('💾 Database Pemesan', expanded=True):
         
 with st.expander("📘 Laporan Keuangan Lengkap"):
     st.markdown("### 📊 Filter Laporan")
+
+    # Pastikan kolom Tgl Pemesanan bertipe datetime
     df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce")
 
-    tab1, tab2, tab3 = st.tabs(["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"])
+    filter_mode = st.radio("Pilih Jenis Filter Tanggal", ["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"], horizontal=True)
 
-    with tab1:
+    df_filtered = df.copy()  # Awal: semua data
+
+    if filter_mode == "📆 Rentang Tanggal":
         tgl_awal = st.date_input("Tanggal Awal", date.today().replace(day=1))
         tgl_akhir = st.date_input("Tanggal Akhir", date.today())
         if tgl_awal > tgl_akhir:
@@ -1116,22 +1120,28 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
             (df["Tgl Pemesanan"] <= pd.to_datetime(tgl_akhir))
         ]
 
-    with tab2:
-        bulan = st.selectbox("Pilih Bulan", range(1, 13), index=date.today().month - 1)
-        tahun_bln = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.unique(), reverse=True))
+    elif filter_mode == "🗓️ Bulanan":
+        bulan_nama = {
+            "Januari": 1, "Februari": 2, "Maret": 3, "April": 4,
+            "Mei": 5, "Juni": 6, "Juli": 7, "Agustus": 8,
+            "September": 9, "Oktober": 10, "November": 11, "Desember": 12
+        }
+        bulan_label = list(bulan_nama.keys())
+        bulan_pilihan = st.selectbox("Pilih Bulan", bulan_label, index=date.today().month - 1)
+        tahun_bulan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True))
         df_filtered = df[
-            (df["Tgl Pemesanan"].dt.month == bulan) &
-            (df["Tgl Pemesanan"].dt.year == tahun_bln)
+            (df["Tgl Pemesanan"].dt.month == bulan_nama[bulan_pilihan]) &
+            (df["Tgl Pemesanan"].dt.year == tahun_bulan)
         ]
 
-    with tab3:
-        tahun_thn = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.unique(), reverse=True), key="tahun_thn")
-        df_filtered = df[df["Tgl Pemesanan"].dt.year == tahun_thn]
+    elif filter_mode == "📅 Tahunan":
+        tahun_pilihan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True))
+        df_filtered = df[df["Tgl Pemesanan"].dt.year == tahun_pilihan]
 
-    # === Filter tambahan ===
+    # Tambahan filter Pemesan dan Admin
     st.markdown("### 🧍 Filter Tambahan")
-    pemesan_list = ["(Semua)"] + sorted(df["Nama Pemesan"].dropna().unique().tolist())
-    admin_list = ["(Semua)"] + sorted(df["Admin"].dropna().unique().tolist())
+    pemesan_list = ["(Semua)"] + sorted(df["Nama Pemesan"].dropna().unique())
+    admin_list = ["(Semua)"] + sorted(df["Admin"].dropna().unique())
 
     selected_pemesan = st.selectbox("Nama Pemesan", pemesan_list)
     selected_admin = st.selectbox("Admin", admin_list)
@@ -1143,33 +1153,45 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
 
     if df_filtered.empty:
         st.warning("❌ Tidak ada data sesuai filter.")
-        st.stop()  # Ganti return dengan st.stop()
+    else:
+        # Parse harga jika masih string
+        def parse_harga(h):
+            if pd.isna(h): return 0
+            s = str(h).replace("Rp", "").replace(".", "").replace(",", "").strip()
+            try: return float(s)
+            except: return 0
 
-    # === Agregasi keuangan ===
-    total_jual = df_filtered["Harga Jual"].apply(parse_harga).sum()
-    total_beli = df_filtered["Harga Beli"].apply(parse_harga).sum()
-    total_profit = total_jual - total_beli
+        df_filtered["Harga Jual (Num)"] = df_filtered["Harga Jual"].apply(parse_harga)
+        df_filtered["Harga Beli (Num)"] = df_filtered["Harga Beli"].apply(parse_harga)
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("💰 Total Penjualan", f"Rp {int(total_jual):,}".replace(",", "."))
-    col2.metric("💸 Total Pembelian", f"Rp {int(total_beli):,}".replace(",", "."))
-    col3.metric("📈 Profit", f"Rp {int(total_profit):,}".replace(",", "."))
+        total_jual = df_filtered["Harga Jual (Num)"].sum()
+        total_beli = df_filtered["Harga Beli (Num)"].sum()
+        total_profit = total_jual - total_beli
 
-    st.markdown("### 🔍 Ringkasan per Admin")
-    st.dataframe(
-        df_filtered.groupby("Admin")["Harga Jual"].apply(
-            lambda x: sum(parse_harga(v) for v in x)
-        ).reset_index(name="Total Penjualan"),
-        use_container_width=True
-    )
+        col1, col2, col3 = st.columns(3)
+        col1.metric("💰 Total Penjualan", f"Rp {int(total_jual):,}".replace(",", "."))
+        col2.metric("💸 Total Pembelian", f"Rp {int(total_beli):,}".replace(",", "."))
+        col3.metric("📈 Profit", f"Rp {int(total_profit):,}".replace(",", "."))
 
-    st.markdown("### 👤 Ringkasan per Pemesan")
-    st.dataframe(
-        df_filtered.groupby("Nama Pemesan")["Harga Jual"].apply(
-            lambda x: sum(parse_harga(v) for v in x)
-        ).reset_index(name="Total Penjualan"),
-        use_container_width=True
-    )
+        # Grafik Tren Penjualan
+        st.markdown("### 📈 Grafik Tren Penjualan")
+        df_chart = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().reset_index()
+        st.line_chart(df_chart.rename(columns={"Tgl Pemesanan": "index"}).set_index("index"))
 
-    with st.expander("🧾 Lihat Tabel Detail"):
-        st.dataframe(df_filtered, use_container_width=True)
+        # Ringkasan per Admin
+        st.markdown("### 🧑‍💼 Ringkasan per Admin")
+        st.dataframe(
+            df_filtered.groupby("Admin")["Harga Jual (Num)"].sum().reset_index(name="Total Penjualan"),
+            use_container_width=True
+        )
+
+        # Ringkasan per Pemesan
+        st.markdown("### 👥 Ringkasan per Pemesan")
+        st.dataframe(
+            df_filtered.groupby("Nama Pemesan")["Harga Jual (Num)"].sum().reset_index(name="Total Penjualan"),
+            use_container_width=True
+        )
+
+        # Tabel Detail
+        with st.expander("📄 Lihat Tabel Detail"):
+            st.dataframe(df_filtered, use_container_width=True)

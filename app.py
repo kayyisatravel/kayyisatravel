@@ -850,8 +850,8 @@ with st.expander('Database Pemesan', expanded=True):
                 )
                 df_to_update = pd.merge(
                     selected_norm,
-                    df_all,
-                    on=["Nama Pemesan_str", "Kode Booking_str", "Tgl Berangkat_str"],
+                    df_all_unique,
+                    on=["Nama Pemesan_str", "Kode Booking_str", "Tgl Pemesanan_str"],
                     how="inner",
                     suffixes=('', '_matched')
                 )

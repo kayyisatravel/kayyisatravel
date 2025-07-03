@@ -773,7 +773,7 @@ with st.expander('Database Pemesan', expanded=True):
                         
                         # Normalisasi kedua dataframe
                         df_all = normalize_df(df_all)
-                        selected_norm = normalize_df(pd.DataFrame([row_to_edit]))
+                        selected_norm = normalize_df(pd.DataFrame([row_to_edit])).reset_index(drop=True)
                         
                         mask = (
                             (df_all["Nama Pemesan_str"] == selected_norm.loc[0, "Nama Pemesan_str"]) &
@@ -813,7 +813,6 @@ with st.expander('Database Pemesan', expanded=True):
                     except Exception as e:
                         st.error(f"❌ Gagal update: {e}")
                         st.text(f"📋 Type: {type(e)}")
-                        st.text(traceback.format_exc())
         
         elif len(selected_data) > 1:
             with st.expander('Update Massal (Beberapa Baris)'):

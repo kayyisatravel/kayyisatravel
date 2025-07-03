@@ -19,7 +19,7 @@ import io
 import math # Untuk pembulatan jika diperlukan
 from typing import List, Dict
 from gspread.utils import rowcol_to_a1
-from datetime import datetime, date
+from datetime import datetime
 from zoneinfo import ZoneInfo  # Built-in mulai Python 3.9
 import time
 
@@ -657,30 +657,15 @@ with st.expander('Database Pemesan', expanded=True):
     # === Filter UI ===
     # === Sidebar Filter ===
     st.sidebar.header("📊 Filter Data")
-
-    # Default tanggal: awal bulan sampai hari ini
-    today = date.today()
-    awal_bulan = today.replace(day=1)
-
-    tanggal_range = st.sidebar.date_input("Rentang Tanggal", [awal_bulan, today])
-
-    # Normalisasi input tanggal
-    if isinstance(tanggal_range, date):
-        tanggal_range = [tanggal_range, tanggal_range]
-    elif isinstance(tanggal_range, list) and len(tanggal_range) == 1:
-        tanggal_range = [tanggal_range[0], tanggal_range[0]]
-    elif not isinstance(tanggal_range, list) or len(tanggal_range) != 2:
-        tanggal_range = [awal_bulan, today]
-
-    # Urutkan jika tanggal akhir < tanggal awal
-    if tanggal_range[1] < tanggal_range[0]:
-        tanggal_range = [tanggal_range[1], tanggal_range[0]]
-
-    tanggal_range = [d.date() if hasattr(d, "date") else d for d in tanggal_range]
     
     tampilkan_uninvoice_saja = st.sidebar.checkbox("🔍 Data yang belum punya Invoice")
     auto_select_25jt = st.sidebar.checkbox("⚙️ Auto-pilih total penjualan Rp 25 juta")
-
+    tanggal_range = st.sidebar.date_input("Rentang Tanggal", [date.today(), date.today()])
+    if isinstance(tanggal_range, date):
+        tanggal_range = [tanggal_range, tanggal_range]
+    elif len(tanggal_range) == 1:
+        tanggal_range = [tanggal_range[0], tanggal_range[0]]
+    tanggal_range = [d if isinstance(d, date) else d.date() for d in tanggal_range]
     nama_filter = st.sidebar.text_input("Cari Nama Pemesan")
     kode_booking_filter = st.sidebar.text_input("Cari Kode Booking")
 
@@ -734,15 +719,7 @@ with st.expander('Database Pemesan', expanded=True):
             st.session_state.editable_df = editable_df.copy()
             # Reset 'Pilih' status saat data filter berubah
             st.session_state.editable_df['Pilih'] = False 
-        if auto_select_25jt:
-            total = 0
-            for i in st.session_state.editable_df.index:
-                harga = parse_harga(st.session_state.editable_df.loc[i, "Harga Jual"])
-                if total + harga <= MAX_TOTAL:
-                    st.session_state.editable_df.at[i, "Pilih"] = True
-                    total += harga
-                else:
-                    break
+    
     
         select_all = st.checkbox("Pilih Semua", value=False, key="select_all_checkbox")
         if select_all:
@@ -773,54 +750,32 @@ with st.expander('Database Pemesan', expanded=True):
             
                 # Fungsi bantu amankan tanggal
                 def safe_date(val):
-                    """Ubah string / Timestamp / NaT jadi date."""
-                    if pd.isna(val):
-                        return date.today()
                     if isinstance(val, date):
                         return val
-                    if isinstance(val, datetime):
-                        return val.date()
-                    if isinstance(val, pd.Timestamp):
-                        return val.date()
                     if isinstance(val, str):
                         try:
                             return datetime.strptime(val, "%Y-%m-%d").date()
                         except ValueError:
-                            try:
-                                return datetime.strptime(val, "%d-%m-%Y").date()
-                            except ValueError:
-                                return date.today()
+                            pass
+                    if isinstance(val, pd.Timestamp):
+                        return val.date()
                     return date.today()
-                
-                def safe_text(val):
-                    """Jaminan string, meski None."""
-                    return str(val) if pd.notna(val) else ""
-                
-                def safe_number(val):
-                    """Ubah angka dari str/None jadi float"""
-                    if pd.isna(val) or val == "":
-                        return 0
-                    try:
-                        s = str(val).replace('Rp', '').replace('.', '').replace(',', '').strip()
-                        return float(s)
-                    except:
-                        return 0
-                
-                # --- Ambil nilai awal dari row_to_edit dengan aman ---
-                nama_pemesan_form = st.text_input("Nama Pemesan", safe_text(row_to_edit.get("Nama Pemesan")))
+            
+                # Ambil dan validasi input
+                nama_pemesan_form = st.text_input("Nama Pemesan", row_to_edit.get("Nama Pemesan", ""))
                 tgl_pemesanan_form = st.date_input("Tgl Pemesanan", safe_date(row_to_edit.get("Tgl Pemesanan")))
                 tgl_berangkat_form = st.date_input("Tgl Berangkat", safe_date(row_to_edit.get("Tgl Berangkat")))
-                kode_booking_form = st.text_input("Kode Booking", safe_text(row_to_edit.get("Kode Booking")))
-                no_penerbangan_form = st.text_input("No Penerbangan / Hotel / Kereta", safe_text(row_to_edit.get("No Penerbangan / Hotel / Kereta")))
-                nama_customer_form = st.text_input("Nama Customer", safe_text(row_to_edit.get("Nama Customer")))
-                rute_form = st.text_input("Rute", safe_text(row_to_edit.get("Rute")))
-                harga_beli_form = st.number_input("Harga Beli", value=safe_number(row_to_edit.get("Harga Beli")), format="%.0f")
-                harga_jual_form = st.number_input("Harga Jual", value=safe_number(row_to_edit.get("Harga Jual")), format="%.0f")
-                # tipe_form = st.selectbox(...)  # Opsional jika masih pakai tipe
-                # bf_nbf_form = st.text_input("BF/NBF", safe_text(row_to_edit.get("BF/NBF")))
-                no_invoice_form = st.text_input("No Invoice", safe_text(row_to_edit.get("No Invoice")))
-                keterangan_form = st.text_input("Keterangan", safe_text(row_to_edit.get("Keterangan")))
-                admin_form = st.text_input("Admin", safe_text(row_to_edit.get("Admin")))
+                kode_booking_form = st.text_input("Kode Booking", row_to_edit.get("Kode Booking", ""))
+                no_penerbangan_form = st.text_input("No Penerbangan / Hotel / Kereta", row_to_edit.get("No Penerbangan / Hotel / Kereta", ""))
+                nama_customer_form = st.text_input("Nama Customer", row_to_edit.get("Nama Customer", ""))
+                rute_form = st.text_input("Rute", row_to_edit.get("Rute", ""))
+                harga_beli_form = st.number_input("Harga Beli", value=parse_harga(row_to_edit.get("Harga Beli", 0)), format="%.0f")
+                harga_jual_form = st.number_input("Harga Jual", value=parse_harga(row_to_edit.get("Harga Jual", 0)), format="%.0f")
+                #tipe_form = st.selectbox("Tipe", ["KERETA", "PESAWAT", "HOTEL"], index=["KERETA", "PESAWAT", "HOTEL"].index(str(row_to_edit.get("Tipe", "")).upper()))
+                #bf_nbf_form = st.text_input("BF/NBF", row_to_edit.get("BF/NBF", ""))
+                no_invoice_form = st.text_input("No Invoice", row_to_edit.get("No Invoice", ""))
+                keterangan_form = st.text_input("Keterangan", row_to_edit.get("Keterangan", ""))
+                admin_form = st.text_input("Admin", row_to_edit.get("Admin", ""))
             
                 if st.button("💾 Simpan Perubahan ke GSheet"):
                     try:

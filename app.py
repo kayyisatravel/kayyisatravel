@@ -1297,8 +1297,7 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
         col1, col2, col3 = st.columns([1, 2, 1])
         col1.metric("💰 Total Penjualan", f"Rp {int(total_jual):,}".replace(",", "."))
         col2.metric("💸 Total Pembelian", f"Rp {int(total_beli):,}".replace(",", "."))
-        with col2:
-            st.metric("📈 Profit", f"Rp {int(total_profit):,}".replace(",", "."))
+        st.metric("📈 Profit", f"Rp {int(total_profit):,}".replace(",", "."))
             
         # Grafik Tren Penjualan
         st.markdown("### 📈 Grafik Tren Penjualan")

@@ -94,7 +94,7 @@ def normalize_df(df):
     df = df.copy()
 
     # Pastikan tanggal di-parse dengan dayfirst=True
-    df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], dayfirst=True, errors="coerce")
+    df["Tgl Berangkat"] = pd.to_datetime(df["Tgl Berangkat"], dayfirst=True, errors="coerce")
     df["Tgl Berangkat_str"] = df["Tgl Berangkat"].dt.strftime("%d-%m-%Y").fillna("")
 
     # Konversi kode booking ke string

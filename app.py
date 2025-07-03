@@ -796,8 +796,8 @@ with st.expander('Database Pemesan', expanded=True):
                                 "Rute": rute_form,
                                 "Harga Beli": harga_beli_form,
                                 "Harga Jual": harga_jual_form,
-                                "Tipe": tipe_form.upper(),
-                                "BF/NBF": bf_nbf_form,
+                                #"Tipe": tipe_form.upper(),
+                                #"BF/NBF": bf_nbf_form,
                                 "No Invoice": no_invoice_form,
                                 "Keterangan": keterangan_form,
                                 "Admin": admin_form

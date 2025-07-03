@@ -411,7 +411,7 @@ with st.expander("✏️ Input Manual Data"):
 
     admin = st.selectbox("Admin", ["PA", "MA"])
 
-    if st.button("➕ Tambah Data ke Preview"):
+    if st.button("Preview"):
         new_data = {
             "Tgl Pemesanan": tgl_pemesanan,
             "Tgl Berangkat": tgl_berangkat,

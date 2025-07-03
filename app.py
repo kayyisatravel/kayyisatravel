@@ -1294,11 +1294,12 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
         total_beli = df_filtered["Harga Beli (Num)"].sum()
         total_profit = total_jual - total_beli
 
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns([1, 2, 1])
         col1.metric("💰 Total Penjualan", f"Rp {int(total_jual):,}".replace(",", "."))
         col2.metric("💸 Total Pembelian", f"Rp {int(total_beli):,}".replace(",", "."))
-        st.metric("📈 Profit", f"Rp {int(total_profit):,}".replace(",", "."))
-
+        with col2:
+            st.metric("📈 Profit", f"Rp {int(total_profit):,}".replace(",", "."))
+            
         # Grafik Tren Penjualan
         st.markdown("### 📈 Grafik Tren Penjualan")
         df_chart = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().reset_index()

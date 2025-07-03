@@ -848,7 +848,7 @@ with st.expander('Database Pemesan', expanded=True):
             
                 # Tampilkan data yang difilter jika ingin (opsional)
                 st.write("### Data yang akan diproses:")
-                st.dataframe(df_all)
+                st.dataframe(filter_uninvoice)
             
                 if st.button("🔁 Terapkan Update Massal"):
                     try:

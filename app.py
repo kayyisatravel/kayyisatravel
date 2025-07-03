@@ -725,14 +725,14 @@ with st.expander('Database Pemesan', expanded=True):
             st.session_state.editable_df['Pilih'] = False 
             
         if auto_select_25jt:
-        total = 0
-        for i in st.session_state.editable_df.index:
-            harga = parse_harga(st.session_state.editable_df.loc[i, "Harga Jual"])
-            if total + harga <= MAX_TOTAL:
-                st.session_state.editable_df.at[i, "Pilih"] = True
-                total += harga
-            else:
-                break
+            total = 0
+            for i in st.session_state.editable_df.index:
+                harga = parse_harga(st.session_state.editable_df.loc[i, "Harga Jual"])
+                if total + harga <= MAX_TOTAL:
+                    st.session_state.editable_df.at[i, "Pilih"] = True
+                    total += harga
+                else:
+                    break
     
         select_all = st.checkbox("Pilih Semua", value=False, key="select_all_checkbox")
         if select_all:

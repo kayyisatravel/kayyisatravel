@@ -804,7 +804,7 @@ with st.expander('Database Pemesan', expanded=True):
                             for col, val in colmap.items():
                                 if col in df_all.columns:
                                     worksheet.update_cell(index + 2, df_all.columns.get_loc(col) + 1, val)
-            
+                                    time.sleep(0.2)
                             st.success("✅ Data berhasil diperbarui ke Google Sheets.")
                             st.cache_data.clear()
             
@@ -879,19 +879,19 @@ with st.expander('Database Pemesan', expanded=True):
                                 if no_invoice_mass or kosongkan_invoice:
                                     nilai = "" if kosongkan_invoice else no_invoice_mass
                                     worksheet.update_cell(row_number, df_all.columns.get_loc("No Invoice") + 1, nilai)
-            
+                                    time.sleep(0.2)
                                 if keterangan_mass or kosongkan_keterangan:
                                     nilai = "" if kosongkan_keterangan else keterangan_mass
                                     worksheet.update_cell(row_number, df_all.columns.get_loc("Keterangan") + 1, nilai)
-            
+                                    time.sleep(0.2)
                                 if nama_pemesan_mass or kosongkan_nama_pemesan:
                                     nilai = "" if kosongkan_nama_pemesan else nama_pemesan_mass
                                     worksheet.update_cell(row_number, df_all.columns.get_loc("Nama Pemesan") + 1, nilai)
-            
+                                    time.sleep(0.2)    
                                 if admin_mass or kosongkan_admin:
                                     nilai = "" if kosongkan_admin else admin_mass
                                     worksheet.update_cell(row_number, df_all.columns.get_loc("Admin") + 1, nilai)
-            
+                                    time.sleep(0.2)
                                 st.write(f"✅ Update row GSheets: {row_number} untuk: {row['Nama Pemesan_str']} - {row['Kode Booking_str']}")
                                 count += 1
                             else:

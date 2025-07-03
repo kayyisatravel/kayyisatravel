@@ -657,17 +657,15 @@ with st.expander('Database Pemesan', expanded=True):
     # === Filter UI ===
     # === Sidebar Filter ===
     st.sidebar.header("📊 Filter Data")
-
+    
+    tampilkan_uninvoice_saja = st.sidebar.checkbox("🔍 Data yang belum punya Invoice")
+    auto_select_25jt = st.sidebar.checkbox("⚙️ Auto-pilih total penjualan Rp 25 juta")
     tanggal_range = st.sidebar.date_input("Rentang Tanggal", [date.today(), date.today()])
     if isinstance(tanggal_range, date):
         tanggal_range = [tanggal_range, tanggal_range]
     elif len(tanggal_range) == 1:
         tanggal_range = [tanggal_range[0], tanggal_range[0]]
     tanggal_range = [d if isinstance(d, date) else d.date() for d in tanggal_range]
-    
-    tampilkan_uninvoice_saja = st.sidebar.checkbox("🔍 Data yang belum punya Invoice")
-    auto_select_25jt = st.sidebar.checkbox("⚙️ Auto-pilih total penjualan Rp 25 juta")
-    
     nama_filter = st.sidebar.text_input("Cari Nama Pemesan")
     kode_booking_filter = st.sidebar.text_input("Cari Kode Booking")
 

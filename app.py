@@ -1101,76 +1101,76 @@ with st.expander('Database Pemesan', expanded=True):
                     st.warning("Tidak ada data yang dipilih untuk dibuat invoice.")
         
 with st.expander("📘 Laporan Keuangan Lengkap"):
-    st.markdown("### 📊 Filter Laporan")
-    
-    tab1, tab2, tab3 = st.tabs(["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"])
-    
-    with tab1:
-        tgl_awal = st.date_input("Tanggal Awal", date.today().replace(day=1))
-        tgl_akhir = st.date_input("Tanggal Akhir", date.today())
-        if tgl_awal > tgl_akhir:
-            tgl_awal, tgl_akhir = tgl_akhir, tgl_awal
-        df_filtered = df[
-            (df["Tgl Pemesanan"] >= pd.to_datetime(tgl_awal)) &
-            (df["Tgl Pemesanan"] <= pd.to_datetime(tgl_akhir))
-        ]
-    
-    with tab2:
-        bulan = st.selectbox("Pilih Bulan", range(1, 13), index=date.today().month - 1)
-        tahun_bln = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.unique(), reverse=True))
-        df_filtered = df[
-            (df["Tgl Pemesanan"].dt.month == bulan) &
-            (df["Tgl Pemesanan"].dt.year == tahun_bln)
-        ]
-    
-    with tab3:
-        tahun_thn = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.unique(), reverse=True), key="tahun_thn")
-        df_filtered = df[df["Tgl Pemesanan"].dt.year == tahun_thn]
-    
-    # Filter Nama Pemesan dan Admin
-    st.markdown("### 🧍 Filter Tambahan")
-    pemesan_list = ["(Semua)"] + sorted(df["Nama Pemesan"].dropna().unique().tolist())
-    admin_list = ["(Semua)"] + sorted(df["Admin"].dropna().unique().tolist())
-    
-    selected_pemesan = st.selectbox("Nama Pemesan", pemesan_list)
-    selected_admin = st.selectbox("Admin", admin_list)
-    
-    if selected_pemesan != "(Semua)":
-        df_filtered = df_filtered[df_filtered["Nama Pemesan"] == selected_pemesan]
-    if selected_admin != "(Semua)":
-        df_filtered = df_filtered[df_filtered["Admin"] == selected_admin]
-    
-    if df_filtered.empty:
-        st.warning("❌ Tidak ada data sesuai filter.")
-        return
-    
-    # Agregasi keuangan
-    total_jual = df_filtered["Harga Jual"].apply(parse_harga).sum()
-    total_beli = df_filtered["Harga Beli"].apply(parse_harga).sum()
-    total_profit = total_jual - total_beli
-    
-    col1, col2, col3 = st.columns(3)
-    col1.metric("💰 Total Penjualan", f"Rp {int(total_jual):,}".replace(",", "."))
-    col2.metric("💸 Total Pembelian", f"Rp {int(total_beli):,}".replace(",", "."))
-    col3.metric("📈 Profit", f"Rp {int(total_profit):,}".replace(",", "."))
-    
-    # Ringkasan tambahan
-    st.markdown("### 🔍 Ringkasan per Admin")
-    st.dataframe(
-        df_filtered.groupby("Admin")["Harga Jual"].apply(
-            lambda x: sum(parse_harga(v) for v in x)
-        ).reset_index(name="Total Penjualan"),
-        use_container_width=True
-    )
-    
-    st.markdown("### 👤 Ringkasan per Pemesan")
-    st.dataframe(
-        df_filtered.groupby("Nama Pemesan")["Harga Jual"].apply(
-            lambda x: sum(parse_harga(v) for v in x)
-        ).reset_index(name="Total Penjualan"),
-        use_container_width=True
-    )
-    
-    # Optional: tampilkan tabel detail
-    with st.expander("🧾 Lihat Tabel Detail"):
-        st.dataframe(df_filtered, use_container_width=True)
+        st.markdown("### 📊 Filter Laporan")
+
+        tab1, tab2, tab3 = st.tabs(["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"])
+
+        with tab1:
+            tgl_awal = st.date_input("Tanggal Awal", date.today().replace(day=1))
+            tgl_akhir = st.date_input("Tanggal Akhir", date.today())
+            if tgl_awal > tgl_akhir:
+                tgl_awal, tgl_akhir = tgl_akhir, tgl_awal
+            df_filtered = df[
+                (df["Tgl Pemesanan"] >= pd.to_datetime(tgl_awal)) &
+                (df["Tgl Pemesanan"] <= pd.to_datetime(tgl_akhir))
+            ]
+
+        with tab2:
+            bulan = st.selectbox("Pilih Bulan", range(1, 13), index=date.today().month - 1)
+            tahun_bln = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.unique(), reverse=True))
+            df_filtered = df[
+                (df["Tgl Pemesanan"].dt.month == bulan) &
+                (df["Tgl Pemesanan"].dt.year == tahun_bln)
+            ]
+
+        with tab3:
+            tahun_thn = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.unique(), reverse=True), key="tahun_thn")
+            df_filtered = df[df["Tgl Pemesanan"].dt.year == tahun_thn]
+
+        # Filter Nama Pemesan dan Admin
+        st.markdown("### 🧍 Filter Tambahan")
+        pemesan_list = ["(Semua)"] + sorted(df["Nama Pemesan"].dropna().unique().tolist())
+        admin_list = ["(Semua)"] + sorted(df["Admin"].dropna().unique().tolist())
+
+        selected_pemesan = st.selectbox("Nama Pemesan", pemesan_list)
+        selected_admin = st.selectbox("Admin", admin_list)
+
+        if selected_pemesan != "(Semua)":
+            df_filtered = df_filtered[df_filtered["Nama Pemesan"] == selected_pemesan]
+        if selected_admin != "(Semua)":
+            df_filtered = df_filtered[df_filtered["Admin"] == selected_admin]
+
+        if df_filtered.empty:
+            st.warning("❌ Tidak ada data sesuai filter.")
+            return
+
+        # Agregasi keuangan
+        total_jual = df_filtered["Harga Jual"].apply(parse_harga).sum()
+        total_beli = df_filtered["Harga Beli"].apply(parse_harga).sum()
+        total_profit = total_jual - total_beli
+
+        col1, col2, col3 = st.columns(3)
+        col1.metric("💰 Total Penjualan", f"Rp {int(total_jual):,}".replace(",", "."))
+        col2.metric("💸 Total Pembelian", f"Rp {int(total_beli):,}".replace(",", "."))
+        col3.metric("📈 Profit", f"Rp {int(total_profit):,}".replace(",", "."))
+
+        # Ringkasan tambahan
+        st.markdown("### 🔍 Ringkasan per Admin")
+        st.dataframe(
+            df_filtered.groupby("Admin")["Harga Jual"].apply(
+                lambda x: sum(parse_harga(v) for v in x)
+            ).reset_index(name="Total Penjualan"),
+            use_container_width=True
+        )
+
+        st.markdown("### 👤 Ringkasan per Pemesan")
+        st.dataframe(
+            df_filtered.groupby("Nama Pemesan")["Harga Jual"].apply(
+                lambda x: sum(parse_harga(v) for v in x)
+            ).reset_index(name="Total Penjualan"),
+            use_container_width=True
+        )
+
+        # Optional: tampilkan tabel detail
+        with st.expander("🧾 Lihat Tabel Detail"):
+            st.dataframe(df_filtered, use_container_width=True)

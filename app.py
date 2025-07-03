@@ -445,7 +445,11 @@ if "bulk_parsed" in st.session_state and not st.session_state.bulk_parsed.empty:
     if "edit_mode_bulk" not in st.session_state:
         st.session_state.edit_mode_bulk = False
 
-    edit_mode = st.checkbox("✏️ Edit Data Manual", value=st.session_state.edit_mode_bulk)
+    edit_mode = st.checkbox(
+        "✏️ Edit Data Manual",
+        value=st.session_state.edit_mode_bulk,
+        key="edit_mode_bulk_checkbox"
+    )
 
     if edit_mode:
         st.session_state.edit_mode_bulk = True

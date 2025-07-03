@@ -297,7 +297,7 @@ with st.expander("⬆️📷 Upload Gambar atau PDF untuk OCR"):
 
 # --- SECTION 2: BULK MANUAL INPUT ---
 #st.markdown('---')
-with st.expander('⌨️ Bulk Manual Input'):
+with st.expander('⌨️ Upload Data Text'):
     raw = st.text_area(
         "Masukkan banyak entri, pisahkan setiap entri dengan '==='",
         key="bulk_input",

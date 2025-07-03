@@ -381,6 +381,128 @@ with st.expander('⌨️ Bulk Manual Input'):
         for k in ["bulk_parsed", "bulk_input", "file_uploader"]:
             st.session_state.pop(k, None)
         st.rerun()
+
+with st.expander("✏️ Input Manual Data"):
+    tgl_pemesanan = st.date_input("Tgl Pemesanan", value=date.today(), key="tgl_pemesanan")
+    tgl_berangkat = st.date_input("Tgl Berangkat", value=date.today(), key="tgl_berangkat")
+
+    kode_booking = st.text_input("Kode Booking")
+    no_penerbangan = st.text_input("No Penerbangan / Hotel / Kereta")
+    durasi = st.text_input("Durasi")
+    nama_customer = st.text_input("Nama Customer")
+    rute = st.text_input("Rute")
+    harga_beli = st.number_input("Harga Beli", min_value=0.0, step=1000.0, format="%.0f", key="harga_beli")
+    harga_jual = st.number_input("Harga Jual", min_value=0.0, step=1000.0, format="%.0f", key="harga_jual")
+
+    laba = harga_jual - harga_beli
+    pct_laba = (laba / harga_beli * 100) if harga_beli > 0 else 0.0
+    st.markdown(f"**Laba:** Rp {int(laba):,}".replace(",", "."))
+    st.markdown(f"**% Laba:** {pct_laba:.2f}%")
+
+    tipe = st.selectbox("Tipe", ["KERETA", "HOTEL", "PESAWAT"])
+    bf_nbf = st.selectbox("BF/NBF", ["BF", "NBF", ""])
+    no_invoice = st.text_input("No Invoice")
+    keterangan = st.text_input("Keterangan")
+
+    pemesan_options = ["ER ENDO", "KI ENDO", "BTN SMG", "PT MURINDA", "ASRUL", "Lainnya..."]
+    nama_pemesan = st.selectbox("Nama Pemesan", pemesan_options)
+    if nama_pemesan == "Lainnya...":
+        nama_pemesan = st.text_input("Masukkan Nama Pemesan")
+
+    admin = st.selectbox("Admin", ["PA", "MA"])
+
+    if st.button("➕ Tambah Data ke Preview"):
+        new_data = {
+            "Tgl Pemesanan": tgl_pemesanan,
+            "Tgl Berangkat": tgl_berangkat,
+            "Kode Booking": kode_booking,
+            "No Penerbangan / Hotel / Kereta": no_penerbangan,
+            "Durasi": durasi,
+            "Nama Customer": nama_customer,
+            "Rute": rute,
+            "Harga Beli": harga_beli,
+            "Harga Jual": harga_jual,
+            "Laba": laba,
+            "% Laba": pct_laba,
+            "Tipe": tipe,
+            "BF/NBF": bf_nbf,
+            "No Invoice": no_invoice,
+            "Keterangan": keterangan,
+            "Nama Pemesan": nama_pemesan,
+            "Admin": admin,
+        }
+        if "bulk_parsed" not in st.session_state:
+            st.session_state.bulk_parsed = pd.DataFrame()
+        st.session_state.bulk_parsed = pd.concat(
+            [st.session_state.bulk_parsed, pd.DataFrame([new_data])], ignore_index=True
+        )
+        st.success("✅ Data ditambahkan ke preview.")
+
+# --- Preview dan edit data sebelum simpan ---
+if "bulk_parsed" in st.session_state and not st.session_state.bulk_parsed.empty:
+    df = st.session_state.bulk_parsed
+
+    if "edit_mode_bulk" not in st.session_state:
+        st.session_state.edit_mode_bulk = False
+
+    edit_mode = st.checkbox("✏️ Edit Data Manual", value=st.session_state.edit_mode_bulk)
+
+    if edit_mode:
+        st.session_state.edit_mode_bulk = True
+        st.markdown("#### 📝 Form Edit Manual Per Baris")
+
+        row_index = st.number_input("Pilih baris ke-", min_value=0, max_value=len(df) - 1, step=1)
+        row_data = df.iloc[row_index].to_dict()
+        updated_row = {}
+
+        for col, val in row_data.items():
+            if col in ["Tgl Pemesanan", "Tgl Berangkat"]:
+                if pd.isna(val) or val == "":
+                    val = pd.Timestamp.today()
+                else:
+                    try:
+                        val = pd.to_datetime(val).date()
+                    except:
+                        val = pd.Timestamp.today().date()
+                new_val = st.date_input(f"{col}", value=val)
+            elif isinstance(val, (int, float)):
+                new_val = st.text_input(f"{col}", value=str(val))
+            else:
+                new_val = st.text_input(f"{col}", value=str(val) if pd.notna(val) else "")
+            updated_row[col] = new_val
+
+        if st.button("💾 Simpan Perubahan"):
+            for col in updated_row:
+                # Konversi tipe jika perlu
+                if col in ["Harga Beli", "Harga Jual", "Laba", "% Laba"]:
+                    try:
+                        df.at[row_index, col] = float(updated_row[col])
+                    except:
+                        df.at[row_index, col] = 0.0
+                elif col in ["Tgl Pemesanan", "Tgl Berangkat"]:
+                    try:
+                        df.at[row_index, col] = pd.to_datetime(updated_row[col]).date()
+                    except:
+                        df.at[row_index, col] = pd.Timestamp.today().date()
+                else:
+                    df.at[row_index, col] = updated_row[col]
+            st.session_state.bulk_parsed = df
+            st.session_state.edit_mode_bulk = False
+            st.success("✅ Perubahan disimpan.")
+            st.experimental_rerun()
+
+    else:
+        st.session_state.edit_mode_bulk = False
+        st.markdown("#### 📊 Preview Data Manual")
+        st.dataframe(df, use_container_width=True)
+
+    if st.button("📤 Simpan ke GSheet"):
+        save_gsheet(st.session_state.bulk_parsed)
+        for k in ["bulk_parsed"]:
+            st.session_state.pop(k, None)
+        st.success("✅ Data berhasil disimpan dan preview dihapus.")
+        st.experimental_rerun()
+
 with st.expander('💾 Database Pemesan', expanded=True):
     # === Konfigurasi ===
     SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"

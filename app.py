@@ -845,10 +845,16 @@ with st.expander('Database Pemesan', expanded=True):
                 if filter_uninvoice:
                     df_all["No Invoice"] = df_all["No Invoice"].replace("", pd.NA)
                     df_all = df_all[df_all["No Invoice"].isna()]
-            
+                df_to_update = pd.merge(
+                    selected_norm,
+                    df_all,
+                    on=["Nama Pemesan_str", "Kode Booking_str", "Tgl Pemesanan_str"],
+                    how="inner",
+                    suffixes=('', '_matched')
+                )
                 # Tampilkan data yang difilter jika ingin (opsional)
                 st.write("### Data yang akan diproses:")
-                st.dataframe(filter_uninvoice)
+                st.dataframe(df_to_update)
             
                 if st.button("🔁 Terapkan Update Massal"):
                     try:

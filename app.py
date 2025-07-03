@@ -667,6 +667,7 @@ with st.expander('Database Pemesan', expanded=True):
         tanggal_range = [tanggal_range[0], tanggal_range[0]]
     tanggal_range = [d if isinstance(d, date) else d.date() for d in tanggal_range]
     nama_filter = st.sidebar.text_input("Cari Nama Pemesan")
+    kode_booking_filter = st.sidebar.text_input("Cari Nama Pemesan")
 
     # === Filter DataFrame ===
     filtered_df = df[
@@ -675,6 +676,8 @@ with st.expander('Database Pemesan', expanded=True):
     ]
     if nama_filter:
         filtered_df = filtered_df[filtered_df["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
+    if kode_booking_filter:
+        filtered_df = filtered_df[filtered_df["Kode Booking"].str.contains(kode_booking_filter, case=False, na=False)]
     
     if tampilkan_uninvoice_saja:
         filtered_df = filtered_df[filtered_df["No Invoice"].isna() | (filtered_df["No Invoice"].str.strip() == "")]

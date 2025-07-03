@@ -226,7 +226,7 @@ st.markdown("""<hr style="border-top: 1px solid #7f8c8d;">""", unsafe_allow_html
     
 # --- SECTION 1: UPLOAD & OCR ---
 #st.markdown('---')
-with st.expander("Upload Gambar atau PDF untuk OCR"):
+with st.expander("⬆️📷 Upload Gambar atau PDF untuk OCR"):
     file = st.file_uploader(
         "Pilih file gambar (.jpg/.png) atau PDF",
         type=['jpg','jpeg','png','pdf'],
@@ -297,7 +297,7 @@ with st.expander("Upload Gambar atau PDF untuk OCR"):
 
 # --- SECTION 2: BULK MANUAL INPUT ---
 #st.markdown('---')
-with st.expander('Bulk Manual Input'):
+with st.expander('⌨️ Bulk Manual Input'):
     raw = st.text_area(
         "Masukkan banyak entri, pisahkan setiap entri dengan '==='",
         key="bulk_input",
@@ -381,7 +381,7 @@ with st.expander('Bulk Manual Input'):
         for k in ["bulk_parsed", "bulk_input", "file_uploader"]:
             st.session_state.pop(k, None)
         st.rerun()
-with st.expander('Database Pemesan', expanded=True):
+with st.expander('💾 Database Pemesan', expanded=True):
     # === Konfigurasi ===
     SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
     WORKSHEET_NAME = "Data"

@@ -750,7 +750,16 @@ with st.expander('Database Pemesan', expanded=True):
             
                 # Fungsi bantu amankan tanggal
                 def safe_date(val):
-                    return val if isinstance(val, date) else date.today()
+                    if isinstance(val, date):
+                        return val
+                    if isinstance(val, str):
+                        try:
+                            return datetime.strptime(val, "%Y-%m-%d").date()
+                        except ValueError:
+                            pass
+                    if isinstance(val, pd.Timestamp):
+                        return val.date()
+                    return date.today()
             
                 # Ambil dan validasi input
                 nama_pemesan_form = st.text_input("Nama Pemesan", row_to_edit.get("Nama Pemesan", ""))

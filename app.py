@@ -59,7 +59,7 @@ def prepare_batch_update(
         mask = (
             (df_all["Nama Pemesan_str"] == row["Nama Pemesan_str"]) &
             (df_all["Kode Booking_str"] == row["Kode Booking_str"]) &
-            (df_all["Tgl Pemesanan_str"] == row["Tgl Pemesanan_str"])
+            (df_all["Tgl Berangkat_str"] == row["Tgl Berangkat_str"])
         )
 
         if mask.any():
@@ -95,7 +95,7 @@ def normalize_df(df):
 
     # Pastikan tanggal di-parse dengan dayfirst=True
     df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], dayfirst=True, errors="coerce")
-    df["Tgl Pemesanan_str"] = df["Tgl Pemesanan"].dt.strftime("%d-%m-%Y").fillna("")
+    df["Tgl Berangkat_str"] = df["Tgl Berangkat"].dt.strftime("%d-%m-%Y").fillna("")
 
     # Konversi kode booking ke string
     df["Kode Booking_str"] = df["Kode Booking"].astype(str).str.strip().str.upper()
@@ -776,7 +776,7 @@ with st.expander('Database Pemesan', expanded=True):
                         mask = (
                             (df_all["Nama Pemesan_str"] == selected_norm.loc[0, "Nama Pemesan_str"]) &
                             (df_all["Kode Booking_str"] == selected_norm.loc[0, "Kode Booking_str"]) &
-                            (df_all["Tgl Pemesanan_str"] == selected_norm.loc[0, "Tgl Pemesanan_str"])
+                            (df_all["Tgl Berangkat_str"] == selected_norm.loc[0, "Tgl Berangkat_str"])
                         )
     
             
@@ -896,7 +896,7 @@ with st.expander('Database Pemesan', expanded=True):
                                 tidak_ditemukan.append({
                                     "Nama Pemesan": row["Nama Pemesan_str"],
                                     "Kode Booking": row["Kode Booking_str"],
-                                    "Tgl Pemesanan": row["Tgl Pemesanan_str"]
+                                    "Tgl Berangkat": row["Tgl Berangkat_str"]
                                 })
             
                         # Ringkasan hasil update

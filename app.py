@@ -1102,6 +1102,7 @@ with st.expander('Database Pemesan', expanded=True):
         
 with st.expander("📘 Laporan Keuangan Lengkap"):
     st.markdown("### 📊 Filter Laporan")
+    df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce")
 
     tab1, tab2, tab3 = st.tabs(["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"])
 

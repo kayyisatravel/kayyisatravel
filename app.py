@@ -19,7 +19,7 @@ import io
 import math # Untuk pembulatan jika diperlukan
 from typing import List, Dict
 from gspread.utils import rowcol_to_a1
-from datetime import datetime
+from datetime import datetime, date
 from zoneinfo import ZoneInfo  # Built-in mulai Python 3.9
 import time
 
@@ -750,32 +750,54 @@ with st.expander('Database Pemesan', expanded=True):
             
                 # Fungsi bantu amankan tanggal
                 def safe_date(val):
+                    """Ubah string / Timestamp / NaT jadi date."""
+                    if pd.isna(val):
+                        return date.today()
                     if isinstance(val, date):
                         return val
+                    if isinstance(val, datetime):
+                        return val.date()
+                    if isinstance(val, pd.Timestamp):
+                        return val.date()
                     if isinstance(val, str):
                         try:
                             return datetime.strptime(val, "%Y-%m-%d").date()
                         except ValueError:
-                            pass
-                    if isinstance(val, pd.Timestamp):
-                        return val.date()
+                            try:
+                                return datetime.strptime(val, "%d-%m-%Y").date()
+                            except ValueError:
+                                return date.today()
                     return date.today()
-            
-                # Ambil dan validasi input
-                nama_pemesan_form = st.text_input("Nama Pemesan", row_to_edit.get("Nama Pemesan", ""))
+                
+                def safe_text(val):
+                    """Jaminan string, meski None."""
+                    return str(val) if pd.notna(val) else ""
+                
+                def safe_number(val):
+                    """Ubah angka dari str/None jadi float"""
+                    if pd.isna(val) or val == "":
+                        return 0
+                    try:
+                        s = str(val).replace('Rp', '').replace('.', '').replace(',', '').strip()
+                        return float(s)
+                    except:
+                        return 0
+                
+                # --- Ambil nilai awal dari row_to_edit dengan aman ---
+                nama_pemesan_form = st.text_input("Nama Pemesan", safe_text(row_to_edit.get("Nama Pemesan")))
                 tgl_pemesanan_form = st.date_input("Tgl Pemesanan", safe_date(row_to_edit.get("Tgl Pemesanan")))
                 tgl_berangkat_form = st.date_input("Tgl Berangkat", safe_date(row_to_edit.get("Tgl Berangkat")))
-                kode_booking_form = st.text_input("Kode Booking", row_to_edit.get("Kode Booking", ""))
-                no_penerbangan_form = st.text_input("No Penerbangan / Hotel / Kereta", row_to_edit.get("No Penerbangan / Hotel / Kereta", ""))
-                nama_customer_form = st.text_input("Nama Customer", row_to_edit.get("Nama Customer", ""))
-                rute_form = st.text_input("Rute", row_to_edit.get("Rute", ""))
-                harga_beli_form = st.number_input("Harga Beli", value=parse_harga(row_to_edit.get("Harga Beli", 0)), format="%.0f")
-                harga_jual_form = st.number_input("Harga Jual", value=parse_harga(row_to_edit.get("Harga Jual", 0)), format="%.0f")
-                #tipe_form = st.selectbox("Tipe", ["KERETA", "PESAWAT", "HOTEL"], index=["KERETA", "PESAWAT", "HOTEL"].index(str(row_to_edit.get("Tipe", "")).upper()))
-                #bf_nbf_form = st.text_input("BF/NBF", row_to_edit.get("BF/NBF", ""))
-                no_invoice_form = st.text_input("No Invoice", row_to_edit.get("No Invoice", ""))
-                keterangan_form = st.text_input("Keterangan", row_to_edit.get("Keterangan", ""))
-                admin_form = st.text_input("Admin", row_to_edit.get("Admin", ""))
+                kode_booking_form = st.text_input("Kode Booking", safe_text(row_to_edit.get("Kode Booking")))
+                no_penerbangan_form = st.text_input("No Penerbangan / Hotel / Kereta", safe_text(row_to_edit.get("No Penerbangan / Hotel / Kereta")))
+                nama_customer_form = st.text_input("Nama Customer", safe_text(row_to_edit.get("Nama Customer")))
+                rute_form = st.text_input("Rute", safe_text(row_to_edit.get("Rute")))
+                harga_beli_form = st.number_input("Harga Beli", value=safe_number(row_to_edit.get("Harga Beli")), format="%.0f")
+                harga_jual_form = st.number_input("Harga Jual", value=safe_number(row_to_edit.get("Harga Jual")), format="%.0f")
+                # tipe_form = st.selectbox(...)  # Opsional jika masih pakai tipe
+                # bf_nbf_form = st.text_input("BF/NBF", safe_text(row_to_edit.get("BF/NBF")))
+                no_invoice_form = st.text_input("No Invoice", safe_text(row_to_edit.get("No Invoice")))
+                keterangan_form = st.text_input("Keterangan", safe_text(row_to_edit.get("Keterangan")))
+                admin_form = st.text_input("Admin", safe_text(row_to_edit.get("Admin")))
             
                 if st.button("💾 Simpan Perubahan ke GSheet"):
                     try:

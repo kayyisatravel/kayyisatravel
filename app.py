@@ -21,6 +21,8 @@ from typing import List, Dict
 from gspread.utils import rowcol_to_a1
 from datetime import datetime
 from zoneinfo import ZoneInfo  # Built-in mulai Python 3.9
+import time
+
 
 now = datetime.now(ZoneInfo("Asia/Jakarta"))
 

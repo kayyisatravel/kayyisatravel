@@ -667,7 +667,7 @@ with st.expander('Database Pemesan', expanded=True):
         tanggal_range = [tanggal_range[0], tanggal_range[0]]
     tanggal_range = [d if isinstance(d, date) else d.date() for d in tanggal_range]
     nama_filter = st.sidebar.text_input("Cari Nama Pemesan")
-    kode_booking_filter = st.sidebar.text_input("Cari Nama Pemesan")
+    kode_booking_filter = st.sidebar.text_input("Cari Kode Booking")
 
     # === Filter DataFrame ===
     filtered_df = df[

@@ -507,7 +507,7 @@ if "bulk_parsed" in st.session_state and not st.session_state.bulk_parsed.empty:
         st.success("✅ Data berhasil disimpan dan preview dihapus.")
         st.experimental_rerun()
 
-with st.expander('💾 Database Pemesan', expanded=True):
+with st.expander('💾 Database Pemesan'):
     # === Konfigurasi ===
     SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
     WORKSHEET_NAME = "Data"

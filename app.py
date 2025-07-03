@@ -845,6 +845,9 @@ with st.expander('Database Pemesan', expanded=True):
                 if filter_uninvoice:
                     df_all["No Invoice"] = df_all["No Invoice"].replace("", pd.NA)
                     df_all = df_all[df_all["No Invoice"].isna()]
+                df_all_unique = df_all.drop_duplicates(
+                    subset=["Nama Pemesan_str", "Kode Booking_str", "Tgl Berangkat_str"]
+                )
                 df_to_update = pd.merge(
                     selected_norm,
                     df_all,

@@ -126,28 +126,44 @@ def generate_eticket(data):
     penumpang_rows = "\n".join([
         f"""
         <tr>
-          <td style="text-align: left;">{p['nama']}</td>
-          <td style="text-align: center;">{p['tipe']}</td>
-          <td style="text-align: center;">{p['ktp']}</td>
-          <td style="text-align: center;">{p['kursi']}</td>
+          <td style="text-align: left; padding:8px; border: 1px solid #bbb;">{p['nama']}</td>
+          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p['tipe']}</td>
+          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p['ktp']}</td>
+          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p['kursi']}</td>
         </tr>
-        """ for p in data['penumpang']
+        """ for p in data.get('penumpang', [])
     ])
 
     html = f"""
-    <div style="font-family: 'Segoe UI'; max-width: 720px; margin: 30px auto; background: #fff; border-radius: 14px; box-shadow: 0 8px 25px rgba(0,0,0,0.12); padding: 30px; color: #333;">
+    <style>
+      @media print {{
+        .no-print {{
+          display: none !important;
+        }}
+        thead {{
+          background-color: #cce0ff !important;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }}
+      }}
+    </style>
+
+    <div style="font-family: 'Segoe UI'; max-width: 720px; margin: 30px auto; background: #fff; border-radius: 14px;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.12); padding: 30px; color: #333;">
+
       <div style="text-align: center; margin-bottom: 20px;">
         <img src="https://pilihanhidup.com/wp-content/uploads/2024/04/logo-KAI.png" style="width: 120px;"/>
       </div>
 
       <h1 style="color:#0047b3;">🎫 E-Tiket Kereta Api</h1>
       <p><strong>Kode Booking:</strong> {data.get('kode_booking', 'N/A')}<br>
-         <strong>Tanggal Berangkat:</strong> {data.get('tanggal_berangkat', 'Tidak Diketahui')}<br>
-         <strong>Tanggal Tiba:</strong> {data.get('tanggal_tiba', 'Tidak Diketahui')}<br>
          <strong>Nama Kereta:</strong> {data.get('nama_kereta', 'Tidak Diketahui')}</p>
+         
+         <strong>Tanggal Berangkat:</strong> {data.get('tanggal_berangkat', 'Tidak Diketahui')}<br>
+         <strong>Tanggal Tiba:</strong> {data.get('tanggal_tiba', 'Tidak Diketahui')}</p>
 
       <p><strong>Rute:</strong><br>
-      {data['asal']} <strong>{data['jam_berangkat']}</strong> → {data['tujuan']} <strong>{data['jam_tiba']}</strong></p>
+      {data.get('asal', 'Tidak Diketahui')} <strong>{data.get('jam_berangkat', '')}</strong> → {data.get('tujuan', 'Tidak Diketahui')} <strong>{data.get('jam_tiba', '')}</strong></p>
 
       <h2 style="border-bottom: 2px solid #0047b3;">Detail Penumpang</h2>
       <table style="width: 100%; border-collapse: collapse;">
@@ -165,9 +181,17 @@ def generate_eticket(data):
       </table>
 
       <div style="margin-top: 20px; text-align: center;">
-        <img src="https://barcode.tec-it.com/barcode.ashx?data={data['kode_booking']}&code=PDF417"
+        <img src="https://barcode.tec-it.com/barcode.ashx?data={data.get('kode_booking', '')}&code=PDF417"
              style="width: 250px; height: 80px;" />
-        <p><strong>Kode Booking:</strong> {data['kode_booking']}</p>
+        <p><strong>Kode Booking:</strong> {data.get('kode_booking', '')}</p>
+      </div>
+
+      <div style="text-align: center; margin-top: 30px;">
+        <button class="no-print" onclick="window.print()"
+                style="padding: 10px 20px; background-color: #0047b3; color: white; border: none;
+                       border-radius: 6px; cursor: pointer; font-size: 16px;">
+          Cetak Tiket
+        </button>
       </div>
     </div>
     """
@@ -207,6 +231,7 @@ Kursi EKS 5/10D
     data = parse_input_new_format(contoh_input)
     html = generate_eticket(data)
     print(html)
+
 # =========================
 # GENERATE PDF E-TIKET
 # =========================

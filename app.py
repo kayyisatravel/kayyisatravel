@@ -22,7 +22,7 @@ from gspread.utils import rowcol_to_a1
 from datetime import datetime
 from zoneinfo import ZoneInfo  # Built-in mulai Python 3.9
 import time
-from generator import parse_input_dynamic, generate_eticket, generate_eticket_pdf
+from generator import parse_input_dynamic, generate_pdf417_barcode, generate_eticket_pdf
 
 now = datetime.now(ZoneInfo("Asia/Jakarta"))
 

@@ -93,7 +93,7 @@ def parse_input_dynamic(text):
                     "nama": string.capwords(nama.lower()),
                     "tipe": tipe_penumpang,
                     "ktp": ktp,
-                    "kursi": kursi.strip()
+                    "kursi": kursi.replace("Kursi", "").strip()
                 })
                 i += 5
             else:

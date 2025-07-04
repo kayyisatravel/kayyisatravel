@@ -17,14 +17,12 @@ import string
 def parse_input_dynamic(text):
     # --- Kode Booking ---
     kode_booking = 'N/A'
-    # Ubah keyword dari 'Kode Booking' ke 'Kode Pemesanan' karena input ada itu
     booking_match = re.search(r'Kode\s*Pemesanan\s*:?\s*(\w+)', text, re.IGNORECASE)
     if booking_match:
         kode_booking = booking_match.group(1).strip()
 
     # --- Tanggal ---
     tanggal = 'Tidak Diketahui'
-    # Ambil tanggal pesan dulu
     tanggal_match = re.search(r'Tanggal Pesan\s*:\s*(\d{4}-\d{2}-\d{2})', text)
     if tanggal_match:
         try:
@@ -32,85 +30,62 @@ def parse_input_dynamic(text):
             tanggal = dt.strftime('%d %b %Y')
         except:
             tanggal = tanggal_match.group(1)
-    else:
-        # fallback: cari tanggal keberangkatan
-        tanggal_match2 = re.search(r'(\d{4}-\d{2}-\d{2}),?\s*(\d{4})', text)
-        if tanggal_match2:
-            try:
-                dt = datetime.strptime(tanggal_match2.group(1), '%Y-%m-%d')
-                tanggal = dt.strftime('%d %b %Y')
-            except:
-                tanggal = tanggal_match2.group(1)
 
     # --- Nama Kereta dan Nomor KA ---
     nama_kereta = 'Tidak Diketahui'
     nomor_ka = ''
-    # Cari "Nomor KA" lalu ambil baris setelahnya (nomor KA) dan sebelumnya (nama kereta)
-    # Contoh teks: 
-    # Nomor KA
-    #
-    # BLAMBANGAN EKSPRES
-    #
-    # 146
-    ka_block = re.search(r'Nomor KA\s*\n+([A-Z\s]+)\n+(\d+)', text, re.IGNORECASE)
-    if ka_block:
-        nama_kereta = string.capwords(ka_block.group(1).strip().lower())
-        nomor_ka = ka_block.group(2).strip()
+    # Cari nama kereta dan nomor KA dengan cari baris 'Nomor KA' lalu ambil 2 baris setelahnya
+    lines = text.splitlines()
+    try:
+        idx_ka = next(i for i,v in enumerate(lines) if 'Nomor KA' in v)
+        # nama kereta 2 baris setelah
+        nama_kereta_raw = lines[idx_ka + 3].strip() if len(lines) > idx_ka + 3 else ''
+        nomor_ka_raw = lines[idx_ka + 4].strip() if len(lines) > idx_ka + 4 else ''
+        if nama_kereta_raw:
+            nama_kereta = string.capwords(nama_kereta_raw.lower())
+        if nomor_ka_raw:
+            nomor_ka = nomor_ka_raw
+    except StopIteration:
+        pass
 
     # --- Rute Asal dan Tujuan + Jam ---
-    # Format di input: 
-    # SURABAYA GUBENG (SGU) 2025-
-    # 07-06, 2250
-    # BANYUWANGI KOTA (BWI) 2025-
-    # 07-07, 0425
+    # Cari keberangkatan dan tujuan sesuai format dua baris
+    asal = 'Tidak Diketahui'
+    tujuan = 'Tidak Diketahui'
+    jam_berangkat = 'Tidak Diketahui'
+    jam_tiba = 'Tidak Diketahui'
 
-    # Cari keberangkatan: nama stasiun + kode + tanggal + jam
+    # Cari baris stasiun keberangkatan dan jamnya
     keberangkatan_match = re.search(
-        r'Keberangkatan\s*\n\s*([A-Z\s]+)\s*\([A-Z]+\)\s*\d{4}-\n(\d{2}-\d{2}),\s*(\d{4})', 
+        r'Keberangkatan\s*\n\s*([A-Z\s]+)\s*\([A-Z]+\)\s*\d{4}-\n(\d{2}-\d{2}),\s*(\d{4})',
         text, re.IGNORECASE)
     if keberangkatan_match:
         asal = string.capwords(keberangkatan_match.group(1).strip().lower())
-        tanggal_berangkat_str = '2025-' + keberangkatan_match.group(2)
         jam_berangkat = keberangkatan_match.group(3)
         jam_berangkat = jam_berangkat[:2] + ':' + jam_berangkat[2:]
-    else:
-        asal = 'Tidak Diketahui'
-        jam_berangkat = 'Tidak Diketahui'
-        tanggal_berangkat_str = None
 
-    # Cari tujuan: nama stasiun + kode + tanggal + jam
+    # Cari baris stasiun tujuan dan jamnya
     tujuan_match = re.search(
         r'Tujuan\s*\n\s*([A-Z\s]+)\s*\([A-Z]+\)\s*\d{4}-\n(\d{2}-\d{2}),\s*(\d{4})',
         text, re.IGNORECASE)
     if tujuan_match:
         tujuan = string.capwords(tujuan_match.group(1).strip().lower())
-        tanggal_tiba_str = '2025-' + tujuan_match.group(2)
         jam_tiba = tujuan_match.group(3)
         jam_tiba = jam_tiba[:2] + ':' + jam_tiba[2:]
-    else:
-        tujuan = 'Tidak Diketahui'
-        jam_tiba = 'Tidak Diketahui'
-        tanggal_tiba_str = None
 
     # --- Penumpang ---
     penumpang = []
-    # Cari blok Detail Penumpang
-    detail_penumpang_match = re.search(r'Detail Penumpang(.*?)(?:\n\n|$)', text, re.DOTALL | re.IGNORECASE)
-    if detail_penumpang_match:
-        block = detail_penumpang_match.group(1).strip()
+    # Ambil block Detail Penumpang
+    detail_match = re.search(r'Detail Penumpang(.*)', text, re.IGNORECASE|re.DOTALL)
+    if detail_match:
+        block = detail_match.group(1).strip()
         lines = [line.strip() for line in block.splitlines() if line.strip()]
-        # Filter header baris
-        header_keywords = ['Penumpang', 'Kursi', 'Kelas', 'No Identitas', 'Tipe', 'Identitas', 'Nomor']
-        filtered_lines = [line for line in lines if not any(hk.lower() in line.lower() for hk in header_keywords)]
-
-        # Parsing format baru: Nama Penumpang di satu baris, kursi di baris berikutnya, KTP di baris berikutnya
-        # Jadi coba proses dalam grup 3 baris
-        for i in range(0, len(filtered_lines), 3):
-            try:
-                nama = filtered_lines[i]
-                kursi = filtered_lines[i+1]
-                ktp = filtered_lines[i+2]
-                # Validasi ktp (angka panjang)
+        # Parsing 3 baris: nama, kursi, ktp
+        for i in range(0, len(lines), 3):
+            if i + 2 < len(lines):
+                nama = lines[i]
+                kursi = lines[i+1]
+                ktp = lines[i+2]
                 if re.fullmatch(r'\d{15,}', ktp):
                     penumpang.append({
                         "nama": string.capwords(nama.lower()),
@@ -118,23 +93,6 @@ def parse_input_dynamic(text):
                         "ktp": ktp,
                         "kursi": kursi.replace(" ", "")
                     })
-            except IndexError:
-                # Jika tidak lengkap, skip
-                continue
-
-    # fallback format lama tetap ada jika tidak ditemukan penumpang
-    if not penumpang:
-        penumpang_lines = re.findall(
-            r'\d+\s+(.+?)\s+\((Dewasa|Anak|Bayi)\)\s+KTP\s+(\d+)\s+([A-Z]+\s*\d+\s*/\s*\d+[A-Z]?)',
-            text
-        )
-        for p in penumpang_lines:
-            penumpang.append({
-                "nama": string.capwords(p[0].lower()),
-                "tipe": p[1],
-                "ktp": p[2],
-                "kursi": p[3].replace(" ", "")
-            })
 
     return {
         "kode_booking": kode_booking,
@@ -146,6 +104,7 @@ def parse_input_dynamic(text):
         "jam_tiba": jam_tiba,
         "penumpang": penumpang
     }
+
 def generate_eticket(data):
     penumpang_rows = "\n".join([
         f"""

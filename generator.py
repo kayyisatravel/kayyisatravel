@@ -14,7 +14,7 @@ import string
 # FUNGSI PARSER DINAMIS
 # =======================
 
-def parse_input_new_format(text):
+def parse_input_dynamic(text):
     # --- Kode Booking ---
     kode_booking = 'N/A'
     kb_match = re.search(r'Kode booking\s*:\s*(\w+)', text, re.IGNORECASE)

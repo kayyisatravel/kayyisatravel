@@ -6,89 +6,92 @@ from reportlab.lib.utils import ImageReader
 from io import BytesIO
 import pdf417gen
 from PIL import Image
+from datetime import datetime
+
 
 # =======================
 # FUNGSI PARSER DINAMIS
 # =======================
 
 def parse_input_dynamic(text):
-    # Kode Booking
-    booking_match = re.search(r'Kode(?:\s|_)Booking\s*:?\s*(\w+)', text, re.IGNORECASE)
+    # --- Kode Booking ---
+    booking_match = re.search(r'Kode\s*Pemesanan\s*[:\s]*([A-Z0-9]+)', text, re.IGNORECASE)
     if not booking_match:
-        booking_match = re.search(r'Kode\s*Pemesanan\s*:?\s*(\w+)', text, re.IGNORECASE)
+        booking_match = re.search(r'Kode(?:\s|_)Booking\s*:?\s*(\w+)', text, re.IGNORECASE)
     kode_booking = booking_match.group(1).strip() if booking_match else 'N/A'
 
-    # Tanggal: cari format hari, tanggal bulan tahun
-    tanggal_match = re.search(r'\b(?:Sen|Sel|Rab|Kam|Jum|Sab|Min)[a-z]*,\s*\d{1,2}\s*\w+\s*\d{4}', text, re.IGNORECASE)
+    # --- Tanggal Pesan ---
+    tanggal_match = re.search(r'Tanggal\s*Pesan\s*[:\s]*([\d\-]{10})', text, re.IGNORECASE)
     if not tanggal_match:
-        # Alternatif: tanggal pesan yyyy-mm-dd
-        tanggal_match = re.search(r'Tanggal\s*(?:Pesan)?\s*:?\s*([\d\-]+)', text, re.IGNORECASE)
+        tanggal_match = re.search(r'\b(?:Sen|Sel|Rab|Kam|Jum|Sab|Min)[a-z]*,\s*\d{1,2}\s*\w+\s*\d{4}', text, re.IGNORECASE)
     tanggal = tanggal_match.group(1).strip() if tanggal_match else 'Tidak Diketahui'
 
-    # Nama Kereta: coba cari di blok Nomor KA / Nama KA atau baris awal besar
-    kereta_match = re.search(r'Nomor KA\s*\n([A-Z\s]+)', text, re.IGNORECASE)
-    if kereta_match:
-        nama_kereta = kereta_match.group(1).strip().title()
-    else:
-        # fallback ambil baris pertama kapital
-        kereta_match = re.search(r'^([A-Z ]+\d*[A-Z]*)', text.strip(), re.MULTILINE)
-        nama_kereta = kereta_match.group(1).strip().title() if kereta_match else 'Tidak Diketahui'
+    # Jika tanggal berupa yyyy-mm-dd, ubah ke format 'dd Mon yyyy'
+    try:
+        dt_obj = datetime.strptime(tanggal, '%Y-%m-%d')
+        tanggal = dt_obj.strftime('%d %b %Y')
+    except:
+        pass  # biarkan apa adanya
 
-    # Asal & Tujuan: dari blok keberangkatan dan tujuan format:
-    # SURABAYA GUBENG (SGU) 2025-07-06, 2250
-    # BANYUWANGI KOTA (BWI) 2025-07-07, 0425
-    rute_match = re.findall(r'([A-Z][A-Za-z\s]+)\s+\([A-Z]{2,4}\)\s+\d{4}-\d{2}-\d{2},\s*\d{4}', text)
-    if len(rute_match) >= 2:
-        asal = rute_match[0].strip().title()
-        tujuan = rute_match[1].strip().title()
+    # --- Nama Kereta ---
+    # Coba cari baris Nomor KA lalu baris berikutnya nama kereta
+    nama_kereta = 'Tidak Diketahui'
+    nomor_ka_match = re.search(r'Nomor\s*KA\s*[\n\r]+(.+)', text, re.IGNORECASE)
+    if nomor_ka_match:
+        # Ambil satu baris berikutnya sebagai nama kereta
+        lines_after = text[numor_ka_match.end():].strip().splitlines()
+        if lines_after:
+            nama_kereta = lines_after[0].strip().title()
+
+    # Jika tidak ketemu, coba pola lama
+    if nama_kereta == 'Tidak Diketahui':
+        kereta_match = re.search(r'^([A-Z ]+\d+)', text.strip(), re.MULTILINE)
+        if kereta_match:
+            nama_kereta = kereta_match.group(1).strip().title()
+
+    # --- Stasiun Asal dan Tujuan, Jam Berangkat dan Tiba ---
+    # Cari Keberangkatan dan Tujuan + waktu
+    keberangkatan_match = re.search(
+        r'Keberangkatan\s*[\n\r]+(.+?)\s*\(?([A-Z]+)\)?\s*([\d\-]+),\s*(\d{2})(\d{2})', text, re.IGNORECASE | re.DOTALL)
+    tujuan_match = re.search(
+        r'Tujuan\s*[\n\r]+(.+?)\s*\(?([A-Z]+)\)?\s*([\d\-]+),\s*(\d{2})(\d{2})', text, re.IGNORECASE | re.DOTALL)
+
+    if keberangkatan_match and tujuan_match:
+        asal = keberangkatan_match.group(1).strip().title()
+        tujuan = tujuan_match.group(1).strip().title()
+        jam_berangkat = f"{keberangkatan_match.group(4)}:{keberangkatan_match.group(5)}"
+        jam_tiba = f"{tujuan_match.group(4)}:{tujuan_match.group(5)}"
     else:
+        # fallback
         asal = tujuan = 'Tidak Diketahui'
+        jam_berangkat = jam_tiba = 'Tidak Diketahui'
 
-    # Jam berangkat & tiba dari format waktu 4 digit setelah tanggal (misal 2250 -> 22:50)
-    jam_berangkat = jam_tiba = 'Tidak Diketahui'
-    jam_match = re.findall(r'\d{4}', text)
-    if len(jam_match) >= 2:
-        def format_jam(j):
-            return f"{j[:2]}:{j[2:]}"
-        jam_berangkat = format_jam(jam_match[0])
-        jam_tiba = format_jam(jam_match[1])
-
-    # Parsing penumpang dari blok Detail Penumpang:
+    # --- Penumpang ---
+    # Cari tabel Penumpang dengan pola baru
     penumpang = []
-    detail_pos = text.find("Detail Penumpang")
-    if detail_pos >= 0:
-        block = text[detail_pos:]
-        # Cari pola: Nama, Kursi, No Identitas (angka panjang)
-        # Contoh: AMILIYA DUWI SETIYOWATI\nEKS-5 10D\n3522096901030005
-        lines = [line.strip() for line in block.splitlines() if line.strip()]
-        i = 1
-        while i + 2 < len(lines):
-            nama = lines[i]
-            kursi = lines[i+1].replace(" ", "")
-            ktp = lines[i+2]
-            if re.match(r'^\d{10,}$', ktp):
-                penumpang.append({
-                    "nama": nama,
-                    "tipe": "Dewasa",  # default
-                    "ktp": ktp,
-                    "kursi": kursi
-                })
-                i += 3
-            else:
-                i += 1
-
-    # Jika penumpang kosong fallback ke regex lama
-    if not penumpang:
+    penumpang_matches = re.findall(
+        r'([A-Z\s]+)\s*\n([A-Z\-]+\d+\s*\d*[A-Z]*)\s*\n(\d+)', text, re.IGNORECASE)
+    if not penumpang_matches:
+        # fallback pola lama
         penumpang_lines = re.findall(
             r'\d+\s+(.+?)\s+\((Dewasa|Anak|Bayi)\)\s+KTP\s+(\d+)\s+([A-Z]+\s*\d+\s*/\s*\d+[A-Z]?)',
             text
         )
         for p in penumpang_lines:
             penumpang.append({
-                "nama": p[0],
-                "tipe": p[1],
+                "nama": p[0].title(),
+                "tipe": p[1].title(),
                 "ktp": p[2],
                 "kursi": p[3].replace(" ", "")
+            })
+
+    else:
+        for p in penumpang_matches:
+            penumpang.append({
+                "nama": p[0].title(),
+                "tipe": "Dewasa",  # default tipe jika tidak ada info
+                "ktp": p[2],
+                "kursi": p[1].replace(" ", "")
             })
 
     return {

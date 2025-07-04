@@ -2,7 +2,10 @@ import streamlit as st
 import re
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
 from io import BytesIO
+import pdf417gen
+from PIL import Image
 
 # =======================
 # FUNGSI PARSER DINAMIS
@@ -119,6 +122,11 @@ def generate_eticket(data):
 # GENERATE PDF E-TIKET
 # =========================
 
+def generate_pdf417_barcode(data):
+    codes = pdf417gen.encode(data, columns=6, security_level=2)
+    image = pdf417gen.render_image(codes, scale=3, ratio=3)
+    return image
+
 def generate_eticket_pdf(data):
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
@@ -152,13 +160,32 @@ def generate_eticket_pdf(data):
     for p in data["penumpang"]:
         c.drawString(60, y, f"- {p['nama']} ({p['tipe']}), KTP: {p['ktp']}, Kursi: {p['kursi']}")
         y -= 18
-        if y < 100:  # avoid overflow
+        if y < 150:  # avoid overflow for barcode
             c.showPage()
             y = height - 50
 
     y -= 30
+
+    # Generate barcode image from kode_booking
+    barcode_img = generate_pdf417_barcode(data['kode_booking'])
+    
+    # Convert PIL image to ReportLab ImageReader
+    pil_buffer = BytesIO()
+    barcode_img.save(pil_buffer, format='PNG')
+    pil_buffer.seek(0)
+    rl_image = ImageReader(pil_buffer)
+
+    # Draw barcode image
+    c.drawImage(rl_image, 50, y - 100, width=250, height=80)
+
+    y -= 110
     c.setFont("Helvetica-Oblique", 10)
     c.drawString(50, y, "Tunjukkan e-tiket ini dan identitas resmi saat boarding.")
+
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+    return buffer
     
     c.showPage()
     c.save()

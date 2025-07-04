@@ -137,7 +137,7 @@ def generate_eticket(data):
          <strong>Jam Berangkat:</strong> {data['jam_berangkat']}<br>
          <strong>Tanggal Tiba:</strong> {data['tanggal_tiba']}<br>
          <strong>Jam Tiba:</strong> {data['jam_tiba']}<br>
-         <strong>Tanggal:</strong> {data['tanggal']}<br>
+         #<strong>Tanggal:</strong> {data['tanggal']}<br>
          <strong>Nama Kereta:</strong> {data['nama_kereta']}</p>
 
       <p><strong>Rute:</strong><br>

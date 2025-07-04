@@ -132,7 +132,11 @@ def generate_eticket(data):
       </div>
 
       <h1 style="color:#0047b3;">🎫 E-Tiket Kereta Api</h1>
-      <p><strong>Kode Booking:</strong> {data['kode_booking']}<br>
+      <p><strong>Kode Booking:</strong> {data['kode_booking']}<br
+         <strong>Tanggal Berangkat:</strong> {data['tanggal_berangkat']}<br>
+         <strong>Jam Berangkat:</strong> {data['jam_berangkat']}<br>
+         <strong>Tanggal Tiba:</strong> {data['tanggal_tiba']}<br>
+         <strong>Jam Tiba:</strong> {data['jam_tiba']}<br>
          <strong>Tanggal:</strong> {data['tanggal']}<br>
          <strong>Nama Kereta:</strong> {data['nama_kereta']}</p>
 

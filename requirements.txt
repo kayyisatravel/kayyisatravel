@@ -27,3 +27,4 @@ mail-parser
 spacy
 scikit-learn
 reportlab
+pdf417gen

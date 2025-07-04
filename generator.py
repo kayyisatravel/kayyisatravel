@@ -34,40 +34,39 @@ def parse_input_dynamic(text):
         pass  # biarkan apa adanya
 
     # --- Nama Kereta ---
-    # Coba cari baris Nomor KA lalu baris berikutnya nama kereta
     nama_kereta = 'Tidak Diketahui'
     nomor_ka_match = re.search(r'Nomor\s*KA\s*[\n\r]+(.+)', text, re.IGNORECASE)
     if nomor_ka_match:
-        # Ambil satu baris berikutnya sebagai nama kereta
         lines_after = text[numor_ka_match.end():].strip().splitlines()
-        if lines_after:
-            nama_kereta = lines_after[0].strip().title()
+        for line in lines_after:
+            line_clean = line.strip()
+            # Ambil baris yang mengandung huruf dan spasi saja (bukan kata kunci)
+            if line_clean and not re.search(r'Keberangkatan|Tujuan|Pemesanan', line_clean, re.IGNORECASE):
+                # Title case saja (kapitalisasi awal kata)
+                nama_kereta = string.capwords(line_clean.lower())
+                break
 
-    # Jika tidak ketemu, coba pola lama
     if nama_kereta == 'Tidak Diketahui':
         kereta_match = re.search(r'^([A-Z ]+\d+)', text.strip(), re.MULTILINE)
         if kereta_match:
-            nama_kereta = kereta_match.group(1).strip().title()
+            nama_kereta = string.capwords(kereta_match.group(1).strip().lower())
 
     # --- Stasiun Asal dan Tujuan, Jam Berangkat dan Tiba ---
-    # Cari Keberangkatan dan Tujuan + waktu
     keberangkatan_match = re.search(
         r'Keberangkatan\s*[\n\r]+(.+?)\s*\(?([A-Z]+)\)?\s*([\d\-]+),\s*(\d{2})(\d{2})', text, re.IGNORECASE | re.DOTALL)
     tujuan_match = re.search(
         r'Tujuan\s*[\n\r]+(.+?)\s*\(?([A-Z]+)\)?\s*([\d\-]+),\s*(\d{2})(\d{2})', text, re.IGNORECASE | re.DOTALL)
 
     if keberangkatan_match and tujuan_match:
-        asal = keberangkatan_match.group(1).strip().title()
-        tujuan = tujuan_match.group(1).strip().title()
+        asal = string.capwords(keberangkatan_match.group(1).strip().lower())
+        tujuan = string.capwords(tujuan_match.group(1).strip().lower())
         jam_berangkat = f"{keberangkatan_match.group(4)}:{keberangkatan_match.group(5)}"
         jam_tiba = f"{tujuan_match.group(4)}:{tujuan_match.group(5)}"
     else:
-        # fallback
         asal = tujuan = 'Tidak Diketahui'
         jam_berangkat = jam_tiba = 'Tidak Diketahui'
 
     # --- Penumpang ---
-    # Cari tabel Penumpang dengan pola baru
     penumpang = []
     penumpang_matches = re.findall(
         r'([A-Z\s]+)\s*\n([A-Z\-]+\d+\s*\d*[A-Z]*)\s*\n(\d+)', text, re.IGNORECASE)
@@ -79,7 +78,7 @@ def parse_input_dynamic(text):
         )
         for p in penumpang_lines:
             penumpang.append({
-                "nama": p[0].title(),
+                "nama": string.capwords(p[0].lower()),
                 "tipe": p[1].title(),
                 "ktp": p[2],
                 "kursi": p[3].replace(" ", "")
@@ -88,8 +87,8 @@ def parse_input_dynamic(text):
     else:
         for p in penumpang_matches:
             penumpang.append({
-                "nama": p[0].title(),
-                "tipe": "Dewasa",  # default tipe jika tidak ada info
+                "nama": string.capwords(p[0].lower()),
+                "tipe": "Dewasa",
                 "ktp": p[2],
                 "kursi": p[1].replace(" ", "")
             })

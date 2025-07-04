@@ -1338,22 +1338,4 @@ with st.expander("🎫 Generator E-Tiket Kereta"):
     if 'last_data' in st.session_state:
         data = st.session_state['last_data']
         html = generate_eticket(data)
-    
-        full_html = f"""
-        <html>
-        <head>
-        <style>
-          /* Tambahkan CSS custom jika perlu */
-        </style>
-        </head>
-        <body>
-          {html}
-          <button onclick="window.print()" 
-            style="margin-top:20px; padding:8px 16px; font-size:16px; cursor:pointer;">
-            🖨️ Cetak Tiket
-          </button>
-        </body>
-        </html>
-        """
-    
-        st.components.v1.html(full_html, height=800, scrolling=True)
+        st.components.v1.html(html, height=800, scrolling=True)

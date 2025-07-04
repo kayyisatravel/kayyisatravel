@@ -1326,14 +1326,20 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
 with st.expander("🎫 Generator E-Tiket Kereta"):
     # Input teks dari hasil OCR atau paste manual
     input_text = st.text_area("Tempelkan teks tiket", height=300)
-    
+
     if st.button("Generate Tiket"):
         if input_text.strip():
             data = parse_input_dynamic(input_text)
-            html = generate_eticket(data)
-            st.components.v1.html(html, height=700, scrolling=True)
+            st.session_state['last_data'] = data  # simpan ke session state
         else:
             st.warning("Silakan masukkan data tiket terlebih dahulu.")
+
+    # Jika sudah ada data di session_state, tampilkan tiket dan tombol cetak PDF
+    if 'last_data' in st.session_state:
+        data = st.session_state['last_data']
+        html = generate_eticket(data)
+        st.components.v1.html(html, height=700, scrolling=True)
+
         if st.button("🖨️ Cetak ke PDF"):
             pdf_buffer = generate_eticket_pdf(data)
             st.download_button(

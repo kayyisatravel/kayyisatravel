@@ -1334,3 +1334,11 @@ with st.expander("🎫 Generator E-Tiket Kereta"):
             st.components.v1.html(html, height=700, scrolling=True)
         else:
             st.warning("Silakan masukkan data tiket terlebih dahulu.")
+        if st.button("🖨️ Cetak ke PDF"):
+            pdf_buffer = generate_eticket_pdf(data)
+            st.download_button(
+                label="📥 Download E-Tiket (PDF)",
+                data=pdf_buffer,
+                file_name=f"eticket_{data['kode_booking']}.pdf",
+                mime="application/pdf"
+            )

@@ -132,13 +132,12 @@ def generate_eticket(data):
       </div>
 
       <h1 style="color:#0047b3;">🎫 E-Tiket Kereta Api</h1>
-      <p><strong>Kode Booking:</strong> {data['kode_booking']}<br>
-         <strong>Tanggal Berangkat:</strong> {data['tanggal_berangkat']}<br>
-         <strong>Jam Berangkat:</strong> {data['jam_berangkat']}<br>
-         <strong>Tanggal Tiba:</strong> {data['tanggal_tiba']}<br>
-         <strong>Jam Tiba:</strong> {data['jam_tiba']}<br>
-         #<strong>Tanggal:</strong> {data['tanggal']}<br>
-         <strong>Nama Kereta:</strong> {data['nama_kereta']}</p>
+      <p><strong>Kode Booking:</strong> {data.get('kode_booking', 'N/A')}<br>
+         <strong>Tanggal Berangkat:</strong> {data.get('tanggal_berangkat', 'Tidak Diketahui')}<br>
+         <strong>Jam Berangkat:</strong> {data.get('jam_berangkat', 'Tidak Diketahui')}<br>
+         <strong>Tanggal Tiba:</strong> {data.get('tanggal_tiba', 'Tidak Diketahui')}<br>
+         <strong>Jam Tiba:</strong> {data.get('jam_tiba', 'Tidak Diketahui')}<br>
+         <strong>Nama Kereta:</strong> {data.get('nama_kereta', 'Tidak Diketahui')}</p>
 
       <p><strong>Rute:</strong><br>
       {data['asal']} <strong>{data['jam_berangkat']}</strong> → {data['tujuan']} <strong>{data['jam_tiba']}</strong></p>

@@ -17,46 +17,46 @@ import string
 def parse_input_dynamic(text):
     # --- Kode Booking ---
     kode_booking = 'N/A'
-    kb_match = re.search(r'Kode booking\s*:\s*(\w+)', text, re.IGNORECASE)
+    kb_match = re.search(r'Kode booking\s*[:\-]?\s*(\w+)', text, re.IGNORECASE)
     if kb_match:
         kode_booking = kb_match.group(1).strip()
 
     # --- Tanggal & Jam Berangkat ---
     tanggal_berangkat = 'Tidak Diketahui'
     jam_berangkat = 'Tidak Diketahui'
-    berangkat_match = re.search(r'(\w{3}),\s*(\d{2} \w{3} \d{4}) - (\d{2}:\d{2}|\d{4})', text)
+    berangkat_match = re.search(r'\b(?:Min|Sen|Sel|Rab|Kam|Jum|Sab),\s*(\d{2} \w{3} \d{4})\s*[-–]\s*(\d{2}:\d{2}|\d{4})', text)
     if berangkat_match:
         try:
-            dt = datetime.strptime(berangkat_match.group(2), '%d %b %Y')
+            dt = datetime.strptime(berangkat_match.group(1), '%d %b %Y')
             tanggal_berangkat = dt.strftime('%d %b %Y')
         except:
-            tanggal_berangkat = berangkat_match.group(2)
-        jam_berangkat_raw = berangkat_match.group(3)
-        jam_berangkat = jam_berangkat_raw if ':' in jam_berangkat_raw else jam_berangkat_raw[:2] + ':' + jam_berangkat_raw[2:]
+            tanggal_berangkat = berangkat_match.group(1)
+        jam_raw = berangkat_match.group(2)
+        jam_berangkat = jam_raw if ':' in jam_raw else jam_raw[:2] + ':' + jam_raw[2:]
 
     # --- Tanggal & Jam Tiba ---
     tanggal_tiba = 'Tidak Diketahui'
     jam_tiba = 'Tidak Diketahui'
     if berangkat_match:
-        tiba_match = re.search(r'(\w{3}),\s*(\d{2} \w{3} \d{4}) - (\d{2}:\d{2}|\d{4})', text[berangkat_match.end():])
+        tiba_match = re.search(r'\b(?:Min|Sen|Sel|Rab|Kam|Jum|Sab),\s*(\d{2} \w{3} \d{4})\s*[-–]\s*(\d{2}:\d{2}|\d{4})', text[berangkat_match.end():])
         if tiba_match:
             try:
-                dt = datetime.strptime(tiba_match.group(2), '%d %b %Y')
+                dt = datetime.strptime(tiba_match.group(1), '%d %b %Y')
                 tanggal_tiba = dt.strftime('%d %b %Y')
             except:
-                tanggal_tiba = tiba_match.group(2)
-            jam_tiba_raw = tiba_match.group(3)
-            jam_tiba = jam_tiba_raw if ':' in jam_tiba_raw else jam_tiba_raw[:2] + ':' + jam_tiba_raw[2:]
+                tanggal_tiba = tiba_match.group(1)
+            jam_raw = tiba_match.group(2)
+            jam_tiba = jam_raw if ':' in jam_raw else jam_raw[:2] + ':' + jam_raw[2:]
 
     # --- Asal, Tujuan & Kode Stasiun ---
     asal, tujuan = 'Tidak Diketahui', 'Tidak Diketahui'
     kode_stasiun_asal, kode_stasiun_tujuan = '', ''
-    rute_full = re.findall(r'([A-Za-z ]+)\s*\(([A-Z]{2,3})\)', text)
-    if len(rute_full) >= 2:
-        asal = string.capwords(rute_full[0][0].strip().lower())
-        kode_stasiun_asal = rute_full[0][1]
-        tujuan = string.capwords(rute_full[1][0].strip().lower())
-        kode_stasiun_tujuan = rute_full[1][1]
+    stasiun_match = re.findall(r'([A-Za-z .]+)\s*\(([A-Z]{2,3})\)', text)
+    if len(stasiun_match) >= 2:
+        asal, kode_stasiun_asal = stasiun_match[0]
+        tujuan, kode_stasiun_tujuan = stasiun_match[1]
+        asal = string.capwords(asal.strip().lower())
+        tujuan = string.capwords(tujuan.strip().lower())
 
     # --- Nama Kereta ---
     nama_kereta = 'Tidak Diketahui'
@@ -79,14 +79,14 @@ def parse_input_dynamic(text):
         while i < len(lines):
             if re.match(r'^\d+\.\s+', lines[i]):
                 nama = re.sub(r'^\d+\.\s+', '', lines[i])
-                tipe_penumpang = lines[i+1] if i+1 < len(lines) else 'Dewasa'
+                tipe = lines[i+1] if i+1 < len(lines) else 'Dewasa'
                 ktp_match = re.search(r'Nomor Identitas:\s*(\d+)', lines[i+2]) if i+2 < len(lines) else None
                 ktp = ktp_match.group(1) if ktp_match else 'N/A'
                 kursi = lines[i+4] if i+4 < len(lines) else 'N/A'
                 kursi = kursi.replace("Kursi", "").strip()
                 penumpang.append({
                     "nama": string.capwords(nama.lower()),
-                    "tipe": tipe_penumpang,
+                    "tipe": tipe,
                     "ktp": ktp,
                     "kursi": kursi
                 })
@@ -101,10 +101,8 @@ def parse_input_dynamic(text):
         "jam_berangkat": jam_berangkat,
         "tanggal_tiba": tanggal_tiba,
         "jam_tiba": jam_tiba,
-        "asal": asal,
-        "kode_stasiun_asal": kode_stasiun_asal,
-        "tujuan": tujuan,
-        "kode_stasiun_tujuan": kode_stasiun_tujuan,
+        "asal": f"{asal} ({kode_stasiun_asal})" if kode_stasiun_asal else asal,
+        "tujuan": f"{tujuan} ({kode_stasiun_tujuan})" if kode_stasiun_tujuan else tujuan,
         "nama_kereta": nama_kereta,
         "penumpang": penumpang
     }

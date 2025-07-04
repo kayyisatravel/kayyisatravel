@@ -14,7 +14,7 @@ import string
 # FUNGSI PARSER DINAMIS
 # =======================
 
-def parse_input_dynamic(text):
+def parse_input_new_format(text):
     # --- Kode Booking ---
     kode_booking = 'N/A'
     kb_match = re.search(r'Kode booking\s*:\s*(\w+)', text, re.IGNORECASE)
@@ -24,7 +24,7 @@ def parse_input_dynamic(text):
     # --- Tanggal & Jam Berangkat ---
     tanggal_berangkat = 'Tidak Diketahui'
     jam_berangkat = 'Tidak Diketahui'
-    berangkat_match = re.search(r'(\w{3}),\s*(\d{2} \w{3} \d{4}) - (\d{2}:\d{2}|\d{2}\d{2})', text)
+    berangkat_match = re.search(r'(\w{3}),\s*(\d{2} \w{3} \d{4}) - (\d{2}:\d{2}|\d{4})', text)
     if berangkat_match:
         try:
             dt = datetime.strptime(berangkat_match.group(2), '%d %b %Y')
@@ -40,18 +40,20 @@ def parse_input_dynamic(text):
     # --- Tanggal & Jam Tiba ---
     tanggal_tiba = 'Tidak Diketahui'
     jam_tiba = 'Tidak Diketahui'
-    tiba_match = re.search(r'(\w{3}),\s*(\d{2} \w{3} \d{4}) - (\d{2}:\d{2}|\d{4})', text[berangkat_match.end():])
-    if tiba_match:
-        try:
-            dt = datetime.strptime(tiba_match.group(2), '%d %b %Y')
-            tanggal_tiba = dt.strftime('%d %b %Y')
-        except:
-            tanggal_tiba = tiba_match.group(2)
-        jam_tiba_raw = tiba_match.group(3)
-        if ':' in jam_tiba_raw:
-            jam_tiba = jam_tiba_raw
-        else:
-            jam_tiba = jam_tiba_raw[:2] + ':' + jam_tiba_raw[2:]
+    if berangkat_match:
+        # Cari tanggal tiba setelah posisi akhir berangkat
+        tiba_match = re.search(r'(\w{3}),\s*(\d{2} \w{3} \d{4}) - (\d{2}:\d{2}|\d{4})', text[berangkat_match.end():])
+        if tiba_match:
+            try:
+                dt = datetime.strptime(tiba_match.group(2), '%d %b %Y')
+                tanggal_tiba = dt.strftime('%d %b %Y')
+            except:
+                tanggal_tiba = tiba_match.group(2)
+            jam_tiba_raw = tiba_match.group(3)
+            if ':' in jam_tiba_raw:
+                jam_tiba = jam_tiba_raw
+            else:
+                jam_tiba = jam_tiba_raw[:2] + ':' + jam_tiba_raw[2:]
 
     # --- Asal & Tujuan ---
     rute_match = re.findall(r'([A-Za-z ]+)\s*\([A-Z]{2,3}\) - ([A-Za-z ]+)', text)
@@ -61,26 +63,26 @@ def parse_input_dynamic(text):
         tujuan = string.capwords(rute_match[1][1].strip().lower())
 
     # --- Nama Kereta ---
-    nama_kereta_match = re.search(r'\n([A-Za-z ]+)\n\nEksekutif', text)
-    if not nama_kereta_match:
-        # fallback cari baris yang ada kata ekspres / kereta / dll
-        kereta_lines = re.findall(r'\n([A-Za-z ]+Ekspres)\n', text, re.IGNORECASE)
-        nama_kereta = kereta_lines[0] if kereta_lines else 'Tidak Diketahui'
+    nama_kereta = 'Tidak Diketahui'
+    # Cari baris yang kemungkinan nama kereta sebelum 'Eksekutif'
+    kereta_match = re.search(r'\n([A-Za-z ]+)\n\nEksekutif', text)
+    if kereta_match:
+        nama_kereta = kereta_match.group(1).strip()
     else:
-        nama_kereta = nama_kereta_match.group(1).strip()
+        # fallback cari kata Ekspres
+        kereta_lines = re.findall(r'\n([A-Za-z ]+Ekspres)\n', text, re.IGNORECASE)
+        if kereta_lines:
+            nama_kereta = kereta_lines[0]
     nama_kereta = string.capwords(nama_kereta.lower())
 
     # --- Penumpang ---
     penumpang = []
-    # Format lebih jelas, bisa tangkap blok "Penumpang & Fasilitas" lalu parsing baris per baris
     penumpang_section = re.search(r'Penumpang & Fasilitas(.*)', text, re.DOTALL | re.IGNORECASE)
     if penumpang_section:
         block = penumpang_section.group(1).strip()
-        # Pisah baris, cari pola data penumpang
         lines = [line.strip() for line in block.splitlines() if line.strip()]
         i = 0
         while i < len(lines):
-            # Cari nomor urut "1. Nama"
             if re.match(r'^\d+\.\s+', lines[i]):
                 nama = re.sub(r'^\d+\.\s+', '', lines[i])
                 tipe_penumpang = lines[i+1] if i+1 < len(lines) else 'Dewasa'
@@ -99,6 +101,7 @@ def parse_input_dynamic(text):
 
     return {
         "kode_booking": kode_booking,
+        "tanggal": tanggal_berangkat,    # supaya sesuai dengan generate_eticket
         "tanggal_berangkat": tanggal_berangkat,
         "jam_berangkat": jam_berangkat,
         "tanggal_tiba": tanggal_tiba,
@@ -108,6 +111,7 @@ def parse_input_dynamic(text):
         "nama_kereta": nama_kereta,
         "penumpang": penumpang
     }
+
 
 def generate_eticket(data):
     penumpang_rows = "\n".join([
@@ -158,6 +162,41 @@ def generate_eticket(data):
     </div>
     """
     return html
+
+
+# ===== Contoh pemakaian =====
+
+if __name__ == "__main__":
+    contoh_input = """
+Kode booking: 75L8DMJ
+Min, 06 Jul 2025 - 22:50
+
+Surabaya Gubeng (SGU) - Surabaya
+
+Blambangan Ekspres
+
+Eksekutif (AC) 05j 35m
+
+Sen, 07 Jul 2025 - 04:25
+
+Banyuwangi Kota (BWI) - Banyuwangi
+
+Penumpang & Fasilitas
+
+1. NYONYA Amiliya Duwi Setiyowati
+
+Dewasa
+
+Nomor Identitas: 3522096901030005
+
+SGU - BWI
+
+Kursi EKS 5/10D
+"""
+
+    data = parse_input_new_format(contoh_input)
+    html = generate_eticket(data)
+    print(html)
 # =========================
 # GENERATE PDF E-TIKET
 # =========================

@@ -14,6 +14,10 @@ import string
 # FUNGSI PARSER DINAMIS
 # =======================
 
+import re
+import string
+from datetime import datetime
+
 def parse_input_dynamic(text):
     # --- Kode Booking ---
     kode_booking = 'N/A'
@@ -24,7 +28,10 @@ def parse_input_dynamic(text):
     # --- Tanggal & Jam Berangkat ---
     tanggal_berangkat = 'Tidak Diketahui'
     jam_berangkat = 'Tidak Diketahui'
-    berangkat_match = re.search(r'\b(?:Min|Sen|Sel|Rab|Kam|Jum|Sab),\s*(\d{2} \w{3} \d{4})\s*[-–]\s*(\d{2}:\d{2}|\d{4})', text)
+    berangkat_match = re.search(
+        r'\b(?:Min|Sen|Sel|Rab|Kam|Jum|Sab),\s*(\d{2} \w{3} \d{4})\s*[-–]\s*(\d{2}:\d{2}|\d{4})',
+        text
+    )
     if berangkat_match:
         try:
             dt = datetime.strptime(berangkat_match.group(1), '%d %b %Y')
@@ -38,7 +45,10 @@ def parse_input_dynamic(text):
     tanggal_tiba = 'Tidak Diketahui'
     jam_tiba = 'Tidak Diketahui'
     if berangkat_match:
-        tiba_match = re.search(r'\b(?:Min|Sen|Sel|Rab|Kam|Jum|Sab),\s*(\d{2} \w{3} \d{4})\s*[-–]\s*(\d{2}:\d{2}|\d{4})', text[berangkat_match.end():])
+        tiba_match = re.search(
+            r'\b(?:Min|Sen|Sel|Rab|Kam|Jum|Sab),\s*(\d{2} \w{3} \d{4})\s*[-–]\s*(\d{2}:\d{2}|\d{4})',
+            text[berangkat_match.end():]
+        )
         if tiba_match:
             try:
                 dt = datetime.strptime(tiba_match.group(1), '%d %b %Y')
@@ -52,9 +62,13 @@ def parse_input_dynamic(text):
     asal, tujuan = 'Tidak Diketahui', 'Tidak Diketahui'
     kode_stasiun_asal, kode_stasiun_tujuan = '', ''
     stasiun_match = re.findall(r'([A-Za-z .]+)\s*\(([A-Z]{2,3})\)', text)
-    if len(stasiun_match) >= 2:
-        asal, kode_stasiun_asal = stasiun_match[0]
-        tujuan, kode_stasiun_tujuan = stasiun_match[1]
+    valid_stasiun = []
+    for nama, kode in stasiun_match:
+        if 'eksekutif' not in nama.lower():
+            valid_stasiun.append((nama, kode))
+    if len(valid_stasiun) >= 2:
+        asal, kode_stasiun_asal = valid_stasiun[0]
+        tujuan, kode_stasiun_tujuan = valid_stasiun[1]
         asal = string.capwords(asal.strip().lower())
         tujuan = string.capwords(tujuan.strip().lower())
 
@@ -106,6 +120,7 @@ def parse_input_dynamic(text):
         "nama_kereta": nama_kereta,
         "penumpang": penumpang
     }
+
 
 def generate_eticket(data):
     penumpang_rows = "\n".join([

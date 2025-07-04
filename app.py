@@ -22,7 +22,7 @@ from gspread.utils import rowcol_to_a1
 from datetime import datetime
 from zoneinfo import ZoneInfo  # Built-in mulai Python 3.9
 import time
-
+from generator import parse_input_dynamic, generate_eticket
 
 now = datetime.now(ZoneInfo("Asia/Jakarta"))
 
@@ -1322,3 +1322,15 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
         # Tabel Detail
         with st.expander("📄 Lihat Tabel Detail"):
             st.dataframe(df_filtered, use_container_width=True)
+
+with st.expander("🎫 Generator E-Tiket Kereta"):
+    # Input teks dari hasil OCR atau paste manual
+    input_text = st.text_area("Tempelkan teks tiket", height=300)
+    
+    if st.button("Generate Tiket"):
+        if input_text.strip():
+            data = parse_input_dynamic(input_text)
+            html = generate_eticket(data)
+            st.components.v1.html(html, height=700, scrolling=True)
+        else:
+            st.warning("Silakan masukkan data tiket terlebih dahulu.")

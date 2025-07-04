@@ -93,18 +93,27 @@ def parse_input_dynamic(text):
         while i < len(lines):
             if re.match(r'^\d+\.\s+', lines[i]):
                 nama = re.sub(r'^\d+\.\s+', '', lines[i])
-                tipe = lines[i+1] if i+1 < len(lines) else 'Dewasa'
-                ktp_match = re.search(r'Nomor Identitas:\s*(\d+)', lines[i+2]) if i+2 < len(lines) else None
-                ktp = ktp_match.group(1) if ktp_match else 'N/A'
-                kursi = lines[i+4] if i+4 < len(lines) else 'N/A'
-                kursi = kursi.replace("Kursi", "").strip()
+                tipe = 'Dewasa'
+                ktp = 'N/A'
+                kursi = 'N/A'
+                j = i + 1
+                while j < len(lines) and not re.match(r'^\d+\.\s+', lines[j]):
+                    if 'dewasa' in lines[j].lower():
+                        tipe = lines[j]
+                    elif 'Nomor Identitas' in lines[j]:
+                        ktp_match = re.search(r'Nomor Identitas:\s*(\d+)', lines[j])
+                        if ktp_match:
+                            ktp = ktp_match.group(1)
+                    elif 'kursi' in lines[j].lower():
+                        kursi = lines[j].replace("Kursi", "").strip()
+                    j += 1
                 penumpang.append({
                     "nama": string.capwords(nama.lower()),
                     "tipe": tipe,
                     "ktp": ktp,
                     "kursi": kursi
                 })
-                i += 5
+                i = j
             else:
                 i += 1
 

@@ -7,6 +7,7 @@ from io import BytesIO
 import pdf417gen
 from PIL import Image
 from datetime import datetime
+import string
 
 
 # =======================

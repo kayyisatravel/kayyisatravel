@@ -6,43 +6,46 @@ import re
 # =======================
 
 def parse_input_dynamic(text):
-    booking_match = re.search(r'Kode(?:\s|_)Booking\s*:\s*(\w+)', text, re.IGNORECASE)
-    kode_booking = booking_match.group(1) if booking_match else 'N/A'
+    # Ambil Kode Booking
+    booking_match = re.search(r'Kode(?:\s|_)Booking\s*:?\s*(\w+)', text, re.IGNORECASE)
+    kode_booking = booking_match.group(1).strip() if booking_match else 'N/A'
 
-    tanggal_match = re.search(r'\b(?:Jum|Kam|Sen|Sel|Rab|Sab|Min)[a-z]*,\s*\d{1,2}\s*\w+\s*\d{4}', text, re.IGNORECASE)
-    tanggal = tanggal_match.group(0) if tanggal_match else 'Tidak Diketahui'
+    # Tanggal
+    tanggal_match = re.search(r'\b(?:Sen|Sel|Rab|Kam|Jum|Sab|Min)[a-z]*,\s*\d{1,2}\s*\w+\s*\d{4}', text, re.IGNORECASE)
+    tanggal = tanggal_match.group(0).strip() if tanggal_match else 'Tidak Diketahui'
 
-    kereta_match = re.search(r'([A-Z ]+)\s*\(\d+\)', text)
-    nama_kereta = kereta_match.group(1).title() if kereta_match else 'Tidak Diketahui'
+    # Nama Kereta (misal HARINA 99)
+    kereta_match = re.search(r'^([A-Z ]+\d+)', text.strip(), re.MULTILINE)
+    nama_kereta = kereta_match.group(1).strip().title() if kereta_match else 'Tidak Diketahui'
 
-    rute_match = re.search(r'([A-Z ]+)\s*→\s*([A-Z ]+)\s*\n(\d{2}:\d{2})\s*(\d{2}:\d{2})', text)
-    if rute_match:
-        asal = rute_match.group(1).strip().title()
-        tujuan = rute_match.group(2).strip().title()
-        jam_berangkat = rute_match.group(3)
-        jam_tiba = rute_match.group(4)
+    # Jam dan stasiun (berurutan)
+    jam_match = re.findall(r'(\d{2}:\d{2})', text)
+    if len(jam_match) >= 2:
+        jam_berangkat, jam_tiba = jam_match[0], jam_match[1]
     else:
-        asal = tujuan = jam_berangkat = jam_tiba = 'Tidak Diketahui'
+        jam_berangkat = jam_tiba = 'Tidak Diketahui'
 
+    # Stasiun (misalnya Surabaya Pasarturi → Semarang Tawang Bank Jateng)
+    stasiun_match = re.findall(r'\n([A-Z][a-z]+(?:\s+[A-Za-z]+)+)', text)
+    if len(stasiun_match) >= 2:
+        asal = stasiun_match[0].strip()
+        tujuan = stasiun_match[1].strip()
+    else:
+        asal = tujuan = 'Tidak Diketahui'
+
+    # Penumpang
     penumpang = []
-    penumpang_lines = re.findall(r'(\d+)\s+(.+?)\s+\((Dewasa|Anak|Bayi)\)\s+KTP\s+(\d+)\s+([A-Z]+\s*/\s*\d+[A-Z]?)', text)
+    penumpang_lines = re.findall(
+        r'\d+\s+(.+?)\s+\((Dewasa|Anak|Bayi)\)\s+KTP\s+(\d+)\s+([A-Z]+\s*\d+\s*/\s*\d+[A-Z]?)',
+        text
+    )
     for p in penumpang_lines:
         penumpang.append({
-            "nama": p[1],
-            "tipe": p[2],
-            "ktp": p[3],
-            "kursi": p[4].replace(" ", "")
+            "nama": p[0],
+            "tipe": p[1],
+            "ktp": p[2],
+            "kursi": p[3].replace(" ", "")
         })
-
-    if not penumpang:
-        fallback_match = re.search(r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)Rp\.\s*\d+', text)
-        if fallback_match:
-            penumpang = [{
-                "nama": fallback_match.group(1),
-                "tipe": "Dewasa",
-                "ktp": "Tidak Diketahui",
-                "kursi": "Tidak Diketahui"
-            }]
 
     return {
         "kode_booking": kode_booking,
@@ -54,6 +57,7 @@ def parse_input_dynamic(text):
         "jam_tiba": jam_tiba,
         "penumpang": penumpang
     }
+
 
 # =========================
 # GENERATE HTML E-TIKET

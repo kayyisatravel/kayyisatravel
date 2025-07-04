@@ -1338,27 +1338,22 @@ with st.expander("🎫 Generator E-Tiket Kereta"):
     if 'last_data' in st.session_state:
         data = st.session_state['last_data']
         html = generate_eticket(data)
-        #st.components.v1.html(html, height=700, scrolling=True)
-        st.markdown(html, unsafe_allow_html=True)
-        
-        # Tombol Print
-        print_js = """
-        <script>
-        function printPage() {
-            window.print();
-        }
-        </script>
-        <button onclick="printPage()" style="margin-top: 10px; padding:8px 16px; font-size:16px;">
-          🖨️ Cetak Tiket
-        </button>
+    
+        full_html = f"""
+        <html>
+        <head>
+        <style>
+          /* Tambahkan CSS custom jika perlu */
+        </style>
+        </head>
+        <body>
+          {html}
+          <button onclick="window.print()" 
+            style="margin-top:20px; padding:8px 16px; font-size:16px; cursor:pointer;">
+            🖨️ Cetak Tiket
+          </button>
+        </body>
+        </html>
         """
-        st.markdown(print_js, unsafe_allow_html=True)
-        #st.components.v1.html(print_js, height=50)
-        #if st.button("🖨️ Cetak ke PDF"):
-         #   pdf_buffer = generate_eticket_pdf(data)
-          #  st.download_button(
-           #     label="📥 Download E-Tiket (PDF)",
-            #    data=pdf_buffer,
-             #   file_name=f"eticket_{data['kode_booking']}.pdf",
-              #  mime="application/pdf"
-            #)
+    
+        st.components.v1.html(full_html, height=800, scrolling=True)

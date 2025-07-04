@@ -38,7 +38,7 @@ def parse_input_dynamic(text):
     nama_kereta = 'Tidak Diketahui'
     nomor_ka_match = re.search(r'Nomor\s*KA\s*[\n\r]+(.+)', text, re.IGNORECASE)
     if nomor_ka_match:
-        lines_after = text[numor_ka_match.end():].strip().splitlines()
+        lines_after = text[nomor_ka_match.end():].strip().splitlines()
         for line in lines_after:
             line_clean = line.strip()
             # Ambil baris yang mengandung huruf dan spasi saja (bukan kata kunci)

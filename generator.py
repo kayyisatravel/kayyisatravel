@@ -1,5 +1,8 @@
 import streamlit as st
 import re
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from io import BytesIO
 
 # =======================
 # FUNGSI PARSER DINAMIS
@@ -112,3 +115,52 @@ def generate_eticket(data):
     </div>
     """
     return html
+# =========================
+# GENERATE PDF E-TIKET
+# =========================
+
+def generate_eticket_pdf(data):
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+
+    y = height - 50
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(50, y, "E-TIKET KERETA API")
+    y -= 30
+
+    c.setFont("Helvetica", 12)
+    c.drawString(50, y, f"Kode Booking: {data['kode_booking']}")
+    y -= 20
+    c.drawString(50, y, f"Tanggal: {data['tanggal']}")
+    y -= 20
+    c.drawString(50, y, f"Nama Kereta: {data['nama_kereta']}")
+    y -= 30
+
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, y, "Rute Perjalanan:")
+    y -= 20
+    c.setFont("Helvetica", 12)
+    c.drawString(50, y, f"{data['asal']} ({data['jam_berangkat']}) → {data['tujuan']} ({data['jam_tiba']})")
+    y -= 40
+
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, y, "Detail Penumpang:")
+    y -= 20
+    c.setFont("Helvetica", 11)
+
+    for p in data["penumpang"]:
+        c.drawString(60, y, f"- {p['nama']} ({p['tipe']}), KTP: {p['ktp']}, Kursi: {p['kursi']}")
+        y -= 18
+        if y < 100:  # avoid overflow
+            c.showPage()
+            y = height - 50
+
+    y -= 30
+    c.setFont("Helvetica-Oblique", 10)
+    c.drawString(50, y, "Tunjukkan e-tiket ini dan identitas resmi saat boarding.")
+    
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+    return buffer

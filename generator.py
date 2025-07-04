@@ -74,48 +74,76 @@ def parse_input_dynamic(text):
 
     # --- Nama Kereta ---
     nama_kereta = 'Tidak Diketahui'
-    kereta_match = re.search(r'\n([A-Za-z ]+)\n\nEksekutif', text)
+    kereta_match = re.search(r'Nama Kereta:\s*(.+)', text)
     if kereta_match:
         nama_kereta = kereta_match.group(1).strip()
     else:
-        kereta_lines = re.findall(r'\n([A-Za-z ]+Ekspres)\n', text, re.IGNORECASE)
-        if kereta_lines:
-            nama_kereta = kereta_lines[0]
+        kereta_match = re.search(r'\n([A-Za-z ]+)\n\nEksekutif', text)
+        if kereta_match:
+            nama_kereta = kereta_match.group(1).strip()
+        else:
+            kereta_lines = re.findall(r'\n([A-Za-z ]+Ekspres)\n', text, re.IGNORECASE)
+            if kereta_lines:
+                nama_kereta = kereta_lines[0]
     nama_kereta = string.capwords(nama_kereta.lower())
 
     # --- Penumpang ---
     penumpang = []
-    penumpang_section = re.search(r'Penumpang & Fasilitas(.*)', text, re.DOTALL | re.IGNORECASE)
-    if penumpang_section:
-        block = penumpang_section.group(1).strip()
-        lines = [line.strip() for line in block.splitlines() if line.strip()]
-        i = 0
-        while i < len(lines):
-            if re.match(r'^\d+\.\s+', lines[i]):
-                nama = re.sub(r'^\d+\.\s+', '', lines[i])
-                tipe = 'Dewasa'
-                ktp = 'N/A'
-                kursi = 'N/A'
-                j = i + 1
-                while j < len(lines) and not re.match(r'^\d+\.\s+', lines[j]):
-                    if 'dewasa' in lines[j].lower():
-                        tipe = lines[j]
-                    elif 'Nomor Identitas' in lines[j]:
-                        ktp_match = re.search(r'Nomor Identitas:\s*(\d+)', lines[j])
-                        if ktp_match:
-                            ktp = ktp_match.group(1)
-                    elif 'kursi' in lines[j].lower():
-                        kursi = lines[j].replace("Kursi", "").strip()
-                    j += 1
+
+    # Format tabel horizontal
+    tabel_match = re.search(r'Detail Penumpang\s+Nama\s+Tipe\s+No Identitas\s+Kursi\s+(.*?)(?:\n\n|\Z)', text, re.DOTALL)
+    if tabel_match:
+        rows = tabel_match.group(1).strip().split('\n')
+        for row in rows:
+            parts = re.split(r'\t+', row.strip())  # gunakan tab atau spasi lebih dari 1
+            if len(parts) >= 4:
+                nama = string.capwords(parts[0].strip().lower())
+                tipe = parts[1].strip()
+                ktp = parts[2].strip()
+                kursi_raw = parts[3].strip()
+                if re.match(r'^\d+\.\s+', kursi_raw):
+                    kursi = 'N/A'
+                else:
+                    kursi = kursi_raw
                 penumpang.append({
-                    "nama": string.capwords(nama.lower()),
+                    "nama": nama,
                     "tipe": tipe,
                     "ktp": ktp,
                     "kursi": kursi
                 })
-                i = j
-            else:
-                i += 1
+    else:
+        # Format blok (penumpang & fasilitas)
+        penumpang_section = re.search(r'Penumpang & Fasilitas(.*)', text, re.DOTALL | re.IGNORECASE)
+        if penumpang_section:
+            block = penumpang_section.group(1).strip()
+            lines = [line.strip() for line in block.splitlines() if line.strip()]
+            i = 0
+            while i < len(lines):
+                if re.match(r'^\d+\.\s+', lines[i]):
+                    nama = re.sub(r'^\d+\.\s+', '', lines[i])
+                    tipe = 'Dewasa'
+                    ktp = 'N/A'
+                    kursi = 'N/A'
+                    j = i + 1
+                    while j < len(lines) and not re.match(r'^\d+\.\s+', lines[j]):
+                        if 'dewasa' in lines[j].lower():
+                            tipe = lines[j]
+                        elif 'Nomor Identitas' in lines[j]:
+                            ktp_match = re.search(r'Nomor Identitas:\s*(\d+)', lines[j])
+                            if ktp_match:
+                                ktp = ktp_match.group(1)
+                        elif 'kursi' in lines[j].lower():
+                            kursi = lines[j].replace("Kursi", "").strip()
+                        j += 1
+                    penumpang.append({
+                        "nama": string.capwords(nama.lower()),
+                        "tipe": tipe,
+                        "ktp": ktp,
+                        "kursi": kursi
+                    })
+                    i = j
+                else:
+                    i += 1
 
     return {
         "kode_booking": kode_booking,

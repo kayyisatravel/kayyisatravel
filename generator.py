@@ -155,7 +155,7 @@ def generate_eticket(data):
         <img src="https://pilihanhidup.com/wp-content/uploads/2024/04/logo-KAI.png" style="width: 120px;"/>
       </div>
 
-      <h1 style="color:#0047b3;">🎫 E-Tiket Kereta Api</h1>
+      <h1 style="color:#0047b3;">E-Tiket Kereta Api</h1>
       <p><strong>Kode Booking:</strong> {data.get('kode_booking', 'N/A')}<br>
          <strong>Nama Kereta:</strong> {data.get('nama_kereta', 'Tidak Diketahui')}</p>
          

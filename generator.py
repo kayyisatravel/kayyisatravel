@@ -101,7 +101,55 @@ def parse_input_dynamic(text):
         "jam_tiba": jam_tiba,
         "penumpang": penumpang
     }
+def generate_eticket(data):
+    penumpang_rows = "\n".join([
+        f"""
+        <tr>
+          <td style="text-align: left;">{p['nama']}</td>
+          <td style="text-align: center;">{p['tipe']}</td>
+          <td style="text-align: center;">{p['ktp']}</td>
+          <td style="text-align: center;">{p['kursi']}</td>
+        </tr>
+        """ for p in data['penumpang']
+    ])
 
+    html = f"""
+    <div style="font-family: 'Segoe UI'; max-width: 720px; margin: 30px auto; background: #fff; border-radius: 14px; box-shadow: 0 8px 25px rgba(0,0,0,0.12); padding: 30px; color: #333;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img src="https://pilihanhidup.com/wp-content/uploads/2024/04/logo-KAI.png" style="width: 120px;"/>
+      </div>
+
+      <h1 style="color:#0047b3;">🎫 E-Tiket Kereta Api</h1>
+      <p><strong>Kode Booking:</strong> {data['kode_booking']}<br>
+         <strong>Tanggal:</strong> {data['tanggal']}<br>
+         <strong>Nama Kereta:</strong> {data['nama_kereta']}</p>
+
+      <p><strong>Rute:</strong><br>
+      {data['asal']} <strong>{data['jam_berangkat']}</strong> → {data['tujuan']} <strong>{data['jam_tiba']}</strong></p>
+
+      <h2 style="border-bottom: 2px solid #0047b3;">Detail Penumpang</h2>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead style="background: #cce0ff;">
+          <tr>
+            <th style="padding: 8px; border: 1px solid #bbb;">Nama</th>
+            <th style="padding: 8px; border: 1px solid #bbb;">Tipe</th>
+            <th style="padding: 8px; border: 1px solid #bbb;">No Identitas</th>
+            <th style="padding: 8px; border: 1px solid #bbb;">Kursi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {penumpang_rows}
+        </tbody>
+      </table>
+
+      <div style="margin-top: 20px; text-align: center;">
+        <img src="https://barcode.tec-it.com/barcode.ashx?data={data['kode_booking']}&code=PDF417"
+             style="width: 250px; height: 80px;" />
+        <p><strong>Kode Booking:</strong> {data['kode_booking']}</p>
+      </div>
+    </div>
+    """
+    return html
 # =========================
 # GENERATE PDF E-TIKET
 # =========================

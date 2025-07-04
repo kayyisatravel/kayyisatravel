@@ -32,16 +32,12 @@ def parse_input_dynamic(text):
         except:
             tanggal_berangkat = berangkat_match.group(2)
         jam_berangkat_raw = berangkat_match.group(3)
-        if ':' in jam_berangkat_raw:
-            jam_berangkat = jam_berangkat_raw
-        else:
-            jam_berangkat = jam_berangkat_raw[:2] + ':' + jam_berangkat_raw[2:]
+        jam_berangkat = jam_berangkat_raw if ':' in jam_berangkat_raw else jam_berangkat_raw[:2] + ':' + jam_berangkat_raw[2:]
 
     # --- Tanggal & Jam Tiba ---
     tanggal_tiba = 'Tidak Diketahui'
     jam_tiba = 'Tidak Diketahui'
     if berangkat_match:
-        # Cari tanggal tiba setelah posisi akhir berangkat
         tiba_match = re.search(r'(\w{3}),\s*(\d{2} \w{3} \d{4}) - (\d{2}:\d{2}|\d{4})', text[berangkat_match.end():])
         if tiba_match:
             try:
@@ -50,26 +46,24 @@ def parse_input_dynamic(text):
             except:
                 tanggal_tiba = tiba_match.group(2)
             jam_tiba_raw = tiba_match.group(3)
-            if ':' in jam_tiba_raw:
-                jam_tiba = jam_tiba_raw
-            else:
-                jam_tiba = jam_tiba_raw[:2] + ':' + jam_tiba_raw[2:]
+            jam_tiba = jam_tiba_raw if ':' in jam_tiba_raw else jam_tiba_raw[:2] + ':' + jam_tiba_raw[2:]
 
-    # --- Asal & Tujuan ---
-    rute_match = re.findall(r'([A-Za-z ]+)\s*\([A-Z]{2,3}\) - ([A-Za-z ]+)', text)
-    asal, tujuan = ('Tidak Diketahui', 'Tidak Diketahui')
-    if rute_match and len(rute_match) >= 2:
-        asal = string.capwords(rute_match[0][0].strip().lower())
-        tujuan = string.capwords(rute_match[1][1].strip().lower())
+    # --- Asal, Tujuan & Kode Stasiun ---
+    asal, tujuan = 'Tidak Diketahui', 'Tidak Diketahui'
+    kode_stasiun_asal, kode_stasiun_tujuan = '', ''
+    rute_full = re.findall(r'([A-Za-z ]+)\s*\(([A-Z]{2,3})\)', text)
+    if len(rute_full) >= 2:
+        asal = string.capwords(rute_full[0][0].strip().lower())
+        kode_stasiun_asal = rute_full[0][1]
+        tujuan = string.capwords(rute_full[1][0].strip().lower())
+        kode_stasiun_tujuan = rute_full[1][1]
 
     # --- Nama Kereta ---
     nama_kereta = 'Tidak Diketahui'
-    # Cari baris yang kemungkinan nama kereta sebelum 'Eksekutif'
     kereta_match = re.search(r'\n([A-Za-z ]+)\n\nEksekutif', text)
     if kereta_match:
         nama_kereta = kereta_match.group(1).strip()
     else:
-        # fallback cari kata Ekspres
         kereta_lines = re.findall(r'\n([A-Za-z ]+Ekspres)\n', text, re.IGNORECASE)
         if kereta_lines:
             nama_kereta = kereta_lines[0]
@@ -89,11 +83,12 @@ def parse_input_dynamic(text):
                 ktp_match = re.search(r'Nomor Identitas:\s*(\d+)', lines[i+2]) if i+2 < len(lines) else None
                 ktp = ktp_match.group(1) if ktp_match else 'N/A'
                 kursi = lines[i+4] if i+4 < len(lines) else 'N/A'
+                kursi = kursi.replace("Kursi", "").strip()
                 penumpang.append({
                     "nama": string.capwords(nama.lower()),
                     "tipe": tipe_penumpang,
                     "ktp": ktp,
-                    "kursi": kursi.replace("Kursi", "").strip()
+                    "kursi": kursi
                 })
                 i += 5
             else:
@@ -101,17 +96,18 @@ def parse_input_dynamic(text):
 
     return {
         "kode_booking": kode_booking,
-        "tanggal": tanggal_berangkat,    # supaya sesuai dengan generate_eticket
+        "tanggal": tanggal_berangkat,
         "tanggal_berangkat": tanggal_berangkat,
         "jam_berangkat": jam_berangkat,
         "tanggal_tiba": tanggal_tiba,
         "jam_tiba": jam_tiba,
         "asal": asal,
+        "kode_stasiun_asal": kode_stasiun_asal,
         "tujuan": tujuan,
+        "kode_stasiun_tujuan": kode_stasiun_tujuan,
         "nama_kereta": nama_kereta,
         "penumpang": penumpang
     }
-
 
 def generate_eticket(data):
     penumpang_rows = "\n".join([

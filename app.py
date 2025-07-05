@@ -603,7 +603,8 @@ with st.expander("💾 Database Pemesan", expanded=True):
     # === Filter Utama ===
     st.markdown("### 📊 Filter Data")
     df_filtered = df.copy()
-
+    df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors='coerce')
+    
     filter_mode = st.radio(
         "Pilih Jenis Filter Tanggal",
         ["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"],
@@ -647,7 +648,10 @@ with st.expander("💾 Database Pemesan", expanded=True):
         tanggal_range = [tanggal_range, tanggal_range]
     elif len(tanggal_range) == 1:
         tanggal_range = [tanggal_range[0], tanggal_range[0]]
-    tanggal_range = [d if isinstance(d, date) else d.date() for d in tanggal_range]
+    tanggal_range = [pd.Timestamp(d) if not pd.isna(d) else pd.NaT for d in tanggal_range]
+    if tanggal_range[0] > tanggal_range[1]:
+        tanggal_range = [tanggal_range[1], tanggal_range[0]]
+
     tampilkan_uninvoice_saja = st.checkbox("🔍 Tampilkan hanya yang belum ada Invoice")
     auto_select_25jt = st.checkbox("⚙️ Auto-pilih total penjualan hingga Rp 25 juta")
 

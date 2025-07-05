@@ -644,13 +644,13 @@ with st.expander("💾 Database Pemesan", expanded=True):
     today = date.today()
     awal_bulan = today.replace(day=1)
     #tanggal_range = st.date_input("Rentang Tanggal", [awal_bulan, today])
-    if isinstance(tanggal_range, date):
-        tanggal_range = [tanggal_range, tanggal_range]
-    elif len(tanggal_range) == 1:
-        tanggal_range = [tanggal_range[0], tanggal_range[0]]
+    #if isinstance(tanggal_range, date):
+        #tanggal_range = [tanggal_range, tanggal_range]
+   # elif len(tanggal_range) == 1:
+      #  tanggal_range = [tanggal_range[0], tanggal_range[0]]
     tanggal_range = [pd.Timestamp(d) if not pd.isna(d) else pd.NaT for d in tanggal_range]
-    if tanggal_range[0] > tanggal_range[1]:
-        tanggal_range = [tanggal_range[1], tanggal_range[0]]
+    #if tanggal_range[0] > tanggal_range[1]:
+        #tanggal_range = [tanggal_range[1], tanggal_range[0]]
 
     tampilkan_uninvoice_saja = st.checkbox("🔍 Tampilkan hanya yang belum ada Invoice")
     auto_select_25jt = st.checkbox("⚙️ Auto-pilih total penjualan hingga Rp 25 juta")

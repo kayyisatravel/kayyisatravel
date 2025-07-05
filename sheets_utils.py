@@ -43,6 +43,8 @@ def append_dataframe_to_sheet(df: pd.DataFrame, worksheet):
         df.fillna("")                 # Hilangkan NaN/None
           .applymap(_safe_to_str)     # Konversi semua nilai ke string aman
     )
+    print("Jumlah kolom yang terbaca:", len(worksheet.row_values(1)))
+    print("Kolom header:", worksheet.row_values(1))
 
     # Konversi ke list of lists (rows)
     rows = cleaned_df.values.tolist()

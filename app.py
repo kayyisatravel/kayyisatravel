@@ -501,11 +501,27 @@ if "bulk_parsed" in st.session_state and not st.session_state.bulk_parsed.empty:
         st.dataframe(df, use_container_width=True)
 
     if st.button("📤 Simpan ke GSheet"):
-        save_gsheet(st.session_state.bulk_parsed)
-        for k in ["bulk_parsed"]:
-            st.session_state.pop(k, None)
+        try:
+            # Simpan ke GSheet
+            save_gsheet(st.session_state.get("bulk_parsed", []))
+    
+            # Tandai berhasil disimpan
+            st.session_state["saved_success"] = True
+    
+            # Hapus data dari session state
+            st.session_state.pop("bulk_parsed", None)
+    
+            # Rerun app untuk bersihkan tampilan
+            st.rerun()  # gunakan st.experimental_rerun() jika versi kamu lebih lama
+    
+        except Exception as e:
+            st.error(f"❌ Gagal menyimpan: {e}")
+    
+    # Tampilkan notifikasi hanya setelah rerun
+    if st.session_state.get("saved_success"):
         st.success("✅ Data berhasil disimpan dan preview dihapus.")
-        st.experimental_rerun()
+        # Reset flag agar tidak muncul terus-menerus
+        st.session_state["saved_success"] = False
 
 with st.expander('💾 Database Pemesan'):
     # === Konfigurasi ===

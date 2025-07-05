@@ -930,7 +930,7 @@ with st.expander("💾 Database Pemesan", expanded=True):
         
         # === Hitung total harga jual data yang belum punya invoice ===
         # Misal tanggal_range didapat dari st.date_input berupa list tanggal
-        tanggal_range = st.date_input("Rentang Tanggal", [awal_bulan, today])
+        tanggal_range = st.date_input("Rentang Tanggal", [awal_bulan, today], key="rentang_tanggal_1")
         
         # Pastikan selalu list dua tanggal
         if isinstance(tanggal_range, date):

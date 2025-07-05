@@ -654,6 +654,11 @@ with st.expander("💾 Database Pemesan", expanded=True):
     nama_filter = st.text_input("Cari Nama Pemesan")
     kode_booking_filter = st.text_input("Cari Kode Booking")
 
+    # === Filter DataFrame ===
+    filtered_df = df[
+        (df["Tgl Pemesanan"] >= tanggal_range[0]) &
+        (df["Tgl Pemesanan"] <= tanggal_range[1])
+    ]
     if nama_filter:
         df_filtered = df_filtered[df_filtered["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
     if kode_booking_filter:

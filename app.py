@@ -604,10 +604,7 @@ with st.expander("💾 Database Pemesan", expanded=True):
     st.markdown("### 📊 Filter Data")
     df_filtered = df.copy()
     df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors='coerce')
-    tanggal_range = [pd.Timestamp(d) if not pd.isna(d) else pd.NaT for d in tanggal_range]
-    if tanggal_range[0] > tanggal_range[1]:
-        tanggal_range = [tanggal_range[1], tanggal_range[0]]
-
+    
     filter_mode = st.radio(
         "Pilih Jenis Filter Tanggal",
         ["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"],
@@ -622,7 +619,10 @@ with st.expander("💾 Database Pemesan", expanded=True):
             tanggal_range = [tanggal_range, tanggal_range]
         elif len(tanggal_range) == 1:
             tanggal_range = [tanggal_range[0], tanggal_range[0]]
-        
+        tanggal_range = [pd.Timestamp(d) if not pd.isna(d) else pd.NaT for d in tanggal_range]
+        if tanggal_range[0] > tanggal_range[1]:
+            tanggal_range = [tanggal_range[1], tanggal_range[0]]
+
     elif filter_mode == "🗓️ Bulanan":
         bulan_nama = {
             "Januari": 1, "Februari": 2, "Maret": 3, "April": 4,

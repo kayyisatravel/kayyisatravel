@@ -439,89 +439,117 @@ with st.expander("✏️ Input Manual Data"):
         st.success("✅ Data ditambahkan ke preview.")
 
 # --- Preview dan edit data sebelum simpan ---
-if "bulk_parsed" in st.session_state and not st.session_state.bulk_parsed.empty:
-    df = st.session_state.bulk_parsed
-
-    if "edit_mode_bulk" not in st.session_state:
-        st.session_state.edit_mode_bulk = False
-
-    edit_mode = st.checkbox(
-        "✏️ Edit Data Manual",
-        value=st.session_state.edit_mode_bulk,
-        key="edit_mode_bulk_checkbox"
-    )
-
-    if edit_mode:
-        st.session_state.edit_mode_bulk = True
-        st.markdown("#### 📝 Form Edit Manual Per Baris")
-
-        row_index = st.number_input("Pilih baris ke-", min_value=0, max_value=len(df) - 1, step=1)
-        row_data = df.iloc[row_index].to_dict()
-        updated_row = {}
-
-        for col, val in row_data.items():
-            if col in ["Tgl Pemesanan", "Tgl Berangkat"]:
-                if pd.isna(val) or val == "":
-                    val = pd.Timestamp.today()
-                else:
-                    try:
-                        val = pd.to_datetime(val).date()
-                    except:
-                        val = pd.Timestamp.today().date()
-                new_val = st.date_input(f"{col}", value=val)
-            elif isinstance(val, (int, float)):
-                new_val = st.text_input(f"{col}", value=str(val))
+        if "bulk_parsed" in st.session_state and not st.session_state.bulk_parsed.empty:
+            df = st.session_state.bulk_parsed
+        
+            # Bersihkan kolom dari spasi berlebih
+            df.columns = df.columns.str.strip()
+        
+            # Tambahkan kolom jika belum ada (agar preview lengkap)
+            for col in ["Laba", "% Laba"]:
+                if col not in df.columns:
+                    df[col] = 0.0
+        
+            # Hitung ulang kolom Laba dan % Laba
+            df["Laba"] = df["Harga Jual"] - df["Harga Beli"]
+            df["% Laba"] = df.apply(
+                lambda row: (row["Laba"] / row["Harga Beli"] * 100) if row["Harga Beli"] > 0 else 0.0,
+                axis=1
+            )
+        
+            st.session_state.bulk_parsed = df  # simpan kembali yang sudah dihitung ulang
+        
+            # Mode edit
+            if "edit_mode_bulk" not in st.session_state:
+                st.session_state.edit_mode_bulk = False
+        
+            edit_mode = st.checkbox(
+                "✏️ Edit Data Manual",
+                value=st.session_state.edit_mode_bulk,
+                key="edit_mode_bulk_checkbox"
+            )
+        
+            if edit_mode:
+                st.session_state.edit_mode_bulk = True
+                st.markdown("#### 📝 Form Edit Manual Per Baris")
+        
+                row_index = st.number_input("Pilih baris ke-", min_value=0, max_value=len(df) - 1, step=1)
+                row_data = df.iloc[row_index].to_dict()
+                updated_row = {}
+        
+                for col, val in row_data.items():
+                    if col in ["Tgl Pemesanan", "Tgl Berangkat"]:
+                        if pd.isna(val) or val == "":
+                            val = pd.Timestamp.today()
+                        else:
+                            try:
+                                val = pd.to_datetime(val).date()
+                            except:
+                                val = pd.Timestamp.today().date()
+                        new_val = st.date_input(f"{col}", value=val)
+                    elif col in ["Harga Beli", "Harga Jual"]:
+                        new_val = st.number_input(f"{col}", value=float(val) if val != "" else 0.0, step=1000.0, format="%.0f")
+                    elif col in ["Laba", "% Laba"]:
+                        st.markdown(f"**{col}:** {val:.2f}")  # tampilkan saja, tidak bisa diubah
+                        new_val = val
+                    else:
+                        new_val = st.text_input(f"{col}", value=str(val) if pd.notna(val) else "")
+                    updated_row[col] = new_val
+        
+                if st.button("💾 Simpan Perubahan"):
+                    for col in updated_row:
+                        if col in ["Harga Beli", "Harga Jual"]:
+                            try:
+                                df.at[row_index, col] = float(updated_row[col])
+                            except:
+                                df.at[row_index, col] = 0.0
+                        elif col in ["Tgl Pemesanan", "Tgl Berangkat"]:
+                            try:
+                                df.at[row_index, col] = pd.to_datetime(updated_row[col]).date()
+                            except:
+                                df.at[row_index, col] = pd.Timestamp.today().date()
+                        elif col not in ["Laba", "% Laba"]:
+                            df.at[row_index, col] = updated_row[col]
+        
+                    # Recalculate after update
+                    df.at[row_index, "Laba"] = df.at[row_index, "Harga Jual"] - df.at[row_index, "Harga Beli"]
+                    df.at[row_index, "% Laba"] = (
+                        round((df.at[row_index, "Laba"] / df.at[row_index, "Harga Beli"]) * 100, 2)
+                        if df.at[row_index, "Harga Beli"] > 0 else 0.0
+                    )
+        
+                    st.session_state.bulk_parsed = df
+                    st.session_state.edit_mode_bulk = False
+                    st.success("✅ Perubahan disimpan.")
+                    st.experimental_rerun()
+        
             else:
-                new_val = st.text_input(f"{col}", value=str(val) if pd.notna(val) else "")
-            updated_row[col] = new_val
+                st.session_state.edit_mode_bulk = False
+                st.markdown("#### 📊 Preview Data Manual")
+                st.dataframe(df, use_container_width=True)
+        
+            if st.button("📤 Simpan ke GSheet"):
+                try:
+                    # Simpan ke GSheet
+                    save_gsheet(st.session_state.get("bulk_parsed", []))
+        
+                    # Tandai berhasil disimpan
+                    st.session_state["saved_success"] = True
+        
+                    # Hapus data dari session state
+                    st.session_state.pop("bulk_parsed", None)
+        
+                    # Rerun app untuk bersihkan tampilan
+                    st.rerun()
+        
+                except Exception as e:
+                    st.error(f"❌ Gagal menyimpan: {e}")
+        
+            # Tampilkan notifikasi hanya setelah rerun
+            if st.session_state.get("saved_success"):
+                st.success("✅ Data berhasil disimpan dan preview dihapus.")
+                st.session_state["saved_success"] = False
 
-        if st.button("💾 Simpan Perubahan"):
-            for col in updated_row:
-                # Konversi tipe jika perlu
-                if col in ["Harga Beli", "Harga Jual", "Laba", "% Laba"]:
-                    try:
-                        df.at[row_index, col] = float(updated_row[col])
-                    except:
-                        df.at[row_index, col] = 0.0
-                elif col in ["Tgl Pemesanan", "Tgl Berangkat"]:
-                    try:
-                        df.at[row_index, col] = pd.to_datetime(updated_row[col]).date()
-                    except:
-                        df.at[row_index, col] = pd.Timestamp.today().date()
-                else:
-                    df.at[row_index, col] = updated_row[col]
-            st.session_state.bulk_parsed = df
-            st.session_state.edit_mode_bulk = False
-            st.success("✅ Perubahan disimpan.")
-            st.experimental_rerun()
-
-    else:
-        st.session_state.edit_mode_bulk = False
-        st.markdown("#### 📊 Preview Data Manual")
-        st.dataframe(df, use_container_width=True)
-
-    if st.button("📤 Simpan ke GSheet"):
-        try:
-            # Simpan ke GSheet
-            save_gsheet(st.session_state.get("bulk_parsed", []))
-    
-            # Tandai berhasil disimpan
-            st.session_state["saved_success"] = True
-    
-            # Hapus data dari session state
-            st.session_state.pop("bulk_parsed", None)
-    
-            # Rerun app untuk bersihkan tampilan
-            st.rerun()  # gunakan st.experimental_rerun() jika versi kamu lebih lama
-    
-        except Exception as e:
-            st.error(f"❌ Gagal menyimpan: {e}")
-    
-    # Tampilkan notifikasi hanya setelah rerun
-    if st.session_state.get("saved_success"):
-        st.success("✅ Data berhasil disimpan dan preview dihapus.")
-        # Reset flag agar tidak muncul terus-menerus
-        st.session_state["saved_success"] = False
 
 with st.expander('💾 Database Pemesan'):
     # === Konfigurasi ===

@@ -605,41 +605,48 @@ with st.expander("💾 Database Pemesan", expanded=True):
     df_filtered = df.copy()
     df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors='coerce')
     
+    # Inisialisasi default tanggal_range supaya selalu ada
+    today = date.today()
+    awal_bulan = today.replace(day=1)
+    tanggal_range = [pd.Timestamp(awal_bulan), pd.Timestamp(today)]
+    
     filter_mode = st.radio(
         "Pilih Jenis Filter Tanggal",
         ["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"],
-        horizontal=True
+        horizontal=True,
+        key="filter_mode_radio"
     )
-
+    
     if filter_mode == "📆 Rentang Tanggal":
-        today = date.today()
-        awal_bulan = today.replace(day=1)
-        tanggal_range = st.date_input("Rentang Tanggal", [awal_bulan, today])
-        if isinstance(tanggal_range, date):
-            tanggal_range = [tanggal_range, tanggal_range]
-        elif len(tanggal_range) == 1:
-            tanggal_range = [tanggal_range[0], tanggal_range[0]]
-        tanggal_range = [pd.Timestamp(d) if not pd.isna(d) else pd.NaT for d in tanggal_range]
+        tanggal_range_input = st.date_input("Rentang Tanggal", [awal_bulan, today], key="rentang_tanggal")
+        if isinstance(tanggal_range_input, date):
+            tanggal_range_input = [tanggal_range_input, tanggal_range_input]
+        elif len(tanggal_range_input) == 1:
+            tanggal_range_input = [tanggal_range_input[0], tanggal_range_input[0]]
+        tanggal_range = [pd.Timestamp(d) for d in tanggal_range_input]
         if tanggal_range[0] > tanggal_range[1]:
             tanggal_range = [tanggal_range[1], tanggal_range[0]]
-
+    
+        df_filtered = df[
+            (df["Tgl Pemesanan"] >= tanggal_range[0]) &
+            (df["Tgl Pemesanan"] <= tanggal_range[1])
+        ]
+    
     elif filter_mode == "🗓️ Bulanan":
-        bulan_nama = {
-            "Januari": 1, "Februari": 2, "Maret": 3, "April": 4,
-            "Mei": 5, "Juni": 6, "Juli": 7, "Agustus": 8,
-            "September": 9, "Oktober": 10, "November": 11, "Desember": 12
-        }
+        # filter bulan
+        bulan_nama = {...}
         bulan_label = list(bulan_nama.keys())
-        bulan_pilihan = st.selectbox("Pilih Bulan", bulan_label, index=date.today().month - 1)
-        tahun_bulan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.unique(), reverse=True))
+        bulan_pilihan = st.selectbox("Pilih Bulan", bulan_label, index=date.today().month - 1, key="bulan_pilihan")
+        tahun_bulan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.unique(), reverse=True), key="tahun_bulan")
         df_filtered = df[
             (df["Tgl Pemesanan"].dt.month == bulan_nama[bulan_pilihan]) &
             (df["Tgl Pemesanan"].dt.year == tahun_bulan)
         ]
-
+    
     elif filter_mode == "📅 Tahunan":
-        tahun_pilihan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.unique(), reverse=True))
+        tahun_pilihan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.unique(), reverse=True), key="tahun_pilihan")
         df_filtered = df[df["Tgl Pemesanan"].dt.year == tahun_pilihan]
+
 
     # === Filter Tambahan ===
     st.markdown("### 🧍 Filter Tambahan")

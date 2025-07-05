@@ -612,14 +612,16 @@ with st.expander("💾 Database Pemesan", expanded=True):
     )
 
     if filter_mode == "📆 Rentang Tanggal":
-        tgl_awal = st.date_input("Tanggal Awal", date.today().replace(day=1))
-        tgl_akhir = st.date_input("Tanggal Akhir", date.today())
-        if tgl_awal > tgl_akhir:
-            tgl_awal, tgl_akhir = tgl_akhir, tgl_awal
-        df_filtered = df[
-            (df["Tgl Pemesanan"] >= pd.to_datetime(tgl_awal)) &
-            (df["Tgl Pemesanan"] <= pd.to_datetime(tgl_akhir))
-        ]
+        today = date.today()
+        awal_bulan = today.replace(day=1)
+        tanggal_range = st.date_input("Rentang Tanggal", [awal_bulan, today])
+        if isinstance(tanggal_range, date):
+            tanggal_range = [tanggal_range, tanggal_range]
+        elif len(tanggal_range) == 1:
+            tanggal_range = [tanggal_range[0], tanggal_range[0]]
+        tanggal_range = [pd.Timestamp(d) if not pd.isna(d) else pd.NaT for d in tanggal_range]
+        if tanggal_range[0] > tanggal_range[1]:
+            tanggal_range = [tanggal_range[1], tanggal_range[0]]
 
     elif filter_mode == "🗓️ Bulanan":
         bulan_nama = {
@@ -641,16 +643,6 @@ with st.expander("💾 Database Pemesan", expanded=True):
 
     # === Filter Tambahan ===
     st.markdown("### 🧍 Filter Tambahan")
-    today = date.today()
-    awal_bulan = today.replace(day=1)
-    #tanggal_range = st.date_input("Rentang Tanggal", [awal_bulan, today])
-    #if isinstance(tanggal_range, date):
-        #tanggal_range = [tanggal_range, tanggal_range]
-   # elif len(tanggal_range) == 1:
-      #  tanggal_range = [tanggal_range[0], tanggal_range[0]]
-    #tanggal_range = [pd.Timestamp(d) if not pd.isna(d) else pd.NaT for d in tanggal_range]
-    #if tanggal_range[0] > tanggal_range[1]:
-        #tanggal_range = [tanggal_range[1], tanggal_range[0]]
 
     tampilkan_uninvoice_saja = st.checkbox("🔍 Tampilkan hanya yang belum ada Invoice")
     auto_select_25jt = st.checkbox("⚙️ Auto-pilih total penjualan hingga Rp 25 juta")

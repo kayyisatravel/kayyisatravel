@@ -570,9 +570,11 @@ with st.expander('💾 Database Pemesan'):
     # === Konfigurasi ===
     SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
     WORKSHEET_NAME = "Data"
-    LOGO_PATH = "logo.png" # Ganti dengan path ke file logo Anda, misal "images/logo.png"
-    
-    # === Koneksi GSheet via secrets ===
+    LOGO_PATH = "logo.png"  # Ganti jika diperlukan
+
+    st.set_page_config(page_title="Buat Invoice Tiket", layout="centered")
+
+    # === Koneksi ke Google Sheet ===
     def connect_to_gsheet(SHEET_ID, worksheet_name="Data"):
         scope = [
             "https://spreadsheets.google.com/feeds",
@@ -584,39 +586,32 @@ with st.expander('💾 Database Pemesan'):
         sheet = client.open_by_key(SHEET_ID)
         worksheet = sheet.worksheet(worksheet_name)
         return worksheet
-    
-    st.set_page_config(page_title="Buat Invoice Tiket", layout="centered")
-    #st.title("🧾 Dashboard Invoice")
-    
-    # === Ambil data dan olah ===
-    @st.cache_data # Refresh 
+
+    # === Load data dari Google Sheet ===
+    @st.cache_data(show_spinner="📥 Mengambil data...")
     def load_data():
         ws = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
         df = pd.DataFrame(ws.get_all_records())
-        st.write("📌 Kolom ditemukan:")
-    
+
         if "Tgl Pemesanan" in df.columns:
-            df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], dayfirst=True, errors="coerce").dt.date
+            df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], dayfirst=True, errors="coerce")
             df = df.dropna(subset=["Tgl Pemesanan"])
-            
         else:
             st.error("❌ Kolom 'Tgl Pemesanan' tidak ditemukan.")
             st.stop()
         return df
-    
-    # Tombol Refresh
-    if st.button("🔄 Refresh Data"):
+
+    # === Tombol Refresh ===
+    if "df" not in st.session_state or st.button("🔄 Refresh Data"):
         st.cache_data.clear()
-        df = load_data()
-    #else:
-        #df = load_data()
-    
+        st.session_state.df = load_data()
+
+    df = st.session_state.df
+
+    # === Filter Data ===
     st.markdown("### 📊 Filter Data")
 
     df_filtered = df.copy()
-
-    # Format kolom tanggal
-    df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce")
 
     # === Jenis Filter Tanggal ===
     filter_mode = st.radio(
@@ -679,6 +674,7 @@ with st.expander('💾 Database Pemesan'):
     else:
         st.success(f"✅ Menampilkan {len(df_filtered)} data sesuai filter.")
         st.dataframe(df_filtered, use_container_width=True)
+
 
     ## Fungsi `buat_invoice_pdf` (Direvisi)
     

@@ -605,8 +605,8 @@ with st.expander("💾 Database Pemesan", expanded=True):
     df_filtered = df.copy()
     df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors='coerce')
     tanggal_range = [pd.Timestamp(d) if not pd.isna(d) else pd.NaT for d in tanggal_range]
-        if tanggal_range[0] > tanggal_range[1]:
-            tanggal_range = [tanggal_range[1], tanggal_range[0]]
+    if tanggal_range[0] > tanggal_range[1]:
+        tanggal_range = [tanggal_range[1], tanggal_range[0]]
 
     filter_mode = st.radio(
         "Pilih Jenis Filter Tanggal",

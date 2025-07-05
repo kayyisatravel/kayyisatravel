@@ -643,7 +643,7 @@ with st.expander("💾 Database Pemesan", expanded=True):
     st.markdown("### 🧍 Filter Tambahan")
     today = date.today()
     awal_bulan = today.replace(day=1)
-    tanggal_range = st.date_input("Rentang Tanggal", [awal_bulan, today])
+    #tanggal_range = st.date_input("Rentang Tanggal", [awal_bulan, today])
     if isinstance(tanggal_range, date):
         tanggal_range = [tanggal_range, tanggal_range]
     elif len(tanggal_range) == 1:

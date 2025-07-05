@@ -611,6 +611,75 @@ with st.expander('💾 Database Pemesan'):
     #else:
         #df = load_data()
     
+    st.markdown("### 📊 Filter Data")
+
+    df_filtered = df.copy()
+
+    # Format kolom tanggal
+    df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce")
+
+    # === Jenis Filter Tanggal ===
+    filter_mode = st.radio(
+        "Pilih Jenis Filter Tanggal",
+        ["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"],
+        horizontal=True
+    )
+
+    if filter_mode == "📆 Rentang Tanggal":
+        tgl_awal = st.date_input("Tanggal Awal", date.today().replace(day=1))
+        tgl_akhir = st.date_input("Tanggal Akhir", date.today())
+        if tgl_awal > tgl_akhir:
+            tgl_awal, tgl_akhir = tgl_akhir, tgl_awal
+        df_filtered = df[
+            (df["Tgl Pemesanan"] >= pd.to_datetime(tgl_awal)) &
+            (df["Tgl Pemesanan"] <= pd.to_datetime(tgl_akhir))
+        ]
+
+    elif filter_mode == "🗓️ Bulanan":
+        bulan_nama = {
+            "Januari": 1, "Februari": 2, "Maret": 3, "April": 4,
+            "Mei": 5, "Juni": 6, "Juli": 7, "Agustus": 8,
+            "September": 9, "Oktober": 10, "November": 11, "Desember": 12
+        }
+        bulan_label = list(bulan_nama.keys())
+        bulan_pilihan = st.selectbox("Pilih Bulan", bulan_label, index=date.today().month - 1)
+        tahun_bulan = st.selectbox(
+            "Pilih Tahun",
+            sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True)
+        )
+        df_filtered = df[
+            (df["Tgl Pemesanan"].dt.month == bulan_nama[bulan_pilihan]) &
+            (df["Tgl Pemesanan"].dt.year == tahun_bulan)
+        ]
+
+    elif filter_mode == "📅 Tahunan":
+        tahun_pilihan = st.selectbox(
+            "Pilih Tahun",
+            sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True)
+        )
+        df_filtered = df[df["Tgl Pemesanan"].dt.year == tahun_pilihan]
+
+    # === Filter Tambahan ===
+    st.markdown("### 🧍 Filter Tambahan")
+
+    pemesan_list = ["(Semua)"] + sorted(df["Nama Pemesan"].dropna().unique())
+    admin_list = ["(Semua)"] + sorted(df["Admin"].dropna().unique())
+
+    selected_pemesan = st.selectbox("Nama Pemesan", pemesan_list)
+    selected_admin = st.selectbox("Admin", admin_list)
+
+    if selected_pemesan != "(Semua)":
+        df_filtered = df_filtered[df_filtered["Nama Pemesan"] == selected_pemesan]
+    if selected_admin != "(Semua)":
+        df_filtered = df_filtered[df_filtered["Admin"] == selected_admin]
+
+    # === Tampilkan Hasil Filter ===
+    if df_filtered.empty:
+        st.warning("❌ Tidak ada data yang cocok.")
+    else:
+        st.success(f"✅ Menampilkan {len(df_filtered)} data sesuai filter.")
+        st.dataframe(df_filtered, use_container_width=True)
+
     ## Fungsi `buat_invoice_pdf` (Direvisi)
     
     # === Fungsi PDF ===

@@ -962,7 +962,106 @@ with st.expander("💾 Database Pemesan", expanded=True):
             elif total_uninvoice >= 23_000_000:
                 st.warning("⚠️ Hampir mencapai 25 juta")
 
-
+# === Tombol Aksi ===
+        col_pdf, col_excel, col_email = st.columns(3)
+    
+        # Inisialisasi nomor invoice unik di session state jika belum ada
+        if 'current_unique_invoice_no' not in st.session_state:
+            st.session_state.current_unique_invoice_no = now.strftime("%y%m%d%H%M%S")
+    
+        # Generate nama file untuk PDF dan Excel
+        current_pdf_filename = f"INV_{st.session_state.current_unique_invoice_no}.pdf"
+        current_excel_filename = f"INV_{st.session_state.current_unique_invoice_no}.xlsx"
+    
+        # Simpan nama file terakhir yang dibuat di session state untuk pengiriman email
+        if 'last_generated_pdf_path' not in st.session_state:
+            st.session_state.last_generated_pdf_path = None
+    
+        with col_pdf:
+            if st.button("📄 Buat Invoice PDF"):
+                if not selected_data.empty:
+                    records = selected_data.to_dict(orient="records")
+                    nama = selected_data["Nama Pemesan"].iloc[0] if not selected_data["Nama Pemesan"].empty else "Pelanggan"
+                    tanggal = selected_data["Tgl Pemesanan"].iloc[0]
+    
+                    # Update nomor invoice unik setiap kali tombol PDF diklik
+                    st.session_state.current_unique_invoice_no = now.strftime("%y%m%d%H%M%S")
+                    current_pdf_filename = f"INV_{st.session_state.current_unique_invoice_no}.pdf"
+                    current_excel_filename = f"INV_{st.session_state.current_unique_invoice_no}.xlsx"
+    
+                    pdf_path_generated = buat_invoice_pdf(records, nama, tanggal, st.session_state.current_unique_invoice_no, current_pdf_filename) 
+                    
+                    with open(pdf_path_generated, "rb") as f:
+                        st.download_button(
+                            "💾 Unduh Invoice PDF", 
+                            f, 
+                            file_name=current_pdf_filename, 
+                            mime="application/pdf"
+                        )
+                    st.success(f"✅ Invoice PDF berhasil dibuat: {current_pdf_filename}")
+                    st.session_state.last_generated_pdf_path = pdf_path_generated # Simpan path untuk email
+                else:
+                    st.warning("Tidak ada data yang dipilih untuk dibuat invoice PDF.")
+    
+        with col_excel:
+            # === Buat Excel ===
+            if st.button("📄 Buat Excel"):
+                if not selected_data.empty:
+                    excel_data = selected_data.drop(columns=["Pilih", "Harga Beli", "Laba", "Admin", "% Laba", "Nama Pemesan"], errors="ignore")
+                    excel_buffer = io.BytesIO()
+                    excel_data.to_excel(excel_buffer, index=False, engine="openpyxl")
+                    excel_buffer.seek(0)
+    
+                    st.download_button(
+                        "📥 Unduh Excel",
+                        data=excel_buffer,
+                        file_name=current_excel_filename, # Gunakan nama file Excel yang dinamis
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+                    st.success(f"✅ File Excel berhasil dibuat: {current_excel_filename}")
+                else:
+                    st.warning("Tidak ada data yang dipilih untuk dibuat file Excel.")
+    
+        with col_email:
+            # === Kirim Email ===
+            email = st.text_input("Email (opsional) untuk kirim invoice", key="email_input")
+            if st.button("📧 Kirim Email"):
+                if not email:
+                    st.warning("Mohon masukkan alamat email untuk mengirim invoice.")
+                elif not selected_data.empty:
+                    if st.session_state.last_generated_pdf_path: # Pastikan PDF sudah dibuat sebelumnya
+                        try:
+                            import yagmail
+                            # Penting: Konfigurasi yagmail untuk deployment di Streamlit Cloud
+                            # OAuth2 credentials harus diatur di Streamlit Secrets
+                            # Misalnya, di .streamlit/secrets.toml
+                            # [yagmail_creds]
+                            # user = "your_email@gmail.com"
+                            # oauth2_file = "path/to/your/oauth2_creds.json" # atau string JSON langsung
+                            
+                            # Contoh penggunaan dari secrets:
+                            # yag = yagmail.SMTP(user=st.secrets["yagmail_creds"]["user"], 
+                            #                    oauth2_file=st.secrets["yagmail_creds"]["oauth2_file"])
+                            
+                            # Untuk tujuan demo, saya akan menonaktifkan pengiriman email sebenarnya
+                            # dan hanya menampilkan pesan.
+                            
+                            st.info("Simulasi pengiriman email: Fitur email membutuhkan konfigurasi Yagmail di Streamlit Secrets.")
+                            # yag.send(
+                            #     to=email,
+                            #     subject="Invoice Pemesanan Anda",
+                            #     contents="Terlampir adalah invoice pemesanan Anda.",
+                            #     attachments=st.session_state.last_generated_pdf_path
+                            # )
+                            # st.success("✅ Email berhasil dikirim.")
+                        except ImportError:
+                            st.error("Modul `yagmail` tidak ditemukan. Silakan instal dengan `pip install yagmail`.")
+                        except Exception as e:
+                            st.error(f"❌ Gagal kirim email: {e}. Pastikan kredensial Yagmail sudah diatur di Streamlit Secrets.")
+                    else:
+                        st.warning("Mohon buat Invoice PDF terlebih dahulu sebelum mengirim email.")
+                else:
+                    st.warning("Tidak ada data yang dipilih untuk dibuat invoice.")
     ## Fungsi `buat_invoice_pdf` (Direvisi)
     
     # === Fungsi PDF ===
@@ -1190,111 +1289,6 @@ with st.expander("💾 Database Pemesan", expanded=True):
     #st.write("Tanggal filter:", tanggal_range)
     
     # ... (kode UI Streamlit di bagian atas) ...
-    
-    
-        
-
-        
-        # === Tombol Aksi ===
-        col_pdf, col_excel, col_email = st.columns(3)
-    
-        # Inisialisasi nomor invoice unik di session state jika belum ada
-        if 'current_unique_invoice_no' not in st.session_state:
-            st.session_state.current_unique_invoice_no = now.strftime("%y%m%d%H%M%S")
-    
-        # Generate nama file untuk PDF dan Excel
-        current_pdf_filename = f"INV_{st.session_state.current_unique_invoice_no}.pdf"
-        current_excel_filename = f"INV_{st.session_state.current_unique_invoice_no}.xlsx"
-    
-        # Simpan nama file terakhir yang dibuat di session state untuk pengiriman email
-        if 'last_generated_pdf_path' not in st.session_state:
-            st.session_state.last_generated_pdf_path = None
-    
-        with col_pdf:
-            if st.button("📄 Buat Invoice PDF"):
-                if not selected_data.empty:
-                    records = selected_data.to_dict(orient="records")
-                    nama = selected_data["Nama Pemesan"].iloc[0] if not selected_data["Nama Pemesan"].empty else "Pelanggan"
-                    tanggal = selected_data["Tgl Pemesanan"].iloc[0]
-    
-                    # Update nomor invoice unik setiap kali tombol PDF diklik
-                    st.session_state.current_unique_invoice_no = now.strftime("%y%m%d%H%M%S")
-                    current_pdf_filename = f"INV_{st.session_state.current_unique_invoice_no}.pdf"
-                    current_excel_filename = f"INV_{st.session_state.current_unique_invoice_no}.xlsx"
-    
-                    pdf_path_generated = buat_invoice_pdf(records, nama, tanggal, st.session_state.current_unique_invoice_no, current_pdf_filename) 
-                    
-                    with open(pdf_path_generated, "rb") as f:
-                        st.download_button(
-                            "💾 Unduh Invoice PDF", 
-                            f, 
-                            file_name=current_pdf_filename, 
-                            mime="application/pdf"
-                        )
-                    st.success(f"✅ Invoice PDF berhasil dibuat: {current_pdf_filename}")
-                    st.session_state.last_generated_pdf_path = pdf_path_generated # Simpan path untuk email
-                else:
-                    st.warning("Tidak ada data yang dipilih untuk dibuat invoice PDF.")
-    
-        with col_excel:
-            # === Buat Excel ===
-            if st.button("📄 Buat Excel"):
-                if not selected_data.empty:
-                    excel_data = selected_data.drop(columns=["Pilih", "Harga Beli", "Laba", "Admin", "% Laba", "Nama Pemesan"], errors="ignore")
-                    excel_buffer = io.BytesIO()
-                    excel_data.to_excel(excel_buffer, index=False, engine="openpyxl")
-                    excel_buffer.seek(0)
-    
-                    st.download_button(
-                        "📥 Unduh Excel",
-                        data=excel_buffer,
-                        file_name=current_excel_filename, # Gunakan nama file Excel yang dinamis
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
-                    st.success(f"✅ File Excel berhasil dibuat: {current_excel_filename}")
-                else:
-                    st.warning("Tidak ada data yang dipilih untuk dibuat file Excel.")
-    
-        with col_email:
-            # === Kirim Email ===
-            email = st.text_input("Email (opsional) untuk kirim invoice", key="email_input")
-            if st.button("📧 Kirim Email"):
-                if not email:
-                    st.warning("Mohon masukkan alamat email untuk mengirim invoice.")
-                elif not selected_data.empty:
-                    if st.session_state.last_generated_pdf_path: # Pastikan PDF sudah dibuat sebelumnya
-                        try:
-                            import yagmail
-                            # Penting: Konfigurasi yagmail untuk deployment di Streamlit Cloud
-                            # OAuth2 credentials harus diatur di Streamlit Secrets
-                            # Misalnya, di .streamlit/secrets.toml
-                            # [yagmail_creds]
-                            # user = "your_email@gmail.com"
-                            # oauth2_file = "path/to/your/oauth2_creds.json" # atau string JSON langsung
-                            
-                            # Contoh penggunaan dari secrets:
-                            # yag = yagmail.SMTP(user=st.secrets["yagmail_creds"]["user"], 
-                            #                    oauth2_file=st.secrets["yagmail_creds"]["oauth2_file"])
-                            
-                            # Untuk tujuan demo, saya akan menonaktifkan pengiriman email sebenarnya
-                            # dan hanya menampilkan pesan.
-                            
-                            st.info("Simulasi pengiriman email: Fitur email membutuhkan konfigurasi Yagmail di Streamlit Secrets.")
-                            # yag.send(
-                            #     to=email,
-                            #     subject="Invoice Pemesanan Anda",
-                            #     contents="Terlampir adalah invoice pemesanan Anda.",
-                            #     attachments=st.session_state.last_generated_pdf_path
-                            # )
-                            # st.success("✅ Email berhasil dikirim.")
-                        except ImportError:
-                            st.error("Modul `yagmail` tidak ditemukan. Silakan instal dengan `pip install yagmail`.")
-                        except Exception as e:
-                            st.error(f"❌ Gagal kirim email: {e}. Pastikan kredensial Yagmail sudah diatur di Streamlit Secrets.")
-                    else:
-                        st.warning("Mohon buat Invoice PDF terlebih dahulu sebelum mengirim email.")
-                else:
-                    st.warning("Tidak ada data yang dipilih untuk dibuat invoice.")
         
 with st.expander("📘 Laporan Keuangan Lengkap"):
     st.markdown("### 📊 Filter Laporan")

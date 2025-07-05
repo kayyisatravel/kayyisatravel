@@ -927,8 +927,23 @@ with st.expander("💾 Database Pemesan", expanded=True):
             st.success(f"✅ Total penjualan mencapai Rp {total_harga_jual:,.0f} (batas 25 juta tercapai)")
         elif total_harga_jual >= MAX_TOTAL * 0.95:
             st.warning(f"⚠️ Total penjualan mendekati batas: Rp {total_harga_jual:,.0f}")
-
+        
         # === Hitung total harga jual data yang belum punya invoice ===
+        # Misal tanggal_range didapat dari st.date_input berupa list tanggal
+        tanggal_range = st.date_input("Rentang Tanggal", [awal_bulan, today])
+        
+        # Pastikan selalu list dua tanggal
+        if isinstance(tanggal_range, date):
+            tanggal_range = [tanggal_range, tanggal_range]
+        elif len(tanggal_range) == 1:
+            tanggal_range = [tanggal_range[0], tanggal_range[0]]
+        
+        # Konversi ke pd.Timestamp supaya tipe kompatibel saat filter
+        tanggal_range = [pd.to_datetime(d) if not isinstance(d, pd.Timestamp) else d for d in tanggal_range]
+        
+        # Pastikan kolom datetime
+        df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce")
+
         uninvoice_df = df[
             (df["Tgl Pemesanan"] >= tanggal_range[0]) &
             (df["Tgl Pemesanan"] <= tanggal_range[1]) &

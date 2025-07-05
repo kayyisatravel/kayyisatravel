@@ -634,7 +634,11 @@ with st.expander("💾 Database Pemesan", expanded=True):
     
     elif filter_mode == "🗓️ Bulanan":
         # filter bulan
-        bulan_nama = {...}
+        bulan_nama = {
+            "Januari": 1, "Februari": 2, "Maret": 3, "April": 4,
+            "Mei": 5, "Juni": 6, "Juli": 7, "Agustus": 8,
+            "September": 9, "Oktober": 10, "November": 11, "Desember": 12
+        }
         bulan_label = list(bulan_nama.keys())
         bulan_pilihan = st.selectbox("Pilih Bulan", bulan_label, index=date.today().month - 1, key="bulan_pilihan")
         tahun_bulan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.unique(), reverse=True), key="tahun_bulan")

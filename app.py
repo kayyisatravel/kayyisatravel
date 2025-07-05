@@ -429,7 +429,7 @@ with st.expander("✏️ Input Manual Data"):
             "Keterangan": keterangan,
             "Nama Pemesan": nama_pemesan,
             "Admin": admin,
-            "% Laba": pct_laba,
+            "% Laba": pct_laba
         }
         if "bulk_parsed" not in st.session_state:
             st.session_state.bulk_parsed = pd.DataFrame()

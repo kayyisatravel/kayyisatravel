@@ -23,6 +23,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo  # Built-in mulai Python 3.9
 import time
 from generator import parse_input_dynamic, generate_eticket, generate_pdf417_barcode, generate_eticket_pdf
+from typing import List
 
 now = datetime.now(ZoneInfo("Asia/Jakarta"))
 
@@ -147,39 +148,53 @@ for key, default in {
 # Google Sheets ID
 SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 
+
 def save_gsheet(df: pd.DataFrame):
     """
-    Kirim DataFrame ke Google Sheets pada worksheet 'Data'.
-    Mencegah kirim data duplikat berdasarkan kombinasi unik.
+    Simpan DataFrame ke Google Sheets jika tidak ada duplikat
+    berdasarkan kolom unik: Nama Customer, Kode Booking, Tgl Pemesanan.
     """
     if df is None or df.empty:
-        st.warning('❌ Data kosong atau invalid.')
+        st.warning("❌ Data kosong atau invalid.")
         return
 
+    # Konversi kolom tanggal lebih awal (hindari parsing berulang)
+    df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce").dt.date
+
+    # Ambil worksheet
     ws = connect_to_gsheet(SHEET_ID, 'Data')
-    existing = pd.DataFrame(ws.get_all_records())
-
-    # Pastikan kolom datetime terkonversi
-    for col in ["Tgl Pemesanan"]:
-        if col in existing.columns:
-            existing[col] = pd.to_datetime(existing[col], errors="coerce").dt.date
-    for col in ["Tgl Pemesanan"]:
-        if col in df.columns:
-            df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
-
-    # Gabung dengan existing dan cari duplikat
+    
+    # Ambil hanya kolom kunci dari sheet (bukan semua data)
     key_cols = ["Nama Customer", "Kode Booking", "Tgl Pemesanan"]
-    merged = df.merge(existing, on=key_cols, how="inner", suffixes=('', '_existing'))
+    existing_keys = ws.get_all_values()
+    if not existing_keys or len(existing_keys) < 2:
+        existing_df = pd.DataFrame(columns=key_cols)
+    else:
+        header = existing_keys[0]
+        rows = existing_keys[1:]
+        key_indices = [header.index(k) for k in key_cols]
+        filtered_rows = [[r[i] for i in key_indices] for r in rows]
+        existing_df = pd.DataFrame(filtered_rows, columns=key_cols)
+        existing_df["Tgl Pemesanan"] = pd.to_datetime(existing_df["Tgl Pemesanan"], errors="coerce").dt.date
 
-    if not merged.empty:
+    # Gabung dan cek duplikat
+    df["dupe_key"] = df[key_cols].astype(str).agg("__".join, axis=1)
+    existing_df["dupe_key"] = existing_df[key_cols].astype(str).agg("__".join, axis=1)
+
+    dupes = df[df["dupe_key"].isin(set(existing_df["dupe_key"]))]
+    if not dupes.empty:
         st.error("❌ Ditemukan duplikat data yang sudah ada di GSheet:")
-        st.dataframe(merged[key_cols])
+        st.dataframe(dupes[key_cols])
         st.warning("Mohon periksa data sebelum mengirim ulang.")
-        return  # Batalkan simpan
+        return
 
-    # Jika aman, kirim
+    # Hapus kolom bantuan sebelum kirim
+    df = df.drop(columns=["dupe_key"])
+    
+    # Kirim data
     append_dataframe_to_sheet(df, ws)
-    st.success('✅ Berhasil simpan data ke Google Sheets.')
+    st.success("✅ Berhasil simpan data ke Google Sheets.")
+
 
 # --- TAMPILAN UTAMA ---
 # CSS custom

@@ -566,15 +566,11 @@ with st.expander("✏️ Input Manual Data"):
                 st.session_state["saved_success"] = False
 
 
-with st.expander('💾 Database Pemesan'):
-    # === Konfigurasi ===
+with st.expander("💾 Database Pemesan", expanded=True):
+    # === Konfigurasi GSheet ===
     SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
     WORKSHEET_NAME = "Data"
-    LOGO_PATH = "logo.png"  # Ganti jika diperlukan
 
-    st.set_page_config(page_title="Buat Invoice Tiket", layout="centered")
-
-    # === Koneksi ke Google Sheet ===
     def connect_to_gsheet(SHEET_ID, worksheet_name="Data"):
         scope = [
             "https://spreadsheets.google.com/feeds",
@@ -584,15 +580,12 @@ with st.expander('💾 Database Pemesan'):
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         client = gspread.authorize(creds)
         sheet = client.open_by_key(SHEET_ID)
-        worksheet = sheet.worksheet(worksheet_name)
-        return worksheet
+        return sheet.worksheet(worksheet_name)
 
-    # === Load data dari Google Sheet ===
-    @st.cache_data(show_spinner="📥 Mengambil data...")
+    @st.cache_data
     def load_data():
         ws = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
         df = pd.DataFrame(ws.get_all_records())
-
         if "Tgl Pemesanan" in df.columns:
             df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], dayfirst=True, errors="coerce")
             df = df.dropna(subset=["Tgl Pemesanan"])
@@ -601,19 +594,16 @@ with st.expander('💾 Database Pemesan'):
             st.stop()
         return df
 
-    # === Tombol Refresh ===
-    if "df" not in st.session_state or st.button("🔄 Refresh Data"):
+    if st.button("🔄 Refresh Data"):
         st.cache_data.clear()
-        st.session_state.df = load_data()
+        df = load_data()
+    else:
+        df = load_data()
 
-    df = st.session_state.df
-
-    # === Filter Data ===
+    # === Filter Utama ===
     st.markdown("### 📊 Filter Data")
-
     df_filtered = df.copy()
 
-    # === Jenis Filter Tanggal ===
     filter_mode = st.radio(
         "Pilih Jenis Filter Tanggal",
         ["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"],
@@ -625,8 +615,6 @@ with st.expander('💾 Database Pemesan'):
         tgl_akhir = st.date_input("Tanggal Akhir", date.today())
         if tgl_awal > tgl_akhir:
             tgl_awal, tgl_akhir = tgl_akhir, tgl_awal
-        tgl_awal = pd.to_datetime(tgl_awal)
-        tgl_akhir = pd.to_datetime(tgl_akhir)
         df_filtered = df[
             (df["Tgl Pemesanan"] >= pd.to_datetime(tgl_awal)) &
             (df["Tgl Pemesanan"] <= pd.to_datetime(tgl_akhir))
@@ -640,42 +628,98 @@ with st.expander('💾 Database Pemesan'):
         }
         bulan_label = list(bulan_nama.keys())
         bulan_pilihan = st.selectbox("Pilih Bulan", bulan_label, index=date.today().month - 1)
-        tahun_bulan = st.selectbox(
-            "Pilih Tahun",
-            sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True)
-        )
+        tahun_bulan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.unique(), reverse=True))
         df_filtered = df[
             (df["Tgl Pemesanan"].dt.month == bulan_nama[bulan_pilihan]) &
             (df["Tgl Pemesanan"].dt.year == tahun_bulan)
         ]
 
     elif filter_mode == "📅 Tahunan":
-        tahun_pilihan = st.selectbox(
-            "Pilih Tahun",
-            sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True)
-        )
+        tahun_pilihan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.unique(), reverse=True))
         df_filtered = df[df["Tgl Pemesanan"].dt.year == tahun_pilihan]
 
     # === Filter Tambahan ===
     st.markdown("### 🧍 Filter Tambahan")
 
-    pemesan_list = ["(Semua)"] + sorted(df["Nama Pemesan"].dropna().unique())
-    admin_list = ["(Semua)"] + sorted(df["Admin"].dropna().unique())
+    tampilkan_uninvoice_saja = st.checkbox("🔍 Tampilkan hanya yang belum ada Invoice")
+    auto_select_25jt = st.checkbox("⚙️ Auto-pilih total penjualan hingga Rp 25 juta")
 
-    selected_pemesan = st.selectbox("Nama Pemesan", pemesan_list)
-    selected_admin = st.selectbox("Admin", admin_list)
+    nama_filter = st.text_input("Cari Nama Pemesan")
+    kode_booking_filter = st.text_input("Cari Kode Booking")
 
-    if selected_pemesan != "(Semua)":
-        df_filtered = df_filtered[df_filtered["Nama Pemesan"] == selected_pemesan]
-    if selected_admin != "(Semua)":
-        df_filtered = df_filtered[df_filtered["Admin"] == selected_admin]
+    if nama_filter:
+        df_filtered = df_filtered[df_filtered["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
+    if kode_booking_filter:
+        df_filtered = df_filtered[df_filtered["Kode Booking"].str.contains(kode_booking_filter, case=False, na=False)]
 
-    # === Tampilkan Hasil Filter ===
+    if tampilkan_uninvoice_saja:
+        df_filtered = df_filtered[df_filtered["No Invoice"].isna() | (df_filtered["No Invoice"].str.strip() == "")]
+
+    # === Tampilkan & Edit Data ===
     if df_filtered.empty:
         st.warning("❌ Tidak ada data yang cocok.")
     else:
         st.success(f"✅ Menampilkan {len(df_filtered)} data sesuai filter.")
-        st.dataframe(df_filtered, use_container_width=True)
+        editable_df = df_filtered.copy()
+        editable_df.insert(0, 'Pilih', False)
+
+        def parse_harga(harga_str):
+            if pd.isna(harga_str):
+                return 0
+            s = str(harga_str).replace('Rp', '').replace('.', '').replace(',', '').strip()
+            try:
+                return float(s)
+            except:
+                return 0
+
+        MAX_TOTAL = 25_000_000
+        if auto_select_25jt:
+            total = 0
+            for i in editable_df.index:
+                harga = parse_harga(editable_df.loc[i, "Harga Jual"])
+                if total + harga <= MAX_TOTAL:
+                    editable_df.at[i, "Pilih"] = True
+                    total += harga
+                else:
+                    break
+
+        if "editable_df" not in st.session_state:
+            st.session_state.editable_df = editable_df
+
+        if not st.session_state.editable_df.equals(editable_df):
+            st.session_state.editable_df = editable_df.copy()
+            st.session_state.editable_df["Pilih"] = False
+
+        if auto_select_25jt:
+            total = 0
+            for i in st.session_state.editable_df.index:
+                harga = parse_harga(st.session_state.editable_df.loc[i, "Harga Jual"])
+                if total + harga <= MAX_TOTAL:
+                    st.session_state.editable_df.at[i, "Pilih"] = True
+                    total += harga
+                else:
+                    break
+
+        select_all = st.checkbox("Pilih Semua", value=False, key="select_all_checkbox")
+        if select_all:
+            st.session_state.editable_df["Pilih"] = True
+        else:
+            if st.session_state.editable_df["Pilih"].all() and st.session_state.get("last_select_all_state", False):
+                st.session_state.editable_df["Pilih"] = False
+        st.session_state.last_select_all_state = select_all
+
+        selected_df = st.data_editor(
+            st.session_state.editable_df,
+            use_container_width=True,
+            num_rows="fixed",
+            disabled=[col for col in editable_df.columns if col != "Pilih"],
+            column_config={
+                "Pilih": st.column_config.CheckboxColumn("Pilih", help="Centang untuk buat invoice")
+            }
+        )
+        st.session_state.editable_df = selected_df
+        selected_data = selected_df[selected_df["Pilih"]]
+
 
 
     ## Fungsi `buat_invoice_pdf` (Direvisi)

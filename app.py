@@ -625,6 +625,8 @@ with st.expander('💾 Database Pemesan'):
         tgl_akhir = st.date_input("Tanggal Akhir", date.today())
         if tgl_awal > tgl_akhir:
             tgl_awal, tgl_akhir = tgl_akhir, tgl_awal
+        tgl_awal = pd.to_datetime(tgl_awal)
+        tgl_akhir = pd.to_datetime(tgl_akhir)
         df_filtered = df[
             (df["Tgl Pemesanan"] >= pd.to_datetime(tgl_awal)) &
             (df["Tgl Pemesanan"] <= pd.to_datetime(tgl_akhir))

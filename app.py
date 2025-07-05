@@ -640,7 +640,14 @@ with st.expander("💾 Database Pemesan", expanded=True):
 
     # === Filter Tambahan ===
     st.markdown("### 🧍 Filter Tambahan")
-
+    today = date.today()
+    awal_bulan = today.replace(day=1)
+    tanggal_range = st.sidebar.date_input("Rentang Tanggal", [awal_bulan, today])
+    if isinstance(tanggal_range, date):
+        tanggal_range = [tanggal_range, tanggal_range]
+    elif len(tanggal_range) == 1:
+        tanggal_range = [tanggal_range[0], tanggal_range[0]]
+    tanggal_range = [d if isinstance(d, date) else d.date() for d in tanggal_range]
     tampilkan_uninvoice_saja = st.checkbox("🔍 Tampilkan hanya yang belum ada Invoice")
     auto_select_25jt = st.checkbox("⚙️ Auto-pilih total penjualan hingga Rp 25 juta")
 

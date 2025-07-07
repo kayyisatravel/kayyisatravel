@@ -578,7 +578,7 @@ def generate_evoucher_html(data):
 
       <div class="section">
         <h3>Detail Tamu & Kamar</h3>
-        {tamu_html}
+        {tamu_html}</p>
         <p>{get('kamar')}</p>
       </div>
 

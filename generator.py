@@ -505,7 +505,8 @@ def generate_evoucher_html(data):
       .price-table th, .price-table td {{
         border: 1px solid #aac4ff;
         padding: 10px 14px;
-        text-align: left;
+        text-align: center;
+        vertical-align: middle;
         font-size: 15px;
         color: #003366;
       }}

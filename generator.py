@@ -296,36 +296,31 @@ def parse_evoucher_text(text):
             data['jumlah_kamar'] = int(match.group(1))
             break
 
-    # Ambil tanggal keluar dan jam keluar
+    def is_valid_date(s):
+        # Contoh: "Sel, 08 Jul 2025"
+        return re.match(r'^[A-Za-z]{3,},\s+\d{2}\s+\w{3,}\s+\d{4}$', s.strip()) is not None
+    
+    def is_valid_time(s):
+        # Contoh: "12:00" atau "14:00-23:59"
+        return re.match(r'^\d{2}:\d{2}(-\d{2}:\d{2})?$', s.strip()) is not None
+    
+    # ----------- Ambil Tanggal Keluar -----------
     if 'Tanggal keluar' in lines:
         idx = lines.index('Tanggal keluar')
+        # Baris setelahnya: tanggal
+        if idx + 1 < len(lines) and is_valid_date(lines[idx + 1]):
+            data['tanggal_keluar'] = lines[idx + 1].strip()
+        # Baris berikutnya: jam
+        if idx + 2 < len(lines) and is_valid_time(lines[idx + 2]):
+            data['jam_keluar'] = lines[idx + 2].strip()
     
-        # Validasi tanggal (misal: "Sel, 08 Jul 2025")
-        if idx + 1 < len(lines):
-            tanggal_candidate = lines[idx + 1]
-            if re.match(r'^[A-Za-z]{3,},\s+\d{2}\s+\w{3,}\s+\d{4}$', tanggal_candidate):
-                data['tanggal_keluar'] = tanggal_candidate
-    
-        # Validasi jam (misal: "12:00" atau "14:00-23:59")
-        if idx + 2 < len(lines):
-            jam_candidate = lines[idx + 2]
-            if re.match(r'^\d{2}:\d{2}(-\d{2}:\d{2})?$', jam_candidate):
-                data['jam_keluar'] = jam_candidate
-
-
-    # Ambil tanggal masuk dan jam masuk
+    # ----------- Ambil Tanggal Masuk -----------
     if 'Tanggal masuk' in lines:
         idx = lines.index('Tanggal masuk')
-        
-        # Cek apakah baris berikutnya adalah tanggal (format misal: "Min, 06 Jul 2025")
-        if idx + 1 < len(lines):
-            if re.match(r'^[A-Za-z]{3,},\s+\d{2}\s+\w{3,}\s+\d{4}$', lines[idx + 1]):
-                data['tanggal_masuk'] = lines[idx + 1]
-    
-        # Cek apakah baris berikutnya adalah jam (misal: "14:00-23:59")
-        if idx + 2 < len(lines):
-            if re.match(r'^\d{2}:\d{2}(-\d{2}:\d{2})?$', lines[idx + 2]):
-                data['jam_masuk'] = lines[idx + 2]
+        if idx + 1 < len(lines) and is_valid_date(lines[idx + 1]):
+            data['tanggal_masuk'] = lines[idx + 1].strip()
+        if idx + 2 < len(lines) and is_valid_time(lines[idx + 2]):
+            data['jam_masuk'] = lines[idx + 2].strip()
 
     # Ambil daftar tamu (baris setelah "Detail Tamu" sampai sebelum "Kamar")
     try:

@@ -574,7 +574,7 @@ def generate_evoucher_html(data):
       </div>
 
       <div class="footer">
-        Jika ada kendala saat check‑in, silakan hubungi kami di: (nomor/email customer service)
+        Jika ada kendala saat check‑in, silakan hubungi kami di: (0813 3671 6677/kayyisatour@gmail.com)
       </div>
     </div>
     """

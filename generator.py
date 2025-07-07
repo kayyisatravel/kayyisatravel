@@ -246,7 +246,10 @@ def generate_eticket(data):
 
 def parse_evoucher_text(text):
     lines = [line.strip() for line in text.splitlines() if line.strip()]
+
     data = {
+        'order_id': '-',
+        'itinerary_id': '-',
         'hotel_name': '-',
         'location': '-',
         'jumlah_kamar': '-',
@@ -256,106 +259,124 @@ def parse_evoucher_text(text):
         'jam_keluar': '-',
         'tamu': [],
         'kamar': '-',
-        'jumlah_tamu': '-',
+        'jumlah_tamu': 1,
         'fasilitas': '-',
         'permintaan_khusus': '-',
-        'harga_per_malam': '-',
-        'total_malam': '-',
-        'total_harga': '-'
+        'harga_per_malam': 0,
+        'total_malam': 1
     }
 
-    # Hotel name & location di 2 baris pertama
-    if len(lines) > 1:
-        data['hotel_name'] = lines[0]
-        data['location'] = lines[1]
+    # Ambil Order ID & Itinerary ID
+    for line in lines:
+        if line.lower().startswith('order id:'):
+            data['order_id'] = line.split(':',1)[1].strip()
+        elif line.lower().startswith('itinerary id:'):
+            data['itinerary_id'] = line.split(':',1)[1].strip()
 
-    # Cari indeks detail reservasi, tamu, kamar, fasilitas, permintaan khusus, harga
-    def find_index(keyword):
-        for i, line in enumerate(lines):
-            if line.lower() == keyword.lower():
-                return i
-        return -1
+    # Cari posisi hotel & lokasi (asumsi setelah Itinerary ID dan sebelum "Detail Reservasi")
+    try:
+        idx_detail_reservasi = lines.index('Detail Reservasi')
+    except ValueError:
+        idx_detail_reservasi = -1
 
-    idx_detail_reservasi = find_index('Detail Reservasi')
-    idx_tanggal_keluar = find_index('Tanggal keluar')
-    idx_tanggal_masuk = find_index('Tanggal masuk')
-    idx_detail_tamu = find_index('Detail Tamu')
-    idx_kamar = find_index('Kamar')
-    idx_fasilitas = find_index('Fasilitas')
-    idx_permintaan = find_index('Permintaan Khusus')
+    if idx_detail_reservasi > 1:
+        data['hotel_name'] = lines[idx_detail_reservasi - 2]
+        data['location'] = lines[idx_detail_reservasi - 1]
 
-    # Jumlah kamar (baris setelah Detail Reservasi)
+    # Jumlah kamar
     if idx_detail_reservasi != -1 and idx_detail_reservasi + 1 < len(lines):
         data['jumlah_kamar'] = lines[idx_detail_reservasi + 1]
 
-    # Tanggal keluar + jam
-    if idx_tanggal_keluar != -1:
-        if idx_tanggal_keluar + 1 < len(lines):
-            data['tanggal_keluar'] = lines[idx_tanggal_keluar + 1]
-        if idx_tanggal_keluar + 2 < len(lines):
-            data['jam_keluar'] = lines[idx_tanggal_keluar + 2]
+    # Tanggal keluar
+    if 'Tanggal keluar' in lines:
+        idx = lines.index('Tanggal keluar')
+        if idx + 1 < len(lines):
+            data['tanggal_keluar'] = lines[idx + 1]
+        if idx + 2 < len(lines):
+            data['jam_keluar'] = lines[idx + 2]
 
-    # Tanggal masuk + jam
-    if idx_tanggal_masuk != -1:
-        if idx_tanggal_masuk + 1 < len(lines):
-            data['tanggal_masuk'] = lines[idx_tanggal_masuk + 1]
-        if idx_tanggal_masuk + 2 < len(lines):
-            data['jam_masuk'] = lines[idx_tanggal_masuk + 2]
+    # Tanggal masuk
+    if 'Tanggal masuk' in lines:
+        idx = lines.index('Tanggal masuk')
+        if idx + 1 < len(lines):
+            data['tanggal_masuk'] = lines[idx + 1]
+        if idx + 2 < len(lines):
+            data['jam_masuk'] = lines[idx + 2]
 
-    # Detail Tamu (ambil semua baris antara Detail Tamu sampai Kamar)
-    if idx_detail_tamu != -1 and idx_kamar != -1:
-        tamu_lines = lines[idx_detail_tamu + 1: idx_kamar]
+    # Detail tamu
+    try:
+        idx_detail_tamu = lines.index('Detail Tamu')
         tamu_list = []
-        for tamu in tamu_lines:
-            # Hapus nomor depan "1. " atau "2. "
-            tamu = re.sub(r'^\d+\.\s*', '', tamu)
-            if tamu:
-                tamu_list.append(tamu)
+        i = idx_detail_tamu + 1
+        while i < len(lines) and not lines[i].lower().startswith('kamar'):
+            tamu_list.append(lines[i])
+            i += 1
         data['tamu'] = tamu_list
-        data['jumlah_tamu'] = len(tamu_list)
+    except ValueError:
+        data['tamu'] = []
 
-    # Kamar (baris setelah Kamar)
-    if idx_kamar != -1 and idx_kamar + 1 < len(lines):
-        data['kamar'] = lines[idx_kamar + 1]
-
-    # Fasilitas (baris setelah Fasilitas)
-    if idx_fasilitas != -1 and idx_fasilitas + 1 < len(lines):
-        data['fasilitas'] = lines[idx_fasilitas + 1]
-
-    # Permintaan Khusus (baris setelah Permintaan Khusus)
-    if idx_permintaan != -1 and idx_permintaan + 1 < len(lines):
-        permintaan = lines[idx_permintaan + 1]
-        data['permintaan_khusus'] = permintaan.replace('Others:', '').strip()
-
-    # Harga (cari baris yang mengandung kata harga dan angka)
-    harga = None
-    for line in lines:
-        if 'harga' in line.lower():
-            match = re.search(r'(\d[\d.,]*)', line)
+    # Kamar dan jumlah tamu
+    try:
+        idx_kamar = lines.index('Kamar')
+        if idx_kamar + 1 < len(lines):
+            data['kamar'] = lines[idx_kamar + 1]
+        if idx_kamar + 2 < len(lines):
+            jumlah_tamu_str = lines[idx_kamar + 2]
+            # Cari angka dalam string "2 tamu (4 dewasa)"
+            import re
+            match = re.search(r'(\d+)', jumlah_tamu_str)
             if match:
-                harga_str = match.group(1).replace('.', '').replace(',', '.')
+                data['jumlah_tamu'] = int(match.group(1))
+    except ValueError:
+        pass
+
+    # Fasilitas
+    try:
+        idx_fasilitas = lines.index('Fasilitas')
+        if idx_fasilitas + 1 < len(lines):
+            data['fasilitas'] = lines[idx_fasilitas + 1]
+    except ValueError:
+        pass
+
+    # Permintaan Khusus
+    try:
+        idx_permintaan = lines.index('Permintaan Khusus')
+        if idx_permintaan + 1 < len(lines):
+            data['permintaan_khusus'] = lines[idx_permintaan + 1].replace('Others:', '').strip()
+    except ValueError:
+        pass
+
+    # Harga per malam (cari baris yang mengandung "Harga")
+    harga = 0
+    for line in lines:
+        if line.lower().startswith('harga'):
+            # Contoh: "Harga 300.000"
+            parts = line.split()
+            for part in parts:
+                part_clean = part.replace('.', '').replace(',', '.')
                 try:
-                    harga = float(harga_str)
+                    harga = float(part_clean)
                     break
                 except:
-                    pass
-    data['harga_per_malam'] = harga if harga else '-'
+                    continue
+    data['harga_per_malam'] = harga
 
-    # Hitung total malam dari tanggal masuk dan keluar
-    try:
-        # Format tanggal contoh: 'Min, 06 Jul 2025'
-        def parse_date(s):
-            # Buang hari (Min, Sel, etc)
-            s = s.split(',')[1].strip() if ',' in s else s.strip()
-            return datetime.strptime(s, '%d %b %Y')
-        tanggal_masuk_dt = parse_date(data['tanggal_masuk'])
-        tanggal_keluar_dt = parse_date(data['tanggal_keluar'])
-        total_malam = (tanggal_keluar_dt - tanggal_masuk_dt).days
-        if total_malam < 1:
-            total_malam = 1
-        data['total_malam'] = total_malam
-    except Exception as e:
-        data['total_malam'] = '-'
+    # Hitung total malam (asumsi berdasarkan tanggal masuk dan keluar)
+    from datetime import datetime
+
+    def parse_date(date_str):
+        try:
+            return datetime.strptime(date_str.split(',')[1].strip(), '%d %b %Y')
+        except:
+            return None
+
+    masuk = parse_date(data['tanggal_masuk'])
+    keluar = parse_date(data['tanggal_keluar'])
+
+    if masuk and keluar and keluar > masuk:
+        data['total_malam'] = (keluar - masuk).days
+    else:
+        data['total_malam'] = 1
 
     return data
 

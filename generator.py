@@ -291,15 +291,18 @@ def parse_evoucher_text(text):
     data['jumlah_kamar'] = '-'
 
     for i, line in enumerate(lines):
-        if line.strip().lower() == 'kamar':
+        if isinstance(line, str) and line.strip().lower() == 'kamar':
             if i + 1 < len(lines):
                 kamar_line = lines[i + 1]
-                kamar_line_str = str(kamar_line).strip().lower()
-                print(f"[DEBUG] kamar_line: {kamar_line_str}")  # opsional debugging
+                kamar_line_str = str(kamar_line).strip().lower() if kamar_line is not None else ''
     
-                match = re.search(r'(\d+)\s*x', kamar_line_str)
-                if match:
-                    data['jumlah_kamar'] = int(match.group(1))
+                # Debug opsional
+                # print(f"[DEBUG] kamar_line_str: {repr(kamar_line_str)}")
+    
+                if kamar_line_str:
+                    match = re.search(r'(\d+)\s*x', kamar_line_str)
+                    if match:
+                        data['jumlah_kamar'] = int(match.group(1))
             break
 
     # Tanggal keluar

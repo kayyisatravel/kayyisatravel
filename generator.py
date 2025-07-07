@@ -392,7 +392,7 @@ def generate_evoucher_html(data):
     # Format harga total
     total_harga = "-"
     try:
-        total_harga_val = get('harga_per_malam') * get('total_malam') * get('jumlah_tamu')
+        total_harga_val = get('harga_per_malam') * get('total_malam') * get('jumlah_kamar')
         total_harga = f"Rp {total_harga_val:,.0f}".replace(',', '.')
     except:
         pass
@@ -415,10 +415,12 @@ def generate_evoucher_html(data):
         align-items:center;
         justify-content: space-between;
         background: linear-gradient(90deg, #e0e8f9, #b3c7f9);
-        padding: 15px 25px;
+        padding: 10px 20px;
         border-radius: 8px;
-        border-bottom: 3px solid #004080;
-        margin-bottom: 25px;
+        border-bottom: 2px solid #004080;
+        margin-bottom: 20px;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }}
       .header-left {{
         display: flex;
@@ -426,7 +428,7 @@ def generate_evoucher_html(data):
         gap: 15px;
       }}
       .header-left img {{
-        height: 60px;
+        height: 45px;
         border-radius: 5px;
         border: 1px solid #004080;
         background: white;
@@ -434,36 +436,19 @@ def generate_evoucher_html(data):
       .header-left h1 {{
         margin: 0;
         font-weight: 600;
-        font-size: 18px;  /* lebih kecil */
+        font-size: 18px;
         letter-spacing: 1px;
         white-space: nowrap;
-        }}
-        .header-right {{
-            font-weight: 600;
-            font-size: 16px; /* lebih kecil */
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            align-self: center;
-            margin-left: auto;
-            text-align: right;
-        }}
-        .header-left img {{
-            height: 45px;  /* lebih kecil dari 60px */
-            border-radius: 5px;
-            border: 1px solid #004080;
-            background: white;
-        }}
-        .header {{
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: linear-gradient(90deg, #e0e8f9, #b3c7f9);
-            padding: 10px 20px; /* lebih sempit */
-            border-radius: 8px;
-            border-bottom: 2px solid #004080;
-            margin-bottom: 20px;
-        }}
-
+      }}
+      .header-right {{
+        font-weight: 600;
+        font-size: 16px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        align-self: center;
+        margin-left: auto;
+        text-align: right;
+      }}
       .section {{
         margin-top:18px;
       }}
@@ -511,6 +496,20 @@ def generate_evoucher_html(data):
       .price-table th {{
         background-color: #c6d6ff;
         font-weight: 700;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }}
+
+      /* Tambahan untuk cetak */
+      @media print {{
+        .no-print {{
+          display: none !important;
+        }}
+        .header,
+        .price-table th {{
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }}
       }}
     </style>
 
@@ -544,18 +543,18 @@ def generate_evoucher_html(data):
       </div>
 
       <div class="section">
-        <h3>Harga & Pembayaran</h3>
+        <h3>Harga</h3>
         <table class="price-table">
           <tr>
             <th>Rate per Malam per Orang</th>
             <th>Total Malam</th>
-            <th>Jumlah Tamu</th>
+            <th>Jumlah Kamar</th>
             <th>Total Harga</th>
           </tr>
           <tr>
             <td>Rp {get('harga_per_malam'):,}</td>
             <td>{get('total_malam')} malam</td>
-            <td>{get('jumlah_tamu')}</td>
+            <td>{get('jumlah_kamar')}</td>
             <td><strong>{total_harga}</strong></td>
           </tr>
         </table>
@@ -587,6 +586,7 @@ def generate_evoucher_html(data):
     </div>
     """
     return html
+
 
 
 # ===== Contoh pemakaian =====

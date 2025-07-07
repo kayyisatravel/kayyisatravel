@@ -196,7 +196,8 @@ def generate_eticket(data):
 
       <h1 style="color:#0047b3;">E-Tiket Kereta Api</h1>
       <p><strong>Kode Booking:</strong> {data.get('kode_booking', 'N/A')}<br>
-         <strong>Nama Kereta:</strong> {data.get('nama_kereta', 'Tidak Diketahui')}</p>
+         <strong>Nama Kereta:</strong> {data.get('nama_kereta', 'Tidak Diketahui')}<br>
+         <strong>Kelas:</strong> {data.get('kelas_kategori', 'Tidak Diketahui')}</p>
          
          <strong>Tanggal Berangkat:</strong> {data.get('tanggal_berangkat', 'Tidak Diketahui')}<br>
          <strong>Tanggal Tiba:</strong> {data.get('tanggal_tiba', 'Tidak Diketahui')}</p>

@@ -244,9 +244,10 @@ def generate_eticket(data):
     """
     return html
 
+
 def parse_evoucher_text(text):
     lines = [line.strip() for line in text.splitlines() if line.strip()]
-
+    
     data = {
         'order_id': '-',
         'itinerary_id': '-',
@@ -263,47 +264,39 @@ def parse_evoucher_text(text):
         'fasilitas': '-',
         'permintaan_khusus': '-',
         'harga_per_malam': 0,
-        'total_malam': 1
+        'total_malam': 1,
+        'total_harga': '-'
     }
 
-    # Ambil Order ID & Itinerary ID
+    # Ambil Order ID & Itinerary ID jika ada
     for line in lines:
-        if 'order id' in line.lower():
+        low = line.lower()
+        if 'order id' in low:
             parts = line.split(':', 1)
             if len(parts) > 1:
                 data['order_id'] = parts[1].strip()
-        elif 'itinerary id' in line.lower():
+        elif 'itinerary id' in low:
             parts = line.split(':', 1)
             if len(parts) > 1:
                 data['itinerary_id'] = parts[1].strip()
 
-    # Cari posisi hotel & lokasi (asumsi setelah Itinerary ID dan sebelum "Detail Reservasi")
+    # Cari posisi "Detail Reservasi" untuk hotel & lokasi
     try:
         idx_detail_reservasi = lines.index('Detail Reservasi')
+        if idx_detail_reservasi >= 2:
+            data['hotel_name'] = lines[idx_detail_reservasi - 2]
+            data['location'] = lines[idx_detail_reservasi - 1]
     except ValueError:
-        idx_detail_reservasi = -1
+        pass
 
-    if idx_detail_reservasi > 1:
-        data['hotel_name'] = lines[idx_detail_reservasi - 2]
-        data['location'] = lines[idx_detail_reservasi - 1]
-
-    # Jumlah kamar
-    data['jumlah_kamar'] = '-'
-
+    # Cari jumlah kamar (contoh format: "1 x Standard Room")
     for line in lines:
-        try:
-            line_str = str(line).strip().lower()
-            if re.search(r'\d+\s*x', line_str):
-                match = re.search(r'(\d+)\s*x', line_str)
-                if match:
-                    data['jumlah_kamar'] = int(match.group(1))
-                    break
-        except Exception as e:
-            # Jika ada error, bisa log atau skip
-            print(f"[DEBUG] Error saat parsing jumlah_kamar: {e}")
-            continue
+        line_lower = line.lower()
+        if match := re.search(r'(\d+)\s*[x×]', line_lower):
+            data['jumlah_kamar'] = int(match.group(1))
+            break
 
-    # Tanggal keluar
+    # Ambil tanggal keluar dan jam keluar
     if 'Tanggal keluar' in lines:
         idx = lines.index('Tanggal keluar')
         if idx + 1 < len(lines):
@@ -311,7 +304,7 @@ def parse_evoucher_text(text):
         if idx + 2 < len(lines):
             data['jam_keluar'] = lines[idx + 2]
 
-    # Tanggal masuk
+    # Ambil tanggal masuk dan jam masuk
     if 'Tanggal masuk' in lines:
         idx = lines.index('Tanggal masuk')
         if idx + 1 < len(lines):
@@ -319,11 +312,11 @@ def parse_evoucher_text(text):
         if idx + 2 < len(lines):
             data['jam_masuk'] = lines[idx + 2]
 
-    # Detail tamu
+    # Ambil daftar tamu (baris setelah "Detail Tamu" sampai sebelum "Kamar")
     try:
-        idx_detail_tamu = lines.index('Detail Tamu')
+        idx_tamu = lines.index('Detail Tamu')
         tamu_list = []
-        i = idx_detail_tamu + 1
+        i = idx_tamu + 1
         while i < len(lines) and not lines[i].lower().startswith('kamar'):
             tamu_list.append(lines[i])
             i += 1
@@ -331,22 +324,20 @@ def parse_evoucher_text(text):
     except ValueError:
         data['tamu'] = []
 
-    # Kamar dan jumlah tamu
+    # Ambil kamar dan jumlah tamu
     try:
         idx_kamar = lines.index('Kamar')
         if idx_kamar + 1 < len(lines):
             data['kamar'] = lines[idx_kamar + 1]
         if idx_kamar + 2 < len(lines):
-            jumlah_tamu_str = lines[idx_kamar + 2]
-            # Cari angka dalam string "2 tamu (4 dewasa)"
-            import re
-            match = re.search(r'(\d+)', jumlah_tamu_str)
+            jumlah_tamu_line = lines[idx_kamar + 2]
+            match = re.search(r'(\d+)', jumlah_tamu_line)
             if match:
                 data['jumlah_tamu'] = int(match.group(1))
     except ValueError:
         pass
 
-    # Fasilitas
+    # Ambil fasilitas
     try:
         idx_fasilitas = lines.index('Fasilitas')
         if idx_fasilitas + 1 < len(lines):
@@ -354,7 +345,7 @@ def parse_evoucher_text(text):
     except ValueError:
         pass
 
-    # Permintaan Khusus
+    # Ambil permintaan khusus
     try:
         idx_permintaan = lines.index('Permintaan Khusus')
         if idx_permintaan + 1 < len(lines):
@@ -362,27 +353,28 @@ def parse_evoucher_text(text):
     except ValueError:
         pass
 
-    # Harga per malam (cari baris yang mengandung "Harga")
-    harga = 0
+    # Ambil harga per malam (cari baris yang mengandung kata "Harga")
     for line in lines:
         if line.lower().startswith('harga'):
-            # Contoh: "Harga 300.000"
             parts = line.split()
             for part in parts:
                 part_clean = part.replace('.', '').replace(',', '.')
                 try:
                     harga = float(part_clean)
+                    data['harga_per_malam'] = harga
                     break
                 except:
                     continue
-    data['harga_per_malam'] = harga
 
-    # Hitung total malam (asumsi berdasarkan tanggal masuk dan keluar)
-    from datetime import datetime
-
+    # Fungsi parsing tanggal (format: "Min, 06 Jul 2025")
     def parse_date(date_str):
         try:
-            return datetime.strptime(date_str.split(',')[1].strip(), '%d %b %Y')
+            # Beberapa evoucher mungkin tidak pakai koma setelah hari
+            if ',' in date_str:
+                date_part = date_str.split(',', 1)[1].strip()
+            else:
+                date_part = date_str.strip()
+            return datetime.strptime(date_part, '%d %b %Y')
         except:
             return None
 
@@ -394,7 +386,19 @@ def parse_evoucher_text(text):
     else:
         data['total_malam'] = 1
 
+    # Hitung total harga: harga_per_malam x jumlah_kamar x total_malam
+    try:
+        total_harga = (
+            float(data['harga_per_malam']) *
+            int(data['jumlah_kamar']) *
+            int(data['total_malam'])
+        )
+        data['total_harga'] = total_harga
+    except Exception:
+        data['total_harga'] = '-'
+
     return data
+
     
 # Fungsi generate HTML voucher (disesuaikan dari kode kamu)
 def generate_evoucher_html(data):

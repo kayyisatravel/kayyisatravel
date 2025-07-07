@@ -22,7 +22,7 @@ from gspread.utils import rowcol_to_a1
 from datetime import datetime
 from zoneinfo import ZoneInfo  # Built-in mulai Python 3.9
 import time
-from generator import parse_input_dynamic, generate_eticket, generate_pdf417_barcode, generate_eticket_pdf
+from generator import parse_input_dynamic, generate_eticket, parse_evoucher_text, generate_evoucher_html, generate_pdf417_barcode, generate_eticket_pdf
 from typing import List
 
 now = datetime.now(ZoneInfo("Asia/Jakarta"))
@@ -1406,19 +1406,34 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
         with st.expander("📄 Lihat Tabel Detail"):
             st.dataframe(df_filtered, use_container_width=True)
 
-with st.expander("🎫 Generator E-Tiket Kereta"):
-    # Input teks dari hasil OCR atau paste manual
-    input_text = st.text_area("Tempelkan teks tiket", height=300)
+
+# Contoh fungsi parsing untuk kereta dan hotel (sesuaikan dengan fungsi asli kamu)
+def parsing_ticket(text, tipe):
+    if tipe == "Kereta":
+        return parse_input_dynamic(text)  # ganti dengan fungsi parsing tiket kereta kamu
+    elif tipe == "Hotel":
+        return parse_evoucher_text(text)  # fungsi parsing hotel yang sudah ada
+
+def generate_ticket(data, tipe):
+    if tipe == "Kereta":
+        return generate_eticket(data)  # fungsi generate tiket kereta kamu
+    elif tipe == "Hotel":
+        return generate_evoucher_html(data)  # fungsi generate voucher hotel kamu
+
+with st.expander("🎫 Generator E-Tiket"):
+    tipe_tiket = st.radio("Pilih tipe tiket:", ["Kereta", "Hotel"])
+
+    input_text = st.text_area(f"Tempelkan teks tiket {tipe_tiket}", height=300)
 
     if st.button("Generate Tiket"):
         if input_text.strip():
-            data = parse_input_dynamic(input_text)
-            st.session_state['last_data'] = data  # simpan ke session state
+            data = parsing_ticket(input_text, tipe_tiket)
+            st.session_state['last_data'] = data
+            st.session_state['tipe_tiket'] = tipe_tiket
         else:
             st.warning("Silakan masukkan data tiket terlebih dahulu.")
 
-    # Jika sudah ada data di session_state, tampilkan tiket dan tombol cetak PDF
-    if 'last_data' in st.session_state:
+    if 'last_data' in st.session_state and st.session_state.get('tipe_tiket') == tipe_tiket:
         data = st.session_state['last_data']
-        html = generate_eticket(data)
+        html = generate_ticket(data, tipe_tiket)
         st.components.v1.html(html, height=800, scrolling=True)

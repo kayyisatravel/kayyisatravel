@@ -62,10 +62,12 @@ def parse_input_dynamic(text):
     asal, tujuan = 'Tidak Diketahui', 'Tidak Diketahui'
     kode_stasiun_asal, kode_stasiun_tujuan = '', ''
     stasiun_match = re.findall(r'([A-Za-z .]+)\s*\(([A-Z]{2,3})\)', text)
+    kelas_kategori = ['eksekutif', 'ekonomi', 'premium', 'bisnis', 'panoramic', 'priority', 'suite']
     valid_stasiun = []
     for nama, kode in stasiun_match:
-        if 'eksekutif' not in nama.lower():
+        if not any(kelas in nama.lower() for kelas in kelas_kategori):
             valid_stasiun.append((nama, kode))
+    
     if len(valid_stasiun) >= 2:
         asal, kode_stasiun_asal = valid_stasiun[0]
         tujuan, kode_stasiun_tujuan = valid_stasiun[1]

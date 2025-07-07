@@ -268,10 +268,14 @@ def parse_evoucher_text(text):
 
     # Ambil Order ID & Itinerary ID
     for line in lines:
-        if line.lower().startswith('order id:'):
-            data['order_id'] = line.split(':',1)[1].strip()
-        elif line.lower().startswith('itinerary id:'):
-            data['itinerary_id'] = line.split(':',1)[1].strip()
+        if 'order id' in line.lower():
+            parts = line.split(':', 1)
+            if len(parts) > 1:
+                data['order_id'] = parts[1].strip()
+        elif 'itinerary id' in line.lower():
+            parts = line.split(':', 1)
+            if len(parts) > 1:
+                data['itinerary_id'] = parts[1].strip()
 
     # Cari posisi hotel & lokasi (asumsi setelah Itinerary ID dan sebelum "Detail Reservasi")
     try:
@@ -503,7 +507,7 @@ def generate_evoucher_html(data):
 
       <div class="section">
         <h3>Order & Itinerary</h3>
-        <p>--</p>
+        <p>{get('order_id')}<br>{get('itinerary_id')}</p>
       </div>
 
       <div class="section">

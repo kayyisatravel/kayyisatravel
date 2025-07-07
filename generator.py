@@ -532,8 +532,7 @@ def generate_evoucher_html(data):
     <div class="voucher">
       <div class="header">
         <div class="header-left">
-          <img src="https://i.ibb.co/Z6bFhC2D/Logo-Kayyisa-Tour.jpg" alt="Logo Kayyisa Tour & Travel">
-          <h1>Kayyisa Tour & Travel</h1>
+          <h1>|Kayyisa Tour & Travel</h1>
         </div>
         <div class="header-right">
           Hotel Reservation

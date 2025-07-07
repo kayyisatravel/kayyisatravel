@@ -546,7 +546,7 @@ def generate_evoucher_html(data):
         <h3>Harga</h3>
         <table class="price-table">
           <tr>
-            <th>Rate per Malam per Orang</th>
+            <th>Rate per Malam</th>
             <th>Total Malam</th>
             <th>Jumlah Kamar</th>
             <th>Total Harga</th>

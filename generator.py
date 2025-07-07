@@ -576,6 +576,14 @@ def generate_evoucher_html(data):
       <div class="footer">
         Jika ada kendala saat check‑in, silakan hubungi kami di: (62813 3671 6677 / kayyisatour@gmail.com)
       </div>
+      
+      <div style="text-align: center; margin-top: 30px;">
+        <button class="no-print" onclick="window.print()"
+                style="padding: 10px 20px; background-color: #0047b3; color: white; border: none;
+                       border-radius: 6px; cursor: pointer; font-size: 16px;">
+          Cetak Tiket
+        </button>
+      </div>
     </div>
     """
     return html

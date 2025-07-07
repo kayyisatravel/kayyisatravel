@@ -288,19 +288,19 @@ def parse_evoucher_text(text):
         data['location'] = lines[idx_detail_reservasi - 1]
 
     # Jumlah kamar
+    data['jumlah_kamar'] = '-'
+
     for i, line in enumerate(lines):
-        if line.strip().lower() == 'kamar' and i + 1 < len(lines):
-            kamar_line = lines[i + 1].strip()
-            # Cari pola: angka diikuti "x", misalnya "1 x Standard Room"
-            match = re.match(r'(\d+)\s*x', str(kamar_line).lower())
-            if match:
-                data['jumlah_kamar'] = int(match.group(1))
-            else:
-                data['jumlah_kamar'] = '-'  # fallback jika format tak dikenali
+        if line.strip().lower() == 'kamar':
+            if i + 1 < len(lines):
+                kamar_line = lines[i + 1]
+                kamar_line_str = str(kamar_line).strip().lower()
+                print(f"[DEBUG] kamar_line: {kamar_line_str}")  # opsional debugging
+    
+                match = re.search(r'(\d+)\s*x', kamar_line_str)
+                if match:
+                    data['jumlah_kamar'] = int(match.group(1))
             break
-    else:
-        # Jika tidak ditemukan bagian "Kamar"
-        data['jumlah_kamar'] = '-'
 
     # Tanggal keluar
     if 'Tanggal keluar' in lines:

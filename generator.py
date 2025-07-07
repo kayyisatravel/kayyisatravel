@@ -451,14 +451,14 @@ def generate_evoucher_html(data):
       }}
       .header-left h1 {{
         margin: 0;
-        font-weight: 600;
-        font-size: 18px;
+        font-weight: 700;
+        font-size: 25px;
         letter-spacing: 1px;
         white-space: nowrap;
       }}
       .header-right {{
-        font-weight: 600;
-        font-size: 16px;
+        font-weight: 400;
+        font-size: 14px;
         letter-spacing: 1.5px;
         text-transform: uppercase;
         align-self: center;

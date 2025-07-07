@@ -306,11 +306,12 @@ def parse_evoucher_text(text):
             if re.match(r'^[A-Za-z]{3,},\s+\d{2}\s+\w{3,}\s+\d{4}$', tanggal_candidate):
                 data['tanggal_keluar'] = tanggal_candidate
     
-        # Validasi jam (misal: "12:00")
+        # Validasi jam (misal: "12:00" atau "14:00-23:59")
         if idx + 2 < len(lines):
             jam_candidate = lines[idx + 2]
             if re.match(r'^\d{2}:\d{2}(-\d{2}:\d{2})?$', jam_candidate):
                 data['jam_keluar'] = jam_candidate
+
 
     # Ambil tanggal masuk dan jam masuk
     if 'Tanggal masuk' in lines:

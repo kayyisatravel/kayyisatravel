@@ -554,8 +554,8 @@ def generate_evoucher_html(data):
       <div class="section">
         <h3>Detail Reservasi</h3>
         <p>Jumlah Kamar: {get('jumlah_kamar')}<br>
-           Tanggal Masuk: {get('tanggal_masuk')} – {get('jam_masuk')}<br>
-           Tanggal Keluar: {get('tanggal_keluar')} – {get('jam_keluar')}</p>
+           Check-in: {get('tanggal_masuk')} – {get('jam_masuk')}<br>
+           Check-out: {get('tanggal_keluar')} – {get('jam_keluar')}</p>
       </div>
 
       <div class="section">

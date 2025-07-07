@@ -78,7 +78,7 @@ def parse_input_dynamic(text):
     if kereta_match:
         nama_kereta = kereta_match.group(1).strip()
     else:
-        kereta_match = re.search(r'\n([A-Za-z ]+)\n\nEksekutif', text)
+        kereta_match = re.search(r'\n([A-Za-z ]+)\n\n(Eksekutif|Ekonomi|Premium|Bisnis|Panoramic|Priority|Suite)', text)
         if kereta_match:
             nama_kereta = kereta_match.group(1).strip()
         else:

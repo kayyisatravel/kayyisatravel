@@ -433,17 +433,37 @@ def generate_evoucher_html(data):
       }}
       .header-left h1 {{
         margin: 0;
-        font-weight: 700;
-        font-size: 26px;
-        letter-spacing: 2px;
-      }}
-      .header-right {{
-        font-weight: 700;
-        font-size: 22px;
-        letter-spacing: 3px;
-        text-transform: uppercase;
-        align-self: center;
-      }}
+        font-weight: 600;
+        font-size: 18px;  /* lebih kecil */
+        letter-spacing: 1px;
+        white-space: nowrap;
+        }}
+        .header-right {{
+            font-weight: 600;
+            font-size: 16px; /* lebih kecil */
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            align-self: center;
+            margin-left: auto;
+            text-align: right;
+        }}
+        .header-left img {{
+            height: 45px;  /* lebih kecil dari 60px */
+            border-radius: 5px;
+            border: 1px solid #004080;
+            background: white;
+        }}
+        .header {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(90deg, #e0e8f9, #b3c7f9);
+            padding: 10px 20px; /* lebih sempit */
+            border-radius: 8px;
+            border-bottom: 2px solid #004080;
+            margin-bottom: 20px;
+        }}
+
       .section {{
         margin-top:18px;
       }}

@@ -383,8 +383,7 @@ def parse_evoucher_text(text):
         data['total_malam'] = 1
 
     return data
-    print("DEBUG order_id:", data.get('order_id'))
-    print("DEBUG itinerary_id:", data.get('itinerary_id'))
+    
 # Fungsi generate HTML voucher (disesuaikan dari kode kamu)
 def generate_evoucher_html(data):
     get = lambda k: data.get(k, '-') if data.get(k, '-') else '-'
@@ -508,7 +507,8 @@ def generate_evoucher_html(data):
 
       <div class="section">
         <h3>Order & Itinerary</h3>
-        <p>{get('order_id')}<br>{get('itinerary_id')}</p>
+        <p>Order ID: {get('order_id')}<br>
+           Itinerary ID: {get('itinerary_id')}</p>
       </div>
 
       <div class="section">

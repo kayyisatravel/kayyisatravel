@@ -517,7 +517,7 @@ def generate_evoucher_html(data):
     <div class="voucher">
       <div class="header">
         <div class="header-left">
-          <img src="https://cdn-icons-png.flaticon.com/512/854/854878.png" alt="Logo Kayyisa Tour & Travel">
+          <img src="https://png.pngtree.com/png-clipart/20211116/original/pngtree-air-plane-logo-png-image_6928307.png" alt="Logo Kayyisa Tour & Travel">
           <h1>Kayyisa Tour & Travel</h1>
         </div>
         <div class="header-right">
@@ -574,7 +574,7 @@ def generate_evoucher_html(data):
       </div>
 
       <div class="footer">
-        Jika ada kendala saat check‑in, silakan hubungi kami di: (0813 3671 6677/kayyisatour@gmail.com)
+        Jika ada kendala saat check‑in, silakan hubungi kami di: (62813 3671 6677 / kayyisatour@gmail.com)
       </div>
     </div>
     """

@@ -168,7 +168,6 @@ def parse_input_dynamic(text):
         "penumpang": penumpang
     }
 
-
 def generate_eticket(data):
     penumpang_rows = "\n".join([
         f"""
@@ -243,6 +242,318 @@ def generate_eticket(data):
       </div>
     </div>
     """
+    return html
+
+def parse_evoucher_text(text):
+    # Bersihkan dan split per baris
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+
+    data = {
+        'order_id': '-',
+        'itinerary_id': '-',
+        'hotel_name': '-',
+        'location': '-',
+        'jumlah_kamar': '-',
+        'tanggal_masuk': '-',
+        'jam_masuk': '-',
+        'tanggal_keluar': '-',
+        'jam_keluar': '-',
+        'tamu': [],
+        'kamar': '-',
+        'jumlah_tamu': '-',
+        'fasilitas': '-',
+        'permintaan_khusus': '-',
+        'harga_per_malam': '-',
+        'total_malam': '-',
+        'total_harga': '-'
+    }
+
+    # Cari Order ID dan Itinerary ID
+    for line in lines:
+        if line.lower().startswith('order id:'):
+            data['order_id'] = line.split(':',1)[1].strip()
+        elif line.lower().startswith('itinerary id:'):
+            data['itinerary_id'] = line.split(':',1)[1].strip()
+
+    # Hotel name & location (dianggap setelah line kosong kedua)
+    # Cari posisi kata kunci
+    try:
+        idx_detail_reservasi = next((i for i, l in enumerate(lines) if l.lower() == 'detail reservasi'), -1)
+    except ValueError:
+        idx_detail_reservasi = -1
+
+    # Ambil hotel name dan lokasi sebelum Detail Reservasi
+    if idx_detail_reservasi > 1:
+        data['hotel_name'] = lines[idx_detail_reservasi - 3] if idx_detail_reservasi-3 >=0 else '-'
+        data['location'] = lines[idx_detail_reservasi - 2] if idx_detail_reservasi-2 >=0 else '-'
+
+    # Detail Reservasi - kamar
+    if idx_detail_reservasi != -1 and idx_detail_reservasi+1 < len(lines):
+        data['jumlah_kamar'] = lines[idx_detail_reservasi + 1]
+
+    # Cari tanggal masuk, keluar dan jam
+    def find_next_after(keyword):
+        try:
+            i = lines.index(keyword)
+            return i
+        except ValueError:
+            return -1
+
+    idx_tgl_keluar = find_next_after('Tanggal keluar')
+    idx_tgl_masuk = find_next_after('Tanggal masuk')
+
+    if idx_tgl_keluar != -1 and idx_tgl_keluar+2 < len(lines):
+        data['tanggal_keluar'] = lines[idx_tgl_keluar + 1]
+        data['jam_keluar'] = lines[idx_tgl_keluar + 2]
+
+    if idx_tgl_masuk != -1 and idx_tgl_masuk+2 < len(lines):
+        data['tanggal_masuk'] = lines[idx_tgl_masuk + 1]
+        data['jam_masuk'] = lines[idx_tgl_masuk + 2]
+
+    # Detail tamu dan kamar
+    try:
+        idx_detail_tamu = lines.index('Detail Tamu')
+    except ValueError:
+        idx_detail_tamu = -1
+
+    if idx_detail_tamu != -1:
+        # Ambil tamu (asumsi baris setelah Detail Tamu dan sebelum "Kamar")
+        tamu_list = []
+        for i in range(idx_detail_tamu+1, len(lines)):
+            if lines[i].lower() == 'kamar':
+                break
+            tamu_list.append(lines[i])
+        data['tamu'] = tamu_list
+
+        # Ambil kamar, jumlah tamu di baris setelah "Kamar"
+        try:
+            idx_kamar = lines.index('Kamar')
+            if idx_kamar + 1 < len(lines):
+                data['kamar'] = lines[idx_kamar + 1]
+            if idx_kamar + 2 < len(lines):
+                data['jumlah_tamu'] = lines[idx_kamar + 2]
+        except ValueError:
+            pass
+
+    # Fasilitas
+    try:
+        idx_fasilitas = lines.index('Fasilitas')
+        if idx_fasilitas + 1 < len(lines):
+            data['fasilitas'] = lines[idx_fasilitas + 1]
+    except ValueError:
+        pass
+
+    # Permintaan Khusus
+    try:
+        idx_permintaan = lines.index('Permintaan Khusus')
+        if idx_permintaan + 1 < len(lines):
+            data['permintaan_khusus'] = lines[idx_permintaan + 1].replace('Others:', '').strip()
+    except ValueError:
+        pass
+
+    # Harga per malam, total malam, total harga
+    def extract_price(label):
+        try:
+            idx = lines.index(label)
+            if idx+1 < len(lines):
+                return lines[idx+1]
+        except ValueError:
+            return '-'
+        return '-'
+
+    data['harga_per_malam'] = extract_price('Harga per malam')
+    data['total_malam'] = extract_price('Total malam')
+    data['total_harga'] = extract_price('Total harga')
+
+    return data
+def generate_evoucher_html(data):
+    # Pastikan data sudah lengkap, kalau ada key hilang kasih default '-'
+    get = lambda k: data.get(k, '-') if data.get(k, '-') else '-'
+
+    # Format tamu menjadi list <p>
+    tamu_html = "".join(f"<p>{tamu}</p>" for tamu in get('tamu')) if get('tamu') != '-' else "<p>-</p>"
+
+    html = f"""
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+
+      .voucher {{
+        width:700px;
+        border:2px solid #004080;
+        border-radius:10px;
+        padding:30px 35px;
+        font-family: 'Montserrat', sans-serif;
+        background: #f9fbff;
+        color: #004080;
+        box-shadow: 0 4px 10px rgba(0,64,128,0.1);
+      }}
+      .header {{
+        display:flex;
+        align-items:center;
+        justify-content: space-between;
+        background: linear-gradient(90deg, #e0e8f9, #b3c7f9);
+        padding: 15px 25px;
+        border-radius: 8px;
+        border-bottom: 3px solid #004080;
+        margin-bottom: 25px;
+      }}
+      .header-left {{
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }}
+      .header-left img {{
+        height: 60px;
+        border-radius: 5px;
+        border: 1px solid #004080;
+        background: white;
+      }}
+      .header-left h1 {{
+        margin: 0;
+        font-weight: 700;
+        font-size: 26px;
+        letter-spacing: 2px;
+      }}
+      .header-right {{
+        font-weight: 700;
+        font-size: 22px;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        align-self: center;
+      }}
+
+      .section {{
+        margin-top:18px;
+      }}
+      .section h3 {{
+        margin-bottom:10px;
+        color:#004080;
+        border-bottom: 2px solid #004080;
+        padding-bottom: 6px;
+        font-weight:700;
+        font-size:18px;
+        display:flex;
+        align-items:center;
+        gap:10px;
+      }}
+      .section p {{
+        margin:5px 0;
+        font-size: 15px;
+      }}
+      .footer {{
+        margin-top:35px;
+        font-size:14px;
+        color:#555;
+        border-top:1.5px solid #ccc;
+        padding-top:15px;
+        text-align:center;
+        font-style: italic;
+      }}
+      .icon {{
+        width: 20px;
+        height: 20px;
+        fill: #004080;
+      }}
+      .price-table {{
+        margin-top: 12px;
+        border-collapse: collapse;
+        width: 100%;
+      }}
+      .price-table th, .price-table td {{
+        border: 1px solid #aac4ff;
+        padding: 10px 14px;
+        text-align: left;
+        font-size: 15px;
+        color: #003366;
+      }}
+      .price-table th {{
+        background-color: #c6d6ff;
+        font-weight: 700;
+      }}
+    </style>
+
+    <div class="voucher">
+      <div class="header">
+        <div class="header-left">
+          <img src="URL_LOGO" alt="Logo Kayyisa Tour & Travel">
+          <h1>Kayyisa Tour & Travel</h1>
+        </div>
+        <div class="header-right">
+          Hotel Reservation
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>
+          <svg class="icon" viewBox="0 0 24 24"><path d="M3 3h18v2H3V3zm0 4h18v14H3V7zm2 2v10h14V9H5z"/></svg>
+          Order & Itinerary
+        </h3>
+        <p>Order ID: {get('order_id')}<br>
+           Itinerary ID: {get('itinerary_id')}</p>
+      </div>
+
+      <div class="section">
+        <h3>
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 2l2 7h7l-5.5 4.5L17 21l-5-3.5L7 21l1.5-7.5L3 9h7z"/></svg>
+          Properti & Lokasi
+        </h3>
+        <p>{get('hotel_name')}<br>
+           {get('location')}</p>
+      </div>
+
+      <div class="section">
+        <h3>
+          <svg class="icon" viewBox="0 0 24 24"><path d="M7 13h10v2H7v-2zm0-4h10v2H7V9zm0-4h10v2H7V5z"/></svg>
+          Detail Reservasi
+        </h3>
+        <p>Jumlah Kamar: {get('jumlah_kamar')}<br>
+           Tanggal Masuk: {get('tanggal_masuk')} – {get('jam_masuk')}<br>
+           Tanggal Keluar: {get('tanggal_keluar')} – {get('jam_keluar')}</p>
+      </div>
+
+      <div class="section">
+        <h3>
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 21c4.97 0 9-4.03 9-9s-4.03-9-9-9-9 4.03-9 9 4.03 9 9 9zM7 11h2v2H7v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2z"/></svg>
+          Harga & Pembayaran
+        </h3>
+        <table class="price-table">
+          <tr>
+            <th>Rate per Malam</th>
+            <th>Total Malam</th>
+            <th>Total Harga</th>
+          </tr>
+          <tr>
+            <td>{get('harga_per_malam')}</td>
+            <td>{get('total_malam')} malam</td>
+            <td><strong>{get('total_harga')}</strong></td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="section">
+        <h3>
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 12c2.67 0 8 1.34 8 4v4H4v-4c0-2.66 5.33-4 8-4zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg>
+          Detail Tamu & Kamar
+        </h3>
+        {tamu_html}
+        <p>{get('kamar')} – {get('jumlah_tamu')}</p>
+      </div>
+
+      <div class="section">
+        <h3>
+          <svg class="icon" viewBox="0 0 24 24"><path d="M10 17l5-5-5-5v10z"/></svg>
+          Fasilitas & Permintaan
+        </h3>
+        <p>Fasilitas: {get('fasilitas')}<br>
+           Permintaan Khusus: {get('permintaan_khusus')}</p>
+      </div>
+
+      <div class="footer">
+        Jika ada kendala saat check‑in, silakan hubungi kami di: (nomor/email customer service)
+      </div>
+    </div>
+    """
+
     return html
 
 

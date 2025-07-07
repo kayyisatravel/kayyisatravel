@@ -292,7 +292,7 @@ def parse_evoucher_text(text):
         if line.strip().lower() == 'kamar' and i + 1 < len(lines):
             kamar_line = lines[i + 1].strip()
             # Cari pola: angka diikuti "x", misalnya "1 x Standard Room"
-            match = re.match(r'(\d+)\s*x', kamar_line.lower())
+            match = re.match(r'(\d+)\s*x', str(kamar_line).lower())
             if match:
                 data['jumlah_kamar'] = int(match.group(1))
             else:

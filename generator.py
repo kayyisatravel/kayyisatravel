@@ -88,6 +88,13 @@ def parse_input_dynamic(text):
             if kereta_lines:
                 nama_kereta = kereta_lines[0]
     nama_kereta = string.capwords(nama_kereta.lower())
+    
+    # --- Kelas Kategori ---
+    kelas_kategori_terdeteksi = 'Tidak Diketahui'
+    kelas_pattern = r'\b(Eksekutif|Ekonomi|Premium|Bisnis|Panoramic|Priority|Suite)\b'
+    kelas_match = re.search(kelas_pattern, text, re.IGNORECASE)
+    if kelas_match:
+        kelas_kategori_terdeteksi = string.capwords(kelas_match.group(1).lower())
 
     # --- Penumpang ---
     penumpang = []
@@ -157,6 +164,7 @@ def parse_input_dynamic(text):
         "asal": f"{asal} ({kode_stasiun_asal})" if kode_stasiun_asal else asal,
         "tujuan": f"{tujuan} ({kode_stasiun_tujuan})" if kode_stasiun_tujuan else tujuan,
         "nama_kereta": nama_kereta,
+        "kelas": kelas_kategori_terdeteksi,
         "penumpang": penumpang
     }
 
@@ -197,7 +205,7 @@ def generate_eticket(data):
       <h1 style="color:#0047b3;">E-Tiket Kereta Api</h1>
       <p><strong>Kode Booking:</strong> {data.get('kode_booking', 'N/A')}<br>
          <strong>Nama Kereta:</strong> {data.get('nama_kereta', 'Tidak Diketahui')}<br>
-         <strong>Kelas:</strong> {data.get('kelas_kategori', 'Tidak Diketahui')}</p>
+         <strong>Kelas:</strong> {data.get('kelas', 'Tidak Diketahui')}</p>
          
          <strong>Tanggal Berangkat:</strong> {data.get('tanggal_berangkat', 'Tidak Diketahui')}<br>
          <strong>Tanggal Tiba:</strong> {data.get('tanggal_tiba', 'Tidak Diketahui')}</p>

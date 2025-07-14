@@ -660,6 +660,8 @@ with st.expander("💾 Database Pemesan", expanded=False):
 
     nama_filter = st.text_input("Cari Nama Pemesan")
     kode_booking_filter = st.text_input("Cari Kode Booking")
+    no_invoice_filter = st.text_input("Cari No Invoice")
+
 
     # === Filter DataFrame ===
     filtered_df = df[
@@ -670,6 +672,8 @@ with st.expander("💾 Database Pemesan", expanded=False):
         df_filtered = df_filtered[df_filtered["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
     if kode_booking_filter:
         df_filtered = df_filtered[df_filtered["Kode Booking"].str.contains(kode_booking_filter, case=False, na=False)]
+    if no_invoice_filter:
+        df_filtered = df_filtered[df_filtered["No Invoice"].str.contains(no_invoice_filter, case=False, na=False)]
 
     if tampilkan_uninvoice_saja:
         df_filtered = df_filtered[df_filtered["No Invoice"].isna() | (df_filtered["No Invoice"].str.strip() == "")]

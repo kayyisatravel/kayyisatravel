@@ -566,7 +566,7 @@ with st.expander("✏️ Input Manual Data"):
                 st.session_state["saved_success"] = False
 
 
-with st.expander("💾 Database Pemesan", expanded=True):
+with st.expander("💾 Database Pemesan", expanded=False):
     # === Konfigurasi GSheet ===
     SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
     WORKSHEET_NAME = "Data"

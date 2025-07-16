@@ -560,21 +560,32 @@ def process_ocr_pesawat(text: str) -> list:
 import re
 
 def extract_kereta_passengers(text_keep_lines: str) -> list:
-    m_train = re.search(r'^(KA\s+[A-Za-z ]+$)', text_keep_lines, re.MULTILINE) #hanya mengambil 1 baris setelah KA
-    kereta_name = m_train.group(1).strip() if m_train else None
+    lines = text_keep_lines.strip().splitlines()
+    kereta_name = None
 
-    # Tangkap baris seperti: "1. Nama Penumpang    EKO 7/8A"
-    pattern = re.compile(
-        r'^\d+\.\s*(.+?)\s+((?:EKS|BIS|EKO|PRE|PAN|KLS)\s*\d+\s*[\/\\]?\s*\d*[A-Za-z]?)\s*$', # <--- Perubahan di sini!
-    re.IGNORECASE | re.MULTILINE
-    )
+    # Cari nama kereta (jika ada baris mengandung 'Nama Kereta: XYZ')
+    m_train = re.search(r'nama kereta[:\-]?\s*(.+)', text_keep_lines, re.IGNORECASE)
+    if m_train:
+        kereta_name = f"KA {m_train.group(1).strip()}"
+
     result = []
-    for m in pattern.finditer(text_keep_lines):
-        name = m.group(1).strip()
-        seat = m.group(2).strip()
-        full_info = f"{kereta_name}  {seat}" if kereta_name else seat
-        result.append((name, full_info))
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        # Cek apakah ini kemungkinan nama penumpang, dan baris berikutnya ada kursi
+        if line and (i + 3 < len(lines)):
+            kursi_line = lines[i + 3].strip()
+            if re.search(r'(EKS|BIS|EKO|PRE|PAN|KLS)\s*\d+[/\\]?\d*[A-Za-z]?', kursi_line, re.IGNORECASE):
+                name = line
+                seat = kursi_line
+                full_info = f"{kereta_name}  {seat}" if kereta_name else seat
+                result.append((name, full_info))
+                i += 4
+                continue
+        i += 1
+
     return result
+
 
 
 def process_ocr_kereta(text: str) -> list:

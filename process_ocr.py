@@ -230,33 +230,42 @@ def extract_bf(text: str) -> str:
     """
     Menentukan apakah paket termasuk sarapan (BF) atau tidak (NBF).
     - Jika ditemukan keyword 'tidak termasuk sarapan', 'room only', → NBF
-    - Jika ditemukan 'termasuk sarapan', 'breakfast included', → BF
-    - Jika tidak jelas, return 'N/A'
+    - Jika ditemukan 'termasuk sarapan', 'sarapan (2 pax)', → BF
+    - Jika tidak ada indikasi sama sekali → default ke 'NBF'
     """
     tl = text.lower()
+
+    # === Pattern NBF ===
     nbf_patterns = [
         r'tidak\s+termasuk\s+sarapan',
         r'tidak.*sarapan',
         r'non[-\s]?breakfast',
         r'room\s+only',
-        r'makanan\s*[:\-]?\s*(tidak ada|tidak tersedia|tidak disediakan|-)',
+        r'makanan\s*[:\-]?\s*(tidak ada|tidak tersedia|tidak disediakan|[-])',
         r'makanan\s*[:\-]?\s*$'
     ]
     for pat in nbf_patterns:
-        if re.search(r'makanan\s*[:\-]?\s*$', tl, re.MULTILINE) or 'makanan:' in tl and 'sarapan' not in tl:
-
+        if re.search(pat, tl, re.MULTILINE):
             return 'NBF'
 
+    # === Pattern BF ===
     bf_patterns = [
         r'termasuk\s+sarapan',
         r'sarapan\s+termasuk',
         r'free\s+breakfast',
         r'breakfast\s+included',
-        r'makanan\s*[:\-]?\s*sarapan'
+        r'makanan\s*[:\-]?\s*sarapan',
+        r'sarapan\s*\(.*?\)',   # NEW
+        r'\bsarapan\b',         # NEW
+        r'breakfast\b'          # NEW
     ]
     for pat in bf_patterns:
         if re.search(pat, tl, re.MULTILINE):
             return 'BF'
+
+    # === Jika tidak ada sama sekali ===
+    if not re.search(r'sarapan|makanan|breakfast', tl):
+        return 'NBF'
 
     return 'N/A'
 

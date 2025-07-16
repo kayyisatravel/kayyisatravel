@@ -655,21 +655,7 @@ def process_ocr_kereta(text: str) -> list:
         if m_rute:
             rute = f"{m_rute.group(1)} - {m_rute.group(2)}"
 
-    
-    durasi = None
-    m_jb = re.search(r'pergi.*?(\d{1,2}[:.]\d{2})', cleaned, re.IGNORECASE)
-    m_jt = re.search(r'tiba.*?(\d{1,2}[:.]\d{2})', cleaned, re.IGNORECASE)
-    
-    if m_jb and m_jt:
-        durasi = f"{m_jb.group(1).replace('.',':')} - {m_jt.group(1).replace('.',':')}"
-    else:
-        m_fallback = re.search(r'\(\w{2,4}\)\s*(\d{1,2}[:.]\d{2})\s*[→\-]\s*\(\w{2,4}\)\s*(\d{1,2}[:.]\d{2})', cleaned_lines)
-        if m_fallback:
-            jam1 = m_fallback.group(1).replace('.', ':')
-            jam2 = m_fallback.group(2).replace('.', ':')
-            durasi = f"{jam1} - {jam2}"
-
-
+    durasi = extract_duration(cleaned_lines) or extract_duration(cleaned)
 
     # --- Tanggal berangkat ---
     tgl_berangkat = ''

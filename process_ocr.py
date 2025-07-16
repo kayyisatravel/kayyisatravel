@@ -1,6 +1,8 @@
 import re
 from datetime import datetime
-#refresh
+from decimal import Decimal, InvalidOperation
+
+
 # =========================
 # === UTILITY FUNCTIONS ===
 # =========================
@@ -50,17 +52,24 @@ def clean_text_keep_lines(text: str) -> str:
 
 def normalize_price(raw_price: str) -> int:
     """
-    Menghapus “Rp” atau “IDR”, lalu mengambil hanya digit dan mengembalikan sebagai int.
-    Jika string kosong atau tidak ada digit, kembalikan None.
+    Membersihkan string harga dari simbol dan pemisah, mengembalikan sebagai integer.
+    Menangani berbagai format seperti: "Rp 1.250.000", "1,250,000", "1.250,000", dll.
     """
     if not raw_price:
         return None
+
+    # Hapus simbol mata uang dan spasi
     raw_price = raw_price.replace("Rp", "").replace("IDR", "").strip()
-    
-    # Hapus semua karakter kecuali angka
-    digits = re.sub(r"[^\d]", "", raw_price)
-    
-    return int(digits) if digits else None
+
+    # Tangani format dengan titik atau koma sebagai pemisah ribuan/desimal
+    try:
+        # Hapus spasi, lalu ganti koma dengan titik agar Decimal bisa memproses
+        cleaned = raw_price.replace(" ", "").replace(",", "")
+        cleaned = re.sub(r"[^\d]", "", cleaned)  # tetap buang selain digit
+
+        return int(cleaned) if cleaned else None
+    except (InvalidOperation, ValueError):
+        return None
 
 
 def extract_price_info(text: str, jumlah_penumpang: int = 1) -> (int, int):
@@ -465,7 +474,12 @@ def process_ocr_pesawat(text: str) -> list:
 
     # 1. Kode Booking / PNR
     kode_booking = None
-    m_code = re.search(r"(?:PNR|Kode\s*booking)[:\-]?\s*([A-Z0-9]{4,8})", cleaned, re.IGNORECASE)
+    m_code = re.search(
+        r"(?:PNR|Kode\s*booking|Kode|Booking)[:\-]?\s*([A-Z0-9]{4,8})",
+        cleaned,
+        re.IGNORECASE
+    )
+
     if m_code:
         kode_booking = m_code.group(1)
 
@@ -523,17 +537,30 @@ def process_ocr_pesawat(text: str) -> list:
 
     # 6. Harga Beli dan Harga Jual
     harga_beli = harga_jual = None
-    # regex diperbarui: cari 'Beli' atau 'BELI' tanpa memperhatikan urutan kata
+    jumlah_penumpang = len([n for n in names if n]) if names else 1
+    
+    # Harga Beli
     hb_match = re.search(r"(?:Beli|HB|Harga\s*Beli)[:\s]*[Rp\.]*([\d,\.]+)", cleaned, re.IGNORECASE)
-    hj_match = (
-        re.search(r"(?:Jual|HJ|Harga\s*Jual)[:\s]*[Rp\.]*([\d,\.]+)", cleaned, re.IGNORECASE)
-        or re.search(r"Harga[:\s]*[Rp\.]*([\d,\.]+)", cleaned, re.IGNORECASE)
-    )
     if hb_match:
-        harga_beli = int(re.sub(r"[^\d]", "", hb_match.group(1)))
-    if hj_match:
-        harga_jual = int(re.sub(r"[^\d]", "", hj_match.group(1)))
-
+        harga_beli = normalize_price(hb_match.group(1))
+    
+    # Harga Jual – dengan dukungan "/pax"
+    hj_pax_match = (
+        re.search(r"Harga[:\s]*[Rp\.]*([\d,\.]+)\s*/\s*pax", cleaned, re.IGNORECASE) or
+        re.search(r"Rp\s*([\d.,]+)\s*/\s*pax", cleaned, re.IGNORECASE)
+    )
+    
+    hj_total_match = (
+        re.search(r"(?:Jual|HJ|Harga\s*Jual)[:\s]*[Rp\.]*([\d,\.]+)", cleaned, re.IGNORECASE) or
+        re.search(r"Harga[:\s]*[Rp\.]*([\d,\.]+)", cleaned, re.IGNORECASE)
+    )
+    
+    if hj_pax_match:
+        harga_per_pax = normalize_price(hj_pax_match.group(1))
+        harga_jual = harga_per_pax * jumlah_penumpang
+    elif hj_total_match:
+        harga_jual = normalize_price(hj_total_match.group(1))
+        
     # 7. Nama penumpang
     names = []
     m_cust = re.search(

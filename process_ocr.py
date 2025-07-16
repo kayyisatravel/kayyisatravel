@@ -43,7 +43,7 @@ def normalize_price(raw_price: str) -> int:
     return int(digits) if digits else None
 
 
-def extract_price_info(text: str) -> (int, int):
+def extract_price_info(text: str, jumlah_penumpang: int = 1) -> (int, int):
     """
     Mencari pola harga beli dan harga jual dari satu teks OCR (dalam satu string).
     - Mengembalikan tuple (harga_beli_total, harga_jual_total) dalam bentuk integer.

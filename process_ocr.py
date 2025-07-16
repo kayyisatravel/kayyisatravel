@@ -99,6 +99,7 @@ def extract_price_info(text: str, jumlah_penumpang: int = 1) -> (int, int):
         r'\bTarif\s*(?:IDR|Rp)?\s*([\d.,]+)',
         r'Rp\s*([\d.,]+)\s*/\s*mlm',
         r'Jual\s*([\d.,]+)',
+        r'Harga\s*([\d.,]+)',
         r'\bHarga\s*Jual\s*Total\s*[:\-]?\s*(?:Rp)?\s*([\d.,]+)',
         r'Total\s*Harga\s*[:\-]?\s*(?:Rp)?\s*([\d.,]+)',
         r'\bHarga\s*Jual\s*[:\-]?\s*(?:Rp)?\s*([\d.,]+)'

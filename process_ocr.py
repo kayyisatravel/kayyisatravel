@@ -313,13 +313,13 @@ def extract_dates_hotel(text: str) -> (datetime, datetime):
 
     # Cari Check-in
     checkin = None
-    m_in = re.search(r'Check[-\s]?in\s*[:\-]?\s*(\d{1,2}\s+[A-Za-z]+\s+\d{4})', text, re.IGNORECASE)
+    m_in = re.search(r'Check[-\s]?in\s*[:\-]?\s*(?:\w{3},\s*)?(\d{1,2}\s+[A-Za-z]+\s+\d{4})', text, re.IGNORECASE)
     if m_in:
         checkin = parse_date_from_str(m_in.group(1))
 
     # Cari Check-out
     checkout = None
-    m_out = re.search(r'Check[-\s]?out\s*[:\-]?\s*(\d{1,2}\s+[A-Za-z]+\s+\d{4})', text, re.IGNORECASE)
+    m_out = re.search(r'Check[-\s]?out\s*[:\-]?\s*(?:\w{3},\s*)?(\d{1,2}\s+[A-Za-z]+\s+\d{4})', text, re.IGNORECASE)
     if m_out:
         checkout = parse_date_from_str(m_out.group(1))
 

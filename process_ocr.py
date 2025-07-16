@@ -136,7 +136,7 @@ def extract_price_info(text: str, jumlah_penumpang: int = 1) -> (int, int):
 
     # Jika tidak ada /pax, cek total langsung
     if not harga_jual:
-        for pat in jual_patterns_total:
+        for pat in jual_patterns:
             m = re.search(pat, text_joined, re.IGNORECASE)
             if m:
                 harga_jual = normalize_price(m.group(1))

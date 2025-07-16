@@ -14,10 +14,19 @@ def clean_text(text: str) -> str:
 
 def clean_text_keep_lines(text: str) -> str:
     """
-    Menghapus baris kosong, memangkas spasi di awal/akhir tiap baris,
-    lalu menggabungkan kembali dengan newline per baris yang tersisa.
+    Membersihkan teks tetap berbasis baris, tetapi membuang karakter non-teks umum,
+    serta menghapus baris kosong dan karakter non-printable.
     """
-    return re.sub(r'[^\x20-\x7E\n\r\u00C0-\u024F\u1E00-\u1EFF]', '', text)
+    lines = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        # Buang karakter non-latin yang aneh
+        clean_line = re.sub(r'[^\x20-\x7E\u00C0-\u024F\u1E00-\u1EFF.,:/\-()a-zA-Z0-9\s]', '', line)
+        lines.append(clean_line)
+    return '\n'.join(lines)
+
 
 def normalize_price(raw_price: str) -> int:
     """
@@ -73,12 +82,22 @@ def extract_price_info(text: str) -> (int, int):
         r'\bHarga\s*Jual\s*[:\-]?\s*(?:Rp)?\s*([\d.,]+)'
     ]
 
-    # Coba pola harga beli
+    # Coba pola harga beli eksplisit
     for pat in beli_patterns:
         m = re.search(pat, text_joined, re.IGNORECASE)
         if m:
             harga_beli = normalize_price(m.group(1))
             break
+
+    # Jika belum dapat harga beli, coba ambil dari rate per malam × malam
+    if not harga_beli:
+        rate_match = re.search(r'(?:Rate|Harga)\s*per\s*(?:malam|mlm|night)\s*(?:IDR|Rp)?\s*([\d.,]+)', text_joined, re.IGNORECASE)
+        nights_match = re.search(r'(\d+)\s*(?:malam|mlm|night)', text_joined, re.IGNORECASE)
+        if rate_match and nights_match:
+            rate = normalize_price(rate_match.group(1))
+            nights = int(nights_match.group(1))
+            if rate and nights:
+                harga_beli = rate * nights
 
     # Coba pola harga jual
     for pat in jual_patterns:
@@ -86,6 +105,10 @@ def extract_price_info(text: str) -> (int, int):
         if m:
             harga_jual = normalize_price(m.group(1))
             break
+
+    # Default markup jika harga jual belum ada
+    if harga_beli and not harga_jual:
+        harga_jual = int(round(harga_beli * 1.06))
 
     return harga_beli, harga_jual
 

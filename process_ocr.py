@@ -5,6 +5,26 @@ from datetime import datetime
 # === UTILITY FUNCTIONS ===
 # =========================
 
+def extract_duration(text):
+    # Normalisasi tanda panah dan variasinya jadi strip '-'
+    normalized = re.sub(r'[→–—>]', '-', text)
+
+    # Cari pola jam berangkat - tiba
+    m = re.search(r'\b(\d{1,2}[:.]\d{2})\s*-\s*(\d{1,2}[:.]\d{2})\b', normalized)
+    if m:
+        jam_berangkat = m.group(1).replace('.', ':')
+        jam_tiba = m.group(2).replace('.', ':')
+        return f"{jam_berangkat} - {jam_tiba}"
+
+    # Fallback: cari 2 jam berurutan terdekat
+    m2 = re.findall(r'(\d{1,2}[:.]\d{2})', normalized)
+    if len(m2) >= 2:
+        jam_berangkat = m2[0].replace('.', ':')
+        jam_tiba = m2[1].replace('.', ':')
+        return f"{jam_berangkat} - {jam_tiba}"
+
+    return None
+
 def clean_text(text: str) -> str:
     """
     Menghapus baris kosong, memangkas spasi di awal/akhir tiap baris,
@@ -635,46 +655,19 @@ def process_ocr_kereta(text: str) -> list:
         if m_rute:
             rute = f"{m_rute.group(1)} - {m_rute.group(2)}"
 
-    # Debug print
-    print("DEBUG cleaned_lines:")
-    print(cleaned_lines)
     
     durasi = None
-    
-    # 1. Coba dari kata "pergi" dan "tiba"
-    m_jb = re.search(r'\bpergi\b.*?(\d{1,2}[:.]\d{2})', cleaned, re.IGNORECASE)
-    m_jt = re.search(r'\btiba\b.*?(\d{1,2}[:.]\d{2})', cleaned, re.IGNORECASE)
+    m_jb = re.search(r'pergi.*?(\d{1,2}[:.]\d{2})', cleaned, re.IGNORECASE)
+    m_jt = re.search(r'tiba.*?(\d{1,2}[:.]\d{2})', cleaned, re.IGNORECASE)
     
     if m_jb and m_jt:
-        durasi = f"{m_jb.group(1).replace('.', ':')} - {m_jt.group(1).replace('.', ':')}"
-        print(f"DEBUG durasi dari 'pergi' dan 'tiba': {durasi}")
-    
-    # 2. Fallback: format dengan panah → atau dash -
-    if not durasi:
-        m_fallback = re.search(
-            r'\(\w{2,4}\)\s*(\d{1,2}[:.]\d{2})\s*[-→–—]+\s*\(\w{2,4}\)\s*(\d{1,2}[:.]\d{2})',
-            cleaned_lines
-        )
+        durasi = f"{m_jb.group(1).replace('.',':')} - {m_jt.group(1).replace('.',':')}"
+    else:
+        m_fallback = re.search(r'\(\w{2,4}\)\s*(\d{1,2}[:.]\d{2})\s*[→\-]\s*\(\w{2,4}\)\s*(\d{1,2}[:.]\d{2})', cleaned_lines)
         if m_fallback:
             jam1 = m_fallback.group(1).replace('.', ':')
             jam2 = m_fallback.group(2).replace('.', ':')
             durasi = f"{jam1} - {jam2}"
-            print(f"DEBUG durasi dari fallback panah: {durasi}")
-    
-    # 3. Fallback tambahan: tanpa panah tapi pola stasiun + jam → jam
-    if not durasi:
-        m_durasi = re.search(
-            r'\([A-Z]{2,4}\)\s*(\d{1,2}[:.]\d{2})\s*[-→–—]+\s*(\d{1,2}[:.]\d{2})',
-            cleaned
-        )
-        if m_durasi:
-            jam1 = m_durasi.group(1).replace('.', ':')
-            jam2 = m_durasi.group(2).replace('.', ':')
-            durasi = f"{jam1} - {jam2}"
-            print(f"DEBUG durasi dari fallback stasiun-jam: {durasi}")
-    
-    if not durasi:
-        print("DEBUG durasi tidak ditemukan")
 
 
 

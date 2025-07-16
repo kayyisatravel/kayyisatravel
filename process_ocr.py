@@ -674,7 +674,7 @@ def process_ocr_kereta(text: str) -> list:
                 tgl_berangkat = ''
 
     # --- Harga total beli/jual ---
-    harga_beli_total, harga_jual_total = extract_price_info(cleaned)
+    harga_beli_total, harga_jual_total = extract_price_info(cleaned, jumlah_penumpang)
 
     # --- Data penumpang: nama + kode EKS ---
     passenger_data = extract_kereta_passengers(cleaned_lines)

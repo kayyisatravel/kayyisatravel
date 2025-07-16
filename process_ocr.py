@@ -536,30 +536,8 @@ def process_ocr_pesawat(text: str) -> list:
                 tgl_berangkat = ''
 
     # 6. Harga Beli dan Harga Jual
-    harga_beli = harga_jual = None
     jumlah_penumpang = len([n for n in names if n]) if names else 1
-    
-    # Harga Beli
-    hb_match = re.search(r"(?:Beli|HB|Harga\s*Beli)[:\s]*[Rp\.]*([\d,\.]+)", cleaned, re.IGNORECASE)
-    if hb_match:
-        harga_beli = normalize_price(hb_match.group(1))
-    
-    # Harga Jual – dengan dukungan "/pax"
-    hj_pax_match = (
-        re.search(r"Harga[:\s]*[Rp\.]*([\d,\.]+)\s*/\s*pax", cleaned, re.IGNORECASE) or
-        re.search(r"Rp\s*([\d.,]+)\s*/\s*pax", cleaned, re.IGNORECASE)
-    )
-    
-    hj_total_match = (
-        re.search(r"(?:Jual|HJ|Harga\s*Jual)[:\s]*[Rp\.]*([\d,\.]+)", cleaned, re.IGNORECASE) or
-        re.search(r"Harga[:\s]*[Rp\.]*([\d,\.]+)", cleaned, re.IGNORECASE)
-    )
-    
-    if hj_pax_match:
-        harga_per_pax = normalize_price(hj_pax_match.group(1))
-        harga_jual = harga_per_pax * jumlah_penumpang
-    elif hj_total_match:
-        harga_jual = normalize_price(hj_total_match.group(1))
+    harga_beli, harga_jual = extract_price_info(cleaned, jumlah_penumpang)
         
     # 7. Nama penumpang
     names = []

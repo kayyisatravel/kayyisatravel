@@ -672,13 +672,12 @@ def process_ocr_kereta(text: str) -> list:
                 tgl_berangkat = datetime(int(year), mm, int(day)).strftime('%Y-%m-%d')
             except ValueError:
                 tgl_berangkat = ''
-
-    # --- Harga total beli/jual ---
-    harga_beli_total, harga_jual_total = extract_price_info(cleaned, jumlah_penumpang)
-
+                
     # --- Data penumpang: nama + kode EKS ---
     passenger_data = extract_kereta_passengers(cleaned_lines)
     jumlah_penumpang = len(passenger_data)
+    # --- Harga total beli/jual ---
+    harga_beli_total, harga_jual_total = extract_price_info(cleaned, jumlah_penumpang)
 
     # Hitung per-penumpang jika total diketahui
     harga_beli_per = harga_beli_total // jumlah_penumpang if harga_beli_total and jumlah_penumpang else None

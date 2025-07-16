@@ -603,7 +603,7 @@ def extract_kereta_passengers(text_keep_lines: str) -> list:
     # Cari nama kereta (jika ada baris mengandung 'Nama Kereta: XYZ')
     m_train = re.search(r'nama kereta[:\-]?\s*(.+)', text_keep_lines, re.IGNORECASE)
     if m_train:
-        kereta_name = f"KA {m_train.group(1).strip()}"
+        kereta_name = f"{m_train.group(1).strip()}"
 
     result = []
     i = 0

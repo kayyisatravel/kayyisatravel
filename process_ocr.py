@@ -36,12 +36,12 @@ def normalize_price(raw_price: str) -> int:
     if not raw_price:
         return None
     raw_price = raw_price.replace("Rp", "").replace("IDR", "").strip()
-    # Contoh: "2,730,000.00" ➜ "2730000.00" ➜ ambil integer bagian
-    # Ganti koma jadi kosong, hilangkan titik desimal
-    cleaned = raw_price.replace(",", "").split(".")[0]
-    # Hapus semua karakter kecuali digit
-    digits = re.sub(r"[^\d]", "", cleaned)
+    
+    # Hapus semua karakter kecuali angka
+    digits = re.sub(r"[^\d]", "", raw_price)
+    
     return int(digits) if digits else None
+
 
 def extract_price_info(text: str) -> (int, int):
     """

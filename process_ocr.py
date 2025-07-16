@@ -635,7 +635,10 @@ def process_ocr_kereta(text: str) -> list:
         if m_rute:
             rute = f"{m_rute.group(1)} - {m_rute.group(2)}"
 
-    # --- Jam berangkat dan tiba (durasi) ---
+    # Debug print
+    print("DEBUG cleaned_lines:")
+    print(cleaned_lines)
+    
     durasi = None
     
     # 1. Coba dari kata "pergi" dan "tiba"
@@ -669,6 +672,10 @@ def process_ocr_kereta(text: str) -> list:
             jam2 = m_durasi.group(2).replace('.', ':')
             durasi = f"{jam1} - {jam2}"
             print(f"DEBUG durasi dari fallback stasiun-jam: {durasi}")
+    
+    if not durasi:
+        print("DEBUG durasi tidak ditemukan")
+
 
 
     # --- Tanggal berangkat ---

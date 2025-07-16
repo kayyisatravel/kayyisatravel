@@ -83,14 +83,19 @@ def extract_price_info(text: str) -> (int, int):
         r'\bHarga\s*Jual\s*[:\-]?\s*(?:Rp)?\s*([\d.,]+)'
     ]
 
-    # Coba pola harga beli eksplisit
+    jual_patterns_per_pax = [
+        r'(?:Harga|Jual)\s+([\d.,]+)\s*/\s*pax',
+        r'Rp\s*([\d.,]+)\s*/\s*pax',
+    ]
+
+    # Cek harga beli dulu
     for pat in beli_patterns:
         m = re.search(pat, text_joined, re.IGNORECASE)
         if m:
             harga_beli = normalize_price(m.group(1))
             break
 
-    # Jika belum dapat harga beli, coba ambil dari rate per malam × malam
+    # Jika belum dapat harga beli, coba dari rate per malam x malam
     if not harga_beli:
         rate_match = re.search(r'(?:Rate|Harga)\s*per\s*(?:malam|mlm|night)\s*(?:IDR|Rp)?\s*([\d.,]+)', text_joined, re.IGNORECASE)
         nights_match = re.search(r'(\d+)\s*(?:malam|mlm|night)', text_joined, re.IGNORECASE)
@@ -100,14 +105,24 @@ def extract_price_info(text: str) -> (int, int):
             if rate and nights:
                 harga_beli = rate * nights
 
-    # Coba pola harga jual
-    for pat in jual_patterns:
+    # Cek harga jual per pax dulu
+    for pat in jual_patterns_per_pax:
         m = re.search(pat, text_joined, re.IGNORECASE)
         if m:
-            harga_jual = normalize_price(m.group(1))
-            break
+            harga_per_pax = normalize_price(m.group(1))
+            if harga_per_pax:
+                harga_jual = harga_per_pax * jumlah_penumpang
+                break
 
-    # Default markup jika harga jual belum ada
+    # Jika tidak ada /pax, cek total langsung
+    if not harga_jual:
+        for pat in jual_patterns_total:
+            m = re.search(pat, text_joined, re.IGNORECASE)
+            if m:
+                harga_jual = normalize_price(m.group(1))
+                break
+
+    # Fallback: markup 6% jika hanya harga beli diketahui
     if harga_beli and not harga_jual:
         harga_jual = int(round(harga_beli * 1.06))
 
@@ -615,6 +630,10 @@ def process_ocr_kereta(text: str) -> list:
     stasiun_asal = re.search(r'Pergi.*?\(([A-Z]{2,3})\)', cleaned_lines, re.DOTALL | re.IGNORECASE)
     stasiun_tujuan = re.search(r'Tiba.*?\(([A-Z]{2,3})\)', cleaned_lines, re.DOTALL | re.IGNORECASE)
     rute = f"{stasiun_asal.group(1)} - {stasiun_tujuan.group(1)}" if stasiun_asal and stasiun_tujuan else None
+    if not rute:
+        m_rute = re.search(r'\(([A-Z]{2,3})\)[^\(]+→[^\(]+\(([A-Z]{2,3})\)', cleaned)
+        if m_rute:
+            rute = f"{m_rute.group(1)} - {m_rute.group(2)}"
 
     # --- Jam berangkat dan tiba (durasi) ---
     durasi = None
@@ -627,6 +646,11 @@ def process_ocr_kereta(text: str) -> list:
         m_time = re.search(r'(\d{1,2}[:.]\d{2})\s*[-–]\s*(\d{1,2}[:.]\d{2})', cleaned)
         if m_time:
             durasi = f"{m_time.group(1)} - {m_time.group(2)}"
+    # Tambahkan ke bagian durasi, jika tidak ditemukan sebelumnya:
+    if not durasi:
+        m_durasi = re.search(r'\(([A-Z]{2,3})\)\s*(\d{1,2}[:.]\d{2})[→\-]+\s*(?:\([A-Z]{2,3}\))?\s*(\d{1,2}[:.]\d{2})', cleaned)
+        if m_durasi:
+            durasi = f"{m_durasi.group(2)} - {m_durasi.group(3)}"
 
     # --- Tanggal berangkat ---
     tgl_berangkat = ''

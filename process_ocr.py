@@ -465,7 +465,7 @@ def process_ocr_pesawat(text: str) -> list:
 
     # 1. Kode Booking / PNR
     kode_booking = None
-    m_code = re.search(r"(?:PNR|Kode\s*booking)[:\-]?\s*([A-Z0-9]{5,8})", cleaned, re.IGNORECASE)
+    m_code = re.search(r"(?:PNR|Kode\s*booking)[:\-]?\s*([A-Z0-9]{4,8})", cleaned, re.IGNORECASE)
     if m_code:
         kode_booking = m_code.group(1)
 
@@ -525,7 +525,10 @@ def process_ocr_pesawat(text: str) -> list:
     harga_beli = harga_jual = None
     # regex diperbarui: cari 'Beli' atau 'BELI' tanpa memperhatikan urutan kata
     hb_match = re.search(r"(?:Beli|HB|Harga\s*Beli)[:\s]*[Rp\.]*([\d,\.]+)", cleaned, re.IGNORECASE)
-    hj_match = re.search(r"(?:Jual|HJ|Harga\s*Jual)[:\s]*[Rp\.]*([\d,\.]+)", cleaned, re.IGNORECASE)
+    hj_match = (
+        re.search(r"(?:Jual|HJ|Harga\s*Jual)[:\s]*[Rp\.]*([\d,\.]+)", cleaned, re.IGNORECASE)
+        or re.search(r"Harga[:\s]*[Rp\.]*([\d,\.]+)", cleaned, re.IGNORECASE)
+    )
     if hb_match:
         harga_beli = int(re.sub(r"[^\d]", "", hb_match.group(1)))
     if hj_match:

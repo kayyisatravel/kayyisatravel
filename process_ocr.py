@@ -643,31 +643,32 @@ def process_ocr_kereta(text: str) -> list:
     m_jt = re.search(r'\btiba\b.*?(\d{1,2}[:.]\d{2})', cleaned, re.IGNORECASE)
     
     if m_jb and m_jt:
-        jam1 = m_jb.group(1).replace('.', ':')
-        jam2 = m_jt.group(1).replace('.', ':')
-        durasi = f"{jam1} - {jam2}"
+        durasi = f"{m_jb.group(1).replace('.', ':')} - {m_jt.group(1).replace('.', ':')}"
+        print(f"DEBUG durasi dari 'pergi' dan 'tiba': {durasi}")
     
-    # 2. Fallback: format dengan panah → atau -
+    # 2. Fallback: format dengan panah → atau dash -
     if not durasi:
         m_fallback = re.search(
-            r'\(\w{2,4}\)\s*(\d{1,2}[:.]\d{2})\s*[→\-]\s*\(\w{2,4}\)\s*(\d{1,2}[:.]\d{2})',
+            r'\(\w{2,4}\)\s*(\d{1,2}[:.]\d{2})\s*[-→–—]+\s*\(\w{2,4}\)\s*(\d{1,2}[:.]\d{2})',
             cleaned_lines
         )
         if m_fallback:
             jam1 = m_fallback.group(1).replace('.', ':')
             jam2 = m_fallback.group(2).replace('.', ':')
             durasi = f"{jam1} - {jam2}"
+            print(f"DEBUG durasi dari fallback panah: {durasi}")
     
     # 3. Fallback tambahan: tanpa panah tapi pola stasiun + jam → jam
     if not durasi:
         m_durasi = re.search(
-            r'\([A-Z]{2,4}\)\s*(\d{1,2}[:.]\d{2})\s*[-→]+\s*(\d{1,2}[:.]\d{2})',
+            r'\([A-Z]{2,4}\)\s*(\d{1,2}[:.]\d{2})\s*[-→–—]+\s*(\d{1,2}[:.]\d{2})',
             cleaned
         )
         if m_durasi:
             jam1 = m_durasi.group(1).replace('.', ':')
             jam2 = m_durasi.group(2).replace('.', ':')
             durasi = f"{jam1} - {jam2}"
+            print(f"DEBUG durasi dari fallback stasiun-jam: {durasi}")
 
 
     # --- Tanggal berangkat ---

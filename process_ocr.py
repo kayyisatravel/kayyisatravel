@@ -79,6 +79,7 @@ def extract_price_info(text: str) -> (int, int):
         r'Rp\s*([\d.,]+)\s*/\s*mlm',
         r'Jual\s*([\d.,]+)',
         r'\bHarga\s*Jual\s*Total\s*[:\-]?\s*(?:Rp)?\s*([\d.,]+)',
+        r'Total\s*Harga\s*[:\-]?\s*(?:Rp)?\s*([\d.,]+)',
         r'\bHarga\s*Jual\s*[:\-]?\s*(?:Rp)?\s*([\d.,]+)'
     ]
 
@@ -176,30 +177,14 @@ def extract_booking_code(text: str) -> str:
 
 
 def extract_hotel_name(text_keep_lines: str) -> str:
-    """
-    Heuristik mengekstrak nama hotel dari blok teks (per baris).
-    - Abaikan baris yang mengandung stopwords tertentu (alamat, jl, tipe kamar, dsb).
-    - Jika baris sebelumnya mengandung 'Order ID' atau 'Itinerary', maka baris ini dianggap nama hotel.
-    - Atau: jika baris berikutnya mengandung 'jl' atau 'jalan', baris ini dianggap nama hotel.
-    """
-    stopwords = [
-        'alamat', 'jl', 'jalan', 'tipe kamar', 'check-in', 'check out',
-        'makanan', 'nama tamu', 'jual', 'beli', 'order id', 'itinerary'
-    ]
     lines = text_keep_lines.splitlines()
     for idx, line in enumerate(lines):
-        lowercase = line.lower()
-        if any(sw in lowercase for sw in stopwords):
-            continue
-
-        # Jika baris sebelumnya mengandung 'order id' atau 'itinerary'
-        if idx > 0 and re.search(r'(order\s*id|itinerary)', lines[idx - 1], re.IGNORECASE):
-            return line.strip()
-
-        # Jika baris berikutnya mengandung 'jl' atau 'jalan'
-        if idx + 1 < len(lines) and re.search(r'\b(jl|jalan)\b', lines[idx + 1], re.IGNORECASE):
-            return line.strip()
-
+        line_clean = line.strip().lower()
+        if line_clean in ['properti & lokasi', 'lokasi hotel', 'nama properti']:
+            # Ambil baris berikutnya
+            if idx + 1 < len(lines):
+                return lines[idx + 1].strip()
+    # Fallback lama jika tidak ketemu
     return None
 
 def clean_hotel_name(name: str) -> str:
@@ -276,13 +261,8 @@ def extract_bf(text: str) -> str:
     return 'N/A'
 
 def extract_customer_names(text_keep_lines: str) -> list:
-    """
-    Mencari blok 'Nama Tamu:' dan mengumpulkan semua nama yang tertera hingga menemukan
-    kata kunci selanjutnya (Check-in, Check-out, Permintaan, atau akhir blok).
-    Format nama asumsi tiap baris di awal diberi nomor '1. Nama', '2. Nama', dsb.
-    """
     m = re.search(
-        r'Nama(?:\s+(?:Tamu|Penumpang|Customer))?\s*:?\s*((?:.*\n)+?)(?:Check[-\s]?in|Check[-\s]?out|Permintaan|$)',
+        r'(?:Nama\s*(?:Tamu|Customer)|Detail\s*Tamu.*)\s*:?\s*((?:.*\n)+?)(?:Check[-\s]?in|Check[-\s]?out|Permintaan|Fasilitas|$)',
         text_keep_lines,
         re.IGNORECASE
     )
@@ -292,11 +272,11 @@ def extract_customer_names(text_keep_lines: str) -> list:
     block = m.group(1).strip()
     names = []
     for line in block.splitlines():
-        # Hapus prefix angka “1.” atau “2.”
         nm = re.sub(r'^\d+\.\s*', '', line.strip())
         if nm:
             names.append(nm)
     return names
+
 
 def extract_dates_hotel(text: str) -> (datetime, datetime):
     """

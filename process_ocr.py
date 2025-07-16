@@ -636,26 +636,39 @@ def process_ocr_kereta(text: str) -> list:
             rute = f"{m_rute.group(1)} - {m_rute.group(2)}"
 
     # --- Jam berangkat dan tiba (durasi) ---
-    # --- Jam berangkat dan tiba (durasi) ---
     durasi = None
-    m_jb = re.search(r'pergi.*?(\d{1,2}[:.]\d{2})', cleaned, re.IGNORECASE)
-    m_jt = re.search(r'tiba.*?(\d{1,2}[:.]\d{2})', cleaned, re.IGNORECASE)
+    
+    # 1. Coba dari kata "pergi" dan "tiba"
+    m_jb = re.search(r'\bpergi\b.*?(\d{1,2}[:.]\d{2})', cleaned, re.IGNORECASE)
+    m_jt = re.search(r'\btiba\b.*?(\d{1,2}[:.]\d{2})', cleaned, re.IGNORECASE)
     
     if m_jb and m_jt:
-        durasi = f"{m_jb.group(1).replace('.',':')} - {m_jt.group(1).replace('.',':')}"
-    else:
-        # fallback pattern: (SGU) 05:37 → (KK) 07:55
-        m_fallback = re.search(r'\(\w{2,4}\)\s*(\d{1,2}[:.]\d{2})\s*[→\-]\s*\(\w{2,4}\)\s*(\d{1,2}[:.]\d{2})', cleaned_lines)
+        jam1 = m_jb.group(1).replace('.', ':')
+        jam2 = m_jt.group(1).replace('.', ':')
+        durasi = f"{jam1} - {jam2}"
+    
+    # 2. Fallback: format dengan panah → atau -
+    if not durasi:
+        m_fallback = re.search(
+            r'\(\w{2,4}\)\s*(\d{1,2}[:.]\d{2})\s*[→\-]\s*\(\w{2,4}\)\s*(\d{1,2}[:.]\d{2})',
+            cleaned_lines
+        )
         if m_fallback:
             jam1 = m_fallback.group(1).replace('.', ':')
             jam2 = m_fallback.group(2).replace('.', ':')
             durasi = f"{jam1} - {jam2}"
-
-    # Tambahkan ke bagian durasi, jika tidak ditemukan sebelumnya:
+    
+    # 3. Fallback tambahan: tanpa panah tapi pola stasiun + jam → jam
     if not durasi:
-        m_durasi = re.search(r'\(([A-Z]{2,3})\)\s*(\d{1,2}[:.]\d{2})[→\-]+\s*(?:\([A-Z]{2,3}\))?\s*(\d{1,2}[:.]\d{2})', cleaned)
+        m_durasi = re.search(
+            r'\([A-Z]{2,4}\)\s*(\d{1,2}[:.]\d{2})\s*[-→]+\s*(\d{1,2}[:.]\d{2})',
+            cleaned
+        )
         if m_durasi:
-            durasi = f"{m_durasi.group(2)} - {m_durasi.group(3)}"
+            jam1 = m_durasi.group(1).replace('.', ':')
+            jam2 = m_durasi.group(2).replace('.', ':')
+            durasi = f"{jam1} - {jam2}"
+
 
     # --- Tanggal berangkat ---
     tgl_berangkat = ''

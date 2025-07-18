@@ -534,12 +534,8 @@ def process_ocr_pesawat(text: str) -> list:
                 tgl_berangkat = datetime(int(year), mm, int(day)).strftime('%Y-%m-%d')
             except ValueError:
                 tgl_berangkat = ''
-
-    # 6. Harga Beli dan Harga Jual
-    jumlah_penumpang = len([n for n in names if n]) if names else 1
-    harga_beli, harga_jual = extract_price_info(cleaned, jumlah_penumpang)
         
-    # 7. Nama penumpang
+    # 6. Nama penumpang
     names = []
     m_cust = re.search(
         r"nama\s*(?:penumpang|customer|tamu)?\s*[:\-]?\s*((?:.*\n?)+?)(?:\n\s*\n|Harga|Check[-\s]?in|Check[-\s]?out|$)",
@@ -560,6 +556,10 @@ def process_ocr_pesawat(text: str) -> list:
         names = [re.sub(r"\b(Tn|Ny|Nn|Mr|Mrs|Ms)\.?\s+", "", n).strip() for n in fallback_names]
         if not names:
             names = [None]
+
+    # 7. Harga Beli dan Harga Jual
+    jumlah_penumpang = len([n for n in names if n]) if names else 1
+    harga_beli, harga_jual = extract_price_info(cleaned, jumlah_penumpang)
 
     # 8. Hitung harga per orang dan laba
     per_orang_beli = harga_beli // len(names) if harga_beli else None

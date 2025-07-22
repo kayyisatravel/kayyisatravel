@@ -668,16 +668,20 @@ with st.expander("💾 Database Pemesan", expanded=False):
         (df["Tgl Pemesanan"] >= tanggal_range[0]) &
         (df["Tgl Pemesanan"] <= tanggal_range[1])
     ]
+    # === Filter Tambahan (lanjutkan dari df_filtered yang sudah disesuaikan di atas) ===
     if nama_filter:
         df_filtered = df_filtered[df_filtered["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
     if kode_booking_filter:
-        df_filtered = df_filtered[df_filtered["Kode Booking"].str.contains(kode_booking_filter, case=False, na=False)]
-        df_filtered["No Invoice"] = df_filtered["No Invoice"].astype(str).str.strip()
+        df_filtered = df_filtered[df_filtered["Kode Booking"].astype(str).str.contains(kode_booking_filter, case=False, na=False)]
+    
+    df_filtered["No Invoice"] = df_filtered["No Invoice"].astype(str).str.strip()
+    
     if no_invoice_filter:
         df_filtered = df_filtered[df_filtered["No Invoice"].str.contains(no_invoice_filter.strip(), case=False, na=False)]
-
+    
     if tampilkan_uninvoice_saja:
         df_filtered = df_filtered[df_filtered["No Invoice"].isna() | (df_filtered["No Invoice"].str.strip() == "")]
+
 
     # === Tampilkan & Edit Data ===
     if df_filtered.empty:

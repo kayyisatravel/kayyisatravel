@@ -617,42 +617,33 @@ with st.expander("💾 Database Pemesan", expanded=False):
         key="filter_mode_radio"
     )
     
-    bulan_nama = {
-        "Januari": 1, "Februari": 2, "Maret": 3, "April": 4,
-        "Mei": 5, "Juni": 6, "Juli": 7, "Agustus": 8,
-        "September": 9, "Oktober": 10, "November": 11, "Desember": 12
-    }
-    
     if filter_mode == "📆 Rentang Tanggal":
-        tanggal_range_input = st.date_input("Rentang Tanggal", [awal_bulan, today], key="rentang_tanggal")
-        ...
+        tgl_awal = st.date_input("Tanggal Awal", date.today().replace(day=1))
+        tgl_akhir = st.date_input("Tanggal Akhir", date.today())
+        if tgl_awal > tgl_akhir:
+            tgl_awal, tgl_akhir = tgl_akhir, tgl_awal
         df_filtered = df[
-            (df["Tgl Pemesanan"] >= tanggal_range[0]) & 
-            (df["Tgl Pemesanan"] <= tanggal_range[1])
+            (df["Tgl Pemesanan"] >= pd.to_datetime(tgl_awal)) &
+            (df["Tgl Pemesanan"] <= pd.to_datetime(tgl_akhir))
         ]
-    
+
     elif filter_mode == "🗓️ Bulanan":
+        bulan_nama = {
+            "Januari": 1, "Februari": 2, "Maret": 3, "April": 4,
+            "Mei": 5, "Juni": 6, "Juli": 7, "Agustus": 8,
+            "September": 9, "Oktober": 10, "November": 11, "Desember": 12
+        }
         bulan_label = list(bulan_nama.keys())
-        bulan_pilihan = st.selectbox("Pilih Bulan", bulan_label, index=today.month - 1, key="bulan_only")
-        
-        tahun_bulanan = st.selectbox(
-            "Pilih Tahun Bulanan", 
-            sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True), 
-            key="tahun_only_bulanan"
-        )
-    
+        bulan_pilihan = st.selectbox("Pilih Bulan", bulan_label, index=date.today().month - 1)
+        tahun_bulan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True))
         df_filtered = df[
             (df["Tgl Pemesanan"].dt.month == bulan_nama[bulan_pilihan]) &
-            (df["Tgl Pemesanan"].dt.year == tahun_bulanan)
+            (df["Tgl Pemesanan"].dt.year == tahun_bulan)
         ]
-    
+
     elif filter_mode == "📅 Tahunan":
-        tahun_tahunan = st.selectbox(
-            "Pilih Tahun Tahunan", 
-            sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True), 
-            key="tahun_only_tahunan"
-        )
-        df_filtered = df[df["Tgl Pemesanan"].dt.year == tahun_tahunan]
+        tahun_pilihan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True))
+        df_filtered = df[df["Tgl Pemesanan"].dt.year == tahun_pilihan]
 
 
 

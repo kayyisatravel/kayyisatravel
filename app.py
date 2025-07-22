@@ -1441,54 +1441,89 @@ with st.expander("🎫 Generator E-Tiket"):
         html = generate_ticket(data, tipe_tiket)
         st.components.v1.html(html, height=800, scrolling=True)
 
-with st.expander("🎫 Generator E-Tiket + Input ke Database"):
-    tipe_tiket = st.radio("Pilih tipe tiket:", ["Kereta", "Hotel"], key="tipe_tiket_radio")
-    input_text = st.text_area(f"Tempelkan teks tiket {tipe_tiket}", height=300, key="single_ticket_input")
+with st.expander("🎫 Generator E-Tiket + Simpan Data"):
+    tipe_tiket = st.radio("Pilih tipe tiket:", ["Kereta", "Hotel", "Pesawat"], key="tipe_tiket_radio")
+    input_text = st.text_area(f"Tempelkan teks tiket {tipe_tiket}", height=300, key="text_tiket")
 
-    if st.button("🚀 Generate Tiket dan Tampilkan Data"):
+    if st.button("🖨️ Generate Tiket & Parse Data"):
         if input_text.strip():
-            try:
-                # Langkah 1: Parsing
-                data_dict = parsing_ticket(input_text, tipe_tiket)
-                df_preview = pd.DataFrame([data_dict])
+            # 1. Generate visual tiket
+            data = parsing_ticket(input_text, tipe_tiket)
+            html = generate_ticket(data, tipe_tiket)
+            st.session_state['last_ticket_html'] = html
+            st.session_state['last_ticket_data'] = input_text  # raw text
 
-                st.session_state['parsed_ticket_data'] = df_preview
-                st.session_state['tipe_tiket'] = tipe_tiket
+            # 2. Jalankan proses parsing data
+            parsed_result = process_ocr_unified(input_text)
+            if isinstance(parsed_result, list):
+                df_ocr = pd.DataFrame(parsed_result)
+            elif isinstance(parsed_result, pd.DataFrame):
+                df_ocr = parsed_result.copy()
+            else:
+                st.warning("⚠️ Parsing tidak menghasilkan data yang dikenali.")
+                st.stop()
 
-                # Langkah 2: Tampilkan tiket
-                html = generate_ticket(data_dict, tipe_tiket)
-                st.components.v1.html(html, height=800, scrolling=True)
+            # Normalisasi kolom sesuai format
+            expected_cols = [
+                "Tgl Pemesanan", "Tgl Berangkat", "Kode Booking",
+                "No Penerbangan / Hotel / Kereta", "Durasi",
+                "Nama Customer", "Rute", "Harga Beli", "Harga Jual", "Laba",
+                "Tipe", "BF/NBF", "No Invoice", "Keterangan",
+                "Nama Pemesan", "Admin", "% Laba"
+            ]
+            for col in expected_cols:
+                if col not in df_ocr.columns:
+                    df_ocr[col] = ""
 
-                st.success("✅ Tiket berhasil dibuat dan data siap diedit.")
-
-            except Exception as e:
-                st.error(f"❌ Gagal parsing tiket: {e}")
+            df_ocr = df_ocr[expected_cols]
+            st.session_state.ocr_preview_df = df_ocr
         else:
             st.warning("Silakan masukkan data tiket terlebih dahulu.")
 
-    # Langkah 3: Jika ada data yang sudah diparse, tampilkan editor
-    if "parsed_ticket_data" in st.session_state:
-        st.markdown("### ✏️ Edit Data Tiket Sebelum Simpan")
+    # Tampilkan tiket jika sudah tersedia
+    if st.session_state.get('last_ticket_html'):
+        st.components.v1.html(st.session_state['last_ticket_html'], height=800, scrolling=True)
 
-        df_editable = st.data_editor(
-            st.session_state["parsed_ticket_data"],
-            use_container_width=True,
-            num_rows="fixed",
-        )
+    # Tampilkan DataFrame hasil parsing
+    if "ocr_preview_df" in st.session_state:
+        df = st.session_state.ocr_preview_df
 
-        if st.button("💾 Simpan ke Database / GSheet"):
-            try:
-                save_gsheet(df_editable)  # ⬅️ Fungsi simpan sesuai yang kamu pakai
-                st.success("📤 Data berhasil disimpan ke Google Sheets.")
+        st.markdown("### 🧾 Data Hasil Parsing Tiket")
 
-                # Opsional: masukkan ke bulk_parsed juga
-                if "bulk_parsed" not in st.session_state:
-                    st.session_state.bulk_parsed = df_editable
+        edit_mode = st.checkbox("Edit Manual", value=st.session_state.get("edit_mode_ocr", False))
+
+        if edit_mode:
+            st.session_state.edit_mode_ocr = True
+
+            row_index = st.number_input("Pilih baris ke-", min_value=0, max_value=len(df)-1, step=1)
+            row_data = df.iloc[row_index].to_dict()
+            updated_row = {}
+
+            for col, val in row_data.items():
+                if col in ["Tgl Pemesanan", "Tgl Berangkat"]:
+                    try:
+                        val = pd.to_datetime(val).date() if val else pd.Timestamp.today().date()
+                    except:
+                        val = pd.Timestamp.today().date()
+                    new_val = st.date_input(col, value=val)
                 else:
-                    st.session_state.bulk_parsed = pd.concat([st.session_state.bulk_parsed, df_editable], ignore_index=True)
+                    new_val = st.text_input(col, value=str(val) if pd.notna(val) else "")
+                updated_row[col] = new_val
 
-                # Bersihkan agar user tidak simpan dobel
-                del st.session_state["parsed_ticket_data"]
+            if st.button("💾 Simpan Perubahan Baris"):
+                for col in updated_row:
+                    df.at[row_index, col] = updated_row[col]
+                st.session_state.ocr_preview_df = df
+                st.session_state.edit_mode_ocr = False
+                st.success("✅ Perubahan disimpan.")
+                st.rerun()
 
-            except Exception as e:
-                st.error(f"❌ Gagal menyimpan data: {e}")
+        else:
+            st.dataframe(df, use_container_width=True)
+
+            if st.button("📤 Simpan ke Database / GSheet"):
+                save_gsheet(df)
+                st.success("✅ Data berhasil disimpan.")
+                st.session_state.pop("ocr_preview_df", None)
+                st.session_state.pop("last_ticket_html", None)
+                st.rerun()

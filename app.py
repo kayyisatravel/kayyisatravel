@@ -672,7 +672,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
         df_filtered = df_filtered[df_filtered["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
     if kode_booking_filter:
         df_filtered = df_filtered[df_filtered["Kode Booking"].str.contains(kode_booking_filter, case=False, na=False)]
-    df_filtered["No Invoice"] = df_filtered["No Invoice"].astype(str).str.strip()
+        df_filtered["No Invoice"] = df_filtered["No Invoice"].astype(str).str.strip()
     if no_invoice_filter:
         df_filtered = df_filtered[df_filtered["No Invoice"].str.contains(no_invoice_filter.strip(), case=False, na=False)]
 

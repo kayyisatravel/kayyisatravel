@@ -1316,16 +1316,20 @@ with st.expander("💾 Database Pemesan", expanded=False):
 with st.expander("📘 Laporan Keuangan Lengkap"):
     st.markdown("### 📊 Filter Laporan")
 
-    # Pastikan kolom Tgl Pemesanan bertipe datetime
     df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce")
 
-    filter_mode = st.radio("Pilih Jenis Filter Tanggal", ["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"], horizontal=True)
+    filter_mode = st.radio(
+        "Pilih Jenis Filter Tanggal", 
+        ["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"], 
+        horizontal=True,
+        key="filter_tanggal_mode"
+    )
 
-    df_filtered = df.copy()  # Awal: semua data
+    df_filtered = df.copy()
 
     if filter_mode == "📆 Rentang Tanggal":
-        tgl_awal = st.date_input("Tanggal Awal", date.today().replace(day=1))
-        tgl_akhir = st.date_input("Tanggal Akhir", date.today())
+        tgl_awal = st.date_input("Tanggal Awal", date.today().replace(day=1), key="tgl_awal_input")
+        tgl_akhir = st.date_input("Tanggal Akhir", date.today(), key="tgl_akhir_input")
         if tgl_awal > tgl_akhir:
             tgl_awal, tgl_akhir = tgl_akhir, tgl_awal
         df_filtered = df[
@@ -1340,16 +1344,17 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
             "September": 9, "Oktober": 10, "November": 11, "Desember": 12
         }
         bulan_label = list(bulan_nama.keys())
-        bulan_pilihan = st.selectbox("Pilih Bulan", bulan_label, index=date.today().month - 1)
-        tahun_bulan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True))
+        bulan_pilihan = st.selectbox("Pilih Bulan", bulan_label, index=date.today().month - 1, key="filter_bulan_input")
+        tahun_bulan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True), key="filter_tahun_bulanan")
         df_filtered = df[
             (df["Tgl Pemesanan"].dt.month == bulan_nama[bulan_pilihan]) &
             (df["Tgl Pemesanan"].dt.year == tahun_bulan)
         ]
 
     elif filter_mode == "📅 Tahunan":
-        tahun_pilihan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True))
+        tahun_pilihan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True), key="filter_tahun_tahunan")
         df_filtered = df[df["Tgl Pemesanan"].dt.year == tahun_pilihan]
+
 
     # Tambahan filter Pemesan dan Admin
     st.markdown("### 🧍 Filter Tambahan")

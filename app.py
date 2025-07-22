@@ -617,25 +617,24 @@ with st.expander("💾 Database Pemesan", expanded=False):
         key="filter_mode_radio"
     )
     
+    bulan_nama = {
+        "Januari": 1, "Februari": 2, "Maret": 3, "April": 4,
+        "Mei": 5, "Juni": 6, "Juli": 7, "Agustus": 8,
+        "September": 9, "Oktober": 10, "November": 11, "Desember": 12
+    }
+    
     if filter_mode == "📆 Rentang Tanggal":
         tanggal_range_input = st.date_input("Rentang Tanggal", [awal_bulan, today], key="rentang_tanggal")
-        if isinstance(tanggal_range_input, date):
-            tanggal_range_input = [tanggal_range_input, tanggal_range_input]
-        elif len(tanggal_range_input) == 1:
-            tanggal_range_input = [tanggal_range_input[0], tanggal_range_input[0]]
-        tanggal_range = [pd.Timestamp(d) for d in tanggal_range_input]
-        if tanggal_range[0] > tanggal_range[1]:
-            tanggal_range = [tanggal_range[1], tanggal_range[0]]
-    
+        ...
         df_filtered = df[
-            (df["Tgl Pemesanan"] >= tanggal_range[0]) &
+            (df["Tgl Pemesanan"] >= tanggal_range[0]) & 
             (df["Tgl Pemesanan"] <= tanggal_range[1])
         ]
     
     elif filter_mode == "🗓️ Bulanan":
         bulan_label = list(bulan_nama.keys())
         bulan_pilihan = st.selectbox("Pilih Bulan", bulan_label, index=today.month - 1, key="bulan_only")
-    
+        
         tahun_bulanan = st.selectbox(
             "Pilih Tahun Bulanan", 
             sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True), 
@@ -654,6 +653,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
             key="tahun_only_tahunan"
         )
         df_filtered = df[df["Tgl Pemesanan"].dt.year == tahun_tahunan]
+
 
 
     # === Filter Tambahan ===

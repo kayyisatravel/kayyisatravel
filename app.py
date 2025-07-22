@@ -1440,3 +1440,55 @@ with st.expander("🎫 Generator E-Tiket"):
         data = st.session_state['last_data']
         html = generate_ticket(data, tipe_tiket)
         st.components.v1.html(html, height=800, scrolling=True)
+
+with st.expander("🎫 Generator E-Tiket + Input ke Database"):
+    tipe_tiket = st.radio("Pilih tipe tiket:", ["Kereta", "Hotel"], key="tipe_tiket_radio")
+    input_text = st.text_area(f"Tempelkan teks tiket {tipe_tiket}", height=300, key="single_ticket_input")
+
+    if st.button("🚀 Generate Tiket dan Tampilkan Data"):
+        if input_text.strip():
+            try:
+                # Langkah 1: Parsing
+                data_dict = parsing_ticket(input_text, tipe_tiket)
+                df_preview = pd.DataFrame([data_dict])
+
+                st.session_state['parsed_ticket_data'] = df_preview
+                st.session_state['tipe_tiket'] = tipe_tiket
+
+                # Langkah 2: Tampilkan tiket
+                html = generate_ticket(data_dict, tipe_tiket)
+                st.components.v1.html(html, height=800, scrolling=True)
+
+                st.success("✅ Tiket berhasil dibuat dan data siap diedit.")
+
+            except Exception as e:
+                st.error(f"❌ Gagal parsing tiket: {e}")
+        else:
+            st.warning("Silakan masukkan data tiket terlebih dahulu.")
+
+    # Langkah 3: Jika ada data yang sudah diparse, tampilkan editor
+    if "parsed_ticket_data" in st.session_state:
+        st.markdown("### ✏️ Edit Data Tiket Sebelum Simpan")
+
+        df_editable = st.data_editor(
+            st.session_state["parsed_ticket_data"],
+            use_container_width=True,
+            num_rows="fixed",
+        )
+
+        if st.button("💾 Simpan ke Database / GSheet"):
+            try:
+                save_gsheet(df_editable)  # ⬅️ Fungsi simpan sesuai yang kamu pakai
+                st.success("📤 Data berhasil disimpan ke Google Sheets.")
+
+                # Opsional: masukkan ke bulk_parsed juga
+                if "bulk_parsed" not in st.session_state:
+                    st.session_state.bulk_parsed = df_editable
+                else:
+                    st.session_state.bulk_parsed = pd.concat([st.session_state.bulk_parsed, df_editable], ignore_index=True)
+
+                # Bersihkan agar user tidak simpan dobel
+                del st.session_state["parsed_ticket_data"]
+
+            except Exception as e:
+                st.error(f"❌ Gagal menyimpan data: {e}")

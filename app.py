@@ -1455,8 +1455,10 @@ with st.expander("🎫 Generator E-Tiket + Simpan Data"):
 
             # 2. Jalankan proses parsing data
             parsed_result = process_ocr_unified(input_text)
+            st.write("🚧 Parse output raw:", parsed_result)
             if isinstance(parsed_result, list):
                 df_ocr = pd.DataFrame(parsed_result)
+                st.write("🚧 DataFrame tanpa filter kolom:", df_ocr)
             elif isinstance(parsed_result, pd.DataFrame):
                 df_ocr = parsed_result.copy()
             else:

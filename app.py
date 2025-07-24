@@ -1322,7 +1322,156 @@ with st.expander("💾 Database Pemesan", expanded=False):
     #st.write("Tanggal filter:", tanggal_range)
     
     # ... (kode UI Streamlit di bagian atas) ...
-        
+
+
+# Contoh fungsi parsing untuk kereta dan hotel (sesuaikan dengan fungsi asli kamu)
+def parsing_ticket(text, tipe):
+    if tipe == "Kereta":
+        return parse_input_dynamic(text)  # ganti dengan fungsi parsing tiket kereta kamu
+    elif tipe == "Hotel":
+        return parse_evoucher_text(text)  # fungsi parsing hotel yang sudah ada
+
+def generate_ticket(data, tipe):
+    if tipe == "Kereta":
+        return generate_eticket(data)  # fungsi generate tiket kereta kamu
+    elif tipe == "Hotel":
+        return generate_evoucher_html(data)  # fungsi generate voucher hotel kamu
+
+with st.expander("🎫 Generator E-Tiket"):
+
+    # Pilihan tipe tiket
+    tipe_tiket = st.radio("Pilih tipe tiket:", ["Kereta", "Hotel"], key="tipe_tiket_radio")
+    
+    st.session_state['tipe_tiket'] = tipe_tiket
+
+    # Template default berdasarkan tipe tiket
+    if tipe_tiket == "Hotel":
+        default_text = "Order ID:\nItinerary ID:\n\nBeli "
+    else:
+        default_text = "Kode booking:\n\nBeli "
+
+    # Inisialisasi text_area hanya sekali per tipe (hindari reset)
+    input_key = f"input_text_{tipe_tiket}"
+    if input_key not in st.session_state:
+        st.session_state[input_key] = default_text
+
+    # Area input teks
+    input_text = st.text_area(
+        f"Tempelkan teks tiket {tipe_tiket}",
+        value=st.session_state[input_key],
+        height=300,
+        key=input_key
+    )
+
+    # Tombol generate
+    if st.button("Generate Tiket"):
+        if input_text.strip():
+            data = parsing_ticket(input_text, tipe_tiket)
+            st.session_state['last_data'] = data
+            st.session_state['tipe_tiket'] = tipe_tiket
+        else:
+            st.warning("Silakan masukkan data tiket terlebih dahulu.")
+
+    # Tampilkan hasil jika sudah ada
+    if 'last_data' in st.session_state and st.session_state.get('tipe_tiket') == tipe_tiket:
+        data = st.session_state['last_data']
+        try:
+            html = generate_ticket(data, tipe_tiket)
+            st.components.v1.html(html, height=800, scrolling=True)
+        except Exception as e:
+            st.warning("⚠️ Gagal membuat tampilan tiket. Periksa apakah semua data penting sudah terisi, seperti 'Harga'.")
+
+
+
+with st.expander("🎫 Generator E-Tiket + Simpan Data"):
+    tipe_tiket = st.radio("Pilih tipe tiket:", ["Kereta", "Hotel", "Pesawat"], key="tipe_tiket_simpan")
+    input_text = st.text_area(f"Tempelkan teks tiket {tipe_tiket}", height=300, key="text_tiket")
+
+    if st.button("🖨️ Generate Tiket & Parse Data"):
+        if input_text.strip():
+            # 1. Generate visual tiket
+            data = parsing_ticket(input_text, tipe_tiket)
+            html = generate_ticket(data, tipe_tiket)
+            st.session_state['last_ticket_html'] = html
+            st.session_state['last_ticket_data'] = input_text  # raw text
+
+            # 2. Jalankan proses parsing data
+            parsed_result = process_ocr_unified(input_text)
+            st.write("🚧 Parse output raw:", parsed_result)
+            if isinstance(parsed_result, list):
+                df_ocr = pd.DataFrame(parsed_result)
+                st.write("🚧 DataFrame tanpa filter kolom:", df_ocr)
+            elif isinstance(parsed_result, pd.DataFrame):
+                df_ocr = parsed_result.copy()
+            else:
+                st.warning("⚠️ Parsing tidak menghasilkan data yang dikenali.")
+                st.stop()
+
+            # Normalisasi kolom sesuai format
+            expected_cols = [
+                "Tgl Pemesanan", "Tgl Berangkat", "Kode Booking",
+                "No Penerbangan / Hotel / Kereta", "Durasi",
+                "Nama Customer", "Rute", "Harga Beli", "Harga Jual", "Laba",
+                "Tipe", "BF/NBF", "No Invoice", "Keterangan",
+                "Nama Pemesan", "Admin", "% Laba"
+            ]
+            for col in expected_cols:
+                if col not in df_ocr.columns:
+                    df_ocr[col] = ""
+
+            df_ocr = df_ocr[expected_cols]
+            st.session_state.ocr_preview_df = df_ocr
+        else:
+            st.warning("Silakan masukkan data tiket terlebih dahulu.")
+
+    # Tampilkan tiket jika sudah tersedia
+    if st.session_state.get('last_ticket_html'):
+        st.components.v1.html(st.session_state['last_ticket_html'], height=800, scrolling=True)
+
+    # Tampilkan DataFrame hasil parsing
+    if "ocr_preview_df" in st.session_state:
+        df = st.session_state.ocr_preview_df
+
+        st.markdown("### 🧾 Data Hasil Parsing Tiket")
+
+        edit_mode = st.checkbox("Edit Manual", value=st.session_state.get("edit_mode_ocr", False))
+
+        if edit_mode:
+            st.session_state.edit_mode_ocr = True
+
+            row_index = st.number_input("Pilih baris ke-", min_value=0, max_value=len(df)-1, step=1)
+            row_data = df.iloc[row_index].to_dict()
+            updated_row = {}
+
+            for col, val in row_data.items():
+                if col in ["Tgl Pemesanan", "Tgl Berangkat"]:
+                    try:
+                        val = pd.to_datetime(val).date() if val else pd.Timestamp.today().date()
+                    except:
+                        val = pd.Timestamp.today().date()
+                    new_val = st.date_input(col, value=val)
+                else:
+                    new_val = st.text_input(col, value=str(val) if pd.notna(val) else "")
+                updated_row[col] = new_val
+
+            if st.button("💾 Simpan Perubahan Baris"):
+                for col in updated_row:
+                    df.at[row_index, col] = updated_row[col]
+                st.session_state.ocr_preview_df = df
+                st.session_state.edit_mode_ocr = False
+                st.success("✅ Perubahan disimpan.")
+                st.rerun()
+
+        else:
+            st.dataframe(df, use_container_width=True)
+
+            if st.button("📤 Simpan ke Database / GSheet"):
+                save_gsheet(df)
+                st.success("✅ Data berhasil disimpan.")
+                st.session_state.pop("ocr_preview_df", None)
+                st.session_state.pop("last_ticket_html", None)
+                st.rerun()
+
 with st.expander("📘 Laporan Keuangan Lengkap"):
     st.markdown("### 📊 Filter Laporan")
 
@@ -1475,155 +1624,6 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
         - 🙋 **Pemesan paling aktif**: {top_pemesan}  
         - 📅 **Hari dengan omset tertinggi**: {max_day.date()} sebesar Rp {int(max_day_val):,}  
         """)
-
-
-# Contoh fungsi parsing untuk kereta dan hotel (sesuaikan dengan fungsi asli kamu)
-def parsing_ticket(text, tipe):
-    if tipe == "Kereta":
-        return parse_input_dynamic(text)  # ganti dengan fungsi parsing tiket kereta kamu
-    elif tipe == "Hotel":
-        return parse_evoucher_text(text)  # fungsi parsing hotel yang sudah ada
-
-def generate_ticket(data, tipe):
-    if tipe == "Kereta":
-        return generate_eticket(data)  # fungsi generate tiket kereta kamu
-    elif tipe == "Hotel":
-        return generate_evoucher_html(data)  # fungsi generate voucher hotel kamu
-
-with st.expander("🎫 Generator E-Tiket"):
-
-    # Pilihan tipe tiket
-    tipe_tiket = st.radio("Pilih tipe tiket:", ["Kereta", "Hotel"], key="tipe_tiket_radio")
-    
-    st.session_state['tipe_tiket'] = tipe_tiket
-
-    # Template default berdasarkan tipe tiket
-    if tipe_tiket == "Hotel":
-        default_text = "Order ID:\nItinerary ID:\n\nBeli "
-    else:
-        default_text = "Kode booking:\n\nBeli "
-
-    # Inisialisasi text_area hanya sekali per tipe (hindari reset)
-    input_key = f"input_text_{tipe_tiket}"
-    if input_key not in st.session_state:
-        st.session_state[input_key] = default_text
-
-    # Area input teks
-    input_text = st.text_area(
-        f"Tempelkan teks tiket {tipe_tiket}",
-        value=st.session_state[input_key],
-        height=300,
-        key=input_key
-    )
-
-    # Tombol generate
-    if st.button("Generate Tiket"):
-        if input_text.strip():
-            data = parsing_ticket(input_text, tipe_tiket)
-            st.session_state['last_data'] = data
-            st.session_state['tipe_tiket'] = tipe_tiket
-        else:
-            st.warning("Silakan masukkan data tiket terlebih dahulu.")
-
-    # Tampilkan hasil jika sudah ada
-    if 'last_data' in st.session_state and st.session_state.get('tipe_tiket') == tipe_tiket:
-        data = st.session_state['last_data']
-        try:
-            html = generate_ticket(data, tipe_tiket)
-            st.components.v1.html(html, height=800, scrolling=True)
-        except Exception as e:
-            st.warning("⚠️ Gagal membuat tampilan tiket. Periksa apakah semua data penting sudah terisi, seperti 'Harga'.")
-
-
-
-with st.expander("🎫 Generator E-Tiket + Simpan Data"):
-    tipe_tiket = st.radio("Pilih tipe tiket:", ["Kereta", "Hotel", "Pesawat"], key="tipe_tiket_simpan")
-    input_text = st.text_area(f"Tempelkan teks tiket {tipe_tiket}", height=300, key="text_tiket")
-
-    if st.button("🖨️ Generate Tiket & Parse Data"):
-        if input_text.strip():
-            # 1. Generate visual tiket
-            data = parsing_ticket(input_text, tipe_tiket)
-            html = generate_ticket(data, tipe_tiket)
-            st.session_state['last_ticket_html'] = html
-            st.session_state['last_ticket_data'] = input_text  # raw text
-
-            # 2. Jalankan proses parsing data
-            parsed_result = process_ocr_unified(input_text)
-            st.write("🚧 Parse output raw:", parsed_result)
-            if isinstance(parsed_result, list):
-                df_ocr = pd.DataFrame(parsed_result)
-                st.write("🚧 DataFrame tanpa filter kolom:", df_ocr)
-            elif isinstance(parsed_result, pd.DataFrame):
-                df_ocr = parsed_result.copy()
-            else:
-                st.warning("⚠️ Parsing tidak menghasilkan data yang dikenali.")
-                st.stop()
-
-            # Normalisasi kolom sesuai format
-            expected_cols = [
-                "Tgl Pemesanan", "Tgl Berangkat", "Kode Booking",
-                "No Penerbangan / Hotel / Kereta", "Durasi",
-                "Nama Customer", "Rute", "Harga Beli", "Harga Jual", "Laba",
-                "Tipe", "BF/NBF", "No Invoice", "Keterangan",
-                "Nama Pemesan", "Admin", "% Laba"
-            ]
-            for col in expected_cols:
-                if col not in df_ocr.columns:
-                    df_ocr[col] = ""
-
-            df_ocr = df_ocr[expected_cols]
-            st.session_state.ocr_preview_df = df_ocr
-        else:
-            st.warning("Silakan masukkan data tiket terlebih dahulu.")
-
-    # Tampilkan tiket jika sudah tersedia
-    if st.session_state.get('last_ticket_html'):
-        st.components.v1.html(st.session_state['last_ticket_html'], height=800, scrolling=True)
-
-    # Tampilkan DataFrame hasil parsing
-    if "ocr_preview_df" in st.session_state:
-        df = st.session_state.ocr_preview_df
-
-        st.markdown("### 🧾 Data Hasil Parsing Tiket")
-
-        edit_mode = st.checkbox("Edit Manual", value=st.session_state.get("edit_mode_ocr", False))
-
-        if edit_mode:
-            st.session_state.edit_mode_ocr = True
-
-            row_index = st.number_input("Pilih baris ke-", min_value=0, max_value=len(df)-1, step=1)
-            row_data = df.iloc[row_index].to_dict()
-            updated_row = {}
-
-            for col, val in row_data.items():
-                if col in ["Tgl Pemesanan", "Tgl Berangkat"]:
-                    try:
-                        val = pd.to_datetime(val).date() if val else pd.Timestamp.today().date()
-                    except:
-                        val = pd.Timestamp.today().date()
-                    new_val = st.date_input(col, value=val)
-                else:
-                    new_val = st.text_input(col, value=str(val) if pd.notna(val) else "")
-                updated_row[col] = new_val
-
-            if st.button("💾 Simpan Perubahan Baris"):
-                for col in updated_row:
-                    df.at[row_index, col] = updated_row[col]
-                st.session_state.ocr_preview_df = df
-                st.session_state.edit_mode_ocr = False
-                st.success("✅ Perubahan disimpan.")
-                st.rerun()
-
-        else:
-            st.dataframe(df, use_container_width=True)
-
-            if st.button("📤 Simpan ke Database / GSheet"):
-                save_gsheet(df)
-                st.success("✅ Data berhasil disimpan.")
-                st.session_state.pop("ocr_preview_df", None)
-                st.session_state.pop("last_ticket_html", None)
-                st.rerun()
 
 import streamlit as st
 import pandas as pd

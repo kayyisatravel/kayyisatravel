@@ -1858,25 +1858,49 @@ SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 def load_cashflow_expander():
     #st.markdown("## 💰 Arus Kas")
     with st.expander("💰 Cashflow"):
-        st.markdown("Upload file Excel atau CSV berisi data Arus Kas dengan kolom: `Tanggal`, `Tipe`, `Kategori`, `No Invoice`, `Keterangan`, `Jumlah`, `Status`")
-        uploaded_file = st.file_uploader("Pilih file data arus kas (Excel/CSV)", type=["xlsx", "xls", "csv"])
+        tanggal = st.text_input("Tanggal (YYYY-MM-DD)", value=str(datetime.today().date()))
+    tipe = st.text_input("Tipe (Masuk/Keluar)", value="")
+    kategori = st.text_input("Kategori", value="")
+    no_invoice = st.text_input("No Invoice", value="")
+    keterangan = st.text_input("Keterangan", value="")
+    jumlah_str = st.text_input("Jumlah (angka, tanpa Rp)", value="0")
+    status = st.text_input("Status (Lunas/Belum Lunas)", value="")
 
-        if uploaded_file is not None:
-            try:
-                if uploaded_file.name.endswith(("xls", "xlsx")):
-                    df = pd.read_excel(uploaded_file)
-                else:
-                    df = pd.read_csv(uploaded_file)
-            except Exception as e:
-                st.error(f"Gagal membaca file: {e}")
-                return
+    if st.button("Simpan Data"):
+        # Validasi tanggal
+        try:
+            tanggal_dt = datetime.strptime(tanggal, "%Y-%m-%d").date()
+        except ValueError:
+            st.error("Format tanggal salah, harus YYYY-MM-DD")
+            st.stop()
 
-            st.dataframe(df.head(10))
+        # Validasi jumlah angka
+        try:
+            jumlah = float(jumlah_str.replace(",", "").replace(".", ""))
+        except ValueError:
+            st.error("Jumlah harus berupa angka valid")
+            st.stop()
 
-            # Tombol simpan ke GSheet
-            if st.button("Simpan data Arus Kas ke Google Sheets"):
-                ws = connect_to_gsheet(SHEET_ID, "Arus Kas")
-                save_kas(df, ws)
+        # Buat DataFrame 1 baris
+        new_data = pd.DataFrame([{
+            "Tanggal": tanggal_dt,
+            "Tipe": tipe,
+            "Kategori": kategori,
+            "No Invoice": no_invoice,
+            "Keterangan": keterangan,
+            "Jumlah": jumlah,
+            "Status": status
+        }])
 
+        st.write("Data yang akan disimpan:")
+        st.dataframe(new_data)
+
+        # Simpan ke Google Sheets
+        from sheets_utility import connect_to_gsheet, append_dataframe_to_sheet
+        SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
+        ws = connect_to_gsheet(SHEET_ID, "Arus Kas")
+        append_dataframe_to_sheet(new_data, ws)
+
+        st.success("✅ Data berhasil disimpan ke Google Sheets")
 if __name__ == "__main__":
     load_cashflow_expander()

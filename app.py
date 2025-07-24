@@ -1856,37 +1856,61 @@ def save_kas(df: pd.DataFrame, worksheet):
 SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 
 with st.expander("💰 Cashflow"):
-    st.markdown("### Input Data Arus Kas Manual")
+        st.markdown("### Input Data Arus Kas Manual")
 
-    tanggal = st.date_input("Tanggal", value=date.today(), key="tanggal_cashflow")
-    tipe = st.text_input("Tipe (Masuk/Keluar)", key="tipe_cashflow")
-    kategori = st.text_input("Kategori", key="kategori_cashflow")
-    no_invoice = st.text_input("No Invoice", key="no_invoice_cashflow")
-    keterangan = st.text_input("Keterangan", key="keterangan_cashflow")
-    jumlah_str = st.text_input("Jumlah (angka, tanpa Rp)", "0", key="jumlah_cashflow")
-    status = st.text_input("Status (Lunas/Belum Lunas)", key="status_cashflow")
+        tanggal = st.date_input("Tanggal", value=date.today(), key="tanggal_cashflow")
 
-    if st.button("Simpan Data", key="btn_simpan_cashflow"):
-        try:
-            jumlah = float(jumlah_str.replace(",", "").replace(".", ""))
-        except ValueError:
-            st.error("Jumlah harus berupa angka valid")
-            st.stop()
+        tipe = st.selectbox("Tipe", options=["Masuk", "Keluar"], key="tipe_cashflow")
 
-        new_data = pd.DataFrame([{
-            "Tanggal": tanggal,
-            "Tipe": tipe,
-            "Kategori": kategori,
-            "No Invoice": no_invoice,
-            "Keterangan": keterangan,
-            "Jumlah": jumlah,
-            "Status": status
-        }])
+        kategori_opsi = [
+            "Penjualan Tiket Pesawat",
+            "Penjualan Hotel",
+            "Penjualan Kereta",
+            "Komisi Agen",
+            "Pembelian Tiket Pesawat",
+            "Pembelian Hotel",
+            "Pembelian Kereta",
+            "Gaji Karyawan",
+            "Operasional Kantor",
+            "Marketing & Promosi",
+            "Pajak dan Biaya Lainnya",
+            "Kerugian Salah Order",
+            "Kerugian Pembatalan",
+            "Kerugian Kerusakan / Rusak",
+            "Kerugian Lainnya",
+            "Lain-lain"
+        ]
+        kategori = st.selectbox("Kategori", options=kategori_opsi, key="kategori_cashflow")
 
-        st.write("Data yang akan disimpan:")
-        st.dataframe(new_data)
+        if kategori == "Lain-lain":
+            kategori = st.text_input("Jelaskan kategori lainnya", key="kategori_khusus_cashflow")
 
-        ws = connect_to_gsheet(SHEET_ID, "Arus Kas")
-        append_dataframe_to_sheet(new_data, ws)
+        no_invoice = st.text_input("No Invoice", key="no_invoice_cashflow")
+        keterangan = st.text_input("Keterangan", key="keterangan_cashflow")
 
-        st.success("✅ Data berhasil disimpan ke Google Sheets")
+        jumlah = st.number_input("Jumlah (Rp)", min_value=0.0, format="%.2f", key="jumlah_cashflow")
+
+        status = st.selectbox("Status", options=["Lunas", "Belum Lunas"], key="status_cashflow")
+
+        if st.button("Simpan Data", key="btn_simpan_cashflow"):
+            if jumlah <= 0:
+                st.error("Jumlah harus lebih dari 0")
+                return
+
+            new_data = pd.DataFrame([{
+                "Tanggal": tanggal.strftime("%Y-%m-%d"),
+                "Tipe": tipe,
+                "Kategori": kategori,
+                "No Invoice": no_invoice,
+                "Keterangan": keterangan,
+                "Jumlah": jumlah,
+                "Status": status
+            }])
+
+            st.write("Data yang akan disimpan:")
+            st.dataframe(new_data)
+
+            ws = connect_to_gsheet(SHEET_ID, "Arus Kas")
+            append_dataframe_to_sheet(new_data, ws)
+
+            st.success("✅ Data berhasil disimpan ke Google Sheets")

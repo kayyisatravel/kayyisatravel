@@ -1900,16 +1900,16 @@ def input_cashflow():
         no_invoice = st.text_input("No Invoice", key="no_invoice_cashflow")
         keterangan = st.text_input("Keterangan", key="keterangan_cashflow")
 
-        # Jumlah tanpa format koma, negatif, hanya angka valid
-        jumlah_str = st.text_input("Jumlah (Rp, angka saja)", "0", key="jumlah_cashflow")
+        jumlah = st.number_input("Jumlah (Rp)", min_value=0, step=1, format="%d", key="jumlah_cashflow")
         try:
-            jumlah = float(jumlah_str)
+            jumlah = int(jumlah_str)  # pake int, bukan float
             if jumlah < 0:
                 st.error("Jumlah tidak boleh negatif")
                 return
         except ValueError:
-            st.error("Jumlah harus berupa angka valid")
+            st.error("Jumlah harus berupa angka bulat valid")
             return
+
 
         status = st.selectbox("Status", options=["Lunas", "Belum Lunas"], key="status_cashflow")
 

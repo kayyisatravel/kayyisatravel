@@ -2028,8 +2028,11 @@ with st.expander("💸 Laporan Cashflow"):
             st.error(f"Kolom berikut tidak ditemukan: {', '.join(missing)}")
             st.stop()
     
-        # Filter baris dengan status Lunas
-        df_lunas = df_data[df_data["Keterangan"].str.contains("Lunas", na=False)].copy()
+        # Filter hanya yang mengandung "Lunas" dan bukan "Belum Lunas"
+        df_lunas = df_data[
+            df_data["Keterangan"].str.contains("Lunas", na=False) &
+            ~df_data["Keterangan"].str.contains("Belum Lunas", na=False)
+        ].copy()
     
         # Bersihkan kolom Harga Jual
         df_lunas["Harga Jual"] = df_lunas["Harga Jual"].replace(r"[^\d]", "", regex=True)
@@ -2073,6 +2076,5 @@ with st.expander("💸 Laporan Cashflow"):
             sync_data = sync_data[["Tanggal", "Tipe", "Kategori", "No Invoice", "Keterangan", "Jumlah", "Status"]]
             append_dataframe_to_sheet(sync_data, ws_cashflow)
             st.success("✅ Sinkronisasi berhasil.")
-
             st.rerun()
         

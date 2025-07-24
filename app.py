@@ -1453,10 +1453,28 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
             df_filtered.groupby("Nama Pemesan")["Harga Jual (Num)"].sum().reset_index(name="Total Penjualan"),
             use_container_width=True
         )
-
+        
         # Tabel detail
         with st.expander("📄 Lihat Tabel Detail"):
             st.dataframe(df_filtered, use_container_width=True)
+        st.markdown("### 🤖 Analisa Keuangan Otomatis")
+
+        avg_profit = df_filtered["Harga Jual (Num)"].sum() - df_filtered["Harga Beli (Num)"].sum()
+        num_days = df_filtered["Tgl Pemesanan"].dt.date.nunique()
+        avg_profit_per_day = avg_profit / num_days if num_days else 0
+        
+        top_admin = df_filtered.groupby("Admin")["Harga Jual (Num)"].sum().idxmax()
+        top_pemesan = df_filtered.groupby("Nama Pemesan")["Harga Jual (Num)"].sum().idxmax()
+        
+        max_day = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().idxmax()
+        max_day_val = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().max()
+        
+        st.markdown(f"""
+        - 💼 **Rata-rata laba harian**: Rp {int(avg_profit_per_day):,}.  
+        - 🏆 **Admin dengan penjualan tertinggi**: {top_admin}  
+        - 🙋 **Pemesan paling aktif**: {top_pemesan}  
+        - 📅 **Hari dengan omset tertinggi**: {max_day.date()} sebesar Rp {int(max_day_val):,}  
+        """)
 
 
 # Contoh fungsi parsing untuk kereta dan hotel (sesuaikan dengan fungsi asli kamu)

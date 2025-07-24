@@ -1435,10 +1435,30 @@ def generate_ticket(data, tipe):
         return generate_evoucher_html(data)  # fungsi generate voucher hotel kamu
 
 with st.expander("🎫 Generator E-Tiket"):
-    tipe_tiket = st.radio("Pilih tipe tiket:", ["Kereta", "Hotel"])
 
-    input_text = st.text_area(f"Tempelkan teks tiket {tipe_tiket}", height=300)
+    # Pilihan tipe tiket
+    tipe_tiket = st.radio("Pilih tipe tiket:", ["Kereta", "Hotel"], key="tipe_tiket")
 
+    # Template default berdasarkan tipe tiket
+    if tipe_tiket == "Hotel":
+        default_text = "Order ID:\nItinerary ID:\n\nBeli "
+    else:
+        default_text = "Kode booking:\n\nBeli "
+
+    # Inisialisasi text_area hanya sekali per tipe (hindari reset)
+    input_key = f"input_text_{tipe_tiket}"
+    if input_key not in st.session_state:
+        st.session_state[input_key] = default_text
+
+    # Area input teks
+    input_text = st.text_area(
+        f"Tempelkan teks tiket {tipe_tiket}",
+        value=st.session_state[input_key],
+        height=300,
+        key=input_key
+    )
+
+    # Tombol generate
     if st.button("Generate Tiket"):
         if input_text.strip():
             data = parsing_ticket(input_text, tipe_tiket)
@@ -1447,10 +1467,15 @@ with st.expander("🎫 Generator E-Tiket"):
         else:
             st.warning("Silakan masukkan data tiket terlebih dahulu.")
 
-    if 'last_data' in st.session_state and st.session_state.get('tipe_tiket') == tipe_tiket:
+    # Tampilkan hasil jika sudah ada
+    if (
+        'last_data' in st.session_state and 
+        st.session_state.get('tipe_tiket') == tipe_tiket
+    ):
         data = st.session_state['last_data']
         html = generate_ticket(data, tipe_tiket)
         st.components.v1.html(html, height=800, scrolling=True)
+
 
 with st.expander("🎫 Generator E-Tiket + Simpan Data"):
     tipe_tiket = st.radio("Pilih tipe tiket:", ["Kereta", "Hotel", "Pesawat"], key="tipe_tiket_radio")

@@ -1861,7 +1861,7 @@ from datetime import date
 SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 
 def input_cashflow():
-    with st.expander("✏️ Input Cashflow"):
+    with st.expander("✏️ Input Data Cashflow"):
         st.markdown("### Input Data Arus Kas Manual")
 
         tanggal = st.date_input("Tanggal", value=date.today(), key="tanggal_cashflow")

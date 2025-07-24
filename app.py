@@ -1869,11 +1869,15 @@ def input_cashflow():
 
         tipe = st.selectbox("Tipe", options=["Masuk", "Keluar"], key="tipe_cashflow")
 
-        kategori_opsi = [
+        # Pilihan kategori berdasarkan tipe
+        kategori_opsi_masuk = [
             "Penjualan Tiket Pesawat",
             "Penjualan Hotel",
             "Penjualan Kereta",
             "Komisi Agen",
+            "Lain-lain"
+        ]
+        kategori_opsi_keluar = [
             "Pembelian Tiket Pesawat",
             "Pembelian Hotel",
             "Pembelian Kereta",
@@ -1887,6 +1891,7 @@ def input_cashflow():
             "Kerugian Lainnya",
             "Lain-lain"
         ]
+        kategori_opsi = kategori_opsi_masuk if tipe == "Masuk" else kategori_opsi_keluar
         kategori = st.selectbox("Kategori", options=kategori_opsi, key="kategori_cashflow")
 
         if kategori == "Lain-lain":
@@ -1895,31 +1900,74 @@ def input_cashflow():
         no_invoice = st.text_input("No Invoice", key="no_invoice_cashflow")
         keterangan = st.text_input("Keterangan", key="keterangan_cashflow")
 
-        jumlah = st.number_input("Jumlah (Rp)", min_value=0.0, format="%.2f", key="jumlah_cashflow")
+        # Jumlah tanpa format koma, negatif, hanya angka valid
+        jumlah_str = st.text_input("Jumlah (Rp, angka saja)", "0", key="jumlah_cashflow")
+        try:
+            jumlah = float(jumlah_str)
+            if jumlah < 0:
+                st.error("Jumlah tidak boleh negatif")
+                return
+        except ValueError:
+            st.error("Jumlah harus berupa angka valid")
+            return
 
         status = st.selectbox("Status", options=["Lunas", "Belum Lunas"], key="status_cashflow")
 
         if st.button("Simpan Data", key="btn_simpan_cashflow"):
             if jumlah <= 0:
                 st.error("Jumlah harus lebih dari 0")
-                return  # return ini valid karena di dalam fungsi
+                return
 
-            new_data = pd.DataFrame([{
+            # Data baru
+            new_row = {
                 "Tanggal": tanggal.strftime("%Y-%m-%d"),
                 "Tipe": tipe,
                 "Kategori": kategori,
                 "No Invoice": no_invoice,
                 "Keterangan": keterangan,
                 "Jumlah": jumlah,
-                "Status": status
-            }])
+                "Status": status,
+                "Simpan ke GSheets": False
+            }
 
-            st.write("Data yang akan disimpan:")
-            st.dataframe(new_data)
+            # Simpan di session_state list
+            if "cashflow_data" not in st.session_state:
+                st.session_state.cashflow_data = []
+            st.session_state.cashflow_data.append(new_row)
 
-            ws = connect_to_gsheet(SHEET_ID, "Arus Kas")
-            append_dataframe_to_sheet(new_data, ws)
+            st.success("✅ Data berhasil disimpan sementara (belum dikirim ke GSheets)")
 
-            st.success("✅ Data berhasil disimpan ke Google Sheets")
+        # Tampilkan data yang disimpan di session_state
+        if "cashflow_data" in st.session_state and st.session_state.cashflow_data:
+            st.markdown("### Data Arus Kas Belum Terkirim ke Google Sheets")
+            df_display = pd.DataFrame(st.session_state.cashflow_data)
+
+            # Checkbox untuk setiap baris "Simpan ke GSheets"
+            to_save = []
+            for i, row in df_display.iterrows():
+                simpan = st.checkbox(f"Simpan baris {i+1}: {row['Tanggal']} - {row['Kategori']} - Rp{row['Jumlah']}", key=f"save_{i}")
+                to_save.append(simpan)
+            df_display["Simpan ke GSheets"] = to_save
+
+            st.dataframe(df_display)
+
+            if st.button("Kirim Data yang Dipilih ke Google Sheets"):
+                # Filter data yang ingin dikirim
+                to_send = [row for row, save in zip(st.session_state.cashflow_data, to_save) if save]
+
+                if not to_send:
+                    st.warning("Pilih minimal 1 data untuk dikirim.")
+                else:
+                    ws = connect_to_gsheet(SHEET_ID, "Arus Kas")
+
+                    df_to_send = pd.DataFrame(to_send).drop(columns=["Simpan ke GSheets"])
+                    append_dataframe_to_sheet(df_to_send, ws)
+
+                    st.success(f"✅ Berhasil kirim {len(to_send)} data ke Google Sheets.")
+
+                    # Hapus data yang sudah dikirim dari session_state
+                    st.session_state.cashflow_data = [
+                        row for row, save in zip(st.session_state.cashflow_data, to_save) if not save
+                    ]
 
 input_cashflow()

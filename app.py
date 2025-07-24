@@ -1777,3 +1777,106 @@ with st.expander("📊 Analisa Laporan Keuangan"):
     ax3.legend()
     ax3.grid(True)
     st.pyplot(fig3)
+
+#===============================================================================================================================
+import pandas as pd
+import streamlit as st
+
+def read_existing_keys_from_sheet(worksheet, key_cols):
+    """Baca data kolom kunci dari worksheet Google Sheets sebagai DataFrame."""
+    data = worksheet.get_all_values()
+    if not data or len(data) < 2:
+        return pd.DataFrame(columns=key_cols)
+
+    header = data[0]
+    rows = data[1:]
+    key_indices = []
+    for k in key_cols:
+        if k not in header:
+            st.error(f"Kolom '{k}' tidak ditemukan di worksheet.")
+            return pd.DataFrame(columns=key_cols)
+        key_indices.append(header.index(k))
+
+    filtered_rows = [[r[i] for i in key_indices] for r in rows]
+    df = pd.DataFrame(filtered_rows, columns=key_cols)
+
+    # Parsing tipe data khusus jika perlu
+    if "Tanggal" in key_cols:
+        df["Tanggal"] = pd.to_datetime(df["Tanggal"], errors='coerce').dt.date
+    if "Jumlah" in key_cols:
+        df["Jumlah"] = pd.to_numeric(df["Jumlah"], errors='coerce')
+
+    return df
+
+
+def create_dupe_key(df, key_cols):
+    """Buat kolom duplikat key sebagai penggabungan kolom kunci."""
+    return df[key_cols].astype(str).agg("__".join, axis=1)
+
+
+def save_kas(df: pd.DataFrame, worksheet):
+    """
+    Simpan data kas ke Google Sheets dengan pengecekan duplikat berdasarkan kolom kunci.
+    df: DataFrame berisi data kas baru
+    worksheet: objek gspread worksheet
+    """
+    key_cols = ["Tanggal", "Tipe", "Kategori", "No Invoice", "Jumlah"]
+
+    if df is None or df.empty:
+        st.warning("❌ Data kosong atau invalid.")
+        return
+
+    # Parsing kolom penting sesuai tipe data
+    df["Tanggal"] = pd.to_datetime(df["Tanggal"], errors='coerce').dt.date
+    df["Jumlah"] = pd.to_numeric(df["Jumlah"], errors='coerce')
+
+    # Baca data kunci yang sudah ada di sheet
+    existing_df = read_existing_keys_from_sheet(worksheet, key_cols)
+
+    # Buat duplikat key
+    df["dupe_key"] = create_dupe_key(df, key_cols)
+    existing_df["dupe_key"] = create_dupe_key(existing_df, key_cols)
+
+    # Cari duplikat
+    dupes = df[df["dupe_key"].isin(set(existing_df["dupe_key"]))]
+    if not dupes.empty:
+        st.error("❌ Ditemukan duplikat data yang sudah ada di GSheet:")
+        st.dataframe(dupes[key_cols])
+        st.warning("Mohon periksa data sebelum mengirim ulang.")
+        return
+
+    # Hapus kolom bantu sebelum simpan
+    df = df.drop(columns=["dupe_key"])
+
+    # Append ke Google Sheets
+    from sheets_utility import append_dataframe_to_sheet  # pastikan import sesuai lokasi utilitas
+    append_dataframe_to_sheet(df, worksheet)
+    st.success("✅ Berhasil simpan data Arus Kas ke Google Sheets.")
+
+SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
+
+def load_cashflow_expander():
+    st.markdown("## 💰 Arus Kas")
+    with st.expander("Cashflow"):
+        st.markdown("Upload file Excel atau CSV berisi data Arus Kas dengan kolom: `Tanggal`, `Tipe`, `Kategori`, `No Invoice`, `Keterangan`, `Jumlah`, `Status`")
+        uploaded_file = st.file_uploader("Pilih file data arus kas (Excel/CSV)", type=["xlsx", "xls", "csv"])
+
+        if uploaded_file is not None:
+            try:
+                if uploaded_file.name.endswith(("xls", "xlsx")):
+                    df = pd.read_excel(uploaded_file)
+                else:
+                    df = pd.read_csv(uploaded_file)
+            except Exception as e:
+                st.error(f"Gagal membaca file: {e}")
+                return
+
+            st.dataframe(df.head(10))
+
+            # Tombol simpan ke GSheet
+            if st.button("Simpan data Arus Kas ke Google Sheets"):
+                ws = connect_to_gsheet(SHEET_ID, "Arus Kas")
+                save_kas(df, ws)
+
+if __name__ == "__main__":
+    load_cashflow_expander()

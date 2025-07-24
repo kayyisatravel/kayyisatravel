@@ -1981,7 +1981,7 @@ with st.expander("💸 Laporan Cashflow"):
         header = [h.strip() for h in raw_data[0]]  # Penting: Hapus spasi kolom
         rows = raw_data[1:]
         df_cashflow = pd.DataFrame(rows, columns=header)
-
+        st.write("Header ditemukan:", df_cashflow.columns.tolist())
         # Konversi & Validasi kolom penting
         required_cols = ["Tanggal", "Tipe", "Kategori", "No Invoice", "Keterangan", "Jumlah", "Status"]
         missing_cols = [col for col in required_cols if col not in df_cashflow.columns]

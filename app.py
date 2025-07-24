@@ -343,52 +343,51 @@ with st.expander('⌨️ Upload Data Text'):
             st.session_state.edit_mode_bulk = False
     
         # Checkbox untuk mengaktifkan edit mode
-        edit_mode = st.checkbox("✏️ Edit Data Manual", value=st.session_state.edit_mode_bulk)
-    
+        # Aktifkan mode edit manual
+        edit_mode = st.checkbox("✏️ Edit Data Manual", value=st.session_state.get("edit_mode_bulk", False))
+        
         if edit_mode:
             st.session_state.edit_mode_bulk = True
-            st.markdown("#### 📝 Form Edit Manual Per Baris")
-    
-            # Pilih baris yang ingin diedit
-            row_index = st.number_input("Pilih baris ke-", min_value=0, max_value=len(df)-1, step=1)
-    
-            row_data = df.iloc[row_index].to_dict()
-            updated_row = {}
-    
-            for col, val in row_data.items():
-                # 💡 Pakai date_input hanya untuk kolom yang relevan
-                if col in ["Tgl Pemesanan", "Tgl Berangkat"]:
-                    # Pastikan val bisa dikonversi ke date
-                    if pd.isna(val) or val == "":
-                        val = pd.Timestamp.today()
-                    else:
-                        try:
-                            val = pd.to_datetime(val).date()
-                        except:
-                            val = pd.Timestamp.today().date()
-    
-                    new_val = st.date_input(f"{col}", value=val)
-                elif isinstance(val, (int, float)):
-                    new_val = st.text_input(f"{col}", value=str(val))
-                else:
-                    if col == "Pemesan":
-                        default_val = "ER ENDO" if pd.isna(val) or str(val).strip() == "" else str(val)
-                    elif col == "Admin":
-                        default_val = "PA" if pd.isna(val) or str(val).strip() == "" else str(val)
-                    else:
-                        default_val = str(val) if pd.notna(val) else ""
-                    
-                    new_val = st.text_input(f"{col}", value=default_val)
-                updated_row[col] = new_val
-    
-            if st.button("💾 Simpan Perubahan"):
-                for col in updated_row:
-                    df.at[row_index, col] = updated_row[col]
-    
+            st.markdown("#### 📝 Edit Beberapa Baris")
+        
+            # Pilih beberapa baris
+            selected_rows = st.multiselect("Pilih baris yang ingin diedit:", options=df.index.tolist())
+        
+            edited_rows = {}  # Simpan perubahan per baris
+        
+            for i in selected_rows:
+                row_data = df.iloc[i].to_dict()
+                st.markdown(f"---\n##### ✏️ Baris ke-{i}")
+                with st.expander(f"📝 Edit Data Baris {i}", expanded=True):
+                    updated_row = {}
+                    for col, val in row_data.items():
+                        if col in ["Tgl Pemesanan", "Tgl Berangkat"]:
+                            try:
+                                val = pd.to_datetime(val).date()
+                            except:
+                                val = pd.Timestamp.today().date()
+                            new_val = st.date_input(f"{col} (Baris {i})", value=val, key=f"{col}_{i}")
+                        elif isinstance(val, (int, float)):
+                            new_val = st.text_input(f"{col} (Baris {i})", value=str(val), key=f"{col}_{i}")
+                        else:
+                            if col == "Pemesan":
+                                default_val = "ER ENDO" if pd.isna(val) or str(val).strip() == "" else str(val)
+                            elif col == "Admin":
+                                default_val = "PA" if pd.isna(val) or str(val).strip() == "" else str(val)
+                            else:
+                                default_val = str(val) if pd.notna(val) else ""
+                            new_val = st.text_input(f"{col} (Baris {i})", value=default_val, key=f"{col}_{i}")
+                        updated_row[col] = new_val
+                    edited_rows[i] = updated_row
+        
+            # Simpan semua perubahan
+            if st.button("💾 Simpan Semua Perubahan"):
+                for i, updated_row in edited_rows.items():
+                    for col, val in updated_row.items():
+                        df.at[i, col] = val
                 st.session_state.bulk_parsed = df
-                st.session_state.edit_mode_bulk = False
-                st.success("✅ Perubahan disimpan.")
-                st.rerun()
+                st.success(f"✅ {len(edited_rows)} baris berhasil diperbarui.")
+
     
         else:
             st.session_state.edit_mode_bulk = False

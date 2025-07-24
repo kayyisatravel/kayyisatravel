@@ -2051,5 +2051,5 @@ with st.expander("💸 Laporan Cashflow"):
 
             append_dataframe_to_sheet(sync_data, ws_cashflow)
             st.success("✅ Sinkronisasi berhasil dilakukan.")
-
-
+            st.rerun()
+        

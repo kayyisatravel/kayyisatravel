@@ -1421,7 +1421,40 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
             use_container_width=True
         )
 
-        # Tabel Detail
+        # Rekap tambahan bulanan per tanggal
+        if filter_mode == "🗓️ Bulanan":
+            df_filtered["Tanggal"] = df_filtered["Tgl Pemesanan"].dt.day
+            summary_bulanan = pd.DataFrame(index=["Total Penjualan", "Total Pembelian", "Laba"])
+            for day in range(1, 32):
+                day_data = df_filtered[df_filtered["Tanggal"] == day]
+                jual = day_data["Harga Jual (Num)"].sum()
+                beli = day_data["Harga Beli (Num)"].sum()
+                laba = jual - beli
+                summary_bulanan[day] = [jual, beli, laba]
+
+            st.markdown("### 📅 Rekap Bulanan per Tanggal")
+            st.dataframe(summary_bulanan.style.format("Rp {:,.0f}"), use_container_width=True)
+
+        # Rekap tambahan tahunan per bulan
+        if filter_mode == "📅 Tahunan":
+            df_filtered["Bulan"] = df_filtered["Tgl Pemesanan"].dt.month
+            nama_bulan = {
+                1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "Mei", 6: "Jun",
+                7: "Jul", 8: "Agu", 9: "Sep", 10: "Okt", 11: "Nov", 12: "Des"
+            }
+
+            summary_tahunan = pd.DataFrame(index=["Total Penjualan", "Total Pembelian", "Laba"])
+            for month in range(1, 13):
+                month_data = df_filtered[df_filtered["Bulan"] == month]
+                jual = month_data["Harga Jual (Num)"].sum()
+                beli = month_data["Harga Beli (Num)"].sum()
+                laba = jual - beli
+                summary_tahunan[nama_bulan[month]] = [jual, beli, laba]
+
+            st.markdown("### 📆 Rekap Tahunan per Bulan")
+            st.dataframe(summary_tahunan.style.format("Rp {:,.0f}"), use_container_width=True)
+
+        # Tabel detail
         with st.expander("📄 Lihat Tabel Detail"):
             st.dataframe(df_filtered, use_container_width=True)
 

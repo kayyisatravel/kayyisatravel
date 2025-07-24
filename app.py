@@ -1855,7 +1855,14 @@ def save_kas(df: pd.DataFrame, worksheet):
 
 SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 
-with st.expander("💰 Cashflow"):
+import streamlit as st
+import pandas as pd
+from datetime import date
+
+SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
+
+def input_cashflow():
+    with st.expander("💰 Cashflow"):
         st.markdown("### Input Data Arus Kas Manual")
 
         tanggal = st.date_input("Tanggal", value=date.today(), key="tanggal_cashflow")
@@ -1895,7 +1902,7 @@ with st.expander("💰 Cashflow"):
         if st.button("Simpan Data", key="btn_simpan_cashflow"):
             if jumlah <= 0:
                 st.error("Jumlah harus lebih dari 0")
-                return
+                return  # return ini valid karena di dalam fungsi
 
             new_data = pd.DataFrame([{
                 "Tanggal": tanggal.strftime("%Y-%m-%d"),
@@ -1914,3 +1921,5 @@ with st.expander("💰 Cashflow"):
             append_dataframe_to_sheet(new_data, ws)
 
             st.success("✅ Data berhasil disimpan ke Google Sheets")
+
+input_cashflow()

@@ -1855,41 +1855,39 @@ def save_kas(df: pd.DataFrame, worksheet):
 
 SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 
-def load_cashflow_expander():
-    #st.markdown("## 💰 Arus Kas")
-    with st.expander("💰 Cashflow"):
-        tanggal = st.date_input("Tanggal", value=date.today())
-        tipe = st.text_input("Tipe (Masuk/Keluar)")
-        kategori = st.text_input("Kategori")
-        no_invoice = st.text_input("No Invoice")
-        keterangan = st.text_input("Keterangan")
-        jumlah_str = st.text_input("Jumlah (angka, tanpa Rp)", "0")
-        status = st.text_input("Status (Lunas/Belum Lunas)")
-    
-        if st.button("Simpan Data"):
-            # Validasi jumlah angka
-            try:
-                jumlah = float(jumlah_str.replace(",", "").replace(".", ""))
-            except ValueError:
-                st.error("Jumlah harus berupa angka valid")
-                st.stop()
-    
-            # Buat DataFrame 1 baris
-            new_data = pd.DataFrame([{
-                "Tanggal": tanggal,
-                "Tipe": tipe,
-                "Kategori": kategori,
-                "No Invoice": no_invoice,
-                "Keterangan": keterangan,
-                "Jumlah": jumlah,
-                "Status": status
-            }])
-    
-            st.write("Data yang akan disimpan:")
-            st.dataframe(new_data)
-    
-            # Kirim ke Google Sheets
-            ws = connect_to_gsheet(SHEET_ID, "Arus Kas")
-            append_dataframe_to_sheet(new_data, ws)
-    
-            st.success("✅ Data berhasil disimpan ke Google Sheets")
+with st.expander("💰 Cashflow"):
+    tanggal = st.date_input("Tanggal", value=date.today())
+    tipe = st.text_input("Tipe (Masuk/Keluar)")
+    kategori = st.text_input("Kategori")
+    no_invoice = st.text_input("No Invoice")
+    keterangan = st.text_input("Keterangan")
+    jumlah_str = st.text_input("Jumlah (angka, tanpa Rp)", "0")
+    status = st.text_input("Status (Lunas/Belum Lunas)")
+
+    if st.button("Simpan Data"):
+        # Validasi jumlah angka
+        try:
+            jumlah = float(jumlah_str.replace(",", "").replace(".", ""))
+        except ValueError:
+            st.error("Jumlah harus berupa angka valid")
+            st.stop()
+
+        # Buat DataFrame 1 baris
+        new_data = pd.DataFrame([{
+            "Tanggal": tanggal,
+            "Tipe": tipe,
+            "Kategori": kategori,
+            "No Invoice": no_invoice,
+            "Keterangan": keterangan,
+            "Jumlah": jumlah,
+            "Status": status
+        }])
+
+        st.write("Data yang akan disimpan:")
+        st.dataframe(new_data)
+
+        # Kirim ke Google Sheets
+        ws = connect_to_gsheet(SHEET_ID, "Arus Kas")
+        append_dataframe_to_sheet(new_data, ws)
+
+        st.success("✅ Data berhasil disimpan ke Google Sheets")

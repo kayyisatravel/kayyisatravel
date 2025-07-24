@@ -1969,6 +1969,11 @@ def input_cashflow():
 input_cashflow()
 
 # --- Ambil Data Arus Kas ---
+def format_rp(x):
+    try:
+        return f"Rp {int(x):,}".replace(",", ".")
+    except:
+        return "Rp 0"
 
 with st.expander("💸 Laporan Cashflow"):
     st.markdown("### Ringkasan Arus Kas")
@@ -2005,9 +2010,9 @@ with st.expander("💸 Laporan Cashflow"):
         saldo = int(saldo)
         
         # Baru tampilkan
-        st.metric("Total Masuk", f"Rp {total_masuk:,}".replace(",", "."))
-        st.metric("Total Keluar", f"Rp {total_keluar:,}".replace(",", "."))
-        st.metric("Saldo Akhir", f"Rp {saldo:,}".replace(",", "."))
+        st.metric("Total Masuk", format_rp(total_masuk))
+        st.metric("Total Keluar", format_rp(total_keluar))
+        st.metric("Saldo Akhir", format_rp(saldo))
 
         st.markdown("#### 📋 Detail Transaksi Arus Kas")
         df_cashflow["Jumlah"] = pd.to_numeric(df_cashflow["Jumlah"], errors="coerce").fillna(0).astype(int)

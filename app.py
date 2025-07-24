@@ -1968,16 +1968,6 @@ def input_cashflow():
 
 input_cashflow()
 
-ws_cashflow = connect_to_gsheet(SHEET_ID, "Arus Kas")
-raw_data = ws_cashflow.get_all_values()
-
-# Debug header tanpa bergantung UI expander
-if raw_data and len(raw_data) >= 1:
-    header = [h.strip() for h in raw_data[0]]
-    st.write("🛠️ Debug Header Arus Kas:", header)
-else:
-    st.write("⚠️ Warning: raw_data kosong atau hanya berisi header saja:", raw_data)
-
 with st.expander("💸 Laporan Cashflow123"):
     st.markdown("### Ringkasan Arus Kas1")
 

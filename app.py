@@ -1481,7 +1481,7 @@ with st.expander("🎫 Generator E-Tiket"):
 
 
 with st.expander("🎫 Generator E-Tiket + Simpan Data"):
-    tipe_tiket = st.radio("Pilih tipe tiket:", ["Kereta", "Hotel", "Pesawat"], key="tipe_tiket_radio")
+    tipe_tiket = st.radio("Pilih tipe tiket:", ["Kereta", "Hotel", "Pesawat"], key="tipe_tiket_simpan")
     input_text = st.text_area(f"Tempelkan teks tiket {tipe_tiket}", height=300, key="text_tiket")
 
     if st.button("🖨️ Generate Tiket & Parse Data"):

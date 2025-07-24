@@ -371,7 +371,7 @@ with st.expander('⌨️ Upload Data Text'):
                 elif isinstance(val, (int, float)):
                     new_val = st.text_input(f"{col}", value=str(val))
                 else:
-                    if col == "Nama Pemesan":
+                    if col == "Pemesan":
                         default_val = "ER ENDO" if pd.isna(val) or str(val).strip() == "" else str(val)
                     elif col == "Admin":
                         default_val = "PA" if pd.isna(val) or str(val).strip() == "" else str(val)

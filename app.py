@@ -313,8 +313,9 @@ with st.expander("⬆️📷 Upload Gambar atau PDF untuk OCR"):
 # --- SECTION 2: BULK MANUAL INPUT ---
 #st.markdown('---')
 with st.expander('⌨️ Upload Data Text'):
-    if "bulk_input" not in st.session_state:
+    if "bulk_input" not in st.session_state or not st.session_state["bulk_input"].strip():
         st.session_state["bulk_input"] = "Kode booking:\n\n\nBeli "
+
     raw = st.text_area(
         "Masukkan banyak entri, pisahkan setiap entri dengan '==='",
         key="bulk_input",

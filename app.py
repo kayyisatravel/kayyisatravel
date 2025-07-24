@@ -1470,13 +1470,14 @@ with st.expander("🎫 Generator E-Tiket"):
             st.warning("Silakan masukkan data tiket terlebih dahulu.")
 
     # Tampilkan hasil jika sudah ada
-    if (
-        'last_data' in st.session_state and 
-        st.session_state.get('tipe_tiket') == tipe_tiket
-    ):
+    if 'last_data' in st.session_state and st.session_state.get('tipe_tiket') == tipe_tiket:
         data = st.session_state['last_data']
-        html = generate_ticket(data, tipe_tiket)
-        st.components.v1.html(html, height=800, scrolling=True)
+        try:
+            html = generate_ticket(data, tipe_tiket)
+            st.components.v1.html(html, height=800, scrolling=True)
+        except Exception as e:
+            st.warning("⚠️ Gagal membuat tampilan tiket. Periksa apakah semua data penting sudah terisi, seperti 'Harga'.")
+
 
 
 with st.expander("🎫 Generator E-Tiket + Simpan Data"):

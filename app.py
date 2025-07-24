@@ -1437,7 +1437,9 @@ def generate_ticket(data, tipe):
 with st.expander("🎫 Generator E-Tiket"):
 
     # Pilihan tipe tiket
-    tipe_tiket = st.radio("Pilih tipe tiket:", ["Kereta", "Hotel"], key="tipe_tiket")
+    tipe_tiket = st.radio("Pilih tipe tiket:", ["Kereta", "Hotel"], key="tipe_tiket_radio")
+    
+    st.session_state['tipe_tiket'] = tipe_tiket
 
     # Template default berdasarkan tipe tiket
     if tipe_tiket == "Hotel":

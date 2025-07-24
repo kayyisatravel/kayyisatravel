@@ -1971,14 +1971,16 @@ input_cashflow()
 with st.expander("💸 Laporan Cashflow"):
     st.markdown("### Ringkasan Arus Kas")
 
-    # Ambil data dari Google Sheets
-    df_cashflow = connect_to_gsheet(SHEET_ID, "Arus Kas")
-    df_data = connect_to_gsheet(SHEET_ID, "Data")
+    # Ambil data dari Google Sheets & konversi ke DataFrame
+    ws_cashflow = connect_to_gsheet(SHEET_ID, "Arus Kas")
+    rows_cashflow = ws_cashflow.get_all_values()
+    df_cashflow = pd.DataFrame(rows_cashflow[1:], columns=rows_cashflow[0])
 
-    # Konversi tanggal
+    # Ubah kolom Jumlah jadi angka & Tanggal jadi datetime
+    df_cashflow["Jumlah"] = pd.to_numeric(df_cashflow["Jumlah"], errors="coerce")
     df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors="coerce")
 
-    # Ringkasan kas
+    # Lanjutkan perhitungan dan visualisasi
     total_masuk = df_cashflow[df_cashflow["Tipe"] == "Masuk"]["Jumlah"].sum()
     total_keluar = df_cashflow[df_cashflow["Tipe"] == "Keluar"]["Jumlah"].sum()
     saldo = total_masuk - total_keluar

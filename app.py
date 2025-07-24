@@ -882,34 +882,36 @@ with st.expander("💾 Database Pemesan", expanded=False):
                             )
             
                             if mask.any():
-                                matching_index = df_all[mask].index[0]
-                                row_number = matching_index + 2  # Baris di GSheets (header + 1)
+                                matching_indices = df_all[mask].index.tolist()
+                            
+                                for matching_index in matching_indices:
+                                    row_number = matching_index + 2  # Baris di GSheets (header + 1)
             
-                                if no_invoice_mass or kosongkan_invoice:
-                                    nilai = "" if kosongkan_invoice else no_invoice_mass
-                                    worksheet.update_cell(row_number, df_all.columns.get_loc("No Invoice") + 1, nilai)
-                                    time.sleep(1)
-                                if keterangan_mass or kosongkan_keterangan:
-                                    nilai = "" if kosongkan_keterangan else keterangan_mass
-                                    worksheet.update_cell(row_number, df_all.columns.get_loc("Keterangan") + 1, nilai)
-                                    time.sleep(1)
-                                if nama_pemesan_mass or kosongkan_nama_pemesan:
-                                    nilai = "" if kosongkan_nama_pemesan else nama_pemesan_mass
-                                    worksheet.update_cell(row_number, df_all.columns.get_loc("Nama Pemesan") + 1, nilai)
-                                    time.sleep(1)    
-                                if admin_mass or kosongkan_admin:
-                                    nilai = "" if kosongkan_admin else admin_mass
-                                    worksheet.update_cell(row_number, df_all.columns.get_loc("Admin") + 1, nilai)
-                                    time.sleep(1)
-                                st.write(f"✅ Update row GSheets: {row_number} untuk: {row['Nama Pemesan_str']} - {row['Kode Booking_str']}")
-                                count += 1
-                            else:
-                                gagal += 1
-                                tidak_ditemukan.append({
-                                    "Nama Pemesan": row["Nama Pemesan_str"],
-                                    "Kode Booking": row["Kode Booking_str"],
-                                    "Tgl Berangkat": row["Tgl Berangkat_str"]
-                                })
+                                    if no_invoice_mass or kosongkan_invoice:
+                                        nilai = "" if kosongkan_invoice else no_invoice_mass
+                                        worksheet.update_cell(row_number, df_all.columns.get_loc("No Invoice") + 1, nilai)
+                                        time.sleep(1)
+                                    if keterangan_mass or kosongkan_keterangan:
+                                        nilai = "" if kosongkan_keterangan else keterangan_mass
+                                        worksheet.update_cell(row_number, df_all.columns.get_loc("Keterangan") + 1, nilai)
+                                        time.sleep(1)
+                                    if nama_pemesan_mass or kosongkan_nama_pemesan:
+                                        nilai = "" if kosongkan_nama_pemesan else nama_pemesan_mass
+                                        worksheet.update_cell(row_number, df_all.columns.get_loc("Nama Pemesan") + 1, nilai)
+                                        time.sleep(1)    
+                                    if admin_mass or kosongkan_admin:
+                                        nilai = "" if kosongkan_admin else admin_mass
+                                        worksheet.update_cell(row_number, df_all.columns.get_loc("Admin") + 1, nilai)
+                                        time.sleep(1)
+                                    st.write(f"✅ Update row GSheets: {row_number} untuk: {row['Nama Pemesan_str']} - {row['Kode Booking_str']}")
+                                    count += 1
+                                else:
+                                    gagal += 1
+                                    tidak_ditemukan.append({
+                                        "Nama Pemesan": row["Nama Pemesan_str"],
+                                        "Kode Booking": row["Kode Booking_str"],
+                                        "Tgl Berangkat": row["Tgl Berangkat_str"]
+                                    })
             
                         # Ringkasan hasil update
                         if count:

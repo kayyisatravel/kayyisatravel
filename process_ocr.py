@@ -173,7 +173,7 @@ def detect_document_type(text: str) -> str:
         return 'KERETA'
 
     # Pesawat
-    if re.search(r'\b(flight|airlines|maskapai|pnr|kode\s*penerbangan|bandara|terminal|air\s*asia|airasia|citilink|garuda\s*Indonesia|jet|nam\s*air|batik\s*air|wings\s*air|susi\s*air|pelita\s*air|sriwijaya\s*air|lion\s*air)\b', tl):
+    if re.search(r'\b(flight|airlines|maskapai|pnr|kode\s*penerbangan|air\s*asia|airasia|citilink|garuda\s*Indonesia|jet|nam\s*air|batik\s*air|wings\s*air|susi\s*air|pelita\s*air|sriwijaya\s*air|lion\s*air)\b', tl):
         return 'PESAWAT'
 
     # Hotel
@@ -355,7 +355,7 @@ def extract_dates_hotel(text: str) -> (datetime, datetime):
         month_map = {
             'jan': 1, 'januari': 1, 'feb': 2, 'februari': 2, 'mar': 3, 'maret': 3,
             'apr': 4, 'april': 4, 'may': 5, 'mei': 5, 'jun': 6, 'juni': 6,
-            'jul': 7, 'juli': 7, 'aug': 8, 'agustus': 8, 'sep': 9, 'september': 9,
+            'jul': 7, 'juli': 7, 'aug': 8, 'ags': 8, 'agustus': 8, 'sep': 9, 'september': 9,
             'oct': 10, 'oktober': 10, 'nov': 11, 'november': 11, 'dec': 12, 'desember': 12
         }
         m3 = month_map.get(month_str.strip().lower())
@@ -525,7 +525,7 @@ def process_ocr_pesawat(text: str) -> list:
         month_map = {
             'jan': 1, 'januari': 1, 'feb': 2, 'februari': 2, 'mar': 3, 'maret': 3,
             'apr': 4, 'april': 4, 'mei': 5, 'jun': 6, 'juni': 6,
-            'jul': 7, 'juli': 7, 'aug': 8, 'agustus': 8, 'sep': 9, 'september': 9,
+            'jul': 7, 'juli': 7, 'aug': 8, 'ags': 8, 'agustus': 8, 'sep': 9, 'september': 9,
             'okt': 10, 'oktober': 10, 'nov': 11, 'november': 11, 'des': 12, 'desember': 12
         }
         mm = month_map.get(month_str.lower()[:3])
@@ -677,7 +677,7 @@ def process_ocr_kereta(text: str) -> list:
             'jan': 1, 'januari': 1, 'feb': 2, 'februari': 2,
             'mar': 3, 'maret': 3, 'apr': 4, 'april': 4,
             'mei': 5, 'jun': 6, 'juni': 6,
-            'jul': 7, 'juli': 7, 'aug': 8, 'agustus': 8,
+            'jul': 7, 'juli': 7, 'aug': 8, 'ags': 8, 'agustus': 8,
             'sep': 9, 'september': 9, 'okt': 10, 'oktober': 10,
             'nov': 11, 'november': 11, 'des': 12, 'desember': 12
         }

@@ -29,3 +29,4 @@ scikit-learn
 reportlab
 pdf417gen
 holidays
+matplotlib>=3.0.0

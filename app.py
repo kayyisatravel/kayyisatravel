@@ -315,9 +315,11 @@ with st.expander("⬆️📷 Upload Gambar atau PDF untuk OCR"):
 with st.expander('⌨️ Upload Data Text'):
     raw = st.text_area(
         "Masukkan banyak entri, pisahkan setiap entri dengan '==='",
+        value="Kode booking:\n\n\nBeli ",
         key="bulk_input",
         height=200
     )
+
     if st.button("🔍 Proses Bulk"):
         entries = []
         labels = []

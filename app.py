@@ -1856,23 +1856,23 @@ def save_kas(df: pd.DataFrame, worksheet):
 SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 
 with st.expander("💰 Cashflow"):
-    tanggal = st.date_input("Tanggal", value=date.today())
-    tipe = st.text_input("Tipe (Masuk/Keluar)")
-    kategori = st.text_input("Kategori")
-    no_invoice = st.text_input("No Invoice")
-    keterangan = st.text_input("Keterangan")
-    jumlah_str = st.text_input("Jumlah (angka, tanpa Rp)", "0")
-    status = st.text_input("Status (Lunas/Belum Lunas)")
+    st.markdown("### Input Data Arus Kas Manual")
 
-    if st.button("Simpan Data"):
-        # Validasi jumlah angka
+    tanggal = st.date_input("Tanggal", value=date.today(), key="tanggal_cashflow")
+    tipe = st.text_input("Tipe (Masuk/Keluar)", key="tipe_cashflow")
+    kategori = st.text_input("Kategori", key="kategori_cashflow")
+    no_invoice = st.text_input("No Invoice", key="no_invoice_cashflow")
+    keterangan = st.text_input("Keterangan", key="keterangan_cashflow")
+    jumlah_str = st.text_input("Jumlah (angka, tanpa Rp)", "0", key="jumlah_cashflow")
+    status = st.text_input("Status (Lunas/Belum Lunas)", key="status_cashflow")
+
+    if st.button("Simpan Data", key="btn_simpan_cashflow"):
         try:
             jumlah = float(jumlah_str.replace(",", "").replace(".", ""))
         except ValueError:
             st.error("Jumlah harus berupa angka valid")
             st.stop()
 
-        # Buat DataFrame 1 baris
         new_data = pd.DataFrame([{
             "Tanggal": tanggal,
             "Tipe": tipe,
@@ -1886,7 +1886,6 @@ with st.expander("💰 Cashflow"):
         st.write("Data yang akan disimpan:")
         st.dataframe(new_data)
 
-        # Kirim ke Google Sheets
         ws = connect_to_gsheet(SHEET_ID, "Arus Kas")
         append_dataframe_to_sheet(new_data, ws)
 

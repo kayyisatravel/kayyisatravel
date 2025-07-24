@@ -371,7 +371,14 @@ with st.expander('⌨️ Upload Data Text'):
                 elif isinstance(val, (int, float)):
                     new_val = st.text_input(f"{col}", value=str(val))
                 else:
-                    new_val = st.text_input(f"{col}", value=str(val) if pd.notna(val) else "")
+                    if col == "Nama Pemesan":
+                        default_val = "ER ENDO" if pd.isna(val) or str(val).strip() == "" else str(val)
+                    elif col == "Admin":
+                        default_val = "PA" if pd.isna(val) or str(val).strip() == "" else str(val)
+                    else:
+                        default_val = str(val) if pd.notna(val) else ""
+                    
+                    new_val = st.text_input(f"{col}", value=default_val)
                 updated_row[col] = new_val
     
             if st.button("💾 Simpan Perubahan"):

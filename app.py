@@ -1974,27 +1974,30 @@ with st.expander("💸 Laporan Cashflow"):
     ws_cashflow = connect_to_gsheet(SHEET_ID, "Arus Kas")
     raw_data = ws_cashflow.get_all_values()
 
-    # Validasi data tidak kosong
     if not raw_data or len(raw_data) < 2:
-        st.warning("Data arus kas masih kosong atau belum memiliki header dan data.")
+        st.warning("Data arus kas masih kosong.")
         df_cashflow = pd.DataFrame(columns=["Tanggal", "Tipe", "Kategori", "No Invoice", "Keterangan", "Jumlah", "Status"])
     else:
         header = raw_data[0]
         rows = raw_data[1:]
-        df_cashflow = pd.DataFrame(rows, columns=header)
+        st.write("📌 Kolom ditemukan di sheet Arus Kas:", header)  # DEBUG
 
-        # Pastikan semua kolom penting ada
+        df_cashflow = pd.DataFrame(rows, columns=header)
+        df_cashflow.columns = [col.strip() for col in df_cashflow.columns]  # Strip spasi ekstra
+
         required_cols = ["Tanggal", "Tipe", "Kategori", "No Invoice", "Keterangan", "Jumlah", "Status"]
         missing_cols = [col for col in required_cols if col not in df_cashflow.columns]
 
         if missing_cols:
-            st.error(f"Kolom berikut tidak ditemukan di sheet Arus Kas: {', '.join(missing_cols)}")
+            st.error(f"❌ Kolom berikut tidak ditemukan di sheet Arus Kas: {', '.join(missing_cols)}")
         else:
-            # Konversi tanggal dan jumlah ke format yang benar
-            df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors="coerce")
-            df_cashflow["Jumlah"] = pd.to_numeric(df_cashflow["Jumlah"], errors="coerce")
+            try:
+                df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors="coerce")
+                df_cashflow["Jumlah"] = pd.to_numeric(df_cashflow["Jumlah"], errors="coerce")
+            except Exception as e:
+                st.error(f"❌ Gagal parsing data cashflow: {e}")
+                st.stop()
 
-            # Hitung dan tampilkan ringkasan
             total_masuk = df_cashflow[df_cashflow["Tipe"] == "Masuk"]["Jumlah"].sum()
             total_keluar = df_cashflow[df_cashflow["Tipe"] == "Keluar"]["Jumlah"].sum()
             saldo = total_masuk - total_keluar
@@ -2005,6 +2008,7 @@ with st.expander("💸 Laporan Cashflow"):
 
             st.markdown("#### 📋 Detail Transaksi Arus Kas")
             st.dataframe(df_cashflow)
+
 
 
     st.markdown("### 🔄 Sinkronisasi Transaksi Lunas ke Arus Kas")

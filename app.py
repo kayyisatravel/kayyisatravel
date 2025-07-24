@@ -1978,29 +1978,34 @@ with st.expander("💸 Laporan Cashflow"):
         st.warning("Data arus kas masih kosong.")
         df_cashflow = pd.DataFrame(columns=["Tanggal", "Tipe", "Kategori", "No Invoice", "Keterangan", "Jumlah", "Status"])
     else:
-        header = raw_data[0]
+        header = [h.strip() for h in raw_data[0]]  # Penting: Hapus spasi kolom
         rows = raw_data[1:]
-        st.write("📌 Kolom ditemukan di sheet Arus Kas:", header)  # DEBUG
-
         df_cashflow = pd.DataFrame(rows, columns=header)
-        df_cashflow.columns = [col.strip() for col in df_cashflow.columns]  # Strip spasi ekstra
 
+        # Konversi & Validasi kolom penting
         required_cols = ["Tanggal", "Tipe", "Kategori", "No Invoice", "Keterangan", "Jumlah", "Status"]
         missing_cols = [col for col in required_cols if col not in df_cashflow.columns]
 
         if missing_cols:
-            st.error(f"❌ Kolom berikut tidak ditemukan di sheet Arus Kas: {', '.join(missing_cols)}")
+            st.error(f"❌ Kolom tidak ditemukan di sheet Arus Kas: {', '.join(missing_cols)}")
+            st.write("Header yang ditemukan:", df_cashflow.columns.tolist())
         else:
-            try:
-                df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors="coerce")
-                df_cashflow["Jumlah"] = pd.to_numeric(df_cashflow["Jumlah"], errors="coerce")
-            except Exception as e:
-                st.error(f"❌ Gagal parsing data cashflow: {e}")
-                st.stop()
+            # Konversi tipe data
+            df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors="coerce")
+            df_cashflow["Jumlah"] = pd.to_numeric(df_cashflow["Jumlah"], errors="coerce")
 
+            # Hitung ringkasan
             total_masuk = df_cashflow[df_cashflow["Tipe"] == "Masuk"]["Jumlah"].sum()
             total_keluar = df_cashflow[df_cashflow["Tipe"] == "Keluar"]["Jumlah"].sum()
             saldo = total_masuk - total_keluar
+
+            st.metric("Total Masuk", f"Rp {int(total_masuk):,}")
+            st.metric("Total Keluar", f"Rp {int(total_keluar):,}")
+            st.metric("Saldo Akhir", f"Rp {int(saldo):,}")
+
+            st.markdown("#### 📋 Detail Transaksi Arus Kas")
+            st.dataframe(df_cashflow)
+
 
             st.metric("Total Masuk", f"Rp {int(total_masuk):,}")
             st.metric("Total Keluar", f"Rp {int(total_keluar):,}")

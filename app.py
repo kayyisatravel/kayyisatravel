@@ -1979,7 +1979,7 @@ else:
     st.write("⚠️ Warning: raw_data kosong atau hanya berisi header saja:", raw_data)
 
 with st.expander("💸 Laporan Cashflow"):
-    st.markdown("### Ringkasan Arus Kas")
+    st.markdown("### Ringkasan Arus Kas1")
 
     ws_cashflow = connect_to_gsheet(SHEET_ID, "Arus Kas")
     raw_data = ws_cashflow.get_all_values()

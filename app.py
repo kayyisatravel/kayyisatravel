@@ -1336,6 +1336,8 @@ def generate_ticket(data, tipe):
         return generate_eticket(data)  # fungsi generate tiket kereta kamu
     elif tipe == "Hotel":
         return generate_evoucher_html(data)  # fungsi generate voucher hotel kamu
+        
+st.markdown("""<hr style="border-top: 1px solid #7f8c8d;">""", unsafe_allow_html=True)
 
 with st.expander("🎫 Generator E-Tiket"):
 
@@ -1471,6 +1473,8 @@ with st.expander("🎫 Generator E-Tiket + Simpan Data"):
                 st.session_state.pop("ocr_preview_df", None)
                 st.session_state.pop("last_ticket_html", None)
                 st.rerun()
+
+st.markdown("""<hr style="border-top: 1px solid #7f8c8d;">""", unsafe_allow_html=True)
 
 with st.expander("📘 Laporan Keuangan Lengkap"):
     st.markdown("### 📊 Filter Laporan")

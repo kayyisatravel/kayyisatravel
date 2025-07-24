@@ -2010,7 +2010,7 @@ with st.expander("💸 Laporan Cashflow"):
     # === Sinkronisasi Transaksi Lunas ke Arus Kas ===
     st.markdown("### 🔄 Sinkronisasi Transaksi Lunas ke Arus Kas")
 
-    # Ambil data dari sheet "Data"
+    # Ambil data sheet "Data"
     ws_data = connect_to_gsheet(SHEET_ID, "Data")
     raw_data_data = ws_data.get_all_values()
     
@@ -2021,60 +2021,85 @@ with st.expander("💸 Laporan Cashflow"):
         rows_data = raw_data_data[1:]
         df_data = pd.DataFrame(rows_data, columns=header_data)
     
-        # Pastikan kolom penting tersedia
-        expected_cols = ["No Invoice", "Kode Booking", "Harga Jual", "Keterangan", "Tgl Pemesanan"]
+        expected_cols = ["No Invoice", "Kode Booking", "Harga Jual", "Harga Beli", "Keterangan", "Tgl Pemesanan"]
         missing = [col for col in expected_cols if col not in df_data.columns]
         if missing:
             st.error(f"Kolom berikut tidak ditemukan: {', '.join(missing)}")
             st.stop()
     
-        # Filter hanya yang mengandung "Lunas" dan bukan "Belum Lunas"
+        # Filter transaksi Lunas (sama seperti sebelumnya)
         df_lunas = df_data[
             df_data["Keterangan"].str.contains("Lunas", na=False) &
             ~df_data["Keterangan"].str.contains("Belum Lunas", na=False)
         ].copy()
     
-        # Bersihkan kolom Harga Jual
-        df_lunas["Harga Jual"] = df_lunas["Harga Jual"].replace(r"[^\d]", "", regex=True)
-        df_lunas["Harga Jual"] = pd.to_numeric(df_lunas["Harga Jual"], errors="coerce")
+        # Bersihkan kolom harga jual dan beli
+        for col in ["Harga Jual", "Harga Beli"]:
+            df_lunas[col] = df_lunas[col].replace(r"[^\d]", "", regex=True)
+            df_lunas[col] = pd.to_numeric(df_lunas[col], errors="coerce")
     
-        # Konversi Tanggal Invoice dari Keterangan, jika ada
+        # Konversi tanggal invoice (sama seperti sebelumnya)
         df_lunas["Tanggal Invoice"] = pd.to_datetime(
             df_lunas["Keterangan"].str.extract(r"(\d{1,2}/\d{1,2}/\d{2,4})")[0],
             format="%d/%m/%y", errors="coerce"
         )
-    
-        # Jika gagal, fallback ke Tgl Pemesanan
         df_lunas["Tanggal Invoice"].fillna(pd.to_datetime(df_lunas["Tgl Pemesanan"], dayfirst=True, errors="coerce"), inplace=True)
         df_lunas["Tanggal Invoice"].fillna(pd.Timestamp.now().normalize(), inplace=True)
     
-        # Grouping berdasarkan No Invoice
-        df_grouped = df_lunas.groupby("No Invoice").agg({
+        # Group by No Invoice untuk pemasukan
+        df_pemasukan = df_lunas.groupby("No Invoice").agg({
             "Harga Jual": "sum",
             "Tanggal Invoice": "min",
             "Keterangan": "first"
         }).reset_index()
     
-        # Hindari No Invoice yang sudah tercatat
-        existing_invoices = df_cashflow["No Invoice"].astype(str).unique().tolist()
-        df_to_sync = df_grouped[~df_grouped["No Invoice"].isin(existing_invoices)].copy()
+        # Group by No Invoice untuk pengeluaran
+        df_pengeluaran = df_lunas.groupby("No Invoice").agg({
+            "Harga Beli": "sum",
+            "Tanggal Invoice": "min"
+        }).reset_index()
     
-        st.write(f"📄 Transaksi Lunas yang belum disinkronisasi: {len(df_to_sync)}")
-        st.dataframe(df_to_sync)
+        # Filter yang belum tercatat di cashflow (pemasukan)
+        existing_invoices = df_cashflow["No Invoice"].astype(str).unique().tolist()
+        df_pemasukan_baru = df_pemasukan[~df_pemasukan["No Invoice"].isin(existing_invoices)].copy()
+        df_pengeluaran_baru = df_pengeluaran[df_pengeluaran["No Invoice"].isin(df_pemasukan_baru["No Invoice"])].copy()
+    
+        st.write(f"📄 Transaksi pemasukan belum sinkron: {len(df_pemasukan_baru)}")
+        st.write(f"📄 Transaksi pengeluaran terkait: {len(df_pengeluaran_baru)}")
+    
+        st.dataframe(df_pemasukan_baru)
+        st.dataframe(df_pengeluaran_baru)
     
         if st.button("Sinkronisasi Sekarang"):
-            sync_data = pd.DataFrame({
-                "Tanggal": df_to_sync["Tanggal Invoice"],
+    
+            # Data pemasukan
+            sync_pemasukan = pd.DataFrame({
+                "Tanggal": df_pemasukan_baru["Tanggal Invoice"],
                 "Tipe": "Masuk",
                 "Kategori": "Pembayaran Customer",
-                "No Invoice": df_to_sync["No Invoice"],
-                "Keterangan": df_to_sync["Keterangan"],
-                "Jumlah": df_to_sync["Harga Jual"],
+                "No Invoice": df_pemasukan_baru["No Invoice"],
+                "Keterangan": df_pemasukan_baru["Keterangan"],
+                "Jumlah": df_pemasukan_baru["Harga Jual"],
                 "Status": "Lunas"
             })
     
-            sync_data = sync_data[["Tanggal", "Tipe", "Kategori", "No Invoice", "Keterangan", "Jumlah", "Status"]]
-            append_dataframe_to_sheet(sync_data, ws_cashflow)
-            st.success("✅ Sinkronisasi berhasil.")
+            # Data pengeluaran
+            sync_pengeluaran = pd.DataFrame({
+                "Tanggal": df_pengeluaran_baru["Tanggal Invoice"],
+                "Tipe": "Keluar",
+                "Kategori": "Pembelian",
+                "No Invoice": df_pengeluaran_baru["No Invoice"],
+                "Keterangan": "Biaya Pembelian",
+                "Jumlah": df_pengeluaran_baru["Harga Beli"],
+                "Status": "Terbayar"
+            })
+    
+            # Gabungkan dan urutkan kolom
+            sync_all = pd.concat([sync_pemasukan, sync_pengeluaran], ignore_index=True)
+            sync_all = sync_all[["Tanggal", "Tipe", "Kategori", "No Invoice", "Keterangan", "Jumlah", "Status"]]
+    
+            append_dataframe_to_sheet(sync_all, ws_cashflow)
+            st.success("✅ Sinkronisasi pemasukan dan pengeluaran berhasil.")
+
             st.rerun()
         

@@ -1853,8 +1853,7 @@ def save_kas(df: pd.DataFrame, worksheet):
     append_dataframe_to_sheet(df, worksheet)
     st.success("✅ Berhasil simpan data Arus Kas ke Google Sheets.")
 
-SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
-
+#=============================================================================================================================
 import streamlit as st
 import pandas as pd
 from datetime import date
@@ -1968,3 +1967,58 @@ def input_cashflow():
                     ]
 
 input_cashflow()
+#=====================================================================================================================================
+with st.expander("💸 Laporan Cashflow"):
+    st.markdown("### Ringkasan Arus Kas")
+
+    # Ambil data dari Google Sheets
+    df_cashflow = connect_to_gsheet(SHEET_ID, "Arus Kas")
+    df_data = connect_to_gsheet(SHEET_ID, "Data")
+
+    # Konversi tanggal
+    df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors="coerce")
+
+    # Ringkasan kas
+    total_masuk = df_cashflow[df_cashflow["Tipe"] == "Masuk"]["Jumlah"].sum()
+    total_keluar = df_cashflow[df_cashflow["Tipe"] == "Keluar"]["Jumlah"].sum()
+    saldo = total_masuk - total_keluar
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Masuk", f"Rp {total_masuk:,.0f}")
+    col2.metric("Total Keluar", f"Rp {total_keluar:,.0f}")
+    col3.metric("Saldo Akhir", f"Rp {saldo:,.0f}")
+
+    st.markdown("### Detail Transaksi")
+    st.dataframe(df_cashflow, use_container_width=True)
+
+    st.markdown("### 🔄 Sinkronisasi Transaksi Lunas ke Arus Kas")
+
+    # Deteksi transaksi lunas di sheet "Data"
+    df_data["Tanggal Invoice"] = pd.to_datetime(
+        df_data["Keterangan"].str.extract(r"(\d{2}/\d{2}/\d{4})")[0],
+        format="%d/%m/%Y", errors="coerce"
+    )
+    df_data["No Invoice"] = df_data["Kode Booking"].astype(str)
+
+    df_lunas = df_data[df_data["Keterangan"].str.contains("Lunas", na=False)].copy()
+    invoice_tercatat = df_cashflow["No Invoice"].astype(str).unique().tolist()
+
+    df_belum_tercatat = df_lunas[~df_lunas["No Invoice"].isin(invoice_tercatat)]
+
+    st.write(f"📄 Transaksi Lunas yang belum ada di Arus Kas: {len(df_belum_tercatat)}")
+    st.dataframe(df_belum_tercatat[["Tgl Pemesanan", "No Invoice", "Harga Jual", "Keterangan"]])
+
+    if st.button("Sinkronisasi Sekarang"):
+        sync_data = pd.DataFrame({
+            "Tanggal": df_belum_tercatat["Tanggal Invoice"],
+            "Tipe": "Masuk",
+            "Kategori": "Pembayaran Customer",
+            "No Invoice": df_belum_tercatat["No Invoice"],
+            "Keterangan": "Pembayaran Invoice",
+            "Jumlah": df_belum_tercatat["Harga Jual"],
+            "Status": "Lunas"
+        })
+        ws = connect_to_gsheet(SHEET_ID, "Arus Kas")
+        append_dataframe_to_sheet(sync_data, ws)
+        st.success("✅ Sinkronisasi berhasil dilakukan.")
+

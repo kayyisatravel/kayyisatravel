@@ -1972,38 +1972,40 @@ with st.expander("💸 Laporan Cashflow"):
     st.markdown("### Ringkasan Arus Kas")
 
     ws_cashflow = connect_to_gsheet(SHEET_ID, "Arus Kas")
-    data_cashflow = ws_cashflow.get_all_values()
+    raw_data = ws_cashflow.get_all_values()
 
-    if not data_cashflow or len(data_cashflow) < 2:
-        st.warning("Data arus kas masih kosong.")
+    # Validasi data tidak kosong
+    if not raw_data or len(raw_data) < 2:
+        st.warning("Data arus kas masih kosong atau belum memiliki header dan data.")
         df_cashflow = pd.DataFrame(columns=["Tanggal", "Tipe", "Kategori", "No Invoice", "Keterangan", "Jumlah", "Status"])
     else:
-        # Baris pertama adalah header
-        df_cashflow = pd.DataFrame(data_cashflow[1:], columns=data_cashflow[0])
+        header = raw_data[0]
+        rows = raw_data[1:]
+        df_cashflow = pd.DataFrame(rows, columns=header)
 
-        # Pastikan kolom yang diperlukan ada
-        if "Tanggal" in df_cashflow.columns:
+        # Pastikan semua kolom penting ada
+        required_cols = ["Tanggal", "Tipe", "Kategori", "No Invoice", "Keterangan", "Jumlah", "Status"]
+        missing_cols = [col for col in required_cols if col not in df_cashflow.columns]
+
+        if missing_cols:
+            st.error(f"Kolom berikut tidak ditemukan di sheet Arus Kas: {', '.join(missing_cols)}")
+        else:
+            # Konversi tanggal dan jumlah ke format yang benar
             df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors="coerce")
-        else:
-            st.error("Kolom 'Tanggal' tidak ditemukan di sheet Arus Kas.")
-        
-        if "Jumlah" in df_cashflow.columns:
             df_cashflow["Jumlah"] = pd.to_numeric(df_cashflow["Jumlah"], errors="coerce")
-        else:
-            st.error("Kolom 'Jumlah' tidak ditemukan di sheet Arus Kas.")
 
-    # Hitung total jika data tersedia
-    if not df_cashflow.empty:
-        total_masuk = df_cashflow[df_cashflow["Tipe"] == "Masuk"]["Jumlah"].sum()
-        total_keluar = df_cashflow[df_cashflow["Tipe"] == "Keluar"]["Jumlah"].sum()
-        saldo = total_masuk - total_keluar
+            # Hitung dan tampilkan ringkasan
+            total_masuk = df_cashflow[df_cashflow["Tipe"] == "Masuk"]["Jumlah"].sum()
+            total_keluar = df_cashflow[df_cashflow["Tipe"] == "Keluar"]["Jumlah"].sum()
+            saldo = total_masuk - total_keluar
 
-        st.metric("Total Masuk", f"Rp {int(total_masuk):,}")
-        st.metric("Total Keluar", f"Rp {int(total_keluar):,}")
-        st.metric("Saldo Akhir", f"Rp {int(saldo):,}")
+            st.metric("Total Masuk", f"Rp {int(total_masuk):,}")
+            st.metric("Total Keluar", f"Rp {int(total_keluar):,}")
+            st.metric("Saldo Akhir", f"Rp {int(saldo):,}")
 
-        st.markdown("#### Detail Transaksi")
-        st.dataframe(df_cashflow)
+            st.markdown("#### 📋 Detail Transaksi Arus Kas")
+            st.dataframe(df_cashflow)
+
 
     st.markdown("### 🔄 Sinkronisasi Transaksi Lunas ke Arus Kas")
 

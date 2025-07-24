@@ -578,7 +578,7 @@ def generate_evoucher_html(data):
             <th>Total Harga</th>
           </tr>
           <tr>
-            <td>Rp {get('harga_per_malam'):,}</td>
+            <td>Rp {get('harga_per_malam'):,.0f}</td>
             <td>{get('total_malam')} malam</td>
             <td>{get('jumlah_kamar')}</td>
             <td><strong>{total_harga}</strong></td>

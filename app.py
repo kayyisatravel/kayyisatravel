@@ -1978,50 +1978,43 @@ def format_rp(x):
 with st.expander("💸 Laporan Cashflow"):
     st.markdown("### Ringkasan Arus Kas")
 
+    # Ambil data dari sheet Arus Kas
     ws_cashflow = connect_to_gsheet(SHEET_ID, "Arus Kas")
-    raw_cashflow = ws_cashflow.get_all_values()
+    raw_data = ws_cashflow.get_all_values()
 
-    if not raw_cashflow or len(raw_cashflow) < 2:
+    if not raw_data or len(raw_data) < 2:
         st.warning("Data arus kas masih kosong.")
         df_cashflow = pd.DataFrame(columns=["Tanggal", "Tipe", "Kategori", "No Invoice", "Keterangan", "Jumlah", "Status"])
     else:
-        header_cashflow = [h.strip() for h in raw_cashflow[0]]
-        rows_cashflow = raw_cashflow[1:]
-        df_cashflow = pd.DataFrame(rows_cashflow, columns=header_cashflow)
+        header = [h.strip() for h in raw_data[0]]
+        rows = raw_data[1:]
+        df_cashflow = pd.DataFrame(rows, columns=header)
 
-        # Validasi kolom
         required_cols = ["Tanggal", "Tipe", "Kategori", "No Invoice", "Keterangan", "Jumlah", "Status"]
         missing_cols = [col for col in required_cols if col not in df_cashflow.columns]
+
         if missing_cols:
             st.error(f"❌ Kolom tidak ditemukan di sheet Arus Kas: {', '.join(missing_cols)}")
-            st.stop()
+        else:
+            df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors="coerce")
+            df_cashflow["Jumlah"] = df_cashflow["Jumlah"].replace("Rp", "", regex=True).replace(".", "", regex=True)
+            df_cashflow["Jumlah"] = pd.to_numeric(df_cashflow["Jumlah"], errors="coerce").fillna(0).astype(int)
 
-        # Konversi tipe data
-        df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors="coerce")
-        df_cashflow["Jumlah"] = pd.to_numeric(df_cashflow["Jumlah"].str.replace(r"[^\d]", "", regex=True), errors="coerce")
+            total_masuk = int(df_cashflow[df_cashflow["Tipe"] == "Masuk"]["Jumlah"].sum())
+            total_keluar = int(df_cashflow[df_cashflow["Tipe"] == "Keluar"]["Jumlah"].sum())
+            saldo = total_masuk - total_keluar
 
-        # Hitung ringkasan
-        total_masuk = df_cashflow[df_cashflow["Tipe"] == "Masuk"]["Jumlah"].sum()
-        total_keluar = df_cashflow[df_cashflow["Tipe"] == "Keluar"]["Jumlah"].sum()
-        saldo = total_masuk - total_keluar
+            st.metric("Total Masuk", format_rp(total_masuk))
+            st.metric("Total Keluar", format_rp(total_keluar))
+            st.metric("Saldo Akhir", format_rp(saldo))
 
-        total_masuk = int(total_masuk)
-        total_keluar = int(total_keluar)
-        saldo = int(saldo)
-        
-        # Baru tampilkan
-        st.metric("Total Masuk", format_rp(total_masuk))
-        st.metric("Total Keluar", format_rp(total_keluar))
-        st.metric("Saldo Akhir", format_rp(saldo))
-
-        st.markdown("#### 📋 Detail Transaksi Arus Kas")
-        df_cashflow["Jumlah"] = pd.to_numeric(df_cashflow["Jumlah"], errors="coerce").fillna(0).astype(int)
-        st.dataframe(
-            df_cashflow.style.format({
-                "Jumlah": lambda x: f"Rp {x:,}".replace(",", "."),
-                "Tanggal": lambda x: x.strftime("%d-%m-%Y") if pd.notnull(x) else ""
-            })
-        )
+            st.markdown("#### 📋 Detail Transaksi Arus Kas")
+            st.dataframe(
+                df_cashflow.style.format({
+                    "Jumlah": format_rp,
+                    "Tanggal": lambda x: x.strftime("%d-%m-%Y") if pd.notnull(x) else ""
+                })
+            )
 
 # --- Ambil Data Transaksi ---
 ws_data = connect_to_gsheet(SHEET_ID, "Data")

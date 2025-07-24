@@ -1901,14 +1901,11 @@ def input_cashflow():
         keterangan = st.text_input("Keterangan", key="keterangan_cashflow")
 
         jumlah = st.number_input("Jumlah (Rp)", min_value=0, step=1, format="%d", key="jumlah_cashflow")
-        try:
-            jumlah = int(jumlah_str)  # pake int, bukan float
-            if jumlah < 0:
-                st.error("Jumlah tidak boleh negatif")
-                return
-        except ValueError:
-            st.error("Jumlah harus berupa angka bulat valid")
+
+        if jumlah == 0:
+            st.error("Jumlah harus lebih dari 0")
             return
+
 
 
         status = st.selectbox("Status", options=["Lunas", "Belum Lunas"], key="status_cashflow")

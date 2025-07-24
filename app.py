@@ -1624,3 +1624,152 @@ with st.expander("🎫 Generator E-Tiket + Simpan Data"):
                 st.session_state.pop("ocr_preview_df", None)
                 st.session_state.pop("last_ticket_html", None)
                 st.rerun()
+
+import streamlit as st
+import pandas as pd
+import holidays
+import matplotlib.pyplot as plt
+
+with st.expander("📊 Analisa Laporan Keuangan"):
+
+    # Pastikan kolom datetime sudah benar
+    df_filtered["Tgl Pemesanan"] = pd.to_datetime(df_filtered["Tgl Pemesanan"], errors="coerce")
+
+    years = df_filtered["Tgl Pemesanan"].dt.year.dropna().unique()
+    id_holidays = holidays.Indonesia(years=years)
+
+    # ----- HARiAN -----
+    df_daily = (
+        df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"]
+        .sum()
+        .reset_index()
+        .sort_values("Tgl Pemesanan")
+    )
+    df_daily["Pct_Change"] = df_daily["Harga Jual (Num)"].pct_change() * 100
+    df_daily["Is_Holiday"] = df_daily["Tgl Pemesanan"].isin(id_holidays)
+    df_daily["Is_Weekend"] = df_daily["Tgl Pemesanan"].dt.dayofweek >= 5  # Sabtu=5, Minggu=6
+    df_daily["Near_Holiday"] = df_daily["Is_Holiday"] | df_daily["Is_Weekend"]
+
+    threshold_drop_daily = -20
+    penurunan_signifikan_harian = df_daily[df_daily["Pct_Change"] <= threshold_drop_daily]
+
+    # ----- BULANAN -----
+    df_filtered["YearMonth"] = df_filtered["Tgl Pemesanan"].dt.to_period("M")
+    df_monthly = (
+        df_filtered.groupby("YearMonth")["Harga Jual (Num)"]
+        .sum()
+        .reset_index()
+        .sort_values("YearMonth")
+    )
+    df_monthly["Pct_Change"] = df_monthly["Harga Jual (Num)"].pct_change() * 100
+    df_monthly["MonthStart"] = df_monthly["YearMonth"].dt.to_timestamp()
+
+    def check_month_holiday(ts):
+        return any([(ts + pd.Timedelta(days=i)) in id_holidays for i in range(31)])
+
+    df_monthly["Is_Holiday_Month"] = df_monthly["MonthStart"].apply(check_month_holiday)
+    df_monthly["Is_Weekend_Month"] = df_monthly["MonthStart"].dt.weekday.isin([5, 6])
+    df_monthly["Near_Holiday"] = df_monthly["Is_Holiday_Month"] | df_monthly["Is_Weekend_Month"]
+
+    threshold_drop_monthly = -15
+    penurunan_signifikan_bulanan = df_monthly[df_monthly["Pct_Change"] <= threshold_drop_monthly]
+
+    # ----- TAHUNAN -----
+    df_filtered["Year"] = df_filtered["Tgl Pemesanan"].dt.year
+    df_yearly = (
+        df_filtered.groupby("Year")["Harga Jual (Num)"]
+        .sum()
+        .reset_index()
+        .sort_values("Year")
+    )
+    df_yearly["Pct_Change"] = df_yearly["Harga Jual (Num)"].pct_change() * 100
+
+    def check_year_holiday(y):
+        # Cek apakah ada hari libur di tahun tersebut
+        # Diasumsikan selalu ada, tapi bisa dioptimasi sesuai kebutuhan
+        return any([date.year == y for date in id_holidays])
+
+    df_yearly["Is_Holiday_Year"] = df_yearly["Year"].apply(check_year_holiday)
+    df_yearly["Near_Holiday"] = df_yearly["Is_Holiday_Year"]  # Tahun lebih longgar, cuma cek ada libur
+
+    threshold_drop_yearly = -10
+    penurunan_signifikan_tahunan = df_yearly[df_yearly["Pct_Change"] <= threshold_drop_yearly]
+
+    # --- Output Analisa ---
+    st.markdown("### 📉 Penurunan Signifikan Harian ( > 20% drop )")
+    if not penurunan_signifikan_harian.empty:
+        for _, row in penurunan_signifikan_harian.iterrows():
+            date_str = row["Tgl Pemesanan"].strftime("%Y-%m-%d")
+            drop = row["Pct_Change"]
+            near_holiday = "Ya" if row["Near_Holiday"] else "Tidak"
+            st.write(f"- 📅 {date_str} : Penurunan {drop:.2f}% dari hari sebelumnya.")
+            st.write(f"  - Dekat Hari Libur / Weekend? **{near_holiday}**")
+    else:
+        st.write("✅ Tidak ada penurunan signifikan harian terdeteksi.")
+
+    st.markdown("### 📉 Penurunan Signifikan Bulanan ( > 15% drop )")
+    if not penurunan_signifikan_bulanan.empty:
+        for _, row in penurunan_signifikan_bulanan.iterrows():
+            month_str = row["YearMonth"].strftime("%Y-%m")
+            drop = row["Pct_Change"]
+            near_holiday = "Ya" if row["Near_Holiday"] else "Tidak"
+            st.write(f"- 🗓️ {month_str} : Penurunan {drop:.2f}% dari bulan sebelumnya.")
+            st.write(f"  - Bulan ada hari libur / weekend panjang? **{near_holiday}**")
+    else:
+        st.write("✅ Tidak ada penurunan signifikan bulanan terdeteksi.")
+
+    st.markdown("### 📉 Penurunan Signifikan Tahunan ( > 10% drop )")
+    if not penurunan_signifikan_tahunan.empty:
+        for _, row in penurunan_signifikan_tahunan.iterrows():
+            year_str = str(int(row["Year"]))
+            drop = row["Pct_Change"]
+            near_holiday = "Ya" if row["Near_Holiday"] else "Tidak"
+            st.write(f"- 📆 {year_str} : Penurunan {drop:.2f}% dari tahun sebelumnya.")
+            st.write(f"  - Tahun dengan libur nasional? **{near_holiday}**")
+    else:
+        st.write("✅ Tidak ada penurunan signifikan tahunan terdeteksi.")
+
+    # --- Rekomendasi ---
+    st.markdown("### 💡 Rekomendasi:")
+    if not penurunan_signifikan_harian.empty or not penurunan_signifikan_bulanan.empty or not penurunan_signifikan_tahunan.empty:
+        st.markdown("""
+        - Tinjau aktivitas pemasaran dan operasional di tanggal/bulan/tahun yang mengalami penurunan.
+        - Periksa apakah penurunan terkait dengan hari libur panjang, weekend, atau faktor eksternal lain.
+        - Buat strategi promosi yang menyasar periode rentan tersebut.
+        - Analisa faktor internal seperti stok, harga, layanan untuk menemukan penyebab penurunan.
+        """)
+    else:
+        st.markdown("Tidak ada penurunan signifikan, pertahankan strategi yang berjalan.")
+
+    # --- Visualisasi ---
+    st.markdown("### 📈 Grafik Penjualan Harian dengan Penurunan & Hari Libur")
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.plot(df_daily["Tgl Pemesanan"], df_daily["Harga Jual (Num)"], label="Penjualan Harian", marker='o')
+    ax.scatter(penurunan_signifikan_harian["Tgl Pemesanan"], penurunan_signifikan_harian["Harga Jual (Num)"], color='red', label="Penurunan Signifikan")
+    holidays_weekends = df_daily[df_daily["Near_Holiday"]]
+    ax.scatter(holidays_weekends["Tgl Pemesanan"], holidays_weekends["Harga Jual (Num)"], color='green', alpha=0.3, label="Hari Libur / Weekend")
+    ax.set_xlabel("Tanggal")
+    ax.set_ylabel("Total Penjualan")
+    ax.legend()
+    ax.grid(True)
+    st.pyplot(fig)
+
+    st.markdown("### 📈 Grafik Penjualan Bulanan")
+    fig2, ax2 = plt.subplots(figsize=(10, 4))
+    ax2.plot(df_monthly["YearMonth"].dt.to_timestamp(), df_monthly["Harga Jual (Num)"], label="Penjualan Bulanan", marker='o')
+    ax2.scatter(penurunan_signifikan_bulanan["MonthStart"], penurunan_signifikan_bulanan["Harga Jual (Num)"], color='red', label="Penurunan Signifikan")
+    ax2.set_xlabel("Bulan")
+    ax2.set_ylabel("Total Penjualan")
+    ax2.legend()
+    ax2.grid(True)
+    st.pyplot(fig2)
+
+    st.markdown("### 📈 Grafik Penjualan Tahunan")
+    fig3, ax3 = plt.subplots(figsize=(10, 4))
+    ax3.plot(df_yearly["Year"], df_yearly["Harga Jual (Num)"], label="Penjualan Tahunan", marker='o')
+    ax3.scatter(penurunan_signifikan_tahunan["Year"], penurunan_signifikan_tahunan["Harga Jual (Num)"], color='red', label="Penurunan Signifikan")
+    ax3.set_xlabel("Tahun")
+    ax3.set_ylabel("Total Penjualan")
+    ax3.legend()
+    ax3.grid(True)
+    st.pyplot(fig3)

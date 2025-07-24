@@ -385,7 +385,9 @@ with st.expander('⌨️ Upload Data Text'):
                 for i, updated_row in edited_rows.items():
                     for col, val in updated_row.items():
                         df.at[i, col] = val
+            
                 st.session_state.bulk_parsed = df
+                st.session_state.edit_mode_bulk = False  # ⬅️ Reset ke tampilan semula
                 st.success(f"✅ {len(edited_rows)} baris berhasil diperbarui.")
                 st.rerun()
 

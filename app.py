@@ -1856,8 +1856,8 @@ def save_kas(df: pd.DataFrame, worksheet):
 SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 
 def load_cashflow_expander():
-    st.markdown("## 💰 Arus Kas")
-    with st.expander("Cashflow"):
+    #st.markdown("## 💰 Arus Kas")
+    with st.expander("💰 Cashflow"):
         st.markdown("Upload file Excel atau CSV berisi data Arus Kas dengan kolom: `Tanggal`, `Tipe`, `Kategori`, `No Invoice`, `Keterangan`, `Jumlah`, `Status`")
         uploaded_file = st.file_uploader("Pilih file data arus kas (Excel/CSV)", type=["xlsx", "xls", "csv"])
 

@@ -24,8 +24,6 @@ from zoneinfo import ZoneInfo  # Built-in mulai Python 3.9
 import time
 from generator import parse_input_dynamic, generate_eticket, parse_evoucher_text, generate_evoucher_html, generate_pdf417_barcode, generate_eticket_pdf
 from typing import List
-import matplotlib.pyplot as plt
-
 
 now = datetime.now(ZoneInfo("Asia/Jakarta"))
 

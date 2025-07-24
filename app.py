@@ -1407,20 +1407,6 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
         df_chart = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().reset_index()
         st.line_chart(df_chart.rename(columns={"Tgl Pemesanan": "index"}).set_index("index"))
 
-        # Ringkasan per Admin
-        st.markdown("### 🧑‍💼 Ringkasan per Admin")
-        st.dataframe(
-            df_filtered.groupby("Admin")["Harga Jual (Num)"].sum().reset_index(name="Total Penjualan"),
-            use_container_width=True
-        )
-
-        # Ringkasan per Pemesan
-        st.markdown("### 👥 Ringkasan per Pemesan")
-        st.dataframe(
-            df_filtered.groupby("Nama Pemesan")["Harga Jual (Num)"].sum().reset_index(name="Total Penjualan"),
-            use_container_width=True
-        )
-
         # Rekap tambahan bulanan per tanggal
         if filter_mode == "🗓️ Bulanan":
             df_filtered["Tanggal"] = df_filtered["Tgl Pemesanan"].dt.day
@@ -1453,6 +1439,20 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
 
             st.markdown("### 📆 Rekap Tahunan per Bulan")
             st.dataframe(summary_tahunan.style.format("Rp {:,.0f}"), use_container_width=True)
+            
+        # Ringkasan per Admin
+        st.markdown("### 🧑‍💼 Ringkasan per Admin")
+        st.dataframe(
+            df_filtered.groupby("Admin")["Harga Jual (Num)"].sum().reset_index(name="Total Penjualan"),
+            use_container_width=True
+        )
+
+        # Ringkasan per Pemesan
+        st.markdown("### 👥 Ringkasan per Pemesan")
+        st.dataframe(
+            df_filtered.groupby("Nama Pemesan")["Harga Jual (Num)"].sum().reset_index(name="Total Penjualan"),
+            use_container_width=True
+        )
 
         # Tabel detail
         with st.expander("📄 Lihat Tabel Detail"):

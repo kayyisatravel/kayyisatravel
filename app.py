@@ -387,6 +387,7 @@ with st.expander('⌨️ Upload Data Text'):
                         df.at[i, col] = val
                 st.session_state.bulk_parsed = df
                 st.success(f"✅ {len(edited_rows)} baris berhasil diperbarui.")
+                st.rerun()
 
     
         else:

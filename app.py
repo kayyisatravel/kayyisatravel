@@ -1968,27 +1968,26 @@ def input_cashflow():
 
 input_cashflow()
 
-with st.expander("💸 Laporan Cashflow123"):
-    st.markdown("### Ringkasan Arus Kas1")
+with st.expander("💸 Laporan Cashflow"):
+    st.markdown("### Ringkasan Arus Kas")
 
+    # --- Ambil data dari sheet "Arus Kas"
     ws_cashflow = connect_to_gsheet(SHEET_ID, "Arus Kas")
-    raw_data = ws_cashflow.get_all_values()
+    raw_data_cashflow = ws_cashflow.get_all_values()
 
-    if not raw_data or len(raw_data) < 2:
+    if not raw_data_cashflow or len(raw_data_cashflow) < 2:
         st.warning("Data arus kas masih kosong.")
         df_cashflow = pd.DataFrame(columns=["Tanggal", "Tipe", "Kategori", "No Invoice", "Keterangan", "Jumlah", "Status"])
     else:
-        header = [h.strip() for h in raw_data[0]]  # Penting: Hapus spasi kolom
-        rows = raw_data[1:]
-        df_cashflow = pd.DataFrame(rows, columns=header)
-        st.write("Header ditemukan:", df_cashflow.columns.tolist())
-        # Konversi & Validasi kolom penting
+        header_cashflow = [h.strip() for h in raw_data_cashflow[0]]
+        rows_cashflow = raw_data_cashflow[1:]
+        df_cashflow = pd.DataFrame(rows_cashflow, columns=header_cashflow)
+
         required_cols = ["Tanggal", "Tipe", "Kategori", "No Invoice", "Keterangan", "Jumlah", "Status"]
         missing_cols = [col for col in required_cols if col not in df_cashflow.columns]
 
         if missing_cols:
             st.error(f"❌ Kolom tidak ditemukan di sheet Arus Kas: {', '.join(missing_cols)}")
-            st.write("Header yang ditemukan:", df_cashflow.columns.tolist())
         else:
             # Konversi tipe data
             df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors="coerce")
@@ -1999,51 +1998,58 @@ with st.expander("💸 Laporan Cashflow123"):
             total_keluar = df_cashflow[df_cashflow["Tipe"] == "Keluar"]["Jumlah"].sum()
             saldo = total_masuk - total_keluar
 
+            # Tampilkan ringkasan
             st.metric("Total Masuk", f"Rp {int(total_masuk):,}")
             st.metric("Total Keluar", f"Rp {int(total_keluar):,}")
             st.metric("Saldo Akhir", f"Rp {int(saldo):,}")
 
+            # Tampilkan tabel transaksi
             st.markdown("#### 📋 Detail Transaksi Arus Kas")
             st.dataframe(df_cashflow)
 
-
-            st.metric("Total Masuk", f"Rp {int(total_masuk):,}")
-            st.metric("Total Keluar", f"Rp {int(total_keluar):,}")
-            st.metric("Saldo Akhir", f"Rp {int(saldo):,}")
-
-            st.markdown("#### 📋 Detail Transaksi Arus Kas")
-            st.dataframe(df_cashflow)
-
-
-
+    # === Sinkronisasi Transaksi Lunas ke Arus Kas ===
     st.markdown("### 🔄 Sinkronisasi Transaksi Lunas ke Arus Kas")
 
-    # Deteksi transaksi lunas di sheet "Data"
-    df_data["Tanggal Invoice"] = pd.to_datetime(
-        df_data["Keterangan"].str.extract(r"(\d{2}/\d{2}/\d{4})")[0],
-        format="%d/%m/%Y", errors="coerce"
-    )
-    df_data["No Invoice"] = df_data["Kode Booking"].astype(str)
+    # --- Ambil data dari sheet "Data"
+    ws_data = connect_to_gsheet(SHEET_ID, "Data")
+    raw_data_data = ws_data.get_all_values()
 
-    df_lunas = df_data[df_data["Keterangan"].str.contains("Lunas", na=False)].copy()
-    invoice_tercatat = df_cashflow["No Invoice"].astype(str).unique().tolist()
+    if not raw_data_data or len(raw_data_data) < 2:
+        st.warning("Sheet 'Data' masih kosong atau belum tersedia.")
+    else:
+        header_data = [h.strip() for h in raw_data_data[0]]
+        rows_data = raw_data_data[1:]
+        df_data = pd.DataFrame(rows_data, columns=header_data)
 
-    df_belum_tercatat = df_lunas[~df_lunas["No Invoice"].isin(invoice_tercatat)]
+        # Ekstrak dan konversi tanggal dari kolom "Keterangan"
+        df_data["Tanggal Invoice"] = pd.to_datetime(
+            df_data["Keterangan"].str.extract(r"(\d{2}/\d{2}/\d{4})")[0],
+            format="%d/%m/%Y", errors="coerce"
+        )
+        df_data["No Invoice"] = df_data["Kode Booking"].astype(str)
 
-    st.write(f"📄 Transaksi Lunas yang belum ada di Arus Kas: {len(df_belum_tercatat)}")
-    st.dataframe(df_belum_tercatat[["Tgl Pemesanan", "No Invoice", "Harga Jual", "Keterangan"]])
+        # Filter hanya transaksi lunas
+        df_lunas = df_data[df_data["Keterangan"].str.contains("Lunas", na=False)].copy()
 
-    if st.button("Sinkronisasi Sekarang"):
-        sync_data = pd.DataFrame({
-            "Tanggal": df_belum_tercatat["Tanggal Invoice"],
-            "Tipe": "Masuk",
-            "Kategori": "Pembayaran Customer",
-            "No Invoice": df_belum_tercatat["No Invoice"],
-            "Keterangan": "Pembayaran Invoice",
-            "Jumlah": df_belum_tercatat["Harga Jual"],
-            "Status": "Lunas"
-        })
-        ws = connect_to_gsheet(SHEET_ID, "Arus Kas")
-        append_dataframe_to_sheet(sync_data, ws)
-        st.success("✅ Sinkronisasi berhasil dilakukan.")
+        # Pastikan df_cashflow sudah ada
+        invoice_tercatat = df_cashflow["No Invoice"].astype(str).unique().tolist()
+        df_belum_tercatat = df_lunas[~df_lunas["No Invoice"].isin(invoice_tercatat)]
+
+        st.write(f"📄 Transaksi Lunas yang belum tercatat: {len(df_belum_tercatat)}")
+        st.dataframe(df_belum_tercatat[["Tgl Pemesanan", "No Invoice", "Harga Jual", "Keterangan"]])
+
+        if st.button("Sinkronisasi Sekarang"):
+            sync_data = pd.DataFrame({
+                "Tanggal": df_belum_tercatat["Tanggal Invoice"],
+                "Tipe": "Masuk",
+                "Kategori": "Pembayaran Customer",
+                "No Invoice": df_belum_tercatat["No Invoice"],
+                "Keterangan": "Pembayaran Invoice",
+                "Jumlah": df_belum_tercatat["Harga Jual"],
+                "Status": "Lunas"
+            })
+
+            append_dataframe_to_sheet(sync_data, ws_cashflow)
+            st.success("✅ Sinkronisasi berhasil dilakukan.")
+
 

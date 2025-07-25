@@ -2167,7 +2167,7 @@ with st.sidebar:
 if selected == "Dashboard":
     st.title("📊 Ringkasan Dashboard")
     
-elif selected == "Cashflow":
+elif selected == "Cashflow 1":
     st.title("💸 Laporan Arus Kas")
     # tampilkan kode cashflow Anda di sini
 

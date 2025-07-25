@@ -2073,81 +2073,81 @@ else:
     df_pemasukan_baru = df_pemasukan[~df_pemasukan["No Invoice"].isin(existing_invoices)].copy()
     df_pengeluaran_baru = df_pengeluaran[df_pengeluaran["No Invoice"].isin(df_pemasukan_baru["No Invoice"])].copy()
 
-    st.markdown("### 🔄 Sinkronisasi Transaksi Lunas ke Arus Kas")
-
-    st.write(f"📄 Transaksi pemasukan baru yang akan disinkronkan: {len(df_pemasukan_baru)}")
-    st.dataframe(df_pemasukan_baru)
-
-    st.write(f"📄 Transaksi pengeluaran terkait yang akan disinkronkan: {len(df_pengeluaran_baru)}")
-    st.dataframe(df_pengeluaran_baru)
-
-    if st.button("Sinkronisasi Sekarang"):
-        sync_pemasukan = pd.DataFrame({
-            "Tanggal": df_pemasukan_baru["Tanggal Invoice"],
-            "Tipe": "Masuk",
-            "Kategori": "Pembayaran Customer",
-            "No Invoice": df_pemasukan_baru["No Invoice"],
-            "Keterangan": df_pemasukan_baru["Keterangan"],
-            "Jumlah": df_pemasukan_baru["Harga Jual"],
-            "Status": "Lunas"
-        })
-
-        sync_pengeluaran = pd.DataFrame({
-            "Tanggal": df_pengeluaran_baru["Tanggal Invoice"],
-            "Tipe": "Keluar",
-            "Kategori": "Pembelian",
-            "No Invoice": df_pengeluaran_baru["No Invoice"],
-            "Keterangan": "Biaya Pembelian",
-            "Jumlah": df_pengeluaran_baru["Harga Beli"],
-            "Status": "Terbayar"
-        })
-
-        sync_all = pd.concat([sync_pemasukan, sync_pengeluaran], ignore_index=True)
-        sync_all = sync_all[["Tanggal", "Tipe", "Kategori", "No Invoice", "Keterangan", "Jumlah", "Status"]]
-
-        append_dataframe_to_sheet(sync_all, ws_cashflow)
-        st.success("✅ Sinkronisasi pemasukan dan pengeluaran berhasil.")
-        st.rerun()
-        # --- Monitoring Invoice Belum Lunas ---
-        st.markdown("### ⚠️ Monitoring Invoice Belum Lunas")
+        st.markdown("### 🔄 Sinkronisasi Transaksi Lunas ke Arus Kas")
     
-        today = pd.Timestamp.now().normalize()
+        st.write(f"📄 Transaksi pemasukan baru yang akan disinkronkan: {len(df_pemasukan_baru)}")
+        st.dataframe(df_pemasukan_baru)
     
-        df_belum_lunas = df_data[
-            ~df_data["No Invoice"].isin(df_cashflow["No Invoice"]) &  # Belum tercatat di arus kas
-            ~df_data["Keterangan"].str.contains("Lunas", na=False)     # Tidak mengandung "Lunas"
-        ].copy()
+        st.write(f"📄 Transaksi pengeluaran terkait yang akan disinkronkan: {len(df_pengeluaran_baru)}")
+        st.dataframe(df_pengeluaran_baru)
     
-        df_belum_lunas["Tanggal Invoice"] = pd.to_datetime(
-            df_belum_lunas["Keterangan"].str.extract(r"(\d{1,2}/\d{1,2}/\d{2,4})")[0],
-            format="%d/%m/%y", errors="coerce"
-        )
-        df_belum_lunas["Tanggal Invoice"].fillna(df_belum_lunas["Tgl Pemesanan"], inplace=True)
-        df_belum_lunas["Tanggal Invoice"].fillna(today, inplace=True)
+        if st.button("Sinkronisasi Sekarang"):
+            sync_pemasukan = pd.DataFrame({
+                "Tanggal": df_pemasukan_baru["Tanggal Invoice"],
+                "Tipe": "Masuk",
+                "Kategori": "Pembayaran Customer",
+                "No Invoice": df_pemasukan_baru["No Invoice"],
+                "Keterangan": df_pemasukan_baru["Keterangan"],
+                "Jumlah": df_pemasukan_baru["Harga Jual"],
+                "Status": "Lunas"
+            })
     
-        df_belum_lunas["Hari Keterlambatan"] = (today - df_belum_lunas["Tanggal Invoice"]).dt.days
+            sync_pengeluaran = pd.DataFrame({
+                "Tanggal": df_pengeluaran_baru["Tanggal Invoice"],
+                "Tipe": "Keluar",
+                "Kategori": "Pembelian",
+                "No Invoice": df_pengeluaran_baru["No Invoice"],
+                "Keterangan": "Biaya Pembelian",
+                "Jumlah": df_pengeluaran_baru["Harga Beli"],
+                "Status": "Terbayar"
+            })
     
-        bins = [-1, 7, 14, 30, np.inf]
-        labels = ["0-7 hari", "8-14 hari", "15-30 hari", ">30 hari"]
-        df_belum_lunas["Kategori Umur"] = pd.cut(df_belum_lunas["Hari Keterlambatan"], bins=bins, labels=labels)
+            sync_all = pd.concat([sync_pemasukan, sync_pengeluaran], ignore_index=True)
+            sync_all = sync_all[["Tanggal", "Tipe", "Kategori", "No Invoice", "Keterangan", "Jumlah", "Status"]]
     
-        # Warn user dengan highlight baris keterlambatan > 30 hari
-        def highlight_late(row):
-            if row["Hari Keterlambatan"] > 30:
-                return ["background-color: #ff9999"]*len(row)
-            return [""]*len(row)
-    
-        st.dataframe(
-            df_belum_lunas[[
-                "No Invoice", "Kode Booking", "Harga Jual", "Keterangan", "Tanggal Invoice", "Hari Keterlambatan", "Kategori Umur"
-            ]].sort_values(by="Hari Keterlambatan", ascending=False).style.apply(highlight_late, axis=1)
-        )
-    
-        summary_umur = df_belum_lunas.groupby("Kategori Umur")["No Invoice"].nunique().reset_index()
-        summary_umur.columns = ["Kategori Umur", "Jumlah Invoice Belum Lunas"]
-    
-        st.markdown("#### 📊 Summary Invoice Belum Lunas berdasarkan Umur Keterlambatan")
-        st.table(summary_umur)
+            append_dataframe_to_sheet(sync_all, ws_cashflow)
+            st.success("✅ Sinkronisasi pemasukan dan pengeluaran berhasil.")
+            st.rerun()
+            # --- Monitoring Invoice Belum Lunas ---
+            st.markdown("### ⚠️ Monitoring Invoice Belum Lunas")
+        
+            today = pd.Timestamp.now().normalize()
+        
+            df_belum_lunas = df_data[
+                ~df_data["No Invoice"].isin(df_cashflow["No Invoice"]) &  # Belum tercatat di arus kas
+                ~df_data["Keterangan"].str.contains("Lunas", na=False)     # Tidak mengandung "Lunas"
+            ].copy()
+        
+            df_belum_lunas["Tanggal Invoice"] = pd.to_datetime(
+                df_belum_lunas["Keterangan"].str.extract(r"(\d{1,2}/\d{1,2}/\d{2,4})")[0],
+                format="%d/%m/%y", errors="coerce"
+            )
+            df_belum_lunas["Tanggal Invoice"].fillna(df_belum_lunas["Tgl Pemesanan"], inplace=True)
+            df_belum_lunas["Tanggal Invoice"].fillna(today, inplace=True)
+        
+            df_belum_lunas["Hari Keterlambatan"] = (today - df_belum_lunas["Tanggal Invoice"]).dt.days
+        
+            bins = [-1, 7, 14, 30, np.inf]
+            labels = ["0-7 hari", "8-14 hari", "15-30 hari", ">30 hari"]
+            df_belum_lunas["Kategori Umur"] = pd.cut(df_belum_lunas["Hari Keterlambatan"], bins=bins, labels=labels)
+        
+            # Warn user dengan highlight baris keterlambatan > 30 hari
+            def highlight_late(row):
+                if row["Hari Keterlambatan"] > 30:
+                    return ["background-color: #ff9999"]*len(row)
+                return [""]*len(row)
+        
+            st.dataframe(
+                df_belum_lunas[[
+                    "No Invoice", "Kode Booking", "Harga Jual", "Keterangan", "Tanggal Invoice", "Hari Keterlambatan", "Kategori Umur"
+                ]].sort_values(by="Hari Keterlambatan", ascending=False).style.apply(highlight_late, axis=1)
+            )
+        
+            summary_umur = df_belum_lunas.groupby("Kategori Umur")["No Invoice"].nunique().reset_index()
+            summary_umur.columns = ["Kategori Umur", "Jumlah Invoice Belum Lunas"]
+        
+            st.markdown("#### 📊 Summary Invoice Belum Lunas berdasarkan Umur Keterlambatan")
+            st.table(summary_umur)
 
 
 

@@ -2197,15 +2197,15 @@ if selected == "Dashboard":
                 "September": 9, "Oktober": 10, "November": 11, "Desember": 12
             }
             bulan_label = list(bulan_nama.keys())
-            bulan_pilihan = st.selectbox("Pilih Bulan", bulan_label, index=date.today().month - 1, key="filter_bulan_input")
-            tahun_bulan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True), key="filter_tahun_bulanan")
+            bulan_pilihan = st.selectbox("Pilih Bulan", bulan_label, index=date.today().month - 1, key="filter_bulan_input_dashboard")
+            tahun_bulan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True), key="filter_tahun_bulanan_dashboard")
             df_filtered = df[
                 (df["Tgl Pemesanan"].dt.month == bulan_nama[bulan_pilihan]) &
                 (df["Tgl Pemesanan"].dt.year == tahun_bulan)
             ]
     
         elif filter_mode == "📅 Tahunan":
-            tahun_pilihan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True), key="filter_tahun_tahunan")
+            tahun_pilihan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True), key="filter_tahun_tahunan_dashboard")
             df_filtered = df[df["Tgl Pemesanan"].dt.year == tahun_pilihan]
     
     

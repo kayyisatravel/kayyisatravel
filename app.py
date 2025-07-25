@@ -2214,8 +2214,8 @@ if selected == "Dashboard":
         pemesan_list = ["(Semua)"] + sorted(df["Nama Pemesan"].dropna().unique())
         admin_list = ["(Semua)"] + sorted(df["Admin"].dropna().unique())
     
-        selected_pemesan = st.selectbox("Nama Pemesan", pemesan_list)
-        selected_admin = st.selectbox("Admin", admin_list)
+        selected_pemesan = st.selectbox("Nama Pemesan", pemesan_list, key="nama_pemesan_selectbox")
+        selected_admin = st.selectbox("Admin", admin_list, key="admin_selectbox")
     
         if selected_pemesan != "(Semua)":
             df_filtered = df_filtered[df_filtered["Nama Pemesan"] == selected_pemesan]

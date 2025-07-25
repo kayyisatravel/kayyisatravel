@@ -2181,8 +2181,8 @@ if selected == "Dashboard":
         df_filtered = df.copy()
     
         if filter_mode == "📆 Rentang Tanggal":
-            tgl_awal = st.date_input("Tanggal Awal", date.today().replace(day=1), key="tgl_awal_input")
-            tgl_akhir = st.date_input("Tanggal Akhir", date.today(), key="tgl_akhir_input")
+            tgl_awal = st.date_input("Tanggal Awal", date.today().replace(day=1), key="tgl_awal_input_dashboard")
+            tgl_akhir = st.date_input("Tanggal Akhir", date.today(), key="tgl_akhir_input_dashboard")
             if tgl_awal > tgl_akhir:
                 tgl_awal, tgl_akhir = tgl_akhir, tgl_awal
             df_filtered = df[

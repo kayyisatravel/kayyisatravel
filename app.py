@@ -2156,7 +2156,7 @@ import streamlit as st
 # Sidebar Menu
 with st.sidebar:
     selected = option_menu(
-        menu_title="📊 Menu Utama",  # required
+        menu_title="Menu Utama",  # required
         options=["Dashboard", "Cashflow", "Invoice", "Transaksi", "Settings"],  # required
         icons=["bar-chart", "currency-dollar", "file-earmark-text", "truck", "gear"],  # optional
         menu_icon="cast",  # optional

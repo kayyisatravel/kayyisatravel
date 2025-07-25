@@ -2149,7 +2149,40 @@ with st.expander("💸 Laporan Cashflow"):
             st.markdown("#### 📊 Summary Invoice Belum Lunas berdasarkan Umur Keterlambatan")
             st.table(summary_umur)
 
+#======================================================================================================================================
+from streamlit_option_menu import option_menu
+import streamlit as st
 
+# Sidebar Menu
+with st.sidebar:
+    selected = option_menu(
+        menu_title="📊 Menu Utama",  # required
+        options=["Dashboard", "Cashflow", "Invoice", "Transaksi", "Settings"],  # required
+        icons=["bar-chart", "currency-dollar", "file-earmark-text", "truck", "gear"],  # optional
+        menu_icon="cast",  # optional
+        default_index=0,  # optional
+    )
+
+# Konten berdasarkan menu
+if selected == "Dashboard":
+    st.title("📊 Ringkasan Dashboard")
+    # tampilkan grafik, metrik, dll
+
+elif selected == "Cashflow":
+    st.title("💸 Laporan Arus Kas")
+    # tampilkan kode cashflow Anda di sini
+
+elif selected == "Invoice":
+    st.title("🧾 Manajemen Invoice")
+    # tampilkan invoice belum lunas, reminder, dll
+
+elif selected == "Transaksi":
+    st.title("📦 Transaksi Pemesanan")
+    # tampilkan semua transaksi
+
+elif selected == "Settings":
+    st.title("⚙️ Pengaturan Sistem")
+    # form setting admin, kategori, dll
 
             
         

@@ -2016,63 +2016,63 @@ with st.expander("💸 Laporan Cashflow"):
                 })
             )
 
-# --- Ambil Data Transaksi ---
-ws_data = connect_to_gsheet(SHEET_ID, "Data")
-raw_data = ws_data.get_all_values()
-
-if not raw_data or len(raw_data) < 2:
-    st.warning("Sheet 'Data' masih kosong.")
-else:
-    header_data = [h.strip() for h in raw_data[0]]
-    rows_data = raw_data[1:]
-    df_data = pd.DataFrame(rows_data, columns=header_data)
-
-    # Validasi kolom
-    expected_cols = ["No Invoice", "Kode Booking", "Harga Jual", "Harga Beli", "Keterangan", "Tgl Pemesanan"]
-    missing = [col for col in expected_cols if col not in df_data.columns]
-    if missing:
-        st.error(f"Kolom berikut tidak ditemukan di sheet Data: {', '.join(missing)}")
-        st.stop()
-
-    # Bersihkan dan konversi kolom harga dan tanggal
-    for col in ["Harga Jual", "Harga Beli"]:
-        df_data[col] = df_data[col].replace(r"[^\d]", "", regex=True)
-        df_data[col] = pd.to_numeric(df_data[col], errors="coerce")
-
-    df_data["Tgl Pemesanan"] = pd.to_datetime(df_data["Tgl Pemesanan"], dayfirst=True, errors="coerce")
-
-    # Filter transaksi Lunas (tidak termasuk yg mengandung "Belum Lunas")
-    df_lunas = df_data[
-        df_data["Keterangan"].str.contains("Lunas", na=False) &
-        ~df_data["Keterangan"].str.contains("Belum Lunas", na=False)
-    ].copy()
-
-    # Ekstrak tanggal invoice dari kolom Keterangan (format dd/mm/yy)
-    df_lunas["Tanggal Invoice"] = pd.to_datetime(
-        df_lunas["Keterangan"].str.extract(r"(\d{1,2}/\d{1,2}/\d{2,4})")[0],
-        format="%d/%m/%y", errors="coerce"
-    )
-    df_lunas["Tanggal Invoice"].fillna(df_lunas["Tgl Pemesanan"], inplace=True)
-    df_lunas["Tanggal Invoice"].fillna(pd.Timestamp.now().normalize(), inplace=True)
-
-    # Group pemasukan berdasarkan No Invoice
-    df_pemasukan = df_lunas.groupby("No Invoice").agg({
-        "Harga Jual": "sum",
-        "Tanggal Invoice": "min",
-        "Keterangan": "first"
-    }).reset_index()
-
-    # Group pengeluaran berdasarkan No Invoice
-    df_pengeluaran = df_lunas.groupby("No Invoice").agg({
-        "Harga Beli": "sum",
-        "Tanggal Invoice": "min"
-    }).reset_index()
-
-    # Tentukan invoice yang belum tercatat di arus kas
-    existing_invoices = df_cashflow["No Invoice"].astype(str).unique().tolist()
-    df_pemasukan_baru = df_pemasukan[~df_pemasukan["No Invoice"].isin(existing_invoices)].copy()
-    df_pengeluaran_baru = df_pengeluaran[df_pengeluaran["No Invoice"].isin(df_pemasukan_baru["No Invoice"])].copy()
-
+    # --- Ambil Data Transaksi ---
+    ws_data = connect_to_gsheet(SHEET_ID, "Data")
+    raw_data = ws_data.get_all_values()
+    
+    if not raw_data or len(raw_data) < 2:
+        st.warning("Sheet 'Data' masih kosong.")
+    else:
+        header_data = [h.strip() for h in raw_data[0]]
+        rows_data = raw_data[1:]
+        df_data = pd.DataFrame(rows_data, columns=header_data)
+    
+        # Validasi kolom
+        expected_cols = ["No Invoice", "Kode Booking", "Harga Jual", "Harga Beli", "Keterangan", "Tgl Pemesanan"]
+        missing = [col for col in expected_cols if col not in df_data.columns]
+        if missing:
+            st.error(f"Kolom berikut tidak ditemukan di sheet Data: {', '.join(missing)}")
+            st.stop()
+    
+        # Bersihkan dan konversi kolom harga dan tanggal
+        for col in ["Harga Jual", "Harga Beli"]:
+            df_data[col] = df_data[col].replace(r"[^\d]", "", regex=True)
+            df_data[col] = pd.to_numeric(df_data[col], errors="coerce")
+    
+        df_data["Tgl Pemesanan"] = pd.to_datetime(df_data["Tgl Pemesanan"], dayfirst=True, errors="coerce")
+    
+        # Filter transaksi Lunas (tidak termasuk yg mengandung "Belum Lunas")
+        df_lunas = df_data[
+            df_data["Keterangan"].str.contains("Lunas", na=False) &
+            ~df_data["Keterangan"].str.contains("Belum Lunas", na=False)
+        ].copy()
+    
+        # Ekstrak tanggal invoice dari kolom Keterangan (format dd/mm/yy)
+        df_lunas["Tanggal Invoice"] = pd.to_datetime(
+            df_lunas["Keterangan"].str.extract(r"(\d{1,2}/\d{1,2}/\d{2,4})")[0],
+            format="%d/%m/%y", errors="coerce"
+        )
+        df_lunas["Tanggal Invoice"].fillna(df_lunas["Tgl Pemesanan"], inplace=True)
+        df_lunas["Tanggal Invoice"].fillna(pd.Timestamp.now().normalize(), inplace=True)
+    
+        # Group pemasukan berdasarkan No Invoice
+        df_pemasukan = df_lunas.groupby("No Invoice").agg({
+            "Harga Jual": "sum",
+            "Tanggal Invoice": "min",
+            "Keterangan": "first"
+        }).reset_index()
+    
+        # Group pengeluaran berdasarkan No Invoice
+        df_pengeluaran = df_lunas.groupby("No Invoice").agg({
+            "Harga Beli": "sum",
+            "Tanggal Invoice": "min"
+        }).reset_index()
+    
+        # Tentukan invoice yang belum tercatat di arus kas
+        existing_invoices = df_cashflow["No Invoice"].astype(str).unique().tolist()
+        df_pemasukan_baru = df_pemasukan[~df_pemasukan["No Invoice"].isin(existing_invoices)].copy()
+        df_pengeluaran_baru = df_pengeluaran[df_pengeluaran["No Invoice"].isin(df_pemasukan_baru["No Invoice"])].copy()
+    
         st.markdown("### 🔄 Sinkronisasi Transaksi Lunas ke Arus Kas")
     
         st.write(f"📄 Transaksi pemasukan baru yang akan disinkronkan: {len(df_pemasukan_baru)}")

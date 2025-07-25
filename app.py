@@ -2175,7 +2175,7 @@ if selected == "Dashboard":
             "Pilih Jenis Filter Tanggal", 
             ["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"], 
             horizontal=True,
-            key="filter_tanggal_mode"
+            key="filter_tanggal_mode_dashboard"
         )
     
         df_filtered = df.copy()

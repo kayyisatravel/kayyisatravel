@@ -2166,7 +2166,158 @@ with st.sidebar:
 # Konten berdasarkan menu
 if selected == "Dashboard":
     st.title("📊 Ringkasan Dashboard")
-    # tampilkan grafik, metrik, dll
+    with st.expander("📘 Laporan Keuangan Lengkap"):
+        st.markdown("### 📊 Filter Laporan")
+    
+        df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce")
+    
+        filter_mode = st.radio(
+            "Pilih Jenis Filter Tanggal", 
+            ["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"], 
+            horizontal=True,
+            key="filter_tanggal_mode"
+        )
+    
+        df_filtered = df.copy()
+    
+        if filter_mode == "📆 Rentang Tanggal":
+            tgl_awal = st.date_input("Tanggal Awal", date.today().replace(day=1), key="tgl_awal_input")
+            tgl_akhir = st.date_input("Tanggal Akhir", date.today(), key="tgl_akhir_input")
+            if tgl_awal > tgl_akhir:
+                tgl_awal, tgl_akhir = tgl_akhir, tgl_awal
+            df_filtered = df[
+                (df["Tgl Pemesanan"] >= pd.to_datetime(tgl_awal)) &
+                (df["Tgl Pemesanan"] <= pd.to_datetime(tgl_akhir))
+            ]
+    
+        elif filter_mode == "🗓️ Bulanan":
+            bulan_nama = {
+                "Januari": 1, "Februari": 2, "Maret": 3, "April": 4,
+                "Mei": 5, "Juni": 6, "Juli": 7, "Agustus": 8,
+                "September": 9, "Oktober": 10, "November": 11, "Desember": 12
+            }
+            bulan_label = list(bulan_nama.keys())
+            bulan_pilihan = st.selectbox("Pilih Bulan", bulan_label, index=date.today().month - 1, key="filter_bulan_input")
+            tahun_bulan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True), key="filter_tahun_bulanan")
+            df_filtered = df[
+                (df["Tgl Pemesanan"].dt.month == bulan_nama[bulan_pilihan]) &
+                (df["Tgl Pemesanan"].dt.year == tahun_bulan)
+            ]
+    
+        elif filter_mode == "📅 Tahunan":
+            tahun_pilihan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True), key="filter_tahun_tahunan")
+            df_filtered = df[df["Tgl Pemesanan"].dt.year == tahun_pilihan]
+    
+    
+        # Tambahan filter Pemesan dan Admin
+        st.markdown("### 🧍 Filter Tambahan")
+        pemesan_list = ["(Semua)"] + sorted(df["Nama Pemesan"].dropna().unique())
+        admin_list = ["(Semua)"] + sorted(df["Admin"].dropna().unique())
+    
+        selected_pemesan = st.selectbox("Nama Pemesan", pemesan_list)
+        selected_admin = st.selectbox("Admin", admin_list)
+    
+        if selected_pemesan != "(Semua)":
+            df_filtered = df_filtered[df_filtered["Nama Pemesan"] == selected_pemesan]
+        if selected_admin != "(Semua)":
+            df_filtered = df_filtered[df_filtered["Admin"] == selected_admin]
+    
+        if df_filtered.empty:
+            st.warning("❌ Tidak ada data sesuai filter.")
+        else:
+            # Parse harga jika masih string
+            def parse_harga(h):
+                if pd.isna(h): return 0
+                s = str(h).replace("Rp", "").replace(".", "").replace(",", "").strip()
+                try: return float(s)
+                except: return 0
+    
+            df_filtered["Harga Jual (Num)"] = df_filtered["Harga Jual"].apply(parse_harga)
+            df_filtered["Harga Beli (Num)"] = df_filtered["Harga Beli"].apply(parse_harga)
+    
+            total_jual = df_filtered["Harga Jual (Num)"].sum()
+            total_beli = df_filtered["Harga Beli (Num)"].sum()
+            total_profit = total_jual - total_beli
+    
+            col1, col2 = st.columns([1, 1])
+            col1.metric("💰 Total Penjualan", f"Rp {int(total_jual):,}".replace(",", "."))
+            col2.metric("💸 Total Pembelian", f"Rp {int(total_beli):,}".replace(",", "."))
+            with col2:
+                st.metric("📈 Profit", f"Rp {int(total_profit):,}".replace(",", "."))
+                
+            # Grafik Tren Penjualan
+            st.markdown("### 📈 Grafik Tren Penjualan")
+            df_chart = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().reset_index()
+            st.line_chart(df_chart.rename(columns={"Tgl Pemesanan": "index"}).set_index("index"))
+    
+            # Rekap tambahan bulanan per tanggal
+            if filter_mode == "🗓️ Bulanan":
+                df_filtered["Tanggal"] = df_filtered["Tgl Pemesanan"].dt.day
+                summary_bulanan = pd.DataFrame(index=["Total Penjualan", "Total Pembelian", "Laba"])
+                for day in range(1, 32):
+                    day_data = df_filtered[df_filtered["Tanggal"] == day]
+                    jual = day_data["Harga Jual (Num)"].sum()
+                    beli = day_data["Harga Beli (Num)"].sum()
+                    laba = jual - beli
+                    summary_bulanan[day] = [jual, beli, laba]
+    
+                st.markdown("### 📅 Rekap Bulanan per Tanggal")
+                st.dataframe(summary_bulanan.style.format("Rp {:,.0f}"), use_container_width=True)
+    
+            # Rekap tambahan tahunan per bulan
+            if filter_mode == "📅 Tahunan":
+                df_filtered["Bulan"] = df_filtered["Tgl Pemesanan"].dt.month
+                nama_bulan = {
+                    1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "Mei", 6: "Jun",
+                    7: "Jul", 8: "Agu", 9: "Sep", 10: "Okt", 11: "Nov", 12: "Des"
+                }
+    
+                summary_tahunan = pd.DataFrame(index=["Total Penjualan", "Total Pembelian", "Laba"])
+                for month in range(1, 13):
+                    month_data = df_filtered[df_filtered["Bulan"] == month]
+                    jual = month_data["Harga Jual (Num)"].sum()
+                    beli = month_data["Harga Beli (Num)"].sum()
+                    laba = jual - beli
+                    summary_tahunan[nama_bulan[month]] = [jual, beli, laba]
+    
+                st.markdown("### 📆 Rekap Tahunan per Bulan")
+                st.dataframe(summary_tahunan.style.format("Rp {:,.0f}"), use_container_width=True)
+                
+            # Ringkasan per Admin
+            st.markdown("### 🧑‍💼 Ringkasan per Admin")
+            st.dataframe(
+                df_filtered.groupby("Admin")["Harga Jual (Num)"].sum().reset_index(name="Total Penjualan"),
+                use_container_width=True
+            )
+    
+            # Ringkasan per Pemesan
+            st.markdown("### 👥 Ringkasan per Pemesan")
+            st.dataframe(
+                df_filtered.groupby("Nama Pemesan")["Harga Jual (Num)"].sum().reset_index(name="Total Penjualan"),
+                use_container_width=True
+            )
+            
+            # Tabel detail
+            with st.expander("📄 Lihat Tabel Detail"):
+                st.dataframe(df_filtered, use_container_width=True)
+            st.markdown("### 🤖 Analisa Keuangan Otomatis")
+    
+            avg_profit = df_filtered["Harga Jual (Num)"].sum() - df_filtered["Harga Beli (Num)"].sum()
+            num_days = df_filtered["Tgl Pemesanan"].dt.date.nunique()
+            avg_profit_per_day = avg_profit / num_days if num_days else 0
+            
+            top_admin = df_filtered.groupby("Admin")["Harga Jual (Num)"].sum().idxmax()
+            top_pemesan = df_filtered.groupby("Nama Pemesan")["Harga Jual (Num)"].sum().idxmax()
+            
+            max_day = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().idxmax()
+            max_day_val = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().max()
+            
+            st.markdown(f"""
+            - 💼 **Rata-rata laba harian**: Rp {int(avg_profit_per_day):,}.  
+            - 🏆 **Admin dengan penjualan tertinggi**: {top_admin}  
+            - 🙋 **Pemesan paling aktif**: {top_pemesan}  
+            - 📅 **Hari dengan omset tertinggi**: {max_day.date()} sebesar Rp {int(max_day_val):,}  
+            """)
 
 elif selected == "Cashflow":
     st.title("💸 Laporan Arus Kas")

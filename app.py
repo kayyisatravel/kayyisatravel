@@ -2108,46 +2108,46 @@ else:
         append_dataframe_to_sheet(sync_all, ws_cashflow)
         st.success("✅ Sinkronisasi pemasukan dan pengeluaran berhasil.")
         st.rerun()
-    # --- Monitoring Invoice Belum Lunas ---
-    st.markdown("### ⚠️ Monitoring Invoice Belum Lunas")
-
-    today = pd.Timestamp.now().normalize()
-
-    df_belum_lunas = df_data[
-        ~df_data["No Invoice"].isin(df_cashflow["No Invoice"]) &  # Belum tercatat di arus kas
-        ~df_data["Keterangan"].str.contains("Lunas", na=False)     # Tidak mengandung "Lunas"
-    ].copy()
-
-    df_belum_lunas["Tanggal Invoice"] = pd.to_datetime(
-        df_belum_lunas["Keterangan"].str.extract(r"(\d{1,2}/\d{1,2}/\d{2,4})")[0],
-        format="%d/%m/%y", errors="coerce"
-    )
-    df_belum_lunas["Tanggal Invoice"].fillna(df_belum_lunas["Tgl Pemesanan"], inplace=True)
-    df_belum_lunas["Tanggal Invoice"].fillna(today, inplace=True)
-
-    df_belum_lunas["Hari Keterlambatan"] = (today - df_belum_lunas["Tanggal Invoice"]).dt.days
-
-    bins = [-1, 7, 14, 30, np.inf]
-    labels = ["0-7 hari", "8-14 hari", "15-30 hari", ">30 hari"]
-    df_belum_lunas["Kategori Umur"] = pd.cut(df_belum_lunas["Hari Keterlambatan"], bins=bins, labels=labels)
-
-    # Warn user dengan highlight baris keterlambatan > 30 hari
-    def highlight_late(row):
-        if row["Hari Keterlambatan"] > 30:
-            return ["background-color: #ff9999"]*len(row)
-        return [""]*len(row)
-
-    st.dataframe(
-        df_belum_lunas[[
-            "No Invoice", "Kode Booking", "Harga Jual", "Keterangan", "Tanggal Invoice", "Hari Keterlambatan", "Kategori Umur"
-        ]].sort_values(by="Hari Keterlambatan", ascending=False).style.apply(highlight_late, axis=1)
-    )
-
-    summary_umur = df_belum_lunas.groupby("Kategori Umur")["No Invoice"].nunique().reset_index()
-    summary_umur.columns = ["Kategori Umur", "Jumlah Invoice Belum Lunas"]
-
-    st.markdown("#### 📊 Summary Invoice Belum Lunas berdasarkan Umur Keterlambatan")
-    st.table(summary_umur)
+        # --- Monitoring Invoice Belum Lunas ---
+        st.markdown("### ⚠️ Monitoring Invoice Belum Lunas")
+    
+        today = pd.Timestamp.now().normalize()
+    
+        df_belum_lunas = df_data[
+            ~df_data["No Invoice"].isin(df_cashflow["No Invoice"]) &  # Belum tercatat di arus kas
+            ~df_data["Keterangan"].str.contains("Lunas", na=False)     # Tidak mengandung "Lunas"
+        ].copy()
+    
+        df_belum_lunas["Tanggal Invoice"] = pd.to_datetime(
+            df_belum_lunas["Keterangan"].str.extract(r"(\d{1,2}/\d{1,2}/\d{2,4})")[0],
+            format="%d/%m/%y", errors="coerce"
+        )
+        df_belum_lunas["Tanggal Invoice"].fillna(df_belum_lunas["Tgl Pemesanan"], inplace=True)
+        df_belum_lunas["Tanggal Invoice"].fillna(today, inplace=True)
+    
+        df_belum_lunas["Hari Keterlambatan"] = (today - df_belum_lunas["Tanggal Invoice"]).dt.days
+    
+        bins = [-1, 7, 14, 30, np.inf]
+        labels = ["0-7 hari", "8-14 hari", "15-30 hari", ">30 hari"]
+        df_belum_lunas["Kategori Umur"] = pd.cut(df_belum_lunas["Hari Keterlambatan"], bins=bins, labels=labels)
+    
+        # Warn user dengan highlight baris keterlambatan > 30 hari
+        def highlight_late(row):
+            if row["Hari Keterlambatan"] > 30:
+                return ["background-color: #ff9999"]*len(row)
+            return [""]*len(row)
+    
+        st.dataframe(
+            df_belum_lunas[[
+                "No Invoice", "Kode Booking", "Harga Jual", "Keterangan", "Tanggal Invoice", "Hari Keterlambatan", "Kategori Umur"
+            ]].sort_values(by="Hari Keterlambatan", ascending=False).style.apply(highlight_late, axis=1)
+        )
+    
+        summary_umur = df_belum_lunas.groupby("Kategori Umur")["No Invoice"].nunique().reset_index()
+        summary_umur.columns = ["Kategori Umur", "Jumlah Invoice Belum Lunas"]
+    
+        st.markdown("#### 📊 Summary Invoice Belum Lunas berdasarkan Umur Keterlambatan")
+        st.table(summary_umur)
 
 
 

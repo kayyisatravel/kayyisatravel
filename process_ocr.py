@@ -263,14 +263,18 @@ def extract_city(text: str, city_list: list) -> str:
     return None
 
 def extract_room_count(text: str) -> int:
-    """
-    Mencari pola seperti '2 x Kamar' → kembalikan 2.
-    Jika tidak ketemu, default 1.
-    """
-    m = re.search(r'(\d+)\s*[xX]\s*Kamar', text, re.IGNORECASE)
+    # Pola eksplisit
+    m = re.search(r'Jumlah\s+Kamar\s*[:=\-]?\s*(\d+)', text, re.IGNORECASE)
     if m:
         return int(m.group(1))
+
+    # Pola seperti '3 x Kamar' atau '3 x Double Bedroom'
+    m = re.search(r'(\d+)\s*[xX]\s*(?:Kamar|Room|Double\s*Bedroom|Twin\s*Bed)', text, re.IGNORECASE)
+    if m:
+        return int(m.group(1))
+
     return 1
+
 
 def extract_bf(text: str) -> str:
     """
@@ -392,8 +396,7 @@ def extract_duration_days_hotel(checkin: datetime, checkout: datetime) -> int:
 
 def process_ocr_text_multiple(text: str) -> list:
     """
-    Memproses OCR hotel, mengembalikan list of dict. 
-    Dicetak satu per kamar/tamu.
+    Memproses OCR hotel menjadi list of dict per kamar.
     """
     city_list = load_city_list()
     cleaned = clean_text(text)
@@ -401,7 +404,6 @@ def process_ocr_text_multiple(text: str) -> list:
 
     kode_booking = extract_booking_code(cleaned)
     hotel_name = clean_hotel_name(extract_hotel_name(cleaned_lines))
-    durasi_night = None
     checkin_dt, checkout_dt = extract_dates_hotel(cleaned)
     durasi_night = extract_duration_days_hotel(checkin_dt, checkout_dt)
 
@@ -410,51 +412,60 @@ def process_ocr_text_multiple(text: str) -> list:
     customer_names = extract_customer_names(cleaned_lines)
 
     tipe = detect_document_type(text)
-    # Debug print (optional)
-    #print(f"[DEBUG] Jumlah kamar: {jumlah_kamar}, Nama Tamu: {customer_names}")
+    kota = extract_city(cleaned, city_list)
+    bf_status = extract_bf(cleaned)
 
-    # Hitung per-kamar
-    harga_beli_per_kamar = (harga_beli_total // jumlah_kamar) if (harga_beli_total and jumlah_kamar) else None
-    harga_jual_per_kamar = (harga_jual_total // jumlah_kamar) if (harga_jual_total and jumlah_kamar) else None
+    # Siapkan pembagian harga beli dan jual (rata + sisa)
+    harga_beli_per_kamar = []
+    harga_jual_per_kamar = []
 
-    # Sesuaikan panjang customer_names dengan jumlah_kamar
+    if harga_beli_total and jumlah_kamar:
+        beli_per_kamar = harga_beli_total // jumlah_kamar
+        sisa_beli = harga_beli_total % jumlah_kamar
+        harga_beli_per_kamar = [beli_per_kamar] * jumlah_kamar
+        harga_beli_per_kamar[-1] += sisa_beli  # tambahkan sisa ke kamar terakhir
+
+    if harga_jual_total and jumlah_kamar:
+        jual_per_kamar = harga_jual_total // jumlah_kamar
+        sisa_jual = harga_jual_total % jumlah_kamar
+        harga_jual_per_kamar = [jual_per_kamar] * jumlah_kamar
+        harga_jual_per_kamar[-1] += sisa_jual
+
+    # Sesuaikan panjang customer_names
     if len(customer_names) < jumlah_kamar:
         customer_names += [None] * (jumlah_kamar - len(customer_names))
     elif len(customer_names) > jumlah_kamar:
         customer_names = customer_names[:jumlah_kamar]
 
-    kota = extract_city(cleaned, city_list)
-    bf_status = extract_bf(cleaned)
-
+    # Susun hasil akhir
     results = []
+    today_str = datetime.today().strftime('%Y-%m-%d')
+
     for idx in range(jumlah_kamar):
-        nama_tamu = customer_names[idx] if idx < len(customer_names) else None
-        data = {
-            'Tgl Pemesanan': datetime.today().strftime('%Y-%m-%d'),
+        beli = harga_beli_per_kamar[idx] if idx < len(harga_beli_per_kamar) else None
+        jual = harga_jual_per_kamar[idx] if idx < len(harga_jual_per_kamar) else None
+        laba = (jual - beli) if beli is not None and jual is not None else None
+        persen_laba = f"{round((laba / beli) * 100, 2)}%" if laba is not None and beli else ''
+
+        results.append({
+            'Tgl Pemesanan': today_str,
             'Tgl Berangkat': checkin_dt.strftime('%Y-%m-%d') if checkin_dt else '',
             'Kode Booking': kode_booking,
             'No Penerbangan / Nama Hotel / Kereta': hotel_name,
-            'Durasi': f"{durasi_night} mlm" if durasi_night else None,
-            'Nama Customer': nama_tamu,
+            'Durasi': f"{durasi_night} mlm" if durasi_night else '',
+            'Nama Customer': customer_names[idx],
             'Rute/Kota': kota,
-            'Harga Beli': harga_beli_per_kamar,
-            'Harga Jual': harga_jual_per_kamar,
-            'Laba': None,
+            'Harga Beli': beli,
+            'Harga Jual': jual,
+            'Laba': laba,
             'Tipe': tipe,
             'BF/NBF': bf_status,
             'No Invoice': '',
             'Keterangan': '',
             'Pemesan': '',
             'Admin': '',
-            '% Laba': ''
-        }
-        # Hitung laba dan persentase
-        if data['Harga Beli'] is not None and data['Harga Jual'] is not None:
-            data['Laba'] = data['Harga Jual'] - data['Harga Beli']
-            if data['Harga Beli'] > 0:
-                data['% Laba'] = f"{round((data['Laba'] / data['Harga Beli']) * 100, 2)}%"
-
-        results.append(data)
+            '% Laba': persen_laba
+        })
 
     return results
 

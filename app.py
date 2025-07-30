@@ -1475,6 +1475,10 @@ with st.expander("🎫 Generator E-Tiket + Simpan Data"):
                 st.rerun()
 
 st.markdown("""<hr style="border-top: 1px solid #7f8c8d;">""", unsafe_allow_html=True)
+#=================================================================================================================================================================
+from prophet import Prophet
+from prophet.plot import plot_plotly
+import plotly.graph_objects as go
 
 with st.expander("📘 Laporan Keuangan Lengkap"):
     st.markdown("### 📊 Filter Laporan")
@@ -1628,7 +1632,23 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
         - 🙋 **Pemesan paling aktif**: {top_pemesan}  
         - 📅 **Hari dengan omset tertinggi**: {max_day.date()} sebesar Rp {int(max_day_val):,}  
         """)
+        
+        with st.expander("🔮 Prediksi Omzet / Laba"):
+            df_prophet = df_filtered.copy()
+            df_prophet = df_prophet.groupby("Tgl Pemesanan")[["Harga Jual (Num)", "Harga Beli (Num)"]].sum().reset_index()
+            df_prophet["ds"] = df_prophet["Tgl Pemesanan"]
+            df_prophet["y"] = df_prophet["Harga Jual (Num)"] - df_prophet["Harga Beli (Num)"]
+        
+            model = Prophet()
+            model.fit(df_prophet[["ds", "y"]])
+        
+            future = model.make_future_dataframe(periods=30)
+            forecast = model.predict(future)
+        
+            st.plotly_chart(plot_plotly(model, forecast), use_container_width=True)
 
+
+#=================================================================================================================================================================
 import streamlit as st
 import pandas as pd
 import holidays

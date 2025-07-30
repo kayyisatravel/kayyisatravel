@@ -1633,44 +1633,73 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
         - 📅 **Hari dengan omset tertinggi**: {max_day.date()} sebesar Rp {int(max_day_val):,}  
         """)
         
-
-        with st.expander("🔮 Prediksi Omzet / Laba (3 Bulan Terakhir)"):
+        with st.expander("🔮 Prediksi Omzet / Laba per Bulan (Dinamis)"):
             df_prophet = df_filtered.copy()
             df_prophet = df_prophet.groupby("Tgl Pemesanan")[["Harga Jual (Num)", "Harga Beli (Num)"]].sum().reset_index()
             df_prophet["ds"] = df_prophet["Tgl Pemesanan"]
             df_prophet["y"] = df_prophet["Harga Jual (Num)"] - df_prophet["Harga Beli (Num)"]
         
-            # 🔍 Ambil hanya 3 bulan terakhir
-            tgl_akhir = df_prophet["ds"].max()
-            tgl_awal = tgl_akhir - pd.DateOffset(months=3)
-            df_prophet = df_prophet[df_prophet["ds"].between(tgl_awal, tgl_akhir)]
+            # Gunakan hanya data 3 bulan terakhir untuk pelatihan (opsional)
+            if len(df_prophet) >= 90:
+                df_prophet = df_prophet[df_prophet["ds"] >= df_prophet["ds"].max() - pd.DateOffset(months=3)]
         
-            # Cek apakah cukup data untuk diproses
-            if len(df_prophet) < 10:
-                st.warning("❗ Data 3 bulan terakhir belum cukup untuk melakukan prediksi.")
+            model = Prophet()
+            model.fit(df_prophet[["ds", "y"]])
+        
+            future = model.make_future_dataframe(periods=90)  # 3 bulan ke depan
+            forecast = model.predict(future)
+        
+            # 🎛️ Input UI: Pilih bulan dan tahun target
+            all_months = [f"{i:02d}" for i in range(1, 13)]
+            month_map = {
+                "01": "Januari", "02": "Februari", "03": "Maret", "04": "April", "05": "Mei", "06": "Juni",
+                "07": "Juli", "08": "Agustus", "09": "September", "10": "Oktober", "11": "November", "12": "Desember"
+            }
+            month_select = st.selectbox("📅 Pilih Bulan", options=all_months, format_func=lambda x: month_map[x])
+            year_select = st.selectbox("🗓️ Pilih Tahun", options=sorted(forecast["ds"].dt.year.unique()))
+        
+            # 🧠 Filter forecast ke bulan & tahun yang dipilih
+            forecast_selected = forecast[
+                (forecast["ds"].dt.month == int(month_select)) &
+                (forecast["ds"].dt.year == year_select)
+            ]
+        
+            if forecast_selected.empty:
+                st.warning("📭 Tidak ada prediksi tersedia untuk bulan & tahun yang dipilih.")
             else:
-                model = Prophet()
-                model.fit(df_prophet[["ds", "y"]])
+                total_yhat = forecast_selected["yhat"].sum()
+                min_yhat = forecast_selected["yhat"].min()
+                max_yhat = forecast_selected["yhat"].max()
+                delta_trend = forecast_selected["trend"].iloc[-1] - forecast_selected["trend"].iloc[0]
         
-                future = model.make_future_dataframe(periods=30)
-                forecast = model.predict(future)
+                # Tampilkan grafik prediksi bulan tersebut
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=forecast_selected["ds"], y=forecast_selected["yhat"], name="Prediksi Laba"))
+                fig.update_layout(title=f"📈 Prediksi Laba - {month_map[month_select]} {year_select}")
+                st.plotly_chart(fig, use_container_width=True)
         
-                st.plotly_chart(plot_plotly(model, forecast), use_container_width=True)
-        
-                forecast_last30 = forecast.tail(30)
-                total_forecast = forecast_last30["yhat"].sum()
-                min_laba = forecast_last30["yhat"].min()
-                max_laba = forecast_last30["yhat"].max()
-                trend = forecast["trend"].iloc[-1] - forecast["trend"].iloc[-30]
-        
-                st.markdown("### 📊 Kesimpulan Prediksi (Berdasarkan 3 Bulan Terakhir):")
+                # 🧾 Ringkasan
+                st.markdown("### 📊 Ringkasan Prediksi Bulanan:")
                 st.markdown(f"""
-                - 📅 Periode prediksi: {forecast_last30['ds'].min().date()} hingga {forecast_last30['ds'].max().date()}
-                - 📈 **Perkiraan total laba 30 hari ke depan**: Rp {int(total_forecast):,}
-                - 🔼 **Hari terbaik diperkirakan mencapai**: Rp {int(max_laba):,}
-                - 🔽 **Hari terendah diperkirakan turun ke**: Rp {int(min_laba):,}
-                - 📊 **Tren 30 hari ke depan**: {'meningkat' if trend > 0 else 'menurun' if trend < 0 else 'stabil'} (Δ Rp {int(trend):,})
+                - 🗓️ Bulan dipilih: **{month_map[month_select]} {year_select}**
+                - 📈 **Total laba diprediksi**: Rp {int(total_yhat):,}
+                - 🔼 **Hari terbaik (estimasi)**: Rp {int(max_yhat):,}
+                - 🔽 **Hari terendah (estimasi)**: Rp {int(min_yhat):,}
+                - 📊 **Tren bulan ini**: {'meningkat' if delta_trend > 0 else 'menurun' if delta_trend < 0 else 'stabil'} (Δ Rp {int(delta_trend):,})
                 """)
+        
+                # Perbandingan dengan bulan sebelumnya
+                prev_month = int(month_select) - 1 if int(month_select) > 1 else 12
+                prev_year = year_select if int(month_select) > 1 else year_select - 1
+                forecast_prev = forecast[
+                    (forecast["ds"].dt.month == prev_month) &
+                    (forecast["ds"].dt.year == prev_year)
+                ]
+                if not forecast_prev.empty:
+                    total_prev = forecast_prev["yhat"].sum()
+                    delta = total_yhat - total_prev
+                    st.markdown(f"📉 **Perbandingan dengan bulan sebelumnya ({month_map[str(prev_month).zfill(2)]} {prev_year})**: Rp {int(total_prev):,} → Rp {int(total_yhat):,} (Δ Rp {int(delta):,})")
+
 
         with st.expander("📊 Perbandingan Kinerja Bulanan / YTD"):
             df_filtered["Bulan"] = df_filtered["Tgl Pemesanan"].dt.to_period("M")

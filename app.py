@@ -1678,10 +1678,10 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
             st.markdown(f"🔍 Ditemukan **{len(anomalies)}** hari dengan penjualan di luar batas normal (IQR).")
 
         with st.expander("💼 Segmentasi Produk berdasarkan Profitabilitas"):
-            if "Nama Produk" in df_filtered.columns:
+            if "Tipe" in df_filtered.columns:
                 df_segment = df_filtered.copy()
                 df_segment["Profit"] = df_segment["Harga Jual (Num)"] - df_segment["Harga Beli (Num)"]
-                segment = df_segment.groupby("Nama Produk")[["Harga Jual (Num)", "Harga Beli (Num)", "Profit"]].sum().reset_index()
+                segment = df_segment.groupby("Tipe")[["Harga Jual (Num)", "Harga Beli (Num)", "Profit"]].sum().reset_index()
                 segment["Profit Margin (%)"] = 100 * segment["Profit"] / segment["Harga Jual (Num)"]
         
                 st.dataframe(segment.sort_values("Profit", ascending=False), use_container_width=True)
@@ -1695,7 +1695,7 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
                 fig.update_layout(title="Segmentasi Produk: Profit Margin", xaxis_title="Produk", yaxis_title="Margin %")
                 st.plotly_chart(fig, use_container_width=True)
             else:
-                st.info("Kolom 'Nama Produk' tidak tersedia.")
+                st.info("Kolom 'Tipe' tidak tersedia.")
 
 
 #=================================================================================================================================================================

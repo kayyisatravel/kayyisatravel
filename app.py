@@ -1688,7 +1688,7 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
         
                 fig = go.Figure()
                 fig.add_trace(go.Bar(
-                    x=segment["Nama Produk"],
+                    x=segment["Tipe"],
                     y=segment["Profit Margin (%)"],
                     name="Margin (%)"
                 ))

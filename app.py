@@ -1634,36 +1634,43 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
         """)
         
 
-        with st.expander("🔮 Prediksi Omzet / Laba"):
+        with st.expander("🔮 Prediksi Omzet / Laba (3 Bulan Terakhir)"):
             df_prophet = df_filtered.copy()
             df_prophet = df_prophet.groupby("Tgl Pemesanan")[["Harga Jual (Num)", "Harga Beli (Num)"]].sum().reset_index()
             df_prophet["ds"] = df_prophet["Tgl Pemesanan"]
             df_prophet["y"] = df_prophet["Harga Jual (Num)"] - df_prophet["Harga Beli (Num)"]
         
-            model = Prophet()
-            model.fit(df_prophet[["ds", "y"]])
+            # 🔍 Ambil hanya 3 bulan terakhir
+            tgl_akhir = df_prophet["ds"].max()
+            tgl_awal = tgl_akhir - pd.DateOffset(months=3)
+            df_prophet = df_prophet[df_prophet["ds"].between(tgl_awal, tgl_akhir)]
         
-            future = model.make_future_dataframe(periods=30)
-            forecast = model.predict(future)
+            # Cek apakah cukup data untuk diproses
+            if len(df_prophet) < 10:
+                st.warning("❗ Data 3 bulan terakhir belum cukup untuk melakukan prediksi.")
+            else:
+                model = Prophet()
+                model.fit(df_prophet[["ds", "y"]])
         
-            st.plotly_chart(plot_plotly(model, forecast), use_container_width=True)
+                future = model.make_future_dataframe(periods=30)
+                forecast = model.predict(future)
         
-            # 🔎 Analisa Otomatis
-            forecast_last30 = forecast.tail(30)
-            total_forecast = forecast_last30["yhat"].sum()
-            min_laba = forecast_last30["yhat"].min()
-            max_laba = forecast_last30["yhat"].max()
-            trend = forecast["trend"].iloc[-1] - forecast["trend"].iloc[-30]
+                st.plotly_chart(plot_plotly(model, forecast), use_container_width=True)
         
-            st.markdown("### 📊 Kesimpulan Prediksi:")
-            st.markdown(f"""
-            - 📅 Periode prediksi: {forecast_last30['ds'].min().date()} hingga {forecast_last30['ds'].max().date()}
-            - 📈 **Perkiraan total laba 30 hari ke depan**: Rp {int(total_forecast):,}
-            - 🔼 **Hari terbaik diperkirakan mencapai**: Rp {int(max_laba):,}
-            - 🔽 **Hari terendah diperkirakan turun ke**: Rp {int(min_laba):,}
-            - 📊 **Tren 30 hari ke depan**: {'meningkat' if trend > 0 else 'menurun' if trend < 0 else 'stabil'} (Δ Rp {int(trend):,})
-            """)
-
+                forecast_last30 = forecast.tail(30)
+                total_forecast = forecast_last30["yhat"].sum()
+                min_laba = forecast_last30["yhat"].min()
+                max_laba = forecast_last30["yhat"].max()
+                trend = forecast["trend"].iloc[-1] - forecast["trend"].iloc[-30]
+        
+                st.markdown("### 📊 Kesimpulan Prediksi (Berdasarkan 3 Bulan Terakhir):")
+                st.markdown(f"""
+                - 📅 Periode prediksi: {forecast_last30['ds'].min().date()} hingga {forecast_last30['ds'].max().date()}
+                - 📈 **Perkiraan total laba 30 hari ke depan**: Rp {int(total_forecast):,}
+                - 🔼 **Hari terbaik diperkirakan mencapai**: Rp {int(max_laba):,}
+                - 🔽 **Hari terendah diperkirakan turun ke**: Rp {int(min_laba):,}
+                - 📊 **Tren 30 hari ke depan**: {'meningkat' if trend > 0 else 'menurun' if trend < 0 else 'stabil'} (Δ Rp {int(trend):,})
+                """)
 
         with st.expander("📊 Perbandingan Kinerja Bulanan / YTD"):
             df_filtered["Bulan"] = df_filtered["Tgl Pemesanan"].dt.to_period("M")

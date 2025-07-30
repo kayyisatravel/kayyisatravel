@@ -1633,6 +1633,7 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
         - 📅 **Hari dengan omset tertinggi**: {max_day.date()} sebesar Rp {int(max_day_val):,}  
         """)
         
+
         with st.expander("🔮 Prediksi Omzet / Laba"):
             df_prophet = df_filtered.copy()
             df_prophet = df_prophet.groupby("Tgl Pemesanan")[["Harga Jual (Num)", "Harga Beli (Num)"]].sum().reset_index()
@@ -1646,6 +1647,23 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
             forecast = model.predict(future)
         
             st.plotly_chart(plot_plotly(model, forecast), use_container_width=True)
+        
+            # 🔎 Analisa Otomatis
+            forecast_last30 = forecast.tail(30)
+            total_forecast = forecast_last30["yhat"].sum()
+            min_laba = forecast_last30["yhat"].min()
+            max_laba = forecast_last30["yhat"].max()
+            trend = forecast["trend"].iloc[-1] - forecast["trend"].iloc[-30]
+        
+            st.markdown("### 📊 Kesimpulan Prediksi:")
+            st.markdown(f"""
+            - 📅 Periode prediksi: {forecast_last30['ds'].min().date()} hingga {forecast_last30['ds'].max().date()}
+            - 📈 **Perkiraan total laba 30 hari ke depan**: Rp {int(total_forecast):,}
+            - 🔼 **Hari terbaik diperkirakan mencapai**: Rp {int(max_laba):,}
+            - 🔽 **Hari terendah diperkirakan turun ke**: Rp {int(min_laba):,}
+            - 📊 **Tren 30 hari ke depan**: {'meningkat' if trend > 0 else 'menurun' if trend < 0 else 'stabil'} (Δ Rp {int(trend):,})
+            """)
+
 
         with st.expander("📊 Perbandingan Kinerja Bulanan / YTD"):
             df_filtered["Bulan"] = df_filtered["Tgl Pemesanan"].dt.to_period("M")

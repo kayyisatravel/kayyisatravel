@@ -1647,6 +1647,56 @@ with st.expander("📘 Laporan Keuangan Lengkap"):
         
             st.plotly_chart(plot_plotly(model, forecast), use_container_width=True)
 
+        with st.expander("📊 Perbandingan Kinerja Bulanan / YTD"):
+            df_filtered["Bulan"] = df_filtered["Tgl Pemesanan"].dt.to_period("M")
+            df_monthly = df_filtered.groupby("Bulan")[["Harga Jual (Num)", "Harga Beli (Num)"]].sum().reset_index()
+            df_monthly["Laba"] = df_monthly["Harga Jual (Num)"] - df_monthly["Harga Beli (Num)"]
+            df_monthly["Bulan"] = df_monthly["Bulan"].astype(str)
+        
+            fig = go.Figure()
+            fig.add_trace(go.Bar(x=df_monthly["Bulan"], y=df_monthly["Harga Jual (Num)"], name="Penjualan"))
+            fig.add_trace(go.Bar(x=df_monthly["Bulan"], y=df_monthly["Harga Beli (Num)"], name="Pembelian"))
+            fig.add_trace(go.Scatter(x=df_monthly["Bulan"], y=df_monthly["Laba"], mode="lines+markers", name="Laba"))
+        
+            fig.update_layout(barmode='group', title="Kinerja Bulanan", xaxis_title="Bulan", yaxis_title="Rp")
+            st.plotly_chart(fig, use_container_width=True)
+
+        with st.expander("🚨 Deteksi Anomali Penjualan"):
+            df_anomali = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().reset_index()
+            q1 = df_anomali["Harga Jual (Num)"].quantile(0.25)
+            q3 = df_anomali["Harga Jual (Num)"].quantile(0.75)
+            iqr = q3 - q1
+            lower_bound = q1 - 1.5 * iqr
+            upper_bound = q3 + 1.5 * iqr
+        
+            anomalies = df_anomali[
+                (df_anomali["Harga Jual (Num)"] < lower_bound) |
+                (df_anomali["Harga Jual (Num)"] > upper_bound)
+            ]
+        
+            st.dataframe(anomalies, use_container_width=True)
+            st.markdown(f"🔍 Ditemukan **{len(anomalies)}** hari dengan penjualan di luar batas normal (IQR).")
+
+        with st.expander("💼 Segmentasi Produk berdasarkan Profitabilitas"):
+            if "Nama Produk" in df_filtered.columns:
+                df_segment = df_filtered.copy()
+                df_segment["Profit"] = df_segment["Harga Jual (Num)"] - df_segment["Harga Beli (Num)"]
+                segment = df_segment.groupby("Nama Produk")[["Harga Jual (Num)", "Harga Beli (Num)", "Profit"]].sum().reset_index()
+                segment["Profit Margin (%)"] = 100 * segment["Profit"] / segment["Harga Jual (Num)"]
+        
+                st.dataframe(segment.sort_values("Profit", ascending=False), use_container_width=True)
+        
+                fig = go.Figure()
+                fig.add_trace(go.Bar(
+                    x=segment["Nama Produk"],
+                    y=segment["Profit Margin (%)"],
+                    name="Margin (%)"
+                ))
+                fig.update_layout(title="Segmentasi Produk: Profit Margin", xaxis_title="Produk", yaxis_title="Margin %")
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Kolom 'Nama Produk' tidak tersedia.")
+
 
 #=================================================================================================================================================================
 import streamlit as st

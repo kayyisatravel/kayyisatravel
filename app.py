@@ -1769,6 +1769,7 @@ with st.expander("📊 Analisa Laporan Keuangan"):
     id_holidays = holidays.Indonesia(years=years)
 
     # ----- HARiAN -----
+    st.write("Kolom tersedia di df_filtered:", df_filtered.columns.tolist())
     df_daily = (
         df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"]
         .sum()

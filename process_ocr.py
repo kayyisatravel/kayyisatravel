@@ -173,7 +173,7 @@ def detect_document_type(text: str) -> str:
         return 'KERETA'
 
     # Pesawat
-    if re.search(r'\b(flight|airlines|maskapai|pnr|kode\s*penerbangan|air\s*asia|airasia|citilink|garuda\s*Indonesia|jet|nam\s*air|batik\s*air|wings\s*air|susi\s*air|pelita\s*air|sriwijaya\s*air|lion\s*air)\b', tl):
+    if re.search(r'\b(flight|airlines|maskapai|pnr|kode\s*penerbangan|air\s*asia|airasia|citilink|garuda\s*indonesia|jet|nam\s*air|batik\s*air|wings\s*air|susi\s*air|pelita\s*air|sriwijaya\s*air|lion\s*air)\b', tl):
         return 'PESAWAT'
 
     # Hotel

@@ -1764,6 +1764,16 @@ with st.expander("📊 Analisa Laporan Keuangan"):
 
     # Pastikan kolom datetime sudah benar
     df_filtered["Tgl Pemesanan"] = pd.to_datetime(df_filtered["Tgl Pemesanan"], errors="coerce")
+    
+    if "Harga Jual" in df_filtered.columns:
+        df_filtered["Harga Jual (Num)"] = (
+            df_filtered["Harga Jual"]
+            .astype(str)
+            .replace("[Rp.,\s]", "", regex=True)
+            .astype(float)
+        )
+    else:
+        st.error("❌ Kolom 'Harga Jual' tidak ditemukan. Tidak bisa melanjutkan analisa.")
 
     years = df_filtered["Tgl Pemesanan"].dt.year.dropna().unique()
     id_holidays = holidays.Indonesia(years=years)

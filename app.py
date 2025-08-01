@@ -1804,14 +1804,14 @@ with st.expander("📊 Analisa Laporan Keuangan"):
     )
     df_monthly["Pct_Change"] = df_monthly["Harga Jual (Num)"].pct_change() * 100
     df_monthly["MonthStart"] = df_monthly["YearMonth"].dt.to_timestamp()
-
+    
     def check_month_holiday(ts):
         return any([(ts + pd.Timedelta(days=i)) in id_holidays for i in range(31)])
-
-    df_monthly["Is_Holiday_Month"] = df_monthly["MonthStart"].apply(check_month_holiday)
-    df_monthly["Is_Weekend_Month"] = df_monthly["MonthStart"].dt.weekday.isin([5, 6])
+    
+    df_monthly["Is_Holiday_Month"] = df_monthly["MonthStart"].apply(check_month_holiday).astype(bool)
+    df_monthly["Is_Weekend_Month"] = (df_monthly["MonthStart"].dt.weekday >= 5).astype(bool)
     df_monthly["Near_Holiday"] = df_monthly["Is_Holiday_Month"] | df_monthly["Is_Weekend_Month"]
-
+    
     threshold_drop_monthly = -15
     penurunan_signifikan_bulanan = df_monthly[df_monthly["Pct_Change"] <= threshold_drop_monthly]
 

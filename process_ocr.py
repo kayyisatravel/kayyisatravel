@@ -414,13 +414,6 @@ def process_ocr_text_multiple(text: str) -> list:
     jumlah_kamar = extract_room_count(cleaned)
     harga_beli_total, harga_jual_total = extract_price_info(cleaned)
     customer_names = extract_customer_names(cleaned_lines)
-    # Fallback harga jual jika tidak ditemukan
-    if not harga_jual_total:
-        rate_match = re.search(r'Rate\s+per\s+Malam\s+(?:Rp)?[\s.]*([\d.,]+)', cleaned, re.IGNORECASE)
-        if rate_match and durasi_night:
-            rate_per_malam = normalize_price(rate_match.group(1))
-            if rate_per_malam:
-                harga_jual_total = rate_per_malam * durasi_night
 
     tipe = detect_document_type(text)
     kota = extract_city(cleaned, city_list)

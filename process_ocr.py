@@ -235,11 +235,15 @@ def extract_hotel_name(text_keep_lines: str) -> str:
 
 def clean_hotel_name(name: str) -> str:
     """
-    Jika perlu, bersihkan trailing karakter seperti ')'.
+    Bersihkan trailing karakter seperti ')' dan potong sampai koma pertama jika ada.
     """
     if not name:
         return None
-    return name.rstrip(' )')
+    name = name.rstrip(' )')
+    if ',' in name:
+        name = name.split(',')[0]
+    return name.strip()
+
 
 def extract_city(text: str, city_list: list) -> str:
     """
@@ -410,6 +414,13 @@ def process_ocr_text_multiple(text: str) -> list:
     jumlah_kamar = extract_room_count(cleaned)
     harga_beli_total, harga_jual_total = extract_price_info(cleaned)
     customer_names = extract_customer_names(cleaned_lines)
+    # Fallback harga jual jika tidak ditemukan
+    if not harga_jual_total:
+        rate_match = re.search(r'Rate\s+per\s+Malam\s+(?:Rp)?[\s.]*([\d.,]+)', cleaned, re.IGNORECASE)
+        if rate_match and durasi_night:
+            rate_per_malam = normalize_price(rate_match.group(1))
+            if rate_per_malam:
+                harga_jual_total = rate_per_malam * durasi_night
 
     tipe = detect_document_type(text)
     kota = extract_city(cleaned, city_list)

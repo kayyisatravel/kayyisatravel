@@ -1350,9 +1350,9 @@ with st.expander("🎫 Generator E-Tiket"):
 
     # Template default berdasarkan tipe tiket
     if tipe_tiket == "Hotel":
-        default_text = "Order ID:\nItinerary ID:\n\nBeli "
+        default_text = "Order ID:\nItinerary ID:\n\nHarga "
     else:
-        default_text = "Kode booking:\n\nBeli "
+        default_text = "Kode booking: "
 
     # Inisialisasi text_area hanya sekali per tipe (hindari reset)
     input_key = f"input_text_{tipe_tiket}"

@@ -740,6 +740,113 @@ def process_ocr_kereta(text: str) -> list:
         results.append(data)
 
     return results
+#=======================================================================================================================
+#=============WHOOSH==============
+
+def extract_kode_booking(text: str) -> str:
+    match = re.search(r'kode\s*booking\s*[:\-]?\s*([A-Z0-9]+)', text, re.IGNORECASE)
+    return match.group(1) if match else ''
+def extract_tanggal(text: str) -> str:
+    match = re.search(r'(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})', text)
+    if not match:
+        return ''
+    
+    day, month_str, year = match.groups()
+    month_map = {
+        'jan': 1, 'januari': 1, 'feb': 2, 'februari': 2,
+        'mar': 3, 'maret': 3, 'apr': 4, 'april': 4,
+        'mei': 5, 'jun': 6, 'juni': 6, 'jul': 7, 'juli': 7,
+        'ags': 8, 'agustus': 8, 'aug': 8,
+        'sep': 9, 'september': 9, 'okt': 10, 'oktober': 10,
+        'nov': 11, 'november': 11, 'des': 12, 'desember': 12
+    }
+    mm = month_map.get(month_str.lower()[:3])
+    if not mm:
+        return ''
+    try:
+        return datetime(int(year), mm, int(day)).strftime('%Y-%m-%d')
+    except ValueError:
+        return ''
+def extract_rute_whoosh(text: str) -> str:
+    match = re.search(r'\((ID[A-Z]{3})\)\s*-\s*[A-Za-z]+\s+.*?Whoosh.*?\((ID[A-Z]{3})\)', text, re.DOTALL)
+    if match:
+        asal, tujuan = match.groups()
+        return f"{asal[-3:]} - {tujuan[-3:]}"  # e.g., IDPGA → PGA
+    return ''
+def extract_passengers_whoosh(text: str) -> list:
+    results = []
+    kursi_match = re.search(r'Ekonomi Premium\s*(\d+)\s*/([0-9A-Z]+)', text)
+    kursi = f"{kursi_match.group(1)}/{kursi_match.group(2)}" if kursi_match else ''
+
+    for match in re.finditer(r'(?:TUAN|NYONYA|NN|NY)\s+([A-Z][a-zA-Z\s]+)', text):
+        nama = match.group(1).strip()
+        kereta_info = f"Whoosh  PRE {kursi}"
+        results.append((nama, kereta_info))
+    
+    return results
+
+def process_ocr_whoosh(text: str) -> list:
+    cleaned = clean_text(text)
+    cleaned_lines = clean_text_keep_lines(text)
+
+    # --- Kode Booking ---
+    kode_booking = extract_kode_booking(cleaned)
+
+    # --- Tanggal Berangkat ---
+    tgl_berangkat = extract_tanggal(cleaned)
+    tgl_pemesanan = (datetime.strptime(tgl_berangkat, '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d') if tgl_berangkat else ''
+
+    # --- Jam Keberangkatan dan Tiba sebagai Durasi ---
+    jam_list = re.findall(r'\d{1,2}[:.]\d{2}', cleaned)
+    durasi = f"{jam_list[0]} - {jam_list[1]}" if len(jam_list) >= 2 else ''
+
+    # --- Rute (contoh: IDPGA - IDHMA → PGA - HMA) ---
+    rute = extract_rute_whoosh(cleaned)
+
+    # --- Penumpang ---
+    passengers = extract_passengers_whoosh(cleaned)
+
+    # --- Validasi jumlah penumpang ---
+    jumlah_penumpang = len(passengers)
+    if jumlah_penumpang == 0:
+        print("[WARNING] Tidak ditemukan penumpang dalam tiket Whoosh.")
+        return []
+
+    # --- Harga Total (gunakan fungsi umum jika tersedia) ---
+    harga_beli_total, harga_jual_total = extract_price_info(cleaned, jumlah_penumpang)
+
+    harga_beli_per = harga_beli_total // jumlah_penumpang if harga_beli_total else None
+    harga_jual_per = harga_jual_total // jumlah_penumpang if harga_jual_total else None
+
+    # --- Hasil akhir ---
+    results = []
+    for nama_penumpang, kereta_info in passengers:
+        laba = (harga_jual_per - harga_beli_per) if (harga_beli_per is not None and harga_jual_per is not None) else None
+        persen_laba = f"{round((laba / harga_beli_per) * 100, 2)}%" if (laba is not None and harga_beli_per > 0) else ''
+
+        data = {
+            'Tgl Pemesanan': tgl_pemesanan,
+            'Tgl Berangkat': tgl_berangkat,
+            'Kode Booking': kode_booking,
+            'No Penerbangan / Nama Hotel / Kereta': kereta_info,
+            'Durasi': durasi,
+            'Nama Customer': nama_penumpang,
+            'Rute/Kota': rute,
+            'Harga Beli': harga_beli_per,
+            'Harga Jual': harga_jual_per,
+            'Laba': laba,
+            'Tipe': '',
+            'BF/NBF': '',
+            'No Invoice': '',
+            'Keterangan': '',
+            'Pemesan': '',
+            'Admin': '',
+            '% Laba': persen_laba
+        }
+        results.append(data)
+
+    return results
+
 
 # ===================================
 # === MASTER PROCESSOR FUNCTION ===
@@ -752,6 +859,10 @@ def process_ocr_unified(text: str) -> list:
     """
     tipe = detect_document_type(text)
     print(f"DEBUG: detect_document_type result: '{tipe}'", flush=True)
+
+    if 'whoosh' in text.lower():
+        return process_ocr_whoosh(text)
+
     if tipe == 'HOTEL':
         return process_ocr_text_multiple(text)
     elif tipe == 'PESAWAT':

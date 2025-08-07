@@ -783,23 +783,23 @@ def extract_rute_whoosh(text: str) -> str:
 
 def extract_passengers_whoosh(text: str) -> list:
     passengers = []
-    # Pattern nama (hanya sampai sebelum "Nomor Identitas")
+
+    # Ekstrak nama penumpang
     pattern = re.compile(
         r'(?:TUAN|NYONYA|NN|NY)\s+([A-Z][a-zA-Z\s]+?)(?=\s+Nomor\s+Identitas)', re.IGNORECASE)
-    
-    # Pattern kursi per penumpang (harus sesuaikan jumlah penumpang)
-    kursi_pattern = re.compile(r'Ekonomi\s+Premium\s+(\d+)\s*/([0-9A-Z]+)', re.IGNORECASE)
-
-    kursi_list = kursi_pattern.findall(text)
     nama_list = [m.group(1).strip() for m in pattern.finditer(text)]
+
+    # Ekstrak kursi (dalam urutan kemunculan)
+    kursi_pattern = re.compile(r'Kursi\s+Ekonomi\s+Premium\s+(\d+)\s*/\s*([0-9A-Z]+)', re.IGNORECASE)
+    kursi_list = kursi_pattern.findall(text)
 
     for i, nama in enumerate(nama_list):
         kursi = ''
         if i < len(kursi_list):
             kursi = f"{kursi_list[i][0]}/{kursi_list[i][1]}"
-        kereta_info = f"Whoosh  PRE {kursi}"
+        kereta_info = f"Whoosh PRE {kursi}".strip()  # rapikan trailing spasi
         passengers.append((nama, kereta_info))
-    
+
     return passengers
 
 

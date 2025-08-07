@@ -742,6 +742,8 @@ def process_ocr_kereta(text: str) -> list:
     return results
 #=======================================================================================================================
 #=============WHOOSH==============
+import re
+from datetime import datetime, timedelta
 
 def extract_kode_booking(text: str) -> str:
     match = re.search(r'kode\s*booking\s*[:\-]?\s*([A-Z0-9]+)', text, re.IGNORECASE)

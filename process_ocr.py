@@ -777,16 +777,25 @@ def extract_rute_whoosh(text: str) -> str:
 
 def extract_passengers_whoosh(text: str) -> list:
     passengers = []
-    pattern = re.compile(r'(?:TUAN|NYONYA|NN|NY)\s+([A-Z][a-zA-Z\s]+?)(?=\s+Nomor\s+Identitas|\s+IDPGA|\s+IDHMA|\s+Kursi)', re.IGNORECASE)
-    kursi_match = re.search(r'Ekonomi\s+Premium\s+(\d+)\s*/([0-9A-Z]+)', text, re.IGNORECASE)
-    kursi = f"{kursi_match.group(1)}/{kursi_match.group(2)}" if kursi_match else ''
+    # Pattern nama (hanya sampai sebelum "Nomor Identitas")
+    pattern = re.compile(
+        r'(?:TUAN|NYONYA|NN|NY)\s+([A-Z][a-zA-Z\s]+?)(?=\s+Nomor\s+Identitas)', re.IGNORECASE)
+    
+    # Pattern kursi per penumpang (harus sesuaikan jumlah penumpang)
+    kursi_pattern = re.compile(r'Ekonomi\s+Premium\s+(\d+)\s*/([0-9A-Z]+)', re.IGNORECASE)
 
-    for m in pattern.finditer(text):
-        nama = m.group(1).strip()
+    kursi_list = kursi_pattern.findall(text)
+    nama_list = [m.group(1).strip() for m in pattern.finditer(text)]
+
+    for i, nama in enumerate(nama_list):
+        kursi = ''
+        if i < len(kursi_list):
+            kursi = f"{kursi_list[i][0]}/{kursi_list[i][1]}"
         kereta_info = f"Whoosh  PRE {kursi}"
         passengers.append((nama, kereta_info))
     
     return passengers
+
 
 def process_ocr_whoosh(text: str) -> list:
     cleaned = clean_text(text)

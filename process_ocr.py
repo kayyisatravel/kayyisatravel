@@ -439,7 +439,9 @@ def process_ocr_text_multiple(text: str) -> list:
 
     # Susun hasil akhir
     results = []
-    today_str = datetime.today().strftime('%Y-%m-%d')
+    #today_str = datetime.today().strftime('%Y-%m-%d')
+    tgl_pemesanan = checkin_dt if checkin_dt else ''
+
 
     for idx in range(jumlah_kamar):
         beli = harga_beli_per_kamar[idx] if idx < len(harga_beli_per_kamar) else None
@@ -448,7 +450,7 @@ def process_ocr_text_multiple(text: str) -> list:
         persen_laba = f"{round((laba / beli) * 100, 2)}%" if laba is not None and beli else ''
 
         results.append({
-            'Tgl Pemesanan': today_str,
+            'Tgl Pemesanan': tgl_pemesanan,
             'Tgl Berangkat': checkin_dt.strftime('%Y-%m-%d') if checkin_dt else '',
             'Kode Booking': kode_booking,
             'No Penerbangan / Nama Hotel / Kereta': hotel_name,
@@ -586,7 +588,7 @@ def process_ocr_pesawat(text: str) -> list:
                 persen_laba = f"{round((laba / per_orang_beli) * 100, 2)}%"
 
         entry = {
-            'Tgl Pemesanan': datetime.today().strftime('%Y-%m-%d'),
+            'Tgl Pemesanan': tgl_berangkat,
             'Tgl Berangkat': tgl_berangkat,
             'Kode Booking': kode_booking,
             'No Penerbangan / Nama Hotel / Kereta': penerbangan,
@@ -719,7 +721,7 @@ def process_ocr_kereta(text: str) -> list:
                 persen_laba = f"{round((laba / harga_beli_per) * 100, 2)}%"
 
         data = {
-            'Tgl Pemesanan': datetime.today().strftime('%Y-%m-%d'),
+            'Tgl Pemesanan': tgl_berangkat,
             'Tgl Berangkat': tgl_berangkat,
             'Kode Booking': kode_booking,
             'No Penerbangan / Nama Hotel / Kereta': kereta_info,

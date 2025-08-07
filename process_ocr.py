@@ -838,7 +838,7 @@ def process_ocr_whoosh(text: str) -> list:
             'Harga Beli': harga_beli_per,
             'Harga Jual': harga_jual_per,
             'Laba': laba,
-            'Tipe': '',
+            'Tipe': 'tipe',
             'BF/NBF': '',
             'No Invoice': '',
             'Keterangan': '',

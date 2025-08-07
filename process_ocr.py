@@ -770,22 +770,23 @@ def extract_tanggal(text: str) -> str:
     except ValueError:
         return ''
 def extract_rute_whoosh(text: str) -> str:
-    match = re.search(r'\((ID[A-Z]{3})\)\s*-\s*[A-Za-z]+\s+.*?Whoosh.*?\((ID[A-Z]{3})\)', text, re.DOTALL)
+    match = re.search(r'ID([A-Z]{3})\s*-\s*ID([A-Z]{3})', text)
     if match:
-        asal, tujuan = match.groups()
-        return f"{asal[-3:]} - {tujuan[-3:]}"  # e.g., IDPGA → PGA
+        return f"{match.group(1)} - {match.group(2)}"
     return ''
+
 def extract_passengers_whoosh(text: str) -> list:
-    results = []
-    kursi_match = re.search(r'Ekonomi Premium\s*(\d+)\s*/([0-9A-Z]+)', text)
+    passengers = []
+    pattern = re.compile(r'(?:TUAN|NYONYA|NN|NY)\s+([A-Z][a-zA-Z\s]+?)(?=\s+Nomor\s+Identitas|\s+IDPGA|\s+IDHMA|\s+Kursi)', re.IGNORECASE)
+    kursi_match = re.search(r'Ekonomi\s+Premium\s+(\d+)\s*/([0-9A-Z]+)', text, re.IGNORECASE)
     kursi = f"{kursi_match.group(1)}/{kursi_match.group(2)}" if kursi_match else ''
 
-    for match in re.finditer(r'(?:TUAN|NYONYA|NN|NY)\s+([A-Z][a-zA-Z\s]+)', text):
-        nama = match.group(1).strip()
+    for m in pattern.finditer(text):
+        nama = m.group(1).strip()
         kereta_info = f"Whoosh  PRE {kursi}"
-        results.append((nama, kereta_info))
+        passengers.append((nama, kereta_info))
     
-    return results
+    return passengers
 
 def process_ocr_whoosh(text: str) -> list:
     cleaned = clean_text(text)

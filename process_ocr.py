@@ -169,7 +169,7 @@ def detect_document_type(text: str) -> str:
     tl = text.lower()
 
     # Kereta
-    if re.search(r'\b(kereta|ka\s+[a-z]+|stasiun|eksekutif|kai|kereta\s*api|kode\s*booking\s*[a-z0-9]{3,})', tl):
+    if re.search(r'\b(kereta|ka\s+[a-z]+|whoosh|eksekutif|kai|kereta\s*api|kode\s*booking\s*[a-z0-9]{3,})', tl):
         return 'KERETA'
 
     # Pesawat

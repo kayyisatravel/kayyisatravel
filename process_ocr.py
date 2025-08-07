@@ -820,7 +820,7 @@ def process_ocr_whoosh(text: str) -> list:
 
     harga_beli_per = harga_beli_total // jumlah_penumpang if harga_beli_total else None
     harga_jual_per = harga_jual_total // jumlah_penumpang if harga_jual_total else None
-
+    tipe = detect_document_type(text)
     # --- Hasil akhir ---
     results = []
     for nama_penumpang, kereta_info in passengers:

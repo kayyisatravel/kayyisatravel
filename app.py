@@ -188,8 +188,8 @@ def save_gsheet(df: pd.DataFrame):
         #return
 
     # 🧽 Fungsi bantu pembersih isi sel
-    def clean_text(s):
-        return re.sub(r"\s+", " ", str(s)).strip().lower()
+    #def clean_text(s):
+     #   return re.sub(r"\s+", " ", str(s)).strip().lower()
 
     # 🗓️ Format tanggal jadi string YYYY-MM-DD
     df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce").dt.strftime("%Y-%m-%d")

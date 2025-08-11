@@ -185,7 +185,7 @@ def save_gsheet(df: pd.DataFrame):
     if missing_cols:
         st.error(f"❌ Kolom berikut tidak ditemukan: {', '.join(missing_cols)}")
         st.write("Kolom yang terbaca:", df.columns.tolist())
-        return
+        #return
 
     # 🧽 Fungsi bantu pembersih isi sel
     def clean_text(s):
@@ -214,7 +214,7 @@ def save_gsheet(df: pd.DataFrame):
         except ValueError as e:
             st.error(f"❌ Kolom kunci tidak ditemukan di Google Sheet: {e}")
             st.write("Header Google Sheet:", header)
-            return
+            #return
 
         # Ambil isi kolom kunci dari baris lama
         filtered_rows = [
@@ -242,7 +242,7 @@ def save_gsheet(df: pd.DataFrame):
         st.error("❌ Ditemukan data duplikat berdasarkan kolom kunci:")
         st.dataframe(dupes[key_cols])
         st.warning("Mohon periksa dan hapus duplikat sebelum menyimpan ulang.")
-        return
+        #return
 
     # ✅ Simpan ke GSheet
     df = df.drop(columns=["dupe_key"])

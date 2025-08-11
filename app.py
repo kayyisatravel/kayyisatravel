@@ -152,46 +152,56 @@ SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 def save_gsheet(df: pd.DataFrame):
     """
     Simpan DataFrame ke Google Sheets jika tidak ada duplikat
-    berdasarkan kolom unik: Nama Customer, Kode Booking, Tgl Pemesanan.
+    berdasarkan kolom unik: Nama Customer, Kode Booking, Tgl Pemesanan, No Penerbangan / Hotel / Kereta.
     """
     if df is None or df.empty:
         st.warning("❌ Data kosong atau invalid.")
         return
 
-    # Konversi kolom tanggal lebih awal (hindari parsing berulang)
+    # Konversi tanggal
     df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce").dt.date
+
+    # Kolom kunci untuk deteksi duplikat
+    key_cols = ["Nama Customer", "Kode Booking", "Tgl Pemesanan", "No Penerbangan / Hotel / Kereta"]
 
     # Ambil worksheet
     ws = connect_to_gsheet(SHEET_ID, 'Data')
-    
-    # Ambil hanya kolom kunci dari sheet (bukan semua data)
-    key_cols = ["Nama Customer", "Kode Booking", "Tgl Pemesanan"]
-    existing_keys = ws.get_all_values()
-    if not existing_keys or len(existing_keys) < 2:
+
+    # Ambil data eksisting
+    existing_values = ws.get_all_values()
+    if not existing_values or len(existing_values) < 2:
         existing_df = pd.DataFrame(columns=key_cols)
     else:
-        header = existing_keys[0]
-        rows = existing_keys[1:]
-        key_indices = [header.index(k) for k in key_cols]
-        filtered_rows = [[r[i] for i in key_indices] for r in rows]
+        header = existing_values[0]
+        rows = existing_values[1:]
+        try:
+            key_indices = [header.index(k) for k in key_cols]
+        except ValueError as e:
+            st.error(f"❌ Kolom kunci tidak ditemukan di header sheet: {e}")
+            return
+        
+        filtered_rows = [[r[i] for i in key_indices] for r in rows if len(r) >= max(key_indices) + 1]
         existing_df = pd.DataFrame(filtered_rows, columns=key_cols)
         existing_df["Tgl Pemesanan"] = pd.to_datetime(existing_df["Tgl Pemesanan"], errors="coerce").dt.date
 
-    # Gabung dan cek duplikat
+    # Buat kolom fingerprint untuk deteksi duplikat
     df["dupe_key"] = df[key_cols].astype(str).agg("__".join, axis=1)
     existing_df["dupe_key"] = existing_df[key_cols].astype(str).agg("__".join, axis=1)
 
+    # Cek duplikat
     dupes = df[df["dupe_key"].isin(set(existing_df["dupe_key"]))]
+
     if not dupes.empty:
-        st.error("❌ Ditemukan duplikat data yang sudah ada di GSheet:")
+        st.error("❌ Ditemukan data duplikat berdasarkan kombinasi:\n"
+                 "`Nama Customer`, `Kode Booking`, `Tgl Pemesanan`, dan `No Penerbangan / Hotel / Kereta`")
         st.dataframe(dupes[key_cols])
-        st.warning("Mohon periksa data sebelum mengirim ulang.")
+        st.warning("Mohon periksa data duplikat sebelum mengirim ulang.")
         return
 
-    # Hapus kolom bantuan sebelum kirim
+    # Hapus kolom bantu
     df = df.drop(columns=["dupe_key"])
-    
-    # Kirim data
+
+    # Kirim data ke Google Sheet
     append_dataframe_to_sheet(df, ws)
     st.success("✅ Berhasil simpan data ke Google Sheets.")
 

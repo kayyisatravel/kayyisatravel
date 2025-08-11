@@ -154,110 +154,49 @@ import streamlit as st
 
 def save_gsheet(df: pd.DataFrame):
     """
-    Simpan DataFrame ke Google Sheets jika tidak ada duplikat,
-    berdasarkan kombinasi unik:
-    - Nama Customer
-    - Kode Booking
-    - Tgl Pemesanan
-    - No Penerbangan / Hotel / Kereta
+    Simpan DataFrame ke Google Sheets jika tidak ada duplikat
+    berdasarkan kolom unik: Nama Customer, Kode Booking, Tgl Pemesanan.
     """
-
     if df is None or df.empty:
         st.warning("❌ Data kosong atau invalid.")
         return
 
-    # 🧼 Bersihkan nama kolom dari karakter aneh & spasi
-    df.columns = df.columns.str.strip().str.replace(r"[\r\n]+", "", regex=True)
+    # Konversi kolom tanggal lebih awal (hindari parsing berulang)
+    df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce").dt.date
 
-    # 🔄 Samakan nama kolom dari upload dengan GSheet
-    rename_map = {
-        "No Penerbangan / Nama Hotel / Kereta": "No Penerbangan / Hotel / Kereta",
-        "Pemesan": "Nama Pemesan",
-        "Rute/Kota": "Rute",
-    }
-    df.rename(columns=rename_map, inplace=True)
-
-    # 🔑 Kolom kunci
-    key_cols = ["Nama Customer", "Kode Booking", "Tgl Pemesanan", "No Penerbangan / Hotel / Kereta"]
-
-    # ✅ Validasi kolom
-    missing_cols = [col for col in key_cols if col not in df.columns]
-    if missing_cols:
-        st.error(f"❌ Kolom berikut tidak ditemukan: {', '.join(missing_cols)}")
-        st.write("Kolom yang terbaca:", df.columns.tolist())
-        return
-
-    # 🧽 Fungsi bantu pembersih isi sel
-    def clean_text(s):
-        if pd.isna(s):
-            return ""
-        s = str(s)
-        s = s.strip().lower()
-        s = re.sub(r"\s+", " ", s)  # Ganti spasi lebih dari 1 dengan 1 spasi
-        s = s.replace("\u00A0", " ")  # Ganti non-breaking space dengan spasi biasa
-        s = s.replace("\t", " ")      # Ganti tab dengan spasi
-        s = re.sub(r"[^\w\s]", "", s)  # (Opsional) Hilangkan karakter non-alphanumeric kecuali spasi
-        s = s.strip()
-        return s
-
-
-    # 🗓️ Format tanggal jadi string YYYY-MM-DD
-    df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce").dt.strftime("%Y-%m-%d")
-
-    # 🧹 Bersihkan dan normalisasi isi kolom kunci
-    for col in key_cols:
-        df[col] = df[col].apply(clean_text)
-
-    # 🔌 Ambil worksheet dari Google Sheets
+    # Ambil worksheet
     ws = connect_to_gsheet(SHEET_ID, 'Data')
-
-    # 📥 Ambil data lama dari sheet
-    existing_values = ws.get_all_values()
-    if not existing_values or len(existing_values) < 2:
+    
+    # Ambil hanya kolom kunci dari sheet (bukan semua data)
+    key_cols = ["Nama Customer", "Kode Booking", "Tgl Pemesanan"]
+    existing_keys = ws.get_all_values()
+    if not existing_keys or len(existing_keys) < 2:
         existing_df = pd.DataFrame(columns=key_cols)
     else:
-        header = existing_values[0]
-        rows = existing_values[1:]
-
-        try:
-            key_indices = [header.index(k) for k in key_cols]
-        except ValueError as e:
-            st.error(f"❌ Kolom kunci tidak ditemukan di Google Sheet: {e}")
-            st.write("Header Google Sheet:", header)
-            return
-
-        # Ambil isi kolom kunci dari baris lama
-        filtered_rows = [
-            [r[i] if i < len(r) else "" for i in key_indices]
-            for r in rows
-        ]
+        header = existing_keys[0]
+        rows = existing_keys[1:]
+        key_indices = [header.index(k) for k in key_cols]
+        filtered_rows = [[r[i] for i in key_indices] for r in rows]
         existing_df = pd.DataFrame(filtered_rows, columns=key_cols)
+        existing_df["Tgl Pemesanan"] = pd.to_datetime(existing_df["Tgl Pemesanan"], errors="coerce").dt.date
 
-        # 🧹 Normalisasi juga isi existing data
-        existing_df["Tgl Pemesanan"] = pd.to_datetime(existing_df["Tgl Pemesanan"], errors="coerce").dt.strftime("%Y-%m-%d")
-        for col in key_cols:
-            existing_df[col] = existing_df[col].apply(clean_text)
+    # Gabung dan cek duplikat
+    df["dupe_key"] = df[key_cols].astype(str).agg("__".join, axis=1)
+    existing_df["dupe_key"] = existing_df[key_cols].astype(str).agg("__".join, axis=1)
 
-    # 🧠 Buat fingerprint key untuk pencocokan
-    df["dupe_key"] = df[key_cols].agg("__".join, axis=1)
-    existing_df["dupe_key"] = existing_df[key_cols].agg("__".join, axis=1)
-    
-    st.write("Fingerprint baru:", df["dupe_key"].head())
-    st.write("Fingerprint lama:", existing_df["dupe_key"].head())
-    #st.stop()
-    # 🚨 Cek duplikat
     dupes = df[df["dupe_key"].isin(set(existing_df["dupe_key"]))]
-
     if not dupes.empty:
-        st.error("❌ Ditemukan data duplikat berdasarkan kolom kunci:")
+        st.error("❌ Ditemukan duplikat data yang sudah ada di GSheet:")
         st.dataframe(dupes[key_cols])
-        st.warning("Mohon periksa dan hapus duplikat sebelum menyimpan ulang.")
+        st.warning("Mohon periksa data sebelum mengirim ulang.")
         return
 
-    # ✅ Simpan ke GSheet
+    # Hapus kolom bantuan sebelum kirim
     df = df.drop(columns=["dupe_key"])
+    
+    # Kirim data
     append_dataframe_to_sheet(df, ws)
-    st.success("✅ Berhasil menyimpan data ke Google Sheets.")
+    st.success("✅ Berhasil simpan data ke Google Sheets.")
 
 
 # --- TAMPILAN UTAMA ---

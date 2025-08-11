@@ -154,71 +154,47 @@ import streamlit as st
 
 def save_gsheet(df: pd.DataFrame):
     """
-    Simpan DataFrame ke Google Sheets jika:
-    1. Tidak kosong
-    2. Tidak ada duplikat internal (dalam DataFrame itu sendiri)
-    3. Tidak ada duplikat terhadap data yang sudah ada di GSheet (berdasarkan kunci)
+    Simpan DataFrame ke Google Sheets jika tidak ada duplikat
+    berdasarkan kolom unik: Nama Customer, Kode Booking, Tgl Pemesanan.
     """
-
     if df is None or df.empty:
         st.warning("❌ Data kosong atau invalid.")
         return
 
-    # Bersihkan kolom dari spasi berlebih
-    df.columns = df.columns.str.strip()
-
-    # --- 1. Cek Duplikat Internal Berdasarkan Kolom Penting ---
-    internal_dupe_cols = ["Tgl Berangkat", "Kode Booking", "No Penerbangan / Hotel / Kereta", "Nama Customer"]
-    if not all(col in df.columns for col in internal_dupe_cols):
-        st.error("❌ Kolom untuk deteksi duplikat internal tidak ditemukan.")
-        return
-
-    internal_dupes = df[df.duplicated(subset=internal_dupe_cols, keep=False)]
-
-    if not internal_dupes.empty:
-        st.error("❌ Ditemukan duplikat internal dalam data yang Anda input:")
-        st.dataframe(internal_dupes.sort_values(by=internal_dupe_cols))
-        st.warning("Periksa dan hapus duplikat sebelum mengirim data.")
-        return
-
-    # --- 2. Persiapan untuk Cek Duplikat Eksternal (dengan GSheet) ---
-    key_cols = ["Nama Customer", "Kode Booking", "Tgl Pemesanan"]
-
-    if not all(k in df.columns for k in key_cols):
-        st.error("❌ Kolom kunci untuk cek duplikat GSheet tidak ditemukan.")
-        return
-
+    # Konversi kolom tanggal lebih awal (hindari parsing berulang)
     df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce").dt.date
 
-    # Ambil worksheet dari GSheet
+    # Ambil worksheet
     ws = connect_to_gsheet(SHEET_ID, 'Data')
-
-    # Ambil data yang sudah ada di sheet
-    existing_values = ws.get_all_values()
-    if not existing_values or len(existing_values) < 2:
+    
+    # Ambil hanya kolom kunci dari sheet (bukan semua data)
+    key_cols = ["Nama Customer", "Kode Booking", "Tgl Pemesanan"]
+    existing_keys = ws.get_all_values()
+    if not existing_keys or len(existing_keys) < 2:
         existing_df = pd.DataFrame(columns=key_cols)
     else:
-        header = existing_values[0]
-        rows = existing_values[1:]
+        header = existing_keys[0]
+        rows = existing_keys[1:]
         key_indices = [header.index(k) for k in key_cols]
         filtered_rows = [[r[i] for i in key_indices] for r in rows]
         existing_df = pd.DataFrame(filtered_rows, columns=key_cols)
         existing_df["Tgl Pemesanan"] = pd.to_datetime(existing_df["Tgl Pemesanan"], errors="coerce").dt.date
 
-    # --- 3. Cek Duplikat terhadap GSheet ---
+    # Gabung dan cek duplikat
     df["dupe_key"] = df[key_cols].astype(str).agg("__".join, axis=1)
     existing_df["dupe_key"] = existing_df[key_cols].astype(str).agg("__".join, axis=1)
 
     dupes = df[df["dupe_key"].isin(set(existing_df["dupe_key"]))]
-
     if not dupes.empty:
-        st.error("❌ Ditemukan duplikat data yang sudah ada di Google Sheets:")
+        st.error("❌ Ditemukan duplikat data yang sudah ada di GSheet:")
         st.dataframe(dupes[key_cols])
-        st.warning("Mohon periksa data Anda sebelum mengirim ulang.")
+        st.warning("Mohon periksa data sebelum mengirim ulang.")
         return
 
-    # --- 4. Kirim ke GSheet ---
-    df = df.drop(columns=["dupe_key"])  # Hapus kolom sementara
+    # Hapus kolom bantuan sebelum kirim
+    df = df.drop(columns=["dupe_key"])
+    
+    # Kirim data
     append_dataframe_to_sheet(df, ws)
     st.success("✅ Berhasil simpan data ke Google Sheets.")
 

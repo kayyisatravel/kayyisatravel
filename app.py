@@ -157,22 +157,29 @@ def save_gsheet(df: pd.DataFrame):
 
     if df is None or df.empty:
         st.warning("❌ Data kosong atau invalid.")
-        #return
+        return
 
     # 🧼 Bersihkan nama kolom dari spasi & karakter tersembunyi
     df.columns = df.columns.str.strip().str.replace(r"[\r\n]+", "", regex=True)
 
-    # 🔑 Kolom kunci untuk deteksi duplikat
-    key_cols = ["Nama Customer", "Kode Booking", "Tgl Pemesanan", "No Penerbangan / Nama Hotel / Kereta"]
+    # 🔄 Samakan nama kolom dari upload dengan nama di GSheet
+    rename_map = {
+        "No Penerbangan / Nama Hotel / Kereta": "No Penerbangan / Hotel / Kereta",
+        "Pemesan": "Nama Pemesan",
+        "Rute/Kota": "Rute",
+    }
+    df.rename(columns=rename_map, inplace=True)
 
+    # 🔑 Kolom kunci untuk deteksi duplikat
+    key_cols = ["Nama Customer", "Kode Booking", "Tgl Pemesanan", "No Penerbangan / Hotel / Kereta"]
 
     # ✅ Validasi: semua kolom kunci harus ada di DataFrame
     missing_cols = [col for col in key_cols if col not in df.columns]
     if missing_cols:
         st.error(f"❌ Kolom berikut tidak ditemukan di data: {', '.join(missing_cols)}")
         st.warning("Periksa kembali header kolom di file Excel/CSV yang diunggah.")
-        st.write("Kolom yang terbaca:", df.columns.tolist())  # Optional debug
-        #return
+        st.write("Kolom yang terbaca:", df.columns.tolist())  # Debug
+        return
 
     # 🗓️ Konversi kolom tanggal
     df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce").dt.date
@@ -188,13 +195,12 @@ def save_gsheet(df: pd.DataFrame):
         header = existing_values[0]
         rows = existing_values[1:]
 
-        # Coba ambil indeks kolom kunci dari header
         try:
             key_indices = [header.index(k) for k in key_cols]
         except ValueError as e:
             st.error(f"❌ Kolom kunci tidak ditemukan di header Google Sheet: {e}")
             st.write("Header Google Sheet:", header)
-            #return
+            return
 
         # Ambil data sesuai kolom kunci
         filtered_rows = [[r[i] for i in key_indices] for r in rows if len(r) >= max(key_indices) + 1]
@@ -213,13 +219,12 @@ def save_gsheet(df: pd.DataFrame):
                  "`Nama Customer`, `Kode Booking`, `Tgl Pemesanan`, dan `No Penerbangan / Hotel / Kereta`.")
         st.dataframe(dupes[key_cols])
         st.warning("Mohon periksa data duplikat sebelum mengirim ulang.")
-        #return
+        return
 
     # ✅ Hapus kolom bantu & simpan ke Google Sheets
     df = df.drop(columns=["dupe_key"])
     append_dataframe_to_sheet(df, ws)
     st.success("✅ Berhasil simpan data ke Google Sheets.")
-
 
 
 # --- TAMPILAN UTAMA ---

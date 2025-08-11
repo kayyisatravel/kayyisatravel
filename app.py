@@ -193,7 +193,7 @@ def save_gsheet(df: pd.DataFrame):
         except ValueError as e:
             st.error(f"❌ Kolom kunci tidak ditemukan di header Google Sheet: {e}")
             st.write("Header Google Sheet:", header)
-            return
+            #return
 
         # Ambil data sesuai kolom kunci
         filtered_rows = [[r[i] for i in key_indices] for r in rows if len(r) >= max(key_indices) + 1]

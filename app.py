@@ -165,6 +165,7 @@ def save_gsheet(df: pd.DataFrame):
     # 🔑 Kolom kunci untuk deteksi duplikat
     key_cols = ["Nama Customer", "Kode Booking", "Tgl Pemesanan", "No Penerbangan / Nama Hotel / Kereta"]
 
+
     # ✅ Validasi: semua kolom kunci harus ada di DataFrame
     missing_cols = [col for col in key_cols if col not in df.columns]
     if missing_cols:

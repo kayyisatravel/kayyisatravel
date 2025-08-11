@@ -148,7 +148,6 @@ for key, default in {
 # Google Sheets ID
 SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 
-
 def save_gsheet(df: pd.DataFrame):
     """
     Simpan DataFrame ke Google Sheets jika tidak ada duplikat
@@ -158,11 +157,17 @@ def save_gsheet(df: pd.DataFrame):
         st.warning("❌ Data kosong atau invalid.")
         return
 
-    # Konversi tanggal
-    df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce").dt.date
-
     # Kolom kunci untuk deteksi duplikat
     key_cols = ["Nama Customer", "Kode Booking", "Tgl Pemesanan", "No Penerbangan / Hotel / Kereta"]
+
+    # Validasi: pastikan semua kolom kunci tersedia
+    missing_cols = [col for col in key_cols if col not in df.columns]
+    if missing_cols:
+        st.error(f"❌ Kolom berikut tidak ditemukan di data: {', '.join(missing_cols)}")
+        return
+
+    # Konversi tanggal
+    df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce").dt.date
 
     # Ambil worksheet
     ws = connect_to_gsheet(SHEET_ID, 'Data')

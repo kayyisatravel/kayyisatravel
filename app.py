@@ -164,7 +164,7 @@ def save_gsheet(df: pd.DataFrame):
 
     if df is None or df.empty:
         st.warning("❌ Data kosong atau invalid.")
-        #return
+        return
 
     # 🧼 Bersihkan nama kolom dari karakter aneh & spasi
     df.columns = df.columns.str.strip().str.replace(r"[\r\n]+", "", regex=True)
@@ -185,7 +185,7 @@ def save_gsheet(df: pd.DataFrame):
     if missing_cols:
         st.error(f"❌ Kolom berikut tidak ditemukan: {', '.join(missing_cols)}")
         st.write("Kolom yang terbaca:", df.columns.tolist())
-        #return
+        return
 
     # 🧽 Fungsi bantu pembersih isi sel
     def clean_text(s):
@@ -224,7 +224,7 @@ def save_gsheet(df: pd.DataFrame):
         except ValueError as e:
             st.error(f"❌ Kolom kunci tidak ditemukan di Google Sheet: {e}")
             st.write("Header Google Sheet:", header)
-            #return
+            return
 
         # Ambil isi kolom kunci dari baris lama
         filtered_rows = [
@@ -244,7 +244,7 @@ def save_gsheet(df: pd.DataFrame):
     
     st.write("Fingerprint baru:", df["dupe_key"].head())
     st.write("Fingerprint lama:", existing_df["dupe_key"].head())
-    st.stop()
+    #st.stop()
     # 🚨 Cek duplikat
     dupes = df[df["dupe_key"].isin(set(existing_df["dupe_key"]))]
 
@@ -252,7 +252,7 @@ def save_gsheet(df: pd.DataFrame):
         st.error("❌ Ditemukan data duplikat berdasarkan kolom kunci:")
         st.dataframe(dupes[key_cols])
         st.warning("Mohon periksa dan hapus duplikat sebelum menyimpan ulang.")
-        #return
+        return
 
     # ✅ Simpan ke GSheet
     df = df.drop(columns=["dupe_key"])

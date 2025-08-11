@@ -164,7 +164,7 @@ def save_gsheet(df: pd.DataFrame):
 
     if df is None or df.empty:
         st.warning("❌ Data kosong atau invalid.")
-        return
+        #return
 
     # 🧼 Bersihkan nama kolom dari karakter aneh & spasi
     df.columns = df.columns.str.strip().str.replace(r"[\r\n]+", "", regex=True)
@@ -189,7 +189,7 @@ def save_gsheet(df: pd.DataFrame):
 
     # 🧽 Fungsi bantu pembersih isi sel
     def clean_text(s):
-        return re.sub(r"\s+", " ", str(s)).strip().lower()
+        #return re.sub(r"\s+", " ", str(s)).strip().lower()
 
     # 🗓️ Format tanggal jadi string YYYY-MM-DD
     df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce").dt.strftime("%Y-%m-%d")

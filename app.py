@@ -157,7 +157,7 @@ def save_gsheet(df: pd.DataFrame):
 
     if df is None or df.empty:
         st.warning("❌ Data kosong atau invalid.")
-        return
+        #return
 
     # 🧼 Bersihkan nama kolom dari spasi & karakter tersembunyi
     df.columns = df.columns.str.strip().str.replace(r"[\r\n]+", "", regex=True)
@@ -171,7 +171,7 @@ def save_gsheet(df: pd.DataFrame):
         st.error(f"❌ Kolom berikut tidak ditemukan di data: {', '.join(missing_cols)}")
         st.warning("Periksa kembali header kolom di file Excel/CSV yang diunggah.")
         st.write("Kolom yang terbaca:", df.columns.tolist())  # Optional debug
-        return
+        #return
 
     # 🗓️ Konversi kolom tanggal
     df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce").dt.date
@@ -212,7 +212,7 @@ def save_gsheet(df: pd.DataFrame):
                  "`Nama Customer`, `Kode Booking`, `Tgl Pemesanan`, dan `No Penerbangan / Hotel / Kereta`.")
         st.dataframe(dupes[key_cols])
         st.warning("Mohon periksa data duplikat sebelum mengirim ulang.")
-        return
+        #return
 
     # ✅ Hapus kolom bantu & simpan ke Google Sheets
     df = df.drop(columns=["dupe_key"])

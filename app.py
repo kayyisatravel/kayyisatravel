@@ -189,7 +189,17 @@ def save_gsheet(df: pd.DataFrame):
 
     # 🧽 Fungsi bantu pembersih isi sel
     def clean_text(s):
-        return re.sub(r"\s+", " ", str(s)).strip().lower()
+        if pd.isna(s):
+            return ""
+        s = str(s)
+        s = s.strip().lower()
+        s = re.sub(r"\s+", " ", s)  # Ganti spasi lebih dari 1 dengan 1 spasi
+        s = s.replace("\u00A0", " ")  # Ganti non-breaking space dengan spasi biasa
+        s = s.replace("\t", " ")      # Ganti tab dengan spasi
+        s = re.sub(r"[^\w\s]", "", s)  # (Opsional) Hilangkan karakter non-alphanumeric kecuali spasi
+        s = s.strip()
+        return s
+
 
     # 🗓️ Format tanggal jadi string YYYY-MM-DD
     df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce").dt.strftime("%Y-%m-%d")

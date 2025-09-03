@@ -665,6 +665,11 @@ with st.expander("💾 Database Pemesan", expanded=False):
         tahun_pilihan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True))
         df_filtered = df[df["Tgl Pemesanan"].dt.year == tahun_pilihan]
 
+    # Tambahan filter untuk "Belum Lunas"
+    if "Keterangan" in df.columns:
+        filter_belum_lunas = st.checkbox("Tampilkan hanya yang Belum Lunas")
+        if filter_belum_lunas:
+            df_filtered = df_filtered[df_filtered["Keterangan"].str.contains("Belum Lunas", case=False, na=False)]
 
 
     # === Filter Tambahan ===

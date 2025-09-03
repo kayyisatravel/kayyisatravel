@@ -781,20 +781,19 @@ with st.expander("💾 Database Pemesan", expanded=False):
                     return date.today()
             
                 # Ambil dan validasi input
-                nama_pemesan_form = st.text_input("Nama Pemesan", row_to_edit.get("Nama Pemesan", ""))
-                tgl_pemesanan_form = st.date_input("Tgl Pemesanan", safe_date(row_to_edit.get("Tgl Pemesanan")))
-                tgl_berangkat_form = st.date_input("Tgl Berangkat", safe_date(row_to_edit.get("Tgl Berangkat")))
-                kode_booking_form = st.text_input("Kode Booking", row_to_edit.get("Kode Booking", ""))
-                no_penerbangan_form = st.text_input("No Penerbangan / Hotel / Kereta", row_to_edit.get("No Penerbangan / Hotel / Kereta", ""))
-                nama_customer_form = st.text_input("Nama Customer", row_to_edit.get("Nama Customer", ""))
-                rute_form = st.text_input("Rute", row_to_edit.get("Rute", ""))
-                harga_beli_form = st.number_input("Harga Beli", value=parse_harga(row_to_edit.get("Harga Beli", 0)), format="%.0f")
-                harga_jual_form = st.number_input("Harga Jual", value=parse_harga(row_to_edit.get("Harga Jual", 0)), format="%.0f")
-                #tipe_form = st.selectbox("Tipe", ["KERETA", "PESAWAT", "HOTEL"], index=["KERETA", "PESAWAT", "HOTEL"].index(str(row_to_edit.get("Tipe", "")).upper()))
-                #bf_nbf_form = st.text_input("BF/NBF", row_to_edit.get("BF/NBF", ""))
-                no_invoice_form = st.text_input("No Invoice", row_to_edit.get("No Invoice", ""))
-                keterangan_form = st.text_input("Keterangan", row_to_edit.get("Keterangan", ""))
-                admin_form = st.text_input("Admin", row_to_edit.get("Admin", ""))
+                nama_pemesan_form = st.text_input("Nama Pemesan", row_to_edit.get("Nama Pemesan", ""), key="edit_nama_pemesan")
+                tgl_pemesanan_form = st.date_input("Tgl Pemesanan", safe_date(row_to_edit.get("Tgl Pemesanan")), key="edit_tgl_pemesanan")
+                tgl_berangkat_form = st.date_input("Tgl Berangkat", safe_date(row_to_edit.get("Tgl Berangkat")), key="edit_tgl_berangkat")
+                kode_booking_form = st.text_input("Kode Booking", row_to_edit.get("Kode Booking", ""), key="edit_kode_booking")
+                no_penerbangan_form = st.text_input("No Penerbangan / Hotel / Kereta", row_to_edit.get("No Penerbangan / Hotel / Kereta", ""), key="edit_no_penerbangan")
+                nama_customer_form = st.text_input("Nama Customer", row_to_edit.get("Nama Customer", ""), key="edit_nama_customer")
+                rute_form = st.text_input("Rute", row_to_edit.get("Rute", ""), key="edit_rute")
+                harga_beli_form = st.number_input("Harga Beli", value=parse_harga(row_to_edit.get("Harga Beli", 0)), format="%.0f", key="edit_harga_beli")
+                harga_jual_form = st.number_input("Harga Jual", value=parse_harga(row_to_edit.get("Harga Jual", 0)), format="%.0f", key="edit_harga_jual")
+                no_invoice_form = st.text_input("No Invoice", row_to_edit.get("No Invoice", ""), key="edit_no_invoice")
+                keterangan_form = st.text_input("Keterangan", row_to_edit.get("Keterangan", ""), key="edit_keterangan")
+                admin_form = st.text_input("Admin", row_to_edit.get("Admin", ""), key="edit_admin")
+
             
                 if st.button("💾 Simpan Perubahan ke GSheet"):
                     try:

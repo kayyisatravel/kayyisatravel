@@ -375,18 +375,40 @@ def parse_evoucher_text(text):
                     break
                 except:
                     continue
+    bulan_mapping = {
+        'Jan': 'Jan',
+        'Feb': 'Feb',
+        'Mar': 'Mar',
+        'Apr': 'Apr',
+        'Mei': 'May',
+        'Jun': 'Jun',
+        'Jul': 'Jul',
+        'Agu': 'Aug',
+        'Sep': 'Sep',
+        'Okt': 'Oct',
+        'Nov': 'Nov',
+        'Des': 'Dec'
+    }
 
     # Fungsi parsing tanggal (format: "Min, 06 Jul 2025")
     def parse_date(date_str):
         try:
-            # Beberapa evoucher mungkin tidak pakai koma setelah hari
+            # Ambil bagian tanggal setelah koma jika ada
             if ',' in date_str:
                 date_part = date_str.split(',', 1)[1].strip()
             else:
                 date_part = date_str.strip()
+    
+            # Ganti nama bulan Indonesia dengan versi Inggris
+            for indo_bulan, eng_bulan in bulan_mapping.items():
+                if indo_bulan in date_part:
+                    date_part = date_part.replace(indo_bulan, eng_bulan)
+                    break
+    
             return datetime.strptime(date_part, '%d %b %Y')
         except:
             return None
+
 
     masuk = parse_date(data['tanggal_masuk'])
     keluar = parse_date(data['tanggal_keluar'])

@@ -364,7 +364,7 @@ def extract_dates_hotel(text: str) -> (datetime, datetime):
             'jan': 1, 'januari': 1, 'feb': 2, 'februari': 2, 'mar': 3, 'maret': 3,
             'apr': 4, 'april': 4, 'may': 5, 'mei': 5, 'jun': 6, 'juni': 6,
             'jul': 7, 'juli': 7, 'aug': 8, 'ags': 8, 'agustus': 8, 'sep': 9, 'september': 9,
-            'oct': 10, 'oktober': 10, 'nov': 11, 'november': 11, 'dec': 12, 'desember': 12
+            'oct': 10, 'okt': 10, 'oktober': 10, 'nov': 11, 'nop': 11, 'november': 11, 'dec': 12, 'des': 12, 'desember': 12
         }
         m3 = month_map.get(month_str.strip().lower())
         if not m3:
@@ -541,9 +541,9 @@ def process_ocr_pesawat(text: str) -> list:
 
         month_map = {
             'jan': 1, 'januari': 1, 'feb': 2, 'februari': 2, 'mar': 3, 'maret': 3,
-            'apr': 4, 'april': 4, 'mei': 5, 'jun': 6, 'juni': 6,
+            'apr': 4, 'april': 4, 'may': 5, 'mei': 5, 'jun': 6, 'juni': 6,
             'jul': 7, 'juli': 7, 'aug': 8, 'ags': 8, 'agustus': 8, 'sep': 9, 'september': 9,
-            'okt': 10, 'oktober': 10, 'nov': 11, 'november': 11, 'des': 12, 'desember': 12
+            'oct': 10, 'okt': 10, 'oktober': 10, 'nov': 11, 'nop': 11, 'november': 11, 'dec': 12, 'des': 12, 'desember': 12
         }
         mm = month_map.get(month_str.lower()[:3])
         if mm:
@@ -691,12 +691,10 @@ def process_ocr_kereta(text: str) -> list:
     if m_tg:
         day, month_str, year = m_tg.groups()
         month_map = {
-            'jan': 1, 'januari': 1, 'feb': 2, 'februari': 2,
-            'mar': 3, 'maret': 3, 'apr': 4, 'april': 4,
-            'mei': 5, 'jun': 6, 'juni': 6,
-            'jul': 7, 'juli': 7, 'aug': 8, 'ags': 8, 'agustus': 8,
-            'sep': 9, 'september': 9, 'okt': 10, 'oktober': 10,
-            'nov': 11, 'november': 11, 'des': 12, 'desember': 12
+            'jan': 1, 'januari': 1, 'feb': 2, 'februari': 2, 'mar': 3, 'maret': 3,
+            'apr': 4, 'april': 4, 'may': 5, 'mei': 5, 'jun': 6, 'juni': 6,
+            'jul': 7, 'juli': 7, 'aug': 8, 'ags': 8, 'agustus': 8, 'sep': 9, 'september': 9,
+            'oct': 10, 'okt': 10, 'oktober': 10, 'nov': 11, 'nop': 11, 'november': 11, 'dec': 12, 'des': 12, 'desember': 12
         }
         mm = month_map.get(month_str.lower()[:3])
         if mm:
@@ -761,13 +759,11 @@ def extract_tanggal(text: str) -> str:
     
     day, month_str, year = match.groups()
     month_map = {
-        'jan': 1, 'januari': 1, 'feb': 2, 'februari': 2,
-        'mar': 3, 'maret': 3, 'apr': 4, 'april': 4,
-        'mei': 5, 'jun': 6, 'juni': 6, 'jul': 7, 'juli': 7,
-        'ags': 8, 'agustus': 8, 'aug': 8,
-        'sep': 9, 'september': 9, 'okt': 10, 'oktober': 10,
-        'nov': 11, 'november': 11, 'des': 12, 'desember': 12
-    }
+            'jan': 1, 'januari': 1, 'feb': 2, 'februari': 2, 'mar': 3, 'maret': 3,
+            'apr': 4, 'april': 4, 'may': 5, 'mei': 5, 'jun': 6, 'juni': 6,
+            'jul': 7, 'juli': 7, 'aug': 8, 'ags': 8, 'agustus': 8, 'sep': 9, 'september': 9,
+            'oct': 10, 'okt': 10, 'oktober': 10, 'nov': 11, 'nop': 11, 'november': 11, 'dec': 12, 'des': 12, 'desember': 12
+        }
     mm = month_map.get(month_str.lower()[:3])
     if not mm:
         return ''

@@ -967,11 +967,12 @@ with st.expander("💾 Database Pemesan", expanded=False):
                         if update_requests:
                             batch_data = [
                                 {
-                                    "range": f"{worksheet.title}!{gspread.utils.rowcol_to_a1(r, c)}",
+                                    "range": gspread.utils.rowcol_to_a1(r, c),
                                     "values": [[v]]
                                 }
                                 for r, c, v in update_requests
                             ]
+
                             worksheet.batch_update(batch_data)
                             st.success(f"✅ {count} baris berhasil diperbarui di Google Sheets (batch update).")
                 

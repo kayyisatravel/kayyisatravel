@@ -909,9 +909,10 @@ with st.expander("💾 Database Pemesan", expanded=False):
                 
                         progress = st.progress(0)
                         total_rows = len(selected_norm)
-                
-                        for idx, row in selected_norm.iterrows():
-                            progress.progress((idx + 1) / total_rows)
+                        
+                        for i, (idx, row) in enumerate(selected_norm.iterrows(), start=1):
+                            progress.progress(min(i / total_rows, 1.0))
+
                 
                             # Buat mask pencocokan lebih spesifik (4 kolom kunci)
                             mask = (

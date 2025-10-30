@@ -681,7 +681,10 @@ def process_ocr_kereta(text: str) -> list:
         m_rute = re.search(r'\(([A-Z]{2,3})\)[^\(]+→[^\(]+\(([A-Z]{2,3})\)', cleaned)
         if m_rute:
             rute = f"{m_rute.group(1)} - {m_rute.group(2)}"
-
+    if not rute:
+        m_rute2 = re.search(r'\(([A-Z]{2,3})\)\s+\d{1,2}[:.]\d{2}\s+[A-Za-z\s]+\(([A-Z]{2,3})\)', cleaned)
+        if m_rute2:
+            rute = f"{m_rute2.group(1)} - {m_rute2.group(2)}"
     durasi = extract_duration(cleaned_lines) or extract_duration(cleaned)
 
     # --- Tanggal berangkat ---

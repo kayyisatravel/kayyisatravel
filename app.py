@@ -24,6 +24,7 @@ from zoneinfo import ZoneInfo  # Built-in mulai Python 3.9
 import time
 from generator import parse_input_dynamic, generate_eticket, parse_evoucher_text, generate_evoucher_html, generate_pdf417_barcode, generate_eticket_pdf
 from typing import List
+from tqdm import tqdm  # hanya dipakai untuk progress (bisa dihapus kalau tidak ingin)
 
 now = datetime.now(ZoneInfo("Asia/Jakarta"))
 
@@ -891,64 +892,102 @@ with st.expander("💾 Database Pemesan", expanded=False):
                 # Tampilkan data yang difilter jika ingin (opsional)
                 st.write("### Data yang akan diproses:")
                 st.dataframe(df_to_update)
-            
+                
                 if st.button("🔁 Terapkan Update Massal"):
                     try:
                         count = 0
                         gagal = 0
+                        duplikat = 0
                         tidak_ditemukan = []
-            
-                        for i, row in selected_norm.iterrows():
+                        update_requests = []
+                
+                        # --- Normalisasi string agar pencocokan lebih akurat ---
+                        for df in [df_all, selected_norm]:
+                            for col in ["Nama Pemesan", "Kode Booking", "Tgl Berangkat", "Nama Customer"]:
+                                col_str = f"{col}_str"
+                                df[col_str] = df[col].astype(str).str.strip().str.lower()
+                
+                        progress = st.progress(0)
+                        total_rows = len(selected_norm)
+                
+                        for idx, row in selected_norm.iterrows():
+                            progress.progress((idx + 1) / total_rows)
+                
+                            # Buat mask pencocokan lebih spesifik (4 kolom kunci)
                             mask = (
                                 (df_all["Nama Pemesan_str"] == row["Nama Pemesan_str"]) &
                                 (df_all["Kode Booking_str"] == row["Kode Booking_str"]) &
-                                (df_all["Tgl Berangkat_str"] == row["Tgl Berangkat_str"])
+                                (df_all["Tgl Berangkat_str"] == row["Tgl Berangkat_str"]) &
+                                (df_all["Nama Customer_str"] == row["Nama Customer_str"])
                             )
-            
-                            if mask.any():
-                                matching_indices = df_all[mask].index.tolist()
-                            
-                                for matching_index in matching_indices:
-                                    row_number = matching_index + 2  # Baris di GSheets (header + 1)
-            
-                                    if no_invoice_mass or kosongkan_invoice:
-                                        nilai = "" if kosongkan_invoice else no_invoice_mass
-                                        worksheet.update_cell(row_number, df_all.columns.get_loc("No Invoice") + 1, nilai)
-                                        time.sleep(1)
-                                    if keterangan_mass or kosongkan_keterangan:
-                                        nilai = "" if kosongkan_keterangan else keterangan_mass
-                                        worksheet.update_cell(row_number, df_all.columns.get_loc("Keterangan") + 1, nilai)
-                                        time.sleep(1)
-                                    if nama_pemesan_mass or kosongkan_nama_pemesan:
-                                        nilai = "" if kosongkan_nama_pemesan else nama_pemesan_mass
-                                        worksheet.update_cell(row_number, df_all.columns.get_loc("Nama Pemesan") + 1, nilai)
-                                        time.sleep(1)    
-                                    if admin_mass or kosongkan_admin:
-                                        nilai = "" if kosongkan_admin else admin_mass
-                                        worksheet.update_cell(row_number, df_all.columns.get_loc("Admin") + 1, nilai)
-                                        time.sleep(1)
-                                    st.write(f"✅ Update row GSheets: {row_number} untuk: {row['Nama Pemesan_str']} - {row['Kode Booking_str']}")
-                                    count += 1
-                                else:
-                                    gagal += 1
-                                    tidak_ditemukan.append({
-                                        "Nama Pemesan": row["Nama Pemesan_str"],
-                                        "Kode Booking": row["Kode Booking_str"],
-                                        "Tgl Berangkat": row["Tgl Berangkat_str"]
-                                    })
-            
-                        # Ringkasan hasil update
-                        if count:
-                            st.success(f"✅ {count} baris berhasil diperbarui.")
+                
+                            match_count = mask.sum()
+                
+                            if match_count == 0:
+                                gagal += 1
+                                tidak_ditemukan.append({
+                                    "Nama Pemesan": row["Nama Pemesan"],
+                                    "Nama Customer": row["Nama Customer"],
+                                    "Kode Booking": row["Kode Booking"],
+                                    "Tgl Berangkat": row["Tgl Berangkat"]
+                                })
+                                continue
+                
+                            if match_count > 1:
+                                duplikat += 1
+                                st.warning(f"⚠️ Duplikat ditemukan untuk {row['Nama Customer']} - {row['Kode Booking']}. Update dilewati.")
+                                continue
+                
+                            # Ambil index tunggal dari match
+                            matching_index = df_all[mask].index[0]
+                            row_number = matching_index + 2  # baris di GSheets (header + 1)
+                
+                            # --- Buat daftar update yang akan dikirim sekaligus ---
+                            if no_invoice_mass or kosongkan_invoice:
+                                nilai = "" if kosongkan_invoice else no_invoice_mass
+                                col_index = df_all.columns.get_loc("No Invoice") + 1
+                                update_requests.append((row_number, col_index, nilai))
+                            if keterangan_mass or kosongkan_keterangan:
+                                nilai = "" if kosongkan_keterangan else keterangan_mass
+                                col_index = df_all.columns.get_loc("Keterangan") + 1
+                                update_requests.append((row_number, col_index, nilai))
+                            if nama_pemesan_mass or kosongkan_nama_pemesan:
+                                nilai = "" if kosongkan_nama_pemesan else nama_pemesan_mass
+                                col_index = df_all.columns.get_loc("Nama Pemesan") + 1
+                                update_requests.append((row_number, col_index, nilai))
+                            if admin_mass or kosongkan_admin:
+                                nilai = "" if kosongkan_admin else admin_mass
+                                col_index = df_all.columns.get_loc("Admin") + 1
+                                update_requests.append((row_number, col_index, nilai))
+                
+                            count += 1
+                
+                        # --- Eksekusi batch update agar cepat ---
+                        if update_requests:
+                            batch_data = [
+                                {
+                                    "range": f"{worksheet.title}!{gspread.utils.rowcol_to_a1(r, c)}",
+                                    "values": [[v]]
+                                }
+                                for r, c, v in update_requests
+                            ]
+                            worksheet.batch_update(batch_data)
+                            st.success(f"✅ {count} baris berhasil diperbarui di Google Sheets (batch update).")
+                
                         if gagal:
                             st.warning(f"⚠️ {gagal} baris tidak ditemukan di GSheets.")
-                            with st.expander("🔍 Lihat baris yang gagal dicocokkan"):
+                            with st.expander("🔍 Lihat baris yang tidak ditemukan"):
                                 st.json(tidak_ditemukan)
+                
+                        if duplikat:
+                            st.warning(f"⚠️ {duplikat} baris dilewati karena duplikasi data.")
+                
                         if count == 0 and gagal == 0:
-                            st.info("ℹ️ Tidak ada data diproses.")
-            
+                            st.info("ℹ️ Tidak ada data yang diproses.")
+                
                         st.cache_data.clear()
-            
+                        progress.empty()
+                
                     except Exception as e:
                         st.error(f"❌ Gagal update massal: {e}")
 

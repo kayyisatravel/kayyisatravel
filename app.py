@@ -675,27 +675,42 @@ with st.expander("💾 Database Pemesan", expanded=False):
 
     # === Filter Tambahan ===
     st.markdown("### 🧍 Filter Tambahan")
-
+    
     tampilkan_uninvoice_saja = st.checkbox("🔍 Tampilkan hanya yang belum ada Invoice")
     auto_select_25jt = st.checkbox("⚙️ Auto-pilih total penjualan hingga Rp 25 juta")
-
+    
+    # Tambahan input baru untuk Nama Customer
+    nama_customer_filter = st.text_input("Cari Nama Customer")
+    
+    # Input lainnya (sudah ada sebelumnya)
     nama_filter = st.text_input("Cari Nama Pemesan")
     kode_booking_filter = st.text_input("Cari Kode Booking")
     no_invoice_filter = st.text_input("Cari No Invoice")
-
-    # === Filter Tambahan (lanjutkan dari df_filtered yang sudah disesuaikan di atas) ===
+    
+    # === Proses Filter ===
+    
+    # 1️⃣ Filter berdasarkan Nama Customer
+    if nama_customer_filter:
+        df_filtered = df_filtered[df_filtered["Nama Customer"].str.contains(nama_customer_filter, case=False, na=False)]
+    
+    # 2️⃣ Filter berdasarkan Nama Pemesan
     if nama_filter:
         df_filtered = df_filtered[df_filtered["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
+    
+    # 3️⃣ Filter berdasarkan Kode Booking
     if kode_booking_filter:
         df_filtered = df_filtered[df_filtered["Kode Booking"].astype(str).str.contains(kode_booking_filter, case=False, na=False)]
     
+    # 4️⃣ Bersihkan dan Filter No Invoice
     df_filtered["No Invoice"] = df_filtered["No Invoice"].astype(str).str.strip()
     
     if no_invoice_filter:
         df_filtered = df_filtered[df_filtered["No Invoice"].str.contains(no_invoice_filter.strip(), case=False, na=False)]
     
+    # 5️⃣ Filter hanya yang belum ada Invoice
     if tampilkan_uninvoice_saja:
         df_filtered = df_filtered[df_filtered["No Invoice"].isna() | (df_filtered["No Invoice"].str.strip() == "")]
+
 
 
     # === Tampilkan & Edit Data ===

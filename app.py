@@ -779,24 +779,24 @@ with st.expander("💾 Database Pemesan", expanded=False):
         selected_data = selected_df[selected_df["Pilih"]]
 # === Edit Form untuk 1 Baris ===
         if len(selected_data) == 1:
-            with st.expander('✏️ Edit Data yang Dipilih'):
+            with st.expander('Edit Data yang dipilih'):
+                #st.markdown("### ✏️ Edit Data Terpilih")
                 row_to_edit = selected_data.iloc[0]
-        
-                # Fungsi bantu untuk tanggal
+            
+                # Fungsi bantu amankan tanggal
                 def safe_date(val):
                     if isinstance(val, date):
                         return val
                     if isinstance(val, str):
-                        for fmt in ("%Y-%m-%d", "%d-%m-%Y"):
-                            try:
-                                return datetime.strptime(val, fmt).date()
-                            except ValueError:
-                                continue
+                        try:
+                            return datetime.strptime(val, "%Y-%m-%d").date()
+                        except ValueError:
+                            pass
                     if isinstance(val, pd.Timestamp):
                         return val.date()
                     return date.today()
-        
-                # Form input
+            
+                # Ambil dan validasi input
                 nama_pemesan_form = st.text_input("Nama Pemesan", row_to_edit.get("Nama Pemesan", ""), key="edit_nama_pemesan")
                 tgl_pemesanan_form = st.date_input("Tgl Pemesanan", safe_date(row_to_edit.get("Tgl Pemesanan")), key="edit_tgl_pemesanan")
                 tgl_berangkat_form = st.date_input("Tgl Berangkat", safe_date(row_to_edit.get("Tgl Berangkat")), key="edit_tgl_berangkat")
@@ -809,32 +809,29 @@ with st.expander("💾 Database Pemesan", expanded=False):
                 no_invoice_form = st.text_input("No Invoice", row_to_edit.get("No Invoice", ""), key="edit_no_invoice")
                 keterangan_form = st.text_input("Keterangan", row_to_edit.get("Keterangan", ""), key="edit_keterangan")
                 admin_form = st.text_input("Admin", row_to_edit.get("Admin", ""), key="edit_admin")
-        
-                # Simpan ke GSheet
+
+            
                 if st.button("💾 Simpan Perubahan ke GSheet"):
                     try:
                         worksheet = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
                         all_data = worksheet.get_all_records()
                         df_all = pd.DataFrame(all_data)
-        
-                        # Pastikan UID ada di semua data
-                        if "UID" not in df_all.columns:
-                            df_all["UID"] = df_all.apply(
-                                lambda x: f"{x.get('Kode Booking','')}_{x.get('Nama Customer','')}_{x.get('Tgl Berangkat','')}",
-                                axis=1
-                            )
-        
-                        uid_selected = row_to_edit.get("UID")
-        
-                        # Cari baris dengan UID yang sama
-                        mask = df_all["UID"] == uid_selected
-        
+                        
+                        # Normalisasi kedua dataframe
+                        df_all = normalize_df(df_all)
+                        selected_norm = normalize_df(pd.DataFrame([row_to_edit])).reset_index(drop=True)
+                        
+                        mask = (
+                            (df_all["Nama Pemesan_str"] == selected_norm.loc[0, "Nama Pemesan_str"]) &
+                            (df_all["Kode Booking_str"] == selected_norm.loc[0, "Kode Booking_str"]) &
+                            (df_all["Tgl Berangkat_str"] == selected_norm.loc[0, "Tgl Berangkat_str"])
+                        )
+    
+            
                         if not mask.any():
                             st.warning("❌ Data asli tidak ditemukan di Google Sheets.")
                         else:
-                            index = mask[mask].index[0]  # ambil index baris yang cocok
-        
-                            # Mapping kolom ke nilai baru
+                            index = mask.idxmax()
                             colmap = {
                                 "Nama Pemesan": nama_pemesan_form,
                                 "Tgl Pemesanan": tgl_pemesanan_form.strftime('%Y-%m-%d'),
@@ -845,21 +842,20 @@ with st.expander("💾 Database Pemesan", expanded=False):
                                 "Rute": rute_form,
                                 "Harga Beli": harga_beli_form,
                                 "Harga Jual": harga_jual_form,
+                                #"Tipe": tipe_form.upper(),
+                                #"BF/NBF": bf_nbf_form,
                                 "No Invoice": no_invoice_form,
                                 "Keterangan": keterangan_form,
-                                "Admin": admin_form,
-                                "UID": f"{kode_booking_form}_{nama_customer_form}_{tgl_berangkat_form.strftime('%Y-%m-%d')}"
+                                "Admin": admin_form
                             }
-        
-                            # Update setiap kolom ke Google Sheets
+            
                             for col, val in colmap.items():
                                 if col in df_all.columns:
                                     worksheet.update_cell(index + 2, df_all.columns.get_loc(col) + 1, val)
                                     time.sleep(0.2)
-        
                             st.success("✅ Data berhasil diperbarui ke Google Sheets.")
                             st.cache_data.clear()
-        
+            
                     except Exception as e:
                         st.error(f"❌ Gagal update: {e}")
                         st.text(f"📋 Type: {type(e)}")

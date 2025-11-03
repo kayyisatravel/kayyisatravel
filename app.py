@@ -110,6 +110,11 @@ def normalize_df(df):
     else:
         df["Nama Pemesan_str"] = ""
 
+    if "Nama Customer" in df.columns:
+        df["Nama Customer_str"] = df["Nama Customer"].astype(str).str.strip().str.upper()
+    else:
+        df["Nama Customer_str"] = ""
+
     return df
 
 def extract_text_from_pdf(pdf_bytes):
@@ -823,6 +828,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
                         
                         mask = (
                             (df_all["Nama Pemesan_str"] == selected_norm.loc[0, "Nama Pemesan_str"]) &
+                            (df_all["Nama Customer_str"] == selected_norm.loc[0, "Nama Customer_str"]) &  
                             (df_all["Kode Booking_str"] == selected_norm.loc[0, "Kode Booking_str"]) &
                             (df_all["Tgl Berangkat_str"] == selected_norm.loc[0, "Tgl Berangkat_str"])
                         )

@@ -280,8 +280,6 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.ln(2)  # beri jarak sedikit setelah TTD/Nama
     pdf.set_x(left_x)
     pdf.set_font("Arial", "", 6)
-
-    pdf.set_font("Arial", "B", 6)
     pdf.cell(80, 6, "Pembayaran:", ln=True)
     for bank in bank_list:
         pdf.set_x(left_x)
@@ -290,6 +288,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     # TEKS OTOMATIS DI ATAS FOOTER
     # =============================
+    pdf.set_x(left_x)
     pdf.set_y(-50)  # 2-3 baris di atas footer
     pdf.set_font("Arial", "I", 6)
     pdf.multi_cell(0, 5, "Invoice ini dicetak secara otomatis oleh komputer dan tidak memerlukan tanda tangan", align="C")

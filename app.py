@@ -1419,7 +1419,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
                         tanggal_invoice,
                         st.session_state.current_unique_invoice_no,
                         current_pdf_filename,
-                        logo_path=r"C:\Users\rizal\Downloads\Logo Perusahaan.jpeg",
+                        logo_path="assets/Logo Perusahaan.jpeg",
                         ttd_path="ttd.png",
                         status_lunas=status_lunas
                     )

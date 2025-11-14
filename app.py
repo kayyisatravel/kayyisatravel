@@ -109,7 +109,7 @@ from fpdf import FPDF
 import pandas as pd
 from datetime import datetime
 
-def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filename, logo_path=None, ttd_path=None):
+def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filename, logo_path=None, ttd_path=None, status_lunas="BELUM LUNAS"):
     # =============================
     # Inisialisasi PDF
     # =============================
@@ -239,16 +239,6 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_font("Arial", "B", 6)
     pdf.cell(80, 6, "-", ln=True)
     pdf.set_font("Arial", "", 6)
-    
-    # daftar bank
-    bank_list = [
-        "Bank BCA - 0881651041",
-        "Bank Mandiri - 1420022043888",
-        "Bank BNI - 0197267094",
-        "Bank BRI - 008601138769506",
-        "Bank BSI - 2204899994",
-    ]
-
 
     num_rows = len(bank_list)  # total baris daftar bank
 
@@ -281,10 +271,22 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.ln(2)  # beri jarak sedikit setelah TTD/Nama
     pdf.set_x(left_x)
     pdf.set_font("Arial", "", 7)
-    pdf.cell(80, 7, "Pembayaran:", ln=True)
-    for bank in bank_list:
-        pdf.set_x(left_x)
-        pdf.multi_cell(80, 3, f"{bank} - Josirma Sari Pratiwi", align="L")
+    if status_lunas.upper() == "LUNAS":
+        pdf.cell(0, 6, "LUNAS", ln=True)
+        pdf.set_font("Arial", "B", 7)
+    else:
+        pdf.cell(0, 6, "Transfer Pembayaran:", ln=True)
+        pdf.set_font("Arial", "", 7)
+        bank_list = [
+        "Bank BCA - 0881651041",
+        "Bank Mandiri - 1420022043888",
+        "Bank BNI - 0197267094",
+        "Bank BRI - 008601138769506",
+        "Bank BSI - 2204899994",
+        ]    
+        for bank in bank_list:
+            pdf.set_x(left_x)
+            pdf.multi_cell(80, 3, f"{bank} - Josirma Sari Pratiwi", align="L")
     
     # =============================
     # TEKS OTOMATIS DI ATAS FOOTER
@@ -1324,6 +1326,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
             st.session_state.last_generated_pdf_path = None
     
         with col_pdf:
+            status_lunas = st.radio("Status Pembayaran:", ("BELUM LUNAS", "LUNAS"))    
             if st.button("📄 Buat Invoice PDF"):
                 if not selected_data.empty:
         
@@ -1343,7 +1346,8 @@ with st.expander("💾 Database Pemesan", expanded=False):
                         st.session_state.current_unique_invoice_no,
                         current_pdf_filename,
                         logo_path="logo.png",
-                        ttd_path="ttd.png"
+                        ttd_path="ttd.png",
+                        status_lunas=status_lunas
                     )
 
         

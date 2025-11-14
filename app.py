@@ -236,9 +236,9 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     
     # --- KIRI (DAFTAR BANK) ---
     pdf.set_xy(left_x, pdf.get_y())
-    pdf.set_font("Arial", "B", 9)
+    pdf.set_font("Arial", "B", 6)
     pdf.cell(80, 6, "Transfer Pembayaran:", ln=True)
-    pdf.set_font("Arial", "", 9)
+    pdf.set_font("Arial", "", 6)
     
     # daftar bank
     bank_list = [
@@ -289,7 +289,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     # TEKS OTOMATIS DI ATAS FOOTER
     # =============================
-    pdf.set_y(pdf.h - 30)  # 2-3 baris di atas footer
+    pdf.set_y(-50)  # 2-3 baris di atas footer
     pdf.set_font("Arial", "I", 6)
     pdf.multi_cell(0, 5, "Invoice ini dicetak secara otomatis oleh komputer dan tidak memerlukan tanda tangan", align="C")
 

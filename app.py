@@ -1399,7 +1399,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
             st.session_state.last_generated_pdf_path = None
     
         with col_pdf:
-            status_lunas = st.radio("Status Pembayaran:", ("BELUM LUNAS", "LUNAS"))    
+            status_lunas = st.radio("Status Pembayaran:", ("Belum Lunas", "Lunas"))    
             if st.button("📄 Buat Invoice PDF"):
                 if not selected_data.empty:
         

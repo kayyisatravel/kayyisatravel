@@ -94,7 +94,7 @@ def prepare_batch_update(
 
     return updates
  # === Fungsi PDF ===
-def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, unique_invoice_no, output_pdf_filename, logo_path=None, ttd_path=None):
+def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filename, logo_path=None, ttd_path=None):
     pdf = FPDF(orientation="L", unit="mm", format="A4")
     pdf.add_page()
 

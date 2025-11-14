@@ -202,7 +202,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     # CETAK HEADER TABEL
     # =============================
-    pdf.set_font("Arial", "B", 8)
+    pdf.set_font("Arial", "B", 7)
     pdf.set_fill_color(200, 220, 255)
     pdf.cell(col_widths["No"], 7, "No", 1, 0, 'C', 1)
     for col in kolom_pdf:
@@ -212,7 +212,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     # ISI TABEL
     # =============================
-    pdf.set_font("Arial", "", 8)
+    pdf.set_font("Arial", "", 7)
     row_h = 6
     for i, row in enumerate(data, 1):
         pdf.cell(col_widths["No"], row_h, str(i), 1, 0, 'C')
@@ -247,11 +247,11 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.cell(80, 6, "a/n Josirma Sari Pratiwi", ln=True)
 
     # --- KANAN (TEMPAT/TANGGAL + TTD) ---
-    pdf.set_xy(right_x+30, pdf.get_y() - 18)
+    pdf.set_xy(right_x+40, pdf.get_y() - 18)
     pdf.set_font("Arial", "", 9)
     pdf.cell(80, 6, f"Jakarta, {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
 
-    pdf.set_x(right_x + 35) 
+    pdf.set_x(right_x + 45) 
     pdf.cell(80, 6, "Hormat Kami,", ln=True)
     pdf.ln(2)
 
@@ -264,7 +264,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     else:
         pdf.ln(15)
 
-    pdf.set_x(right_x + 30)
+    pdf.set_x(right_x + 40)
     pdf.set_font("Arial", "B", 9)
     pdf.cell(80, 6, "Josirma Sari Pratiwi", ln=True)
 
@@ -276,7 +276,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_line_width(0.3)  # ketebalan garis tipis
     pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())  # garis horisontal penuh
     pdf.set_y(pdf.get_y() + 2)  # beri jarak 2 mm setelah garis
-    pdf.set_font("Arial", "", 7)
+    pdf.set_font("Arial", "B", 6)
     pdf.multi_cell(0, 5,
         "Kayyisa Tour & Travel\n"
         "The Taman Dhika Cluster Wilis Blok F2 No. 2 Buduran, Sidoarjo - Jawa Timur\n"

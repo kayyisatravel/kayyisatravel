@@ -258,7 +258,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     num_rows = len(bank_list)  # total baris daftar bank
 
     # --- KANAN (TEMPAT/TANGGAL + TTD) ---
-    pdf.set_xy(right_x + 50, pdf.get_y() - (num_rows*6))  # sesuaikan dengan tinggi bank list
+    pdf.set_xy(right_x + 50, pdf.get_y())  # sesuaikan dengan tinggi bank list
     pdf.set_font("Arial", "", 9)
     pdf.cell(80, 6, f"Jakarta, {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
     pdf.set_x(right_x + 55)

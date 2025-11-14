@@ -242,6 +242,32 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
                 return float("".join(digits))
         
         return 0
+    def terbilang(n):
+        angka = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", 
+                 "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"]
+    
+        n = int(n)
+    
+        if n < 12:
+            return angka[n]
+        elif n < 20:
+            return terbilang(n - 10) + " Belas"
+        elif n < 100:
+            return terbilang(n // 10) + " Puluh " + terbilang(n % 10)
+        elif n < 200:
+            return "Seratus " + terbilang(n - 100)
+        elif n < 1000:
+            return terbilang(n // 100) + " Ratus " + terbilang(n % 100)
+        elif n < 2000:
+            return "Seribu " + terbilang(n - 1000)
+        elif n < 1_000_000:
+            return terbilang(n // 1000) + " Ribu " + terbilang(n % 1000)
+        elif n < 1_000_000_000:
+            return terbilang(n // 1_000_000) + " Juta " + terbilang(n % 1_000_000)
+        elif n < 1_000_000_000_000:
+            return terbilang(n // 1_000_000_000) + " Milyar " + terbilang(n % 1_000_000_000)
+        else:
+            return terbilang(n // 1_000_000_000_000) + " Triliun " + terbilang(n % 1_000_000_000_000)
 
     total_harga = sum(to_number(row.get("Harga Jual", 0)) for row in data)
     
@@ -253,6 +279,11 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_font("Arial", "B", 6)
     pdf.cell(0, 7, f"TOTAL TAGIHAN: Rp {total_harga:,.0f}", ln=True, align="L")
     pdf.ln(4)
+    # Tampilkan terbilang
+    pdf.set_font("Arial", "", 7)
+    terbilang_text = terbilang(total_harga).strip() + " Rupiah"
+    pdf.multi_cell(0, 5, f"Terbilang: {terbilang_text}", align="L")
+    pdf.ln(2)
 
     #num_rows = len(bank_list)  # total baris daftar bank
 

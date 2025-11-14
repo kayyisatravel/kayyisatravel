@@ -253,22 +253,25 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.cell(0, 6, "Transfer Pembayaran:", ln=True)
     pdf.set_font("Arial", "", 9)
     
+    row_h = 5  # tinggi tiap baris
     num_cols = 2
-    col_width = (pdf.w - pdf.l_margin - pdf.r_margin) / num_cols - 5
-    row_h = 5  # tinggi baris
-    num_rows = (len(bank_list) + num_cols - 1) // num_cols  # jumlah baris per kolom
+    num_rows = (len(bank_list) + num_cols - 1) // num_cols
+    col_width = (pdf.w - pdf.l_margin - pdf.r_margin - 5) / num_cols  # 5 mm jarak antar kolom
+    
+    start_y = pdf.get_y()  # simpan posisi awal Y
     
     for i in range(num_rows):
         for j in range(num_cols):
             idx = i + j * num_rows
             if idx < len(bank_list):
-                x_pos = left_x + j * (col_width + 5)
-                y_pos = pdf.get_y() + i * row_h
-                pdf.set_xy(x_pos, y_pos)
-                pdf.cell(col_width, row_h, f"{bank_list[idx]} - Josirma Sari Pratiwi", ln=0)
+                x = pdf.l_margin + j * (col_width + 5)
+                y = start_y + i * row_h
+                pdf.set_xy(x, y)
+                pdf.cell(col_width, row_h, f"{bank_list[idx]} - Josirma Sari Pratiwi", ln=0, align='L')
     
-    # Update posisi Y setelah daftar bank
-    pdf.set_y(y_pos + row_h + 2)  # beri jarak 2 mm sebelum bagian kanan (TTD)
+    # setelah selesai, geser Y ke bawah supaya tidak menimpa TTD/footer
+    pdf.set_y(start_y + num_rows * row_h + 2)
+
     
     # --- KANAN (TEMPAT/TANGGAL + TTD) ---
     pdf.set_xy(right_x, pdf.get_y() - (num_rows*6))  # sesuaikan dengan tinggi bank list

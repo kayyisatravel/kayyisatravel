@@ -234,7 +234,13 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     left_x = pdf.l_margin
     right_x = pdf.w - 90
     
-    # --- DAFTAR BANK (2 KOLOM) ---
+    # --- KIRI (DAFTAR BANK) ---
+    pdf.set_xy(left_x, pdf.get_y())
+    pdf.set_font("Arial", "B", 9)
+    pdf.cell(80, 6, "Transfer Pembayaran:", ln=True)
+    pdf.set_font("Arial", "", 9)
+    
+    # daftar bank
     bank_list = [
         "Bank BCA - 1234567890",
         "Bank Mandiri - 2345678901",
@@ -248,29 +254,9 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         "Bank Syariah - 0123456789"
     ]
     
-    pdf.set_xy(left_x, pdf.get_y())
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(0, 6, "Transfer Pembayaran:", ln=True)
-    pdf.set_font("Arial", "", 9)
-    
-    row_h = 5  # tinggi tiap baris
-    num_cols = 2
-    num_rows = (len(bank_list) + num_cols - 1) // num_cols
-    col_width = (pdf.w - pdf.l_margin - pdf.r_margin - 5) / num_cols  # 5 mm jarak antar kolom
-    
-    start_y = pdf.get_y()  # simpan posisi awal Y
-    
-    for i in range(num_rows):
-        for j in range(num_cols):
-            idx = i + j * num_rows
-            if idx < len(bank_list):
-                x = pdf.l_margin + j * (col_width + 5)
-                y = start_y + i * row_h
-                pdf.set_xy(x, y)
-                pdf.cell(col_width, row_h, f"{bank_list[idx]} - Josirma Sari Pratiwi", ln=0, align='L')
-    
-    # setelah selesai, geser Y ke bawah supaya tidak menimpa TTD/footer
-    pdf.set_y(start_y + num_rows * row_h + 2)
+    for bank in bank_list:
+        pdf.set_x(left_x)
+        pdf.multi_cell(80, 6, f"{bank} - Josirma Sari Pratiwi", align="L")
 
     
     # --- KANAN (TEMPAT/TANGGAL + TTD) ---

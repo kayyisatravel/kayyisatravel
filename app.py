@@ -233,41 +233,8 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     left_x = pdf.l_margin
     right_x = pdf.w - 90
-
-    # --- KANAN (TEMPAT/TANGGAL + TTD) ---
-    pdf.set_xy(right_x + 50, pdf.get_y() - 18)
-    pdf.set_font("Arial", "", 9)
-    pdf.cell(80, 6, f"Jakarta, {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
-
-    pdf.set_x(right_x + 55) 
-    pdf.cell(80, 6, "Hormat Kami,", ln=True)
-    pdf.ln(2)
-
-    if not ttd_path:
-        pdf.set_x(right_x + 45)
-        pdf.set_font("Arial", "I", 6)
-        pdf.cell(80, 6, "Dicetak Otomatis, Tidak Memerlukan Tanda Tangan", ln=True, align="C")
-    else:
-        try:
-            ttd_w = 40
-            ttd_x = right_x + 3
-            ttd_y = pdf.get_y()
-            pdf.image(ttd_path, x=ttd_x, y=ttd_y, w=ttd_w)
-            pdf.ln(22)
-        except:
-            pdf.ln(12)
-
-    pdf.set_x(right_x + 50)
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(80, 6, "Josirma Sari Pratiwi", ln=True)
-
-    pdf.set_y(-50)
-    pdf.set_xy(left_x, pdf.get_y())
-    pdf.set_font("Arial", "I", 6)
-    pdf.cell(80, 6, "Invoice ini dicetak secara otomatis oleh komputer dan tidak memerlukan tanda tangan", ln=True)
-
     
-   # Daftar bank
+    # --- DAFTAR BANK (2 KOLOM) ---
     bank_list = [
         "Bank BCA - 1234567890",
         "Bank Mandiri - 2345678901",
@@ -281,15 +248,61 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         "Bank Syariah - 0123456789"
     ]
     
-    # --- KIRI (BANK & REKENING) ---
     pdf.set_xy(left_x, pdf.get_y())
     pdf.set_font("Arial", "B", 9)
-    pdf.cell(80, 6, "Transfer Pembayaran:", ln=True)
+    pdf.cell(0, 6, "Transfer Pembayaran:", ln=True)
     pdf.set_font("Arial", "", 9)
     
-    for bank in bank_list:
-        pdf.set_x(left_x)
-        pdf.cell(80, 6, f"{bank} - Josirma Sari Pratiwi", ln=True)
+    # Hitung jumlah baris per kolom
+    num_cols = 2
+    num_rows = (len(bank_list) + num_cols - 1) // num_cols
+    col_width = (pdf.w - pdf.l_margin - pdf.r_margin) / 2 - 5  # jarak antar kolom
+    
+    for i in range(num_rows):
+        for j in range(num_cols):
+            idx = i + j * num_rows
+            if idx < len(bank_list):
+                x_pos = left_x + j * (col_width + 5)
+                y_pos = pdf.get_y() + i * 6
+                pdf.set_xy(x_pos, y_pos)
+                pdf.multi_cell(col_width, 6, f"{bank_list[idx]} - Josirma Sari Pratiwi")
+    
+    # Update Y setelah bank list
+    pdf.set_y(y_pos + 6)
+    
+    # --- KANAN (TEMPAT/TANGGAL + TTD) ---
+    pdf.set_xy(right_x, pdf.get_y() - (num_rows*6))  # sesuaikan dengan tinggi bank list
+    pdf.set_font("Arial", "", 9)
+    pdf.cell(80, 6, f"Jakarta, {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
+    pdf.set_x(right_x + 5)
+    pdf.cell(80, 6, "Hormat Kami,", ln=True)
+    pdf.ln(2)
+    
+    if not ttd_path:
+        pdf.set_x(right_x + 5)
+        pdf.set_font("Arial", "I", 6)
+        pdf.cell(80, 6, "Dicetak Otomatis, Tidak Memerlukan Tanda Tangan", ln=True)
+    else:
+        try:
+            ttd_w = 40
+            ttd_x = right_x + 5
+            ttd_y = pdf.get_y()
+            pdf.image(ttd_path, x=ttd_x, y=ttd_y, w=ttd_w)
+            pdf.ln(22)
+        except:
+            pdf.ln(12)
+    
+    pdf.set_x(right_x + 5)
+    pdf.set_font("Arial", "B", 9)
+    pdf.cell(80, 6, "Josirma Sari Pratiwi", ln=True)
+    
+    # =============================
+    # TEKS OTOMATIS DI ATAS FOOTER
+    # =============================
+    pdf.set_y(pdf.h - 30)  # 2-3 baris di atas footer
+    pdf.set_font("Arial", "I", 6)
+    pdf.multi_cell(0, 5, "Invoice ini dicetak secara otomatis oleh komputer dan tidak memerlukan tanda tangan", align="C")
+
 
     
     # =============================

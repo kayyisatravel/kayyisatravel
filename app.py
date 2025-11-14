@@ -122,12 +122,6 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     pdf.set_font("Arial", "B", 8)
     pdf.set_y(10)  # jarak dari atas halaman
-    pdf.set_draw_color(0, 0, 0)  # warna garis hitam
-    pdf.set_line_width(0.3)  # ketebalan garis tipis
-    pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())  # garis horisontal penuh
-    pdf.set_y(pdf.get_y() + 2)
-    
-    # ALAMAT di kiri
     alamat_perusahaan = (
         "KAYYISA TOUR & TRAVEL\n"
         "The Taman Dhika Cluster Wilis Blok F2 No. 2 Buduran, Sidoarjo - Jawa Timur\n"
@@ -145,7 +139,10 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
             pdf.image(logo_path, x=logo_x, y=10, w=logo_width)
         except:
             pass
-    
+    pdf.set_draw_color(0, 0, 0)  # warna garis hitam
+    pdf.set_line_width(0.3)  # ketebalan garis tipis
+    pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())  # garis horisontal penuh
+    pdf.set_y(pdf.get_y() + 2)
     pdf.ln(10)  # beri jarak setelah header
 
     pdf.set_font("Arial", "B", 12)

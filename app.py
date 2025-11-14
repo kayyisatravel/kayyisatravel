@@ -285,7 +285,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_text_color(0, 0, 0)
     
     # Total nominal
-    pdf.cell(0, 8, f"TOTAL TAGIHAN: Rp {total_harga:,.0f}", ln=True)
+    #pdf.cell(0, 8, f"TOTAL TAGIHAN: Rp {total_harga:,.0f}", ln=True)
     
     # Terbilang
     terbilang_text = terbilang(total_harga).strip().capitalize() + " rupiah"

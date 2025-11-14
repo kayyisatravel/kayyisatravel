@@ -127,7 +127,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
             pass
 
     pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 10, "Lampiran Invoice", ln=True, align="C")
+    pdf.cell(0, 10, "INVOICE", ln=True, align="C")
     pdf.ln(5)
 
     # Nama Customer pertama
@@ -278,7 +278,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_y(pdf.get_y() + 2)  # beri jarak 2 mm setelah garis
     pdf.set_font("Arial", "B", 6)
     pdf.multi_cell(0, 5,
-        "Kayyisa Tour & Travel\n"
+        "KAYYISA TOUR & TRAVEL\n"
         "The Taman Dhika Cluster Wilis Blok F2 No. 2 Buduran, Sidoarjo - Jawa Timur\n"
         "Mobile: 081217026522  Email: kayyisatour@gmail.com\n",
         align="C"

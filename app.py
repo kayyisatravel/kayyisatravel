@@ -246,12 +246,6 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         "Bank Mandiri - 2345678901",
         "Bank BNI - 3456789012",
         "Bank BTN - 4567890123",
-        "Bank CIMB - 5678901234",
-        "Bank Permata - 6789012345",
-        "Bank Danamon - 7890123456",
-        "Bank Maybank - 8901234567",
-        "Bank Panin - 9012345678",
-        "Bank Syariah - 0123456789"
     ]
 
 
@@ -289,7 +283,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     
     for bank in bank_list:
         pdf.set_x(left_x)
-        pdf.multi_cell(80, 6, f"{bank} - Josirma Sari Pratiwi", align="L")
+        pdf.cell(80, 6, f"{bank} - Josirma Sari Pratiwi", align="L")
     
     # =============================
     # TEKS OTOMATIS DI ATAS FOOTER

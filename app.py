@@ -110,11 +110,15 @@ import pandas as pd
 from datetime import datetime
 
 def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filename, logo_path=None, ttd_path=None):
-    pdf = FPDF(orientation="P", unit="mm", format="A4")  # A4
-    pdf.add_page()
-
     # =============================
-    # HEADER INVOICE
+    # Inisialisasi PDF
+    # =============================
+    pdf = FPDF(orientation="P", unit="mm", format="A4")  # Portrait
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    
+    # =============================
+    # HEADER
     # =============================
     if logo_path:
         try:
@@ -123,20 +127,24 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
             pass
 
     pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 10, "INVOICE", ln=True, align="C")
+    pdf.cell(0, 10, "Lampiran Invoice", ln=True, align="C")
     pdf.ln(5)
 
-    # Nama Pemesan → ambil dari Nama Customer baris pertama
-    nama_customer_pertama = data[0].get("Nama Customer", "Pelanggan") if data else "Pelanggan"
-    tanggal_invoice = datetime.now()
-    pdf.set_font("Arial", "", 8)
-    pdf.cell(0, 7, f"Nama Pemesan: {nama_customer_pertama}", ln=True)
-    pdf.cell(0, 7, f"Tanggal Invoice: {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
-    pdf.cell(0, 7, f"No. Invoice: {unique_invoice_no}", ln=True)
-    pdf.ln(8)
+    # Nama Customer pertama
+    try:
+        nama_customer_pertama = data[0].get("Nama Customer", "Pelanggan")
+    except:
+        nama_customer_pertama = "Pelanggan"
+
+    tanggal_invoice = datetime.now()  # Tanggal cetak sebagai tanggal invoice
+    pdf.set_font("Arial", "", 9)
+    pdf.cell(0, 6, f"Nama Pemesan: {nama_customer_pertama}", ln=True)
+    pdf.cell(0, 6, f"Tanggal Invoice: {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
+    pdf.cell(0, 6, f"No. Invoice: {unique_invoice_no}", ln=True)
+    pdf.ln(5)
 
     # =============================
-    # KOLOM YANG DITAMPILKAN
+    # KOLOM TABEL
     # =============================
     kolom_final = [
         "No",
@@ -150,53 +158,62 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         "Harga Jual"
     ]
 
-    kolom_pdf = kolom_final.copy()
+    # Kolom yang ada di data
+    kolom_pdf = [c for c in kolom_final if c != "No" and c in data[0].keys()]
+
+    # Mapping Header
     header_mapping = {
         "Harga Jual": "Harga"
     }
 
     # =============================
-    # HITUNG LEBAR KOLOM
+    # Hitung lebar kolom
     # =============================
-    pdf.set_font("Arial", "B", 7)
-    col_widths = {"No": 10}
+    pdf.set_font("Arial", "B", 8)
+    col_widths = {"No": 8}
     min_widths = {
         "Tgl Pemesanan": 22,
         "Tgl Berangkat": 22,
-        "Durasi": 18,
+        "Durasi": 15,
         "Harga Jual": 22,
         "Kode Booking": 25,
         "Nama Customer": 40,
-        "Rute": 25,
-        "No Penerbangan / Hotel / Kereta": 40,
+        "Rute": 30,
+        "No Penerbangan / Hotel / Kereta": 50,
     }
 
     for col in kolom_pdf:
-        if col == "No":
-            continue
         header = header_mapping.get(col, col)
         max_w = pdf.get_string_width(header) + 2
-        pdf.set_font("Arial", "", 10)
+        pdf.set_font("Arial", "", 9)
         for row in data:
             val = str(row.get(col, ""))
             max_w = max(max_w, pdf.get_string_width(val) + 2)
         col_widths[col] = max(min_widths.get(col, 0), max_w)
+
+    # Sesuaikan total lebar kolom agar tidak melebihi halaman
+    max_total_width = pdf.w - 2 * pdf.l_margin
+    total_width = sum(col_widths.values())
+    if total_width > max_total_width:
+        scale = max_total_width / total_width
+        for k in col_widths:
+            col_widths[k] *= scale
 
     # =============================
     # CETAK HEADER TABEL
     # =============================
     pdf.set_font("Arial", "B", 7)
     pdf.set_fill_color(200, 220, 255)
-    pdf.cell(col_widths["No"], 8, "No", 1, 0, 'C', 1)
-    for col in kolom_pdf[1:]:
-        pdf.cell(col_widths[col], 8, header_mapping.get(col, col), 1, 0, 'C', 1)
+    pdf.cell(col_widths["No"], 7, "No", 1, 0, 'C', 1)
+    for col in kolom_pdf:
+        pdf.cell(col_widths[col], 7, header_mapping.get(col, col), 1, 0, 'C', 1)
     pdf.ln()
 
     # =============================
     # ISI TABEL
     # =============================
     pdf.set_font("Arial", "", 7)
-    row_h = 7
+    row_h = 6
     for i, row in enumerate(data, 1):
         pdf.cell(col_widths["No"], row_h, str(i), 1, 0, 'C')
         for col in kolom_pdf:
@@ -209,7 +226,6 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
                     val = str(val)
             pdf.cell(col_widths[col], row_h, str(val), 1, 0, 'C')
         pdf.ln()
-
     pdf.ln(5)
 
     # =============================

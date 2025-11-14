@@ -273,10 +273,11 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_font("Arial", "B", 9)
     pdf.cell(80, 6, "Josirma Sari Pratiwi", ln=True)
 
+    pdf.set_y(-50)
     pdf.set_xy(left_x, pdf.get_y())
     pdf.set_font("Arial", "I", 6)
     pdf.cell(80, 6, "Invoice ini dicetak secara otomatis oleh komputer dan tidak memerlukan tanda tangan", ln=True)
-    pdf.ln(50)
+
     
     # =============================
     # FOOTER ALAMAT KAMI

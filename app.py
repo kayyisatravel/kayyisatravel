@@ -185,7 +185,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     for col in kolom_pdf:
         header = header_mapping.get(col, col)
         max_w = pdf.get_string_width(header) + 2
-        pdf.set_font("Arial", "", 9)
+        pdf.set_font("Arial", "", 8)
         for row in data:
             val = str(row.get(col, ""))
             max_w = max(max_w, pdf.get_string_width(val) + 2)
@@ -202,7 +202,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     # CETAK HEADER TABEL
     # =============================
-    pdf.set_font("Arial", "B", 9)
+    pdf.set_font("Arial", "B", 8)
     pdf.set_fill_color(200, 220, 255)
     pdf.cell(col_widths["No"], 7, "No", 1, 0, 'C', 1)
     for col in kolom_pdf:
@@ -212,7 +212,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     # ISI TABEL
     # =============================
-    pdf.set_font("Arial", "", 9)
+    pdf.set_font("Arial", "", 8)
     row_h = 6
     for i, row in enumerate(data, 1):
         pdf.cell(col_widths["No"], row_h, str(i), 1, 0, 'C')
@@ -229,52 +229,63 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.ln(5)
 
     # =============================
-    # FOOTER
+    # BAGIAN BAWAH (REKENING & TTD)
     # =============================
-    pdf.set_line_width(0.3)
-    pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())  # garis tipis
+    left_x = pdf.l_margin
+    right_x = pdf.w - 90
 
-    pdf.ln(2)
-    # Alamat Kayyisa Tour
-    pdf.set_font("Arial", "", 9)
-    alamat = [
-        "Kayyisa Tour & Travel",
-        "The Taman Dhika Cluster Wilis",
-        "Blok F2 No. 2 Buduran",
-        "Sidoarjo - Jawa Timur",
-        "Mobile: 081217026522",
-        "Email: kayyisatour@gmail.com",
-        "www.kayyisatour.com"
-    ]
-    for line in alamat:
-        pdf.cell(0, 5, line, ln=True)
+    # --- KIRI (BANK & REKENING) ---
+    pdf.set_xy(left_x, pdf.get_y())
+    pdf.set_font("Arial", "B", 11)
+    pdf.cell(80, 6, "Transfer Pembayaran:", ln=True)
+    pdf.set_font("Arial", "", 10)
+    pdf.set_x(left_x)
+    pdf.cell(80, 6, "Bank BCA", ln=True)
+    pdf.set_x(left_x)
+    pdf.cell(80, 6, "No. Rekening: 1234567890", ln=True)
+    pdf.set_x(left_x)
+    pdf.cell(80, 6, "a/n Josirma Sari Pratiwi", ln=True)
 
-    pdf.ln(5)
-
-    # =============================
-    # Bagian kanan (Jakarta, Hormat Kami, TTD)
-    # =============================
-    right_x = pdf.w - pdf.r_margin - 80
-    pdf.set_xy(right_x, pdf.get_y() - 30)
+    # --- KANAN (TEMPAT/TANGGAL + TTD) ---
+    pdf.set_xy(right_x+20, pdf.get_y() - 18)
+    pdf.set_font("Arial", "", 10)
     pdf.cell(80, 6, f"Jakarta, {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
-    pdf.set_x(right_x)
+
+    pdf.set_x(right_x + 25) 
     pdf.cell(80, 6, "Hormat Kami,", ln=True)
     pdf.ln(2)
-    # Gambar tanda tangan
+
     if ttd_path:
         try:
-            pdf.image(ttd_path, x=right_x, y=pdf.get_y(), w=45)
+            pdf.image(ttd_path, x=right_x + 3, y=pdf.get_y(), w=45)
             pdf.ln(22)
         except:
-            pdf.ln(15)
+            pdf.ln(12)
     else:
         pdf.ln(15)
-    pdf.set_x(right_x)
+
+    pdf.set_x(right_x + 20)
     pdf.set_font("Arial", "B", 11)
     pdf.cell(80, 6, "Josirma Sari Pratiwi", ln=True)
 
     # =============================
-    # OUTPUT PDF
+    # FOOTER ALAMAT KAMI
+    # =============================
+    pdf.set_y(-40)
+    pdf.set_draw_color(0, 0, 0)  # warna garis hitam
+    pdf.set_line_width(0.3)  # ketebalan garis tipis
+    pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())  # garis horisontal penuh
+    pdf.set_y(pdf.get_y() + 2)  # beri jarak 2 mm setelah garis
+    pdf.set_font("Arial", "", 7)
+    pdf.multi_cell(0, 5,
+        "Kayyisa Tour & Travel\n"
+        "The Taman Dhika Cluster Wilis Blok F2 No. 2 Buduran, Sidoarjo - Jawa Timur\n"
+        "Mobile: 081217026522  Email: kayyisatour@gmail.com\n",
+        align="C"
+    )
+
+    # =============================
+    # OUTPUT FILE
     # =============================
     pdf.output(output_pdf_filename)
     return output_pdf_filename

@@ -243,10 +243,13 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         
         return 0
     def terbilang(n):
-        angka = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", 
+        angka = ["Nol", "Satu", "Dua", "Tiga", "Empat", "Lima", 
                  "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"]
     
         n = int(n)
+    
+        if n == 0:
+            return "Nol"
     
         if n < 12:
             return angka[n]
@@ -268,6 +271,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
             return terbilang(n // 1_000_000_000) + " Milyar " + terbilang(n % 1_000_000_000)
         else:
             return terbilang(n // 1_000_000_000_000) + " Triliun " + terbilang(n % 1_000_000_000_000)
+
 
     total_harga = sum(to_number(row.get("Harga Jual", 0)) for row in data)
     

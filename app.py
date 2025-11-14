@@ -253,22 +253,22 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.cell(0, 6, "Transfer Pembayaran:", ln=True)
     pdf.set_font("Arial", "", 9)
     
-    # Hitung jumlah baris per kolom
     num_cols = 2
-    num_rows = (len(bank_list) + num_cols - 1) // num_cols
-    col_width = (pdf.w - pdf.l_margin - pdf.r_margin) / 2 - 5  # jarak antar kolom
+    col_width = (pdf.w - pdf.l_margin - pdf.r_margin) / num_cols - 5
+    row_h = 5  # tinggi baris
+    num_rows = (len(bank_list) + num_cols - 1) // num_cols  # jumlah baris per kolom
     
     for i in range(num_rows):
         for j in range(num_cols):
             idx = i + j * num_rows
             if idx < len(bank_list):
                 x_pos = left_x + j * (col_width + 5)
-                y_pos = pdf.get_y() + i * 6
+                y_pos = pdf.get_y() + i * row_h
                 pdf.set_xy(x_pos, y_pos)
-                pdf.multi_cell(col_width, 6, f"{bank_list[idx]} - Josirma Sari Pratiwi")
+                pdf.cell(col_width, row_h, f"{bank_list[idx]} - Josirma Sari Pratiwi", ln=0)
     
-    # Update Y setelah bank list
-    pdf.set_y(y_pos + 6)
+    # Update posisi Y setelah daftar bank
+    pdf.set_y(y_pos + row_h + 2)  # beri jarak 2 mm sebelum bagian kanan (TTD)
     
     # --- KANAN (TEMPAT/TANGGAL + TTD) ---
     pdf.set_xy(right_x, pdf.get_y() - (num_rows*6))  # sesuaikan dengan tinggi bank list

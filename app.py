@@ -272,7 +272,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_x(left_x)
     pdf.set_font("Arial", "", 7)
     if status_lunas.upper() == "LUNAS":
-        pdf.cell(0, 6, "LUNAS", ln=True)
+        pdf.cell(0, 6, "Pembayaran LUNAS", ln=True)
         pdf.set_font("Arial", "B", 7)
     else:
         pdf.cell(0, 6, "Transfer Pembayaran:", ln=True)

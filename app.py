@@ -251,26 +251,33 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         if n == 0:
             return "Nol"
     
-        if n < 12:
+        elif n < 12:
             return angka[n]
         elif n < 20:
             return terbilang(n - 10) + " Belas"
         elif n < 100:
-            return terbilang(n // 10) + " Puluh " + terbilang(n % 10)
+            sisa = n % 10
+            return terbilang(n // 10) + " Puluh" + ("" if sisa == 0 else " " + terbilang(sisa))
         elif n < 200:
-            return "Seratus " + terbilang(n - 100)
+            return "Seratus" + ("" if n == 100 else " " + terbilang(n - 100))
         elif n < 1000:
-            return terbilang(n // 100) + " Ratus " + terbilang(n % 100)
+            sisa = n % 100
+            return terbilang(n // 100) + " Ratus" + ("" if sisa == 0 else " " + terbilang(sisa))
         elif n < 2000:
-            return "Seribu " + terbilang(n - 1000)
+            return "Seribu" + ("" if n == 1000 else " " + terbilang(n - 1000))
         elif n < 1_000_000:
-            return terbilang(n // 1000) + " Ribu " + terbilang(n % 1000)
+            sisa = n % 1000
+            return terbilang(n // 1000) + " Ribu" + ("" if sisa == 0 else " " + terbilang(sisa))
         elif n < 1_000_000_000:
-            return terbilang(n // 1_000_000) + " Juta " + terbilang(n % 1_000_000)
+            sisa = n % 1_000_000
+            return terbilang(n // 1_000_000) + " Juta" + ("" if sisa == 0 else " " + terbilang(sisa))
         elif n < 1_000_000_000_000:
-            return terbilang(n // 1_000_000_000) + " Milyar " + terbilang(n % 1_000_000_000)
+            sisa = n % 1_000_000_000
+            return terbilang(n // 1_000_000_000) + " Milyar" + ("" if sisa == 0 else " " + terbilang(sisa))
         else:
-            return terbilang(n // 1_000_000_000_000) + " Triliun " + terbilang(n % 1_000_000_000_000)
+            sisa = n % 1_000_000_000_000
+            return terbilang(n // 1_000_000_000_000) + " Triliun" + ("" if sisa == 0 else " " + terbilang(sisa))
+
 
 
     total_harga = sum(to_number(row.get("Harga Jual", 0)) for row in data)

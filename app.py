@@ -296,8 +296,8 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     
     # Terbilang
     terbilang_text = terbilang(total_harga).strip().capitalize() + " rupiah"
-    pdf.set_font("Arial", "", 7)
-    pdf.multi_cell(0, 5, f"({terbilang_text})", align="L")
+    pdf.set_font("Arial", "I", 8)
+    pdf.multi_cell(0, 6, f"({terbilang_text})", align="L")
     pdf.ln(2)
     
     # Simpan posisi Y terakhir untuk TTD kanan

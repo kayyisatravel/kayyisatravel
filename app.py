@@ -118,13 +118,35 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_auto_page_break(auto=True, margin=15)
     
     # =============================
-    # HEADER
+    # HEADER (ALAMAT + LOGO)
     # =============================
+    pdf.set_font("Arial", "B", 8)
+    pdf.set_y(10)  # jarak dari atas halaman
+    pdf.set_draw_color(0, 0, 0)  # warna garis hitam
+    pdf.set_line_width(0.3)  # ketebalan garis tipis
+    pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())  # garis horisontal penuh
+    pdf.set_y(pdf.get_y() + 2)
+    
+    # ALAMAT di kiri
+    alamat_perusahaan = (
+        "KAYYISA TOUR & TRAVEL\n"
+        "The Taman Dhika Cluster Wilis Blok F2 No. 2 Buduran, Sidoarjo - Jawa Timur\n"
+        "Mobile: 081217026522  Email: kayyisatour@gmail.com"
+    )
+    pdf.set_x(pdf.l_margin)
+    pdf.multi_cell(0, 5, alamat_perusahaan, align="L")
+    
+    # LOGO di kanan
     if logo_path:
         try:
-            pdf.image(logo_path, x=10, y=10, w=30)
+            logo_width = 40
+            # posisi X = lebar halaman - margin kanan - lebar logo
+            logo_x = pdf.w - pdf.r_margin - logo_width
+            pdf.image(logo_path, x=logo_x, y=10, w=logo_width)
         except:
             pass
+    
+    pdf.ln(10)  # beri jarak setelah header
 
     pdf.set_font("Arial", "B", 12)
     pdf.cell(0, 10, "INVOICE", ln=True, align="C")
@@ -368,36 +390,6 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_y(-50)  # 2-3 baris di atas footer
     pdf.set_font("Arial", "I", 6)
     pdf.multi_cell(0, 5, "Invoice ini dicetak secara otomatis oleh komputer dan tidak memerlukan tanda tangan", align="C")
-
-
-    
-    # =============================
-    # HEADER (ALAMAT + LOGO)
-    # =============================
-    pdf.set_font("Arial", "B", 8)
-    pdf.set_y(10)  # jarak dari atas halaman
-    
-    # ALAMAT di kiri
-    alamat_perusahaan = (
-        "KAYYISA TOUR & TRAVEL\n"
-        "The Taman Dhika Cluster Wilis Blok F2 No. 2 Buduran, Sidoarjo - Jawa Timur\n"
-        "Mobile: 081217026522  Email: kayyisatour@gmail.com"
-    )
-    pdf.set_x(pdf.l_margin)
-    pdf.multi_cell(0, 5, alamat_perusahaan, align="L")
-    
-    # LOGO di kanan
-    if logo_path:
-        try:
-            logo_width = 40
-            # posisi X = lebar halaman - margin kanan - lebar logo
-            logo_x = pdf.w - pdf.r_margin - logo_width
-            pdf.image(logo_path, x=logo_x, y=10, w=logo_width)
-        except:
-            pass
-    
-    pdf.ln(20)  # beri jarak setelah header
-
 
     # =============================
     # OUTPUT FILE

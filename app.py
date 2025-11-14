@@ -293,7 +293,14 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     total_line = f"TOTAL TAGIHAN: Rp {total_harga:,.0f} ({terbilang_text})"
     
     # Tampilkan dalam multi_cell agar otomatis turun jika panjang
-    pdf.multi_cell(half_page_width, 5, total_line, align="L")
+    # Tes 1 — Paksa tampil apa pun yang terjadi
+    pdf.set_font("Arial", "B", 10)
+    pdf.set_text_color(255, 0, 0)   # merah untuk test
+    pdf.cell(0, 8, f"TEST TOTAL: {total_harga}", ln=True)
+    
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font("Arial", "", 8)
+    pdf.multi_cell(half_page_width, 5, f"TEST TERBILANG: {terbilang(total_harga)}", align="L")
     pdf.ln(2)
     y_setelah_terbilang = pdf.get_y()
 

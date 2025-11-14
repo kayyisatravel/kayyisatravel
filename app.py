@@ -231,14 +231,21 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     # BAGIAN BAWAH (REKENING & TTD)
     # =============================
+    total_harga = 0
+    for row in data:
+        try:
+            total_harga += float(row.get("Harga Jual", 0))
+        except:
+            pass
+    
     left_x = pdf.l_margin
     right_x = pdf.w - 90
     
     # --- KIRI (DAFTAR BANK) ---
     pdf.set_xy(left_x, pdf.get_y())
     pdf.set_font("Arial", "B", 6)
-    pdf.cell(80, 6, "-", ln=True)
-    pdf.set_font("Arial", "", 6)
+    pdf.cell(0, 7, f"TOTAL TAGIHAN: Rp {total_harga:,.0f}", ln=True, align="L")
+    pdf.ln(4)
 
     #num_rows = len(bank_list)  # total baris daftar bank
 

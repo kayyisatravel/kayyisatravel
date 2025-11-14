@@ -374,7 +374,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     # HEADER (ALAMAT + LOGO)
     # =============================
-    pdf.set_font("Arial", "B", 10)
+    pdf.set_font("Arial", "B", 8)
     pdf.set_y(10)  # jarak dari atas halaman
     
     # ALAMAT di kiri
@@ -396,7 +396,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         except:
             pass
     
-    pdf.ln(10)  # beri jarak setelah header
+    pdf.ln(20)  # beri jarak setelah header
 
 
     # =============================

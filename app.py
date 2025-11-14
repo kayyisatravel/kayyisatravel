@@ -242,20 +242,21 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     
     # daftar bank
     bank_list = [
-        "Bank BCA - 1234567890",
-        "Bank Mandiri - 2345678901",
-        "Bank BNI - 3456789012",
-        "Bank BTN - 4567890123",
+        "Bank BCA - 0881651041",
+        "Bank Mandiri - 1420022043888",
+        "Bank BNI - 0197267094",
+        "Bank BRI - 008601138769506",
+        "Bank BSI - 2204899994",
     ]
 
 
     num_rows = len(bank_list)  # total baris daftar bank
 
     # --- KANAN (TEMPAT/TANGGAL + TTD) ---
-    pdf.set_xy(right_x + 50, pdf.get_y())  # sesuaikan dengan tinggi bank list
+    pdf.set_xy(right_x + 45, pdf.get_y())  # sesuaikan dengan tinggi bank list
     pdf.set_font("Arial", "", 9)
     pdf.cell(80, 6, f"Jakarta, {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
-    pdf.set_x(right_x + 55)
+    pdf.set_x(right_x + 50)
     pdf.cell(80, 6, "Hormat Kami,", ln=True)
     pdf.ln(2)
     
@@ -273,14 +274,14 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         except:
             pdf.ln(12)
     
-    pdf.set_x(right_x + 50)
+    pdf.set_x(right_x + 45)
     pdf.set_font("Arial", "B", 9)
     pdf.cell(80, 6, "Josirma Sari Pratiwi", ln=True)
 
     pdf.ln(2)  # beri jarak sedikit setelah TTD/Nama
     pdf.set_x(left_x)
-    pdf.set_font("Arial", "", 6)
-    pdf.cell(80, 6, "Pembayaran:", ln=True)
+    pdf.set_font("Arial", "", 7)
+    pdf.cell(80, 7, "Pembayaran:", ln=True)
     for bank in bank_list:
         pdf.set_x(left_x)
         pdf.multi_cell(80, 3, f"{bank} - Josirma Sari Pratiwi", align="L")

@@ -281,7 +281,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # --- KIRI (DAFTAR BANK) ---
    # --- TOTAL + TERBILANG ---
     pdf.set_x(left_x)
-    pdf.set_font("Arial", "B", 8)
+    pdf.set_font("Arial", "B", 10)
     pdf.set_text_color(0, 0, 0)
     
     # Total nominal

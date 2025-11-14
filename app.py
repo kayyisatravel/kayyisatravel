@@ -258,7 +258,8 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         pdf.set_x(left_x)
         pdf.multi_cell(80, 6, f"{bank} - Josirma Sari Pratiwi", align="L")
 
-    
+    num_rows = len(bank_list)  # total baris daftar bank
+
     # --- KANAN (TEMPAT/TANGGAL + TTD) ---
     pdf.set_xy(right_x, pdf.get_y() - (num_rows*6))  # sesuaikan dengan tinggi bank list
     pdf.set_font("Arial", "", 9)

@@ -106,7 +106,7 @@ from fpdf import FPDF
 import streamlit as st
 
 def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filename, logo_path=None, ttd_path=None):
-    pdf = FPDF(orientation="L", unit="mm", format="A4")  # A4
+    pdf = FPDF(orientation="P", unit="mm", format="A4")  # A4
     pdf.add_page()
 
     # =============================
@@ -195,12 +195,18 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     row_h = 7
     for i, row in enumerate(data, 1):
         pdf.cell(col_widths["No"], row_h, str(i), 1, 0, 'C')
-        for col in kolom_pdf[1:]:
+        for col in kolom_pdf:
             val = row.get(col, "")
+            # Format tanggal
+            if col in ["Tgl Pemesanan", "Tgl Berangkat"]:
+                try:
+                    val = pd.to_datetime(val).strftime("%d-%m-%Y")
+                except:
+                    val = str(val)
             pdf.cell(col_widths[col], row_h, str(val), 1, 0, 'C')
         pdf.ln()
 
-    pdf.ln(10)
+    pdf.ln(5)
 
     # =============================
     # BAGIAN BAWAH (REKENING & TTD)

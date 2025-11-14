@@ -276,12 +276,13 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     total_harga = sum(to_number(row.get("Harga Jual", 0)) for row in data)
     
     left_x = pdf.l_margin
-    right_x = pdf.w - 90
+    #right_x = pdf.w - 90
     
     # --- KIRI (DAFTAR BANK) ---
     pdf.set_xy(left_x, pdf.get_y())
     pdf.set_font("Arial", "B", 6)
     half_page_width = (pdf.w - pdf.l_margin - pdf.r_margin) / 2
+    right_x = pdf.l_margin + half_page_width + 5
     pdf.set_x(left_x)
     pdf.set_font("Arial", "B", 7)
     

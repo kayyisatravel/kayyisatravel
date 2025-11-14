@@ -277,13 +277,20 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # --- KIRI (DAFTAR BANK) ---
     pdf.set_xy(left_x, pdf.get_y())
     pdf.set_font("Arial", "B", 6)
-    pdf.cell(0, 7, f"TOTAL TAGIHAN: Rp {total_harga:,.0f}", ln=True, align="L")
-    pdf.ln(4)
-    # Tampilkan terbilang
-    pdf.set_font("Arial", "", 7)
-    terbilang_text = terbilang(total_harga).strip() + " Rupiah"
-    pdf.multi_cell(0, 5, f"Terbilang: {terbilang_text}", align="L")
-    pdf.ln(2)
+    half_page_width = (pdf.w - pdf.l_margin - pdf.r_margin) / 2
+    pdf.set_x(left_x)
+    pdf.set_font("Arial", "B", 7)
+    
+    # Format terbilang
+    terbilang_text = terbilang(total_harga).strip().capitalize() + " rupiah"
+    
+    # Gabungan nominal + terbilang
+    total_line = f"TOTAL TAGIHAN: Rp {total_harga:,.0f} ({terbilang_text})"
+    
+    # Tampilkan dalam multi_cell agar otomatis turun jika panjang
+    pdf.multi_cell(half_page_width, 5, total_line, align="L")
+    
+    pdf.ln(3)
 
     #num_rows = len(bank_list)  # total baris daftar bank
 

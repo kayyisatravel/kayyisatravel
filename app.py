@@ -206,7 +206,15 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_fill_color(200, 220, 255)
     pdf.cell(col_widths["No"], 7, "No", 1, 0, 'C', 1)
     for col in kolom_pdf:
-        pdf.cell(col_widths[col], 7, header_mapping.get(col, col), 1, 0, 'C', 1)
+        header_text = header_mapping.get(col, col)
+        x_before = pdf.get_x()
+        y_before = pdf.get_y()
+        
+        pdf.multi_cell(col_widths[col], 5, header_text, 1, 'C', 1)
+        
+        # pindah kursor ke kanan setelah multi_cell
+        pdf.set_xy(x_before + col_widths[col], y_before)
+    
     pdf.ln()
 
     # =============================

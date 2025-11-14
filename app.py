@@ -106,7 +106,7 @@ from fpdf import FPDF
 import streamlit as st
 
 def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filename, logo_path=None, ttd_path=None):
-    pdf = FPDF(orientation="L", unit="mm", format="A4")  # A4
+    pdf = FPDF(orientation="P", unit="mm", format="A4")  # A4
     pdf.add_page()
 
     # =============================
@@ -154,7 +154,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     # HITUNG LEBAR KOLOM
     # =============================
-    pdf.set_font("Arial", "B", 10)
+    pdf.set_font("Arial", "B", 8)
     col_widths = {"No": 10}
     min_widths = {
         "Tgl Pemesanan": 22,
@@ -181,7 +181,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     # CETAK HEADER TABEL
     # =============================
-    pdf.set_font("Arial", "B", 10)
+    pdf.set_font("Arial", "B", 8)
     pdf.set_fill_color(200, 220, 255)
     pdf.cell(col_widths["No"], 8, "No", 1, 0, 'C', 1)
     for col in kolom_pdf[1:]:
@@ -191,7 +191,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     # ISI TABEL
     # =============================
-    pdf.set_font("Arial", "", 10)
+    pdf.set_font("Arial", "", 9)
     row_h = 7
     for i, row in enumerate(data, 1):
         pdf.cell(col_widths["No"], row_h, str(i), 1, 0, 'C')

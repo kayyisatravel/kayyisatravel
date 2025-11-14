@@ -1270,12 +1270,15 @@ with st.expander("💾 Database Pemesan", expanded=False):
         
                     # === PEMANGGILAN FUNGSI YANG BARU ===
                     pdf_path_generated = buat_invoice_pdf(
-                        data=records,
-                        tanggal_invoice=tanggal_invoice,
-                        unique_invoice_no=st.session_state.current_unique_invoice_no,
-                        output_pdf_filename=current_pdf_filename,
-                        logo_path="logo.png"  # jika tidak ada logo, set None
+                        records,
+                        nama,
+                        tanggal,
+                        st.session_state.current_unique_invoice_no,
+                        current_pdf_filename,
+                        logo_path="logo.png",
+                        ttd_path="ttd.png"
                     )
+
         
                     with open(pdf_path_generated, "rb") as f:
                         st.download_button(

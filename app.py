@@ -121,7 +121,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # HEADER (ALAMAT + LOGO)
     # =============================
     pdf.set_font("Arial", "B", 8)
-    pdf.set_y(10)  # jarak dari atas halaman
+    pdf.set_y(14)  # jarak dari atas halaman
     alamat_perusahaan = (
         "KAYYISA TOUR & TRAVEL\n"
         "The Taman Dhika Cluster Wilis Blok F2 No. 2 Buduran, Sidoarjo - Jawa Timur\n"

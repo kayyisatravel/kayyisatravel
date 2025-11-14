@@ -106,7 +106,7 @@ from fpdf import FPDF
 import streamlit as st
 
 def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filename, logo_path=None, ttd_path=None):
-    pdf = FPDF(orientation="P", unit="mm", format="A4")  # A4 Portrait
+    pdf = FPDF(orientation="L", unit="mm", format="A4")  # A4
     pdf.add_page()
 
     # =============================
@@ -119,7 +119,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
             pass
 
     pdf.set_font("Arial", "B", 18)
-    pdf.cell(0, 10, "Lampiran Invoice", ln=True, align="C")
+    pdf.cell(0, 10, "INVOICE", ln=True, align="C")
     pdf.ln(5)
 
     # Nama Pemesan → ambil dari Nama Customer baris pertama
@@ -218,7 +218,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_x(left_x)
     pdf.cell(80, 6, "No. Rekening: 1234567890", ln=True)
     pdf.set_x(left_x)
-    pdf.cell(80, 6, "a/n PT ENDO Indonesia", ln=True)
+    pdf.cell(80, 6, "a/n Josirma Sari Pratiwi", ln=True)
 
     # --- KANAN (TEMPAT/TANGGAL + TTD) ---
     pdf.set_xy(right_x, pdf.get_y() - 18)

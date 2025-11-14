@@ -126,8 +126,8 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         except:
             pass
 
-    pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, "Lampiran Invoice", ln=True, align="C")
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 10, "INVOICE", ln=True, align="C")
     pdf.ln(5)
 
     # Nama Customer pertama
@@ -137,7 +137,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         nama_customer_pertama = "Pelanggan"
 
     tanggal_invoice = datetime.now()  # Tanggal cetak sebagai tanggal invoice
-    pdf.set_font("Arial", "", 11)
+    pdf.set_font("Arial", "", 9)
     pdf.cell(0, 6, f"Nama Pemesan: {nama_customer_pertama}", ln=True)
     pdf.cell(0, 6, f"Tanggal Invoice: {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
     pdf.cell(0, 6, f"No. Invoice: {unique_invoice_no}", ln=True)
@@ -169,7 +169,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     # Hitung lebar kolom
     # =============================
-    pdf.set_font("Arial", "B", 9)
+    pdf.set_font("Arial", "B", 8)
     col_widths = {"No": 8}
     min_widths = {
         "Tgl Pemesanan": 22,
@@ -179,7 +179,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         "Kode Booking": 25,
         "Nama Customer": 40,
         "Rute": 30,
-        "No Penerbangan / Hotel / Kereta": 50,
+        "No Penerbangan / Hotel / Kereta": 45,
     }
 
     for col in kolom_pdf:
@@ -236,9 +236,9 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
 
     # --- KIRI (BANK & REKENING) ---
     pdf.set_xy(left_x, pdf.get_y())
-    pdf.set_font("Arial", "B", 11)
+    pdf.set_font("Arial", "B", 9)
     pdf.cell(80, 6, "Transfer Pembayaran:", ln=True)
-    pdf.set_font("Arial", "", 10)
+    pdf.set_font("Arial", "", 9)
     pdf.set_x(left_x)
     pdf.cell(80, 6, "Bank BCA", ln=True)
     pdf.set_x(left_x)
@@ -247,11 +247,11 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.cell(80, 6, "a/n Josirma Sari Pratiwi", ln=True)
 
     # --- KANAN (TEMPAT/TANGGAL + TTD) ---
-    pdf.set_xy(right_x+20, pdf.get_y() - 18)
-    pdf.set_font("Arial", "", 10)
+    pdf.set_xy(right_x+30, pdf.get_y() - 18)
+    pdf.set_font("Arial", "", 9)
     pdf.cell(80, 6, f"Jakarta, {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
 
-    pdf.set_x(right_x + 25) 
+    pdf.set_x(right_x + 35) 
     pdf.cell(80, 6, "Hormat Kami,", ln=True)
     pdf.ln(2)
 
@@ -264,8 +264,8 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     else:
         pdf.ln(15)
 
-    pdf.set_x(right_x + 20)
-    pdf.set_font("Arial", "B", 11)
+    pdf.set_x(right_x + 30)
+    pdf.set_font("Arial", "B", 9)
     pdf.cell(80, 6, "Josirma Sari Pratiwi", ln=True)
 
     # =============================

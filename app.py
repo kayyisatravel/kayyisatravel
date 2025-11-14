@@ -272,11 +272,11 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_x(left_x)
     pdf.set_font("Arial", "", 7)
     if status_lunas.upper() == "LUNAS":
-        pdf.cell(0, 6, "Pembayaran LUNAS", ln=True)
-        pdf.set_font("Arial", "B", 7)
+        pdf.set_font("Arial", "B", 8)
+        pdf.cell(0, 6, "Pembayaran: LUNAS", ln=True)
     else:
-        pdf.cell(0, 6, "Transfer Pembayaran:", ln=True)
         pdf.set_font("Arial", "", 7)
+        pdf.cell(0, 6, "Transfer Pembayaran:", ln=True)
         bank_list = [
         "Bank BCA - 0881651041",
         "Bank Mandiri - 1420022043888",

@@ -276,7 +276,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     total_harga = sum(to_number(row.get("Harga Jual", 0)) for row in data)
     
     left_x = pdf.l_margin
-    #right_x = pdf.w - 90
+    right_x = pdf.w - 90
     
     # --- KIRI (DAFTAR BANK) ---
    # --- TOTAL + TERBILANG ---

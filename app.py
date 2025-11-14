@@ -110,16 +110,12 @@ import pandas as pd
 from datetime import datetime
 
 def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filename, logo_path=None, ttd_path=None):
-    # =============================
-    # Inisialisasi PDF
-    # =============================
-    pdf = FPDF(orientation="P", unit="mm", format="A4")  # Portrait
+
+    pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
-    
-    # =============================
-    # HEADER
-    # =============================
+
+    # ===== HEADER =====
     if logo_path:
         try:
             pdf.image(logo_path, x=10, y=10, w=30)
@@ -131,23 +127,16 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.ln(5)
 
     # Nama Customer pertama
-    try:
-        nama_customer_pertama = data[0].get("Nama Customer", "Pelanggan")
-    except:
-        nama_customer_pertama = "Pelanggan"
-
-    tanggal_invoice = datetime.now()  # Tanggal cetak sebagai tanggal invoice
+    nama_customer_pertama = data[0].get("Nama Customer", "Pelanggan")
+    tanggal_invoice = datetime.now()
     pdf.set_font("Arial", "", 9)
     pdf.cell(0, 6, f"Nama Pemesan: {nama_customer_pertama}", ln=True)
     pdf.cell(0, 6, f"Tanggal Invoice: {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
     pdf.cell(0, 6, f"No. Invoice: {unique_invoice_no}", ln=True)
     pdf.ln(5)
 
-    # =============================
-    # KOLOM TABEL
-    # =============================
+    # ===== KOLOM TABEL =====
     kolom_final = [
-        "No",
         "Tgl Pemesanan",
         "Tgl Berangkat",
         "Kode Booking",
@@ -158,83 +147,90 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         "Harga Jual"
     ]
 
-    # Kolom yang ada di data
-    kolom_pdf = [c for c in kolom_final if c != "No" and c in data[0].keys()]
-
-    # Mapping Header
+    # Mapping header
     header_mapping = {
+        "Tgl Pemesanan": "Tgl Pemesanan",
+        "Tgl Berangkat": "Tgl Berangkat",
+        "Kode Booking": "Kode Booking",
+        "No Penerbangan / Hotel / Kereta": "No Penerbangan / Hotel / Kereta",
+        "Durasi": "Durasi",
+        "Nama Customer": "Nama Customer",
+        "Rute": "Rute",
         "Harga Jual": "Harga"
     }
 
-    # =============================
-    # Hitung lebar kolom
-    # =============================
-    pdf.set_font("Arial", "B", 8)
-    col_widths = {"No": 8}
+    # ===== HITUNG LEBAR KOLOM =====
+    pdf.set_font("Arial", "", 8)
+    col_widths = {}
     min_widths = {
         "Tgl Pemesanan": 22,
         "Tgl Berangkat": 22,
-        "Durasi": 17,
-        "Harga Jual": 22,
         "Kode Booking": 25,
+        "No Penerbangan / Hotel / Kereta": 45,
+        "Durasi": 17,
         "Nama Customer": 40,
         "Rute": 25,
-        "No Penerbangan / Hotel / Kereta": 45,
+        "Harga Jual": 22
     }
 
-    for col in kolom_pdf:
-        header = header_mapping.get(col, col)
-        max_w = pdf.get_string_width(header) + 2
-        pdf.set_font("Arial", "", 8)
+    for col in kolom_final:
+        max_w = pdf.get_string_width(header_mapping[col]) + 2
         for row in data:
             val = str(row.get(col, ""))
-            max_w = max(max_w, pdf.get_string_width(val) + 2)
-        col_widths[col] = max(min_widths.get(col, 0), max_w)
-
-    # Sesuaikan total lebar kolom agar tidak melebihi halaman
-    max_total_width = pdf.w - 2 * pdf.l_margin
-    total_width = sum(col_widths.values())
-    if total_width > max_total_width:
-        scale = max_total_width / total_width
-        for k in col_widths:
-            col_widths[k] *= scale
-
-    # =============================
-    # CETAK HEADER TABEL
-    # =============================
-    pdf.set_font("Arial", "B", 7)
-    pdf.set_fill_color(200, 220, 255)
-    pdf.cell(col_widths["No"], 7, "No", 1, 0, 'C', 1)
-    for col in kolom_pdf[1:]:
-        pdf.cell(col_widths[col], 8, header_mapping.get(col, col), 1, 0, 'C', 1)
-    pdf.ln()
-
-    # =============================
-    # ISI TABEL
-    # =============================
-    pdf.set_font("Arial", "", 7)
-    row_h = 6
-    for i, row in enumerate(data, 1):
-        pdf.cell(col_widths["No"], row_h, str(i), 1, 0, 'C')
-        for col in kolom_pdf:
-            val = row.get(col, "")
-            # Format tanggal
             if col in ["Tgl Pemesanan", "Tgl Berangkat"]:
                 try:
                     val = pd.to_datetime(val).strftime("%d-%m-%Y")
                 except:
                     val = str(val)
-            pdf.cell(col_widths[col], row_h, str(val), 1, 0, 'C')
-        pdf.ln()
+            max_w = max(max_w, pdf.get_string_width(val) + 2)
+        col_widths[col] = max(min_widths.get(col, 0), max_w)
+
+    # Sesuaikan agar tidak melebihi halaman
+    max_total_width = pdf.w - 2 * pdf.l_margin
+    total_width = sum(col_widths.values()) + 8  # +8 untuk kolom No
+    if total_width > max_total_width:
+        scale = max_total_width / total_width
+        for k in col_widths:
+            col_widths[k] *= scale
+
+    # ===== CETAK HEADER =====
+    pdf.set_font("Arial", "B", 7)
+    pdf.set_fill_color(200, 220, 255)
+    pdf.cell(8, 8, "No", 1, 0, 'C', 1)
+    for col in kolom_final:
+        pdf.multi_cell(col_widths[col], 4, header_mapping[col], 1, 'C', 1)
+        pdf.set_xy(pdf.get_x(), pdf.get_y() - 4)
+        pdf.set_x(pdf.get_x() + col_widths[col])
+    pdf.ln(8)
+
+    # ===== ISI TABEL =====
+    pdf.set_font("Arial", "", 7)
+    row_h = 6
+    for i, row in enumerate(data, 1):
+        y_start = pdf.get_y()
+        pdf.cell(8, row_h, str(i), 1, 0, 'C')
+
+        max_y = y_start
+        for col in kolom_final:
+            val = row.get(col, "")
+            if col in ["Tgl Pemesanan", "Tgl Berangkat"]:
+                try:
+                    val = pd.to_datetime(val).strftime("%d-%m-%Y")
+                except:
+                    val = str(val)
+            x_before = pdf.get_x()
+            y_before = pdf.get_y()
+            pdf.multi_cell(col_widths[col], 5, str(val), 1, 'C')
+            max_y = max(max_y, pdf.get_y())
+            pdf.set_xy(x_before + col_widths[col], y_before)
+        pdf.set_y(max_y)
     pdf.ln(5)
 
-    # =============================
-    # BAGIAN BAWAH (REKENING & TTD)
-    # =============================
+    # ===== BAGIAN BAWAH =====
     left_x = pdf.l_margin
     right_x = pdf.w - 90
 
-    # --- KIRI (BANK & REKENING) ---
+    # Kiri
     pdf.set_xy(left_x, pdf.get_y())
     pdf.set_font("Arial", "B", 9)
     pdf.cell(80, 6, "Transfer Pembayaran:", ln=True)
@@ -246,12 +242,11 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_x(left_x)
     pdf.cell(80, 6, "a/n Josirma Sari Pratiwi", ln=True)
 
-    # --- KANAN (TEMPAT/TANGGAL + TTD) ---
-    pdf.set_xy(right_x+40, pdf.get_y() - 18)
+    # Kanan
+    pdf.set_xy(right_x + 40, pdf.get_y() - 18)
     pdf.set_font("Arial", "", 9)
     pdf.cell(80, 6, f"Jakarta, {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
-
-    pdf.set_x(right_x + 45) 
+    pdf.set_x(right_x + 45)
     pdf.cell(80, 6, "Hormat Kami,", ln=True)
     pdf.ln(2)
 
@@ -268,27 +263,24 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_font("Arial", "B", 9)
     pdf.cell(80, 6, "Josirma Sari Pratiwi", ln=True)
 
-    # =============================
-    # FOOTER ALAMAT KAMI
-    # =============================
+    # ===== FOOTER =====
     pdf.set_y(-40)
-    pdf.set_draw_color(0, 0, 0)  # warna garis hitam
-    pdf.set_line_width(0.3)  # ketebalan garis tipis
-    pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())  # garis horisontal penuh
-    pdf.set_y(pdf.get_y() + 2)  # beri jarak 2 mm setelah garis
+    pdf.set_draw_color(0, 0, 0)
+    pdf.set_line_width(0.3)
+    pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
+    pdf.set_y(pdf.get_y() + 2)
     pdf.set_font("Arial", "B", 6)
     pdf.multi_cell(0, 5,
         "Kayyisa Tour & Travel\n"
         "The Taman Dhika Cluster Wilis Blok F2 No. 2 Buduran, Sidoarjo - Jawa Timur\n"
-        "Mobile: 081217026522  Email: kayyisatour@gmail.com\n",
+        "Mobile: 081217026522  Email: kayyisatour@gmail.com\n"
+        "www.kayyisatour.com",
         align="C"
     )
 
-    # =============================
-    # OUTPUT FILE
-    # =============================
     pdf.output(output_pdf_filename)
     return output_pdf_filename
+
 
 
 

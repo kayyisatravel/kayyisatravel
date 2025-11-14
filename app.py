@@ -318,7 +318,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # --- KANAN (TEMPAT/TANGGAL + TTD) ---
     pdf.set_xy(right_x + 45, y_setelah_terbilang)
     pdf.set_font("Arial", "", 9)
-    pdf.cell(80, 6, f"Jakarta, {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
+    pdf.cell(80, 6, f"Sidoarjo, {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
     pdf.set_x(right_x + 50)
     pdf.cell(80, 6, "Hormat Kami,", ln=True)
     pdf.ln(2)

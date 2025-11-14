@@ -285,6 +285,13 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_x(right_x + 50)
     pdf.set_font("Arial", "B", 9)
     pdf.cell(80, 6, "Josirma Sari Pratiwi", ln=True)
+
+    pdf.ln(2)  # beri jarak sedikit setelah TTD/Nama
+    pdf.set_x(left_x)
+    pdf.set_font("Arial", "", 8)
+    
+    for bank in bank_list:
+        pdf.multi_cell(80, 3, f"{bank} - Josirma Sari Pratiwi", align="L")
     
     # =============================
     # TEKS OTOMATIS DI ATAS FOOTER

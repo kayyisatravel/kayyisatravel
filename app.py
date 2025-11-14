@@ -1271,8 +1271,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
                     # === PEMANGGILAN FUNGSI YANG BARU ===
                     pdf_path_generated = buat_invoice_pdf(
                         records,
-                        nama,
-                        tanggal,
+                        tanggal_invoice,
                         st.session_state.current_unique_invoice_no,
                         current_pdf_filename,
                         logo_path="logo.png",

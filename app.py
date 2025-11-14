@@ -109,7 +109,7 @@ from fpdf import FPDF
 import pandas as pd
 from datetime import datetime
 
-def buat_invoice_pdf(data, unique_invoice_no, output_pdf_filename, logo_path=None, ttd_path=None):
+def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filename, logo_path=None, ttd_path=None):
     # =============================
     # Inisialisasi PDF
     # =============================

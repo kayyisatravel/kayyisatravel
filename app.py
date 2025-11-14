@@ -237,7 +237,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # --- KIRI (DAFTAR BANK) ---
     pdf.set_xy(left_x, pdf.get_y())
     pdf.set_font("Arial", "B", 6)
-    pdf.cell(80, 6, "Transfer Pembayaran:", ln=True)
+    pdf.cell(80, 6, "-", ln=True)
     pdf.set_font("Arial", "", 6)
     
     # daftar bank
@@ -280,10 +280,12 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.ln(2)  # beri jarak sedikit setelah TTD/Nama
     pdf.set_x(left_x)
     pdf.set_font("Arial", "", 6)
-    
+
+    pdf.set_font("Arial", "B", 6)
+    pdf.cell(80, 6, "Pembayaran:", ln=True)
     for bank in bank_list:
         pdf.set_x(left_x)
-        pdf.cell(80, 6, f"{bank} - Josirma Sari Pratiwi", align="L")
+        pdf.multi_cell(80, 3, f"{bank} - Josirma Sari Pratiwi", align="L")
     
     # =============================
     # TEKS OTOMATIS DI ATAS FOOTER

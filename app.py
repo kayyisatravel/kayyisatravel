@@ -225,7 +225,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_font("Arial", "", 10)
     pdf.cell(80, 6, f"Jakarta, {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
 
-    pdf.set_x(right_x + 3)  # geser 3 mm ke kanan
+    pdf.set_x(right_x + 5) 
     pdf.cell(80, 6, "Hormat Kami,", ln=True)
     pdf.ln(2)
 
@@ -245,16 +245,16 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     # FOOTER ALAMAT KAMI
     # =============================
-    pdf.set_y(-40)
+    pdf.set_y(-30)
     pdf.set_draw_color(0, 0, 0)  # warna garis hitam
     pdf.set_line_width(0.3)  # ketebalan garis tipis
     pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())  # garis horisontal penuh
     pdf.set_y(pdf.get_y() + 2)  # beri jarak 2 mm setelah garis
-    pdf.set_font("Arial", "", 7)
+    pdf.set_font("Arial", "", 8)
     pdf.multi_cell(0, 5,
         "Kayyisa Tour & Travel\n"
         "The Taman Dhika Cluster Wilis Blok F2 No. 2 Buduran, Sidoarjo - Jawa Timur\n"
-        "Mobile: 081217026522  Email: kayyisatour@gmail.com  www.kayyisatour.com\n",
+        "Mobile: 081217026522  Email: kayyisatour@gmail.com\n",
         align="C"
     )
 

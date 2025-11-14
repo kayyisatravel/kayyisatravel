@@ -281,12 +281,11 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # --- KIRI (DAFTAR BANK) ---
    # --- TOTAL + TERBILANG ---
     pdf.set_x(left_x)
-    pdf.set_font("Arial", "B", 10)
+    pdf.set_font("Arial", "B", 9)
     pdf.set_text_color(0, 0, 0)
     
     # Total nominal
-    pdf.set_font("Arial", "B", 10)
-    pdf.cell(0, 5, f"TOTAL TAGIHAN: Rp {total_harga:,.0f}", ln=True)
+    pdf.cell(0, 8, f"TOTAL TAGIHAN: Rp {total_harga:,.0f}", ln=True)
     
     # Terbilang
     terbilang_text = terbilang(total_harga).strip().capitalize() + " rupiah"

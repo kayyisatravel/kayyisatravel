@@ -253,10 +253,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         "Bank Panin - 9012345678",
         "Bank Syariah - 0123456789"
     ]
-    
-    for bank in bank_list:
-        pdf.set_x(left_x)
-        pdf.multi_cell(80, 6, f"{bank} - Josirma Sari Pratiwi", align="L")
+
 
     num_rows = len(bank_list)  # total baris daftar bank
 
@@ -291,7 +288,8 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_font("Arial", "", 6)
     
     for bank in bank_list:
-        pdf.cell(80, 6, f"{bank} - Josirma Sari Pratiwi", align="L")
+        pdf.set_x(left_x)
+        pdf.multi_cell(80, 6, f"{bank} - Josirma Sari Pratiwi", align="L")
     
     # =============================
     # TEKS OTOMATIS DI ATAS FOOTER

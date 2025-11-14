@@ -231,12 +231,16 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     # BAGIAN BAWAH (REKENING & TTD)
     # =============================
-    total_harga = 0
-    for row in data:
-        try:
-            total_harga += float(row.get("Harga Jual", 0))
-        except:
-            pass
+    def to_number(val):
+        if isinstance(val, (int, float)):
+            return val
+        if isinstance(val, str):
+            val = val.replace(".", "").replace(",", "").strip()
+            if val.isdigit():
+                return float(val)
+        return 0
+
+    total_harga = sum(to_number(row.get("Harga Jual", 0)) for row in data)
     
     left_x = pdf.l_margin
     right_x = pdf.w - 90

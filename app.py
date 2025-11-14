@@ -312,7 +312,7 @@ def buat_invoice_pdf(data, nama_pemesan, tanggal_invoice, unique_invoice_no, out
 #st.set_page_config(page_title="Buat Invoice Tiket", layout="centered")
 #st.title("🧾 Buat Invoice")
 
-df = load_data()
+#df = load_data()
 #st.write("Data contoh Tgl Pemesanan (5 pertama):", df["Tgl Pemesanan"].head())
 #st.write("Tipe data kolom Tgl Pemesanan:", df["Tgl Pemesanan"].apply(type).unique())
 #st.write("Tanggal filter:", tanggal_range)

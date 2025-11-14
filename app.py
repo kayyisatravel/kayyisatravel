@@ -261,10 +261,10 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     num_rows = len(bank_list)  # total baris daftar bank
 
     # --- KANAN (TEMPAT/TANGGAL + TTD) ---
-    pdf.set_xy(right_x, pdf.get_y() - (num_rows*6))  # sesuaikan dengan tinggi bank list
+    pdf.set_xy(right_x + 50, pdf.get_y() - (num_rows*6))  # sesuaikan dengan tinggi bank list
     pdf.set_font("Arial", "", 9)
     pdf.cell(80, 6, f"Jakarta, {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
-    pdf.set_x(right_x + 5)
+    pdf.set_x(right_x + 55)
     pdf.cell(80, 6, "Hormat Kami,", ln=True)
     pdf.ln(2)
     
@@ -282,7 +282,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         except:
             pdf.ln(12)
     
-    pdf.set_x(right_x + 5)
+    pdf.set_x(right_x + 50)
     pdf.set_font("Arial", "B", 9)
     pdf.cell(80, 6, "Josirma Sari Pratiwi", ln=True)
     

@@ -234,10 +234,13 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     def to_number(val):
         if isinstance(val, (int, float)):
             return val
+    
         if isinstance(val, str):
-            val = val.replace(".", "").replace(",", "").strip()
-            if val.isdigit():
-                return float(val)
+            # Ambil semua angka dari string
+            digits = re.findall(r"\d+", val)
+            if digits:
+                return float("".join(digits))
+        
         return 0
 
     total_harga = sum(to_number(row.get("Harga Jual", 0)) for row in data)

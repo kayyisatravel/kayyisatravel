@@ -174,11 +174,11 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     min_widths = {
         "Tgl Pemesanan": 22,
         "Tgl Berangkat": 22,
-        "Durasi": 15,
+        "Durasi": 17,
         "Harga Jual": 22,
         "Kode Booking": 25,
         "Nama Customer": 40,
-        "Rute": 30,
+        "Rute": 25,
         "No Penerbangan / Hotel / Kereta": 45,
     }
 
@@ -205,16 +205,8 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_font("Arial", "B", 7)
     pdf.set_fill_color(200, 220, 255)
     pdf.cell(col_widths["No"], 7, "No", 1, 0, 'C', 1)
-    for col in kolom_pdf:
-        header_text = header_mapping.get(col, col)
-        x_before = pdf.get_x()
-        y_before = pdf.get_y()
-        
-        pdf.multi_cell(col_widths[col], 5, header_text, 1, 'C', 1)
-        
-        # pindah kursor ke kanan setelah multi_cell
-        pdf.set_xy(x_before + col_widths[col], y_before)
-    
+    for col in kolom_pdf[1:]:
+        pdf.cell(col_widths[col], 8, header_mapping.get(col, col), 1, 0, 'C', 1)
     pdf.ln()
 
     # =============================

@@ -94,6 +94,10 @@ def prepare_batch_update(
 
     return updates
  # === Fungsi PDF ===
+import os
+from fpdf import FPDF
+import streamlit as st
+
 def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filename, logo_path=None, ttd_path=None):
     pdf = FPDF(orientation="L", unit="mm", format="A4")
     pdf.add_page()
@@ -101,7 +105,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     # HEADER INVOICE
     # =============================
-    if logo_path and st.file_manager.exists(logo_path):
+    if logo_path and os.path.exists(logo_path):
         try:
             pdf.image(logo_path, x=10, y=10, w=30)
         except:
@@ -113,7 +117,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_font("Arial", "", 12)
     pdf.ln(5)
 
-    # Nama Pemesan dari Nama Customer (baris pertama)
+    # Nama Pemesan → ambil dari Nama Customer baris pertama
     try:
         nama_customer_pertama = data[0].get("Nama Customer", "Pelanggan")
     except:
@@ -125,7 +129,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.ln(8)
 
     # =============================
-    # KOLOM YANG DITAMPILKAN (PERMINTAAN BARU)
+    # KOLOM YANG DITAMPILKAN
     # =============================
     kolom_final = [
         "No",
@@ -140,11 +144,9 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     ]
 
     kolom_pdf = [c for c in kolom_final if c in ["No"] or (data and c in data[0].keys())]
-
     if "No" in kolom_pdf:
         kolom_pdf.remove("No")
 
-    # Mapping Nama Header
     header_mapping = {
         "Harga Jual": "Harga"
     }
@@ -154,7 +156,6 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     pdf.set_font("Arial", "B", 8)
     col_widths = {"No": 8}
-
     min_widths = {
         "Tgl Pemesanan": 22,
         "Tgl Berangkat": 22,
@@ -184,7 +185,6 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_fill_color(200, 220, 255)
 
     pdf.cell(col_widths["No"], 8, "No", 1, 0, 'C', 1)
-
     for col in kolom_pdf:
         pdf.cell(col_widths[col], 8, header_mapping.get(col, col), 1, 0, 'C', 1)
     pdf.ln()
@@ -197,11 +197,9 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
 
     for i, row in enumerate(data, 1):
         pdf.cell(col_widths["No"], row_h, str(i), 1, 0, 'C')
-
         for col in kolom_pdf:
             val = row.get(col, "")
             pdf.cell(col_widths[col], row_h, str(val), 1, 0, 'C')
-
         pdf.ln()
 
     pdf.ln(10)
@@ -209,7 +207,6 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     # BAGIAN BAWAH (REKENING & TTD)
     # =============================
-
     left_x = pdf.l_margin
     right_x = pdf.w - 90  # area kanan
 
@@ -230,13 +227,11 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_xy(right_x, pdf.get_y() - 18)
     pdf.set_font("Arial", "", 10)
     pdf.cell(80, 6, f"Jakarta, {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
-
     pdf.set_x(right_x)
     pdf.cell(80, 6, "Hormat Kami,", ln=True)
     pdf.ln(2)
 
-    # Gambar tanda tangan (jika ada)
-    if ttd_path and st.file_manager.exists(ttd_path):
+    if ttd_path and os.path.exists(ttd_path):
         try:
             pdf.image(ttd_path, x=right_x, y=pdf.get_y(), w=45)
             pdf.ln(22)
@@ -254,6 +249,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     pdf.output(output_pdf_filename)
     return output_pdf_filename
+
 
 # === UI Streamlit ===
 #st.set_page_config(page_title="Buat Invoice Tiket", layout="centered")

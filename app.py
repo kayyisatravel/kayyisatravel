@@ -255,14 +255,19 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.cell(80, 6, "Hormat Kami,", ln=True)
     pdf.ln(2)
 
-    if ttd_path:
+    if not ttd_path:
+        pdf.set_x(right_x + 45)
+        pdf.set_font("Arial", "I", 6)
+        pdf.cell(80, 6, "Dicetak Otomatis, Tidak Memerlukan Tanda Tangan", ln=True, align="C")
+    else:
         try:
-            pdf.image(ttd_path, x=right_x + 3, y=pdf.get_y(), w=45)
+            ttd_w = 40
+            ttd_x = right_x + 3
+            ttd_y = pdf.get_y()
+            pdf.image(ttd_path, x=ttd_x, y=ttd_y, w=ttd_w)
             pdf.ln(22)
         except:
             pdf.ln(12)
-    else:
-        pdf.ln(15)
 
     pdf.set_x(right_x + 50)
     pdf.set_font("Arial", "B", 9)

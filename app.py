@@ -106,7 +106,7 @@ from fpdf import FPDF
 import streamlit as st
 
 def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filename, logo_path=None, ttd_path=None):
-    pdf = FPDF(orientation="P", unit="mm", format="A4")  # A4
+    pdf = FPDF(orientation="L", unit="mm", format="A4")  # A4
     pdf.add_page()
 
     # =============================

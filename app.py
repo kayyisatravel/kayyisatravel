@@ -109,7 +109,7 @@ from fpdf import FPDF
 import pandas as pd
 from datetime import datetime
 
-def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filename, logo_path=None, ttd_path=None, status_lunas="BELUM LUNAS"):
+def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filename, logo_path, ttd_path=None, status_lunas="BELUM LUNAS"):
     # =============================
     # Inisialisasi PDF
     # =============================
@@ -139,10 +139,10 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
             pdf.image(logo_path, x=logo_x, y=10, w=logo_width)
         except:
             pass
-    pdf.set_draw_color(0, 0, 0)  # warna garis hitam
-    pdf.set_line_width(0.3)  # ketebalan garis tipis
-    pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())  # garis horisontal penuh
-    pdf.set_y(pdf.get_y() + 2)
+    #pdf.set_draw_color(0, 0, 0)  # warna garis hitam
+    #pdf.set_line_width(0.3)  # ketebalan garis tipis
+    #pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())  # garis horisontal penuh
+    #pdf.set_y(pdf.get_y() + 2)
     pdf.ln(10)  # beri jarak setelah header
 
     pdf.set_font("Arial", "B", 12)
@@ -1419,7 +1419,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
                         tanggal_invoice,
                         st.session_state.current_unique_invoice_no,
                         current_pdf_filename,
-                        logo_path="logo.png",
+                        logo_path="C:\Users\rizal\Downloads\Logo Perusahaan.jpeg",
                         ttd_path="ttd.png",
                         status_lunas=status_lunas
                     )

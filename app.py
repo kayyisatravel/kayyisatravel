@@ -137,8 +137,8 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
             # posisi X = lebar halaman - margin kanan - lebar logo
             logo_x = pdf.w - pdf.r_margin - logo_width
             pdf.image(logo_path, x=logo_x, y=10, w=logo_width)
-        except:
-            pass
+        except Exception as e:
+            print("Gagal load logo:", e)
     #pdf.set_draw_color(0, 0, 0)  # warna garis hitam
     #pdf.set_line_width(0.3)  # ketebalan garis tipis
     #pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())  # garis horisontal penuh

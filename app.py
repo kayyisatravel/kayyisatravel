@@ -125,7 +125,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # Nama Pemesan → ambil dari Nama Customer baris pertama
     nama_customer_pertama = data[0].get("Nama Customer", "Pelanggan") if data else "Pelanggan"
 
-    pdf.set_font("Arial", "", 12)
+    pdf.set_font("Arial", "", 10)
     pdf.cell(0, 7, f"Nama Pemesan: {nama_customer_pertama}", ln=True)
     pdf.cell(0, 7, f"Tanggal Invoice: {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
     pdf.cell(0, 7, f"No. Invoice: {unique_invoice_no}", ln=True)
@@ -154,8 +154,8 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     # HITUNG LEBAR KOLOM
     # =============================
-    pdf.set_font("Arial", "B", 8)
-    col_widths = {"No": 8}
+    pdf.set_font("Arial", "B", 10)
+    col_widths = {"No": 10}
     min_widths = {
         "Tgl Pemesanan": 22,
         "Tgl Berangkat": 22,
@@ -172,7 +172,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
             continue
         header = header_mapping.get(col, col)
         max_w = pdf.get_string_width(header) + 2
-        pdf.set_font("Arial", "", 8)
+        pdf.set_font("Arial", "", 10)
         for row in data:
             val = str(row.get(col, ""))
             max_w = max(max_w, pdf.get_string_width(val) + 2)
@@ -181,7 +181,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     # CETAK HEADER TABEL
     # =============================
-    pdf.set_font("Arial", "B", 8)
+    pdf.set_font("Arial", "B", 10)
     pdf.set_fill_color(200, 220, 255)
     pdf.cell(col_widths["No"], 8, "No", 1, 0, 'C', 1)
     for col in kolom_pdf[1:]:
@@ -191,7 +191,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =============================
     # ISI TABEL
     # =============================
-    pdf.set_font("Arial", "", 8)
+    pdf.set_font("Arial", "", 10)
     row_h = 7
     for i, row in enumerate(data, 1):
         pdf.cell(col_widths["No"], row_h, str(i), 1, 0, 'C')
@@ -238,7 +238,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     else:
         pdf.ln(15)
 
-    pdf.set_x(right_x + 3)
+    pdf.set_x(right_x)
     pdf.set_font("Arial", "B", 11)
     pdf.cell(80, 6, "Josirma Sari Pratiwi", ln=True)
 
@@ -249,12 +249,9 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_font("Arial", "", 9)
     pdf.multi_cell(0, 5,
         "Kayyisa Tour & Travel\n"
-        "The Taman Dhika Cluster Wilis\n"
-        "Blok F2 No. 2 Buduran\n"
+        "The Taman Dhika Cluster Wilis Blok F2 No. 2 Buduran\n"
         "Sidoarjo - Jawa Timur\n"
-        "Mobile: 081217026522\n"
-        "Email: kayyisatour@gmail.com\n"
-        "www.kayyisatour.com",
+        "Mobile: 081217026522  Email: kayyisatour@gmail.com  www.kayyisatour.com\n"
         align="C"
     )
 

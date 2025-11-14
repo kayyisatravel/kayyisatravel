@@ -251,7 +251,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         "Kayyisa Tour & Travel\n"
         "The Taman Dhika Cluster Wilis Blok F2 No. 2 Buduran\n"
         "Sidoarjo - Jawa Timur\n"
-        "Mobile: 081217026522  Email: kayyisatour@gmail.com  www.kayyisatour.com\n"
+        "Mobile: 081217026522  Email: kayyisatour@gmail.com  www.kayyisatour.com\n",
         align="C"
     )
 

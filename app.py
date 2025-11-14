@@ -234,30 +234,6 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     left_x = pdf.l_margin
     right_x = pdf.w - 90
 
-   # Daftar bank
-    bank_list = [
-        "Bank BCA - 1234567890",
-        "Bank Mandiri - 2345678901",
-        "Bank BNI - 3456789012",
-        "Bank BTN - 4567890123",
-        "Bank CIMB - 5678901234",
-        "Bank Permata - 6789012345",
-        "Bank Danamon - 7890123456",
-        "Bank Maybank - 8901234567",
-        "Bank Panin - 9012345678",
-        "Bank Syariah - 0123456789"
-    ]
-    
-    # --- KIRI (BANK & REKENING) ---
-    pdf.set_xy(left_x, pdf.get_y())
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(80, 6, "Transfer Pembayaran:", ln=True)
-    pdf.set_font("Arial", "", 9)
-    
-    for bank in bank_list:
-        pdf.set_x(left_x)
-        pdf.cell(80, 6, f"{bank}  a/n Josirma Sari Pratiwi", ln=True)
-
     # --- KANAN (TEMPAT/TANGGAL + TTD) ---
     pdf.set_xy(right_x + 50, pdf.get_y() - 18)
     pdf.set_font("Arial", "", 9)
@@ -289,6 +265,31 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_xy(left_x, pdf.get_y())
     pdf.set_font("Arial", "I", 6)
     pdf.cell(80, 6, "Invoice ini dicetak secara otomatis oleh komputer dan tidak memerlukan tanda tangan", ln=True)
+
+    
+   # Daftar bank
+    bank_list = [
+        "Bank BCA - 1234567890",
+        "Bank Mandiri - 2345678901",
+        "Bank BNI - 3456789012",
+        "Bank BTN - 4567890123",
+        "Bank CIMB - 5678901234",
+        "Bank Permata - 6789012345",
+        "Bank Danamon - 7890123456",
+        "Bank Maybank - 8901234567",
+        "Bank Panin - 9012345678",
+        "Bank Syariah - 0123456789"
+    ]
+    
+    # --- KIRI (BANK & REKENING) ---
+    pdf.set_xy(left_x, pdf.get_y())
+    pdf.set_font("Arial", "B", 9)
+    pdf.cell(80, 6, "Transfer Pembayaran:", ln=True)
+    pdf.set_font("Arial", "", 9)
+    
+    for bank in bank_list:
+        pdf.set_x(left_x)
+        pdf.cell(80, 6, f"{bank} - Josirma Sari Pratiwi", ln=True)
 
     
     # =============================

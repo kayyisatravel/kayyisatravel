@@ -280,7 +280,11 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
 
 
 
-    total_harga = sum(to_number(row.get("Harga Jual", 0)) for row in data)
+    if status_lunas.upper() == "LUNAS":
+        total_harga = 0
+    else:
+        total_harga = sum(to_number(row.get("Harga Jual", 0)) for row in data)
+
     
     left_x = pdf.l_margin
     right_x = pdf.w - 90
@@ -295,7 +299,11 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.cell(0, 8, f"TOTAL TAGIHAN: Rp {total_harga:,.0f}", ln=True)
     
     # Terbilang
-    terbilang_text = terbilang(total_harga).strip().capitalize() + " rupiah"
+    if total_harga == 0:
+        terbilang_text = "Nol rupiah"
+    else:
+        terbilang_text = terbilang(total_harga).strip().capitalize() + " rupiah"
+
     pdf.set_font("Arial", "I", 8)
     pdf.multi_cell(0, 6, f"({terbilang_text})", align="L")
     pdf.ln(2)

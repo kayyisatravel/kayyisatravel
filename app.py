@@ -279,30 +279,23 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     #right_x = pdf.w - 90
     
     # --- KIRI (DAFTAR BANK) ---
-    pdf.set_xy(left_x, pdf.get_y())
-    pdf.set_font("Arial", "B", 6)
-    half_page_width = (pdf.w - pdf.l_margin - pdf.r_margin) / 2
-    right_x = pdf.l_margin + half_page_width + 5
+   # --- TOTAL + TERBILANG ---
     pdf.set_x(left_x)
-    pdf.set_font("Arial", "B", 7)
-    
-    # Format terbilang
-    terbilang_text = terbilang(total_harga).strip().capitalize() + " rupiah"
-    
-    # Gabungan nominal + terbilang
-    total_line = f"TOTAL TAGIHAN: Rp {total_harga:,.0f} ({terbilang_text})"
-    
-    # Tampilkan dalam multi_cell agar otomatis turun jika panjang
-    # Tes 1 — Paksa tampil apa pun yang terjadi
-    pdf.set_font("Arial", "B", 10)
-    pdf.set_text_color(255, 0, 0)   # merah untuk test
-    pdf.cell(0, 8, f"TEST TOTAL: {total_harga}", ln=True)
-    
+    pdf.set_font("Arial", "B", 8)
     pdf.set_text_color(0, 0, 0)
-    pdf.set_font("Arial", "", 8)
-    pdf.multi_cell(half_page_width, 5, f"TEST TERBILANG: {terbilang(total_harga)}", align="L")
+    
+    # Total nominal
+    pdf.cell(0, 5, f"TOTAL TAGIHAN: Rp {total_harga:,.0f}", ln=True)
+    
+    # Terbilang
+    terbilang_text = terbilang(total_harga).strip().capitalize() + " rupiah"
+    pdf.set_font("Arial", "", 7)
+    pdf.multi_cell(0, 5, f"({terbilang_text})", align="L")
     pdf.ln(2)
+    
+    # Simpan posisi Y terakhir untuk TTD kanan
     y_setelah_terbilang = pdf.get_y()
+
 
 
     #num_rows = len(bank_list)  # total baris daftar bank

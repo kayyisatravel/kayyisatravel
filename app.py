@@ -2305,12 +2305,12 @@ with st.expander("✏️ Input Data Cashflow Manual"):
 # --------------------------
 with st.expander("💸 Laporan Cashflow Realtime"):
     # Ambil Sheet Arus Kas
-    # ws_cashflow = connect_to_gsheet(SHEET_ID, "Arus Kas")
+    ws_cashflow = connect_to_gsheet(SHEET_ID, "Arus Kas")
     # placeholder: simulasi df_cashflow
     df_cashflow = pd.DataFrame(columns=["Tanggal","Tipe","Kategori","No Invoice","Keterangan","Jumlah","Status","Sumber"])
     
     # Ambil Sheet Data
-    # ws_data = connect_to_gsheet(SHEET_ID, "Data")
+    ws_data = connect_to_gsheet(SHEET_ID, "Data")
     # placeholder: simulasi df_data
     df_data = pd.DataFrame()  # ganti dengan panggilan gspread
     

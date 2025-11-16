@@ -2211,7 +2211,7 @@ def parse_cashflow_from_data(df_data, df_cashflow_existing):
 
     # Pastikan kolom penting
     df_data["No Invoice"] = df_data["No Invoice"].fillna("").astype(str)
-    df_data["Tgl Pemesanan"] = pd.to_datetime(df_data["Tgl Pemesanan"], errors="coerce")
+    df_data["Tgl Pemesanan"] = pd.to_datetime(df_data["Tgl Pemesanan"], dayfirst=True, errors="coerce")
     df_data["Keterangan"] = df_data.get("Keterangan", "").astype(str)
     df_data["Nama Pemesan"] = df_data.get("Nama Pemesan", "").astype(str)
 

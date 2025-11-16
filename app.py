@@ -2384,6 +2384,49 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     st.markdown("### 🔍 Data Cashflow Realtime")
     st.dataframe(df_cashflow.sort_values(by="Tanggal", ascending=False), use_container_width=True)
 
+    def generate_aging_report(df_cashflow, overdue_days=30):
+        """
+        Menghasilkan DataFrame invoice belum lunas dengan aging, menandai overdue
+        """
+        # Filter invoice belum lunas
+        df_unpaid = df_cashflow[df_cashflow["Status"]=="Belum Lunas"].copy()
+    
+        # Group per Invoice_Key untuk total piutang
+        aging_rows = []
+        for key in df_unpaid["Invoice_Key"].unique():
+            df_inv = df_unpaid[df_unpaid["Invoice_Key"]==key]
+            tgl_pemesanan = df_inv["Tanggal"].min()
+            nama_pemesan = df_inv["Nama Pemesan"].iloc[0]
+            no_invoice = df_inv["No Invoice"].iloc[0] if df_inv["No Invoice"].iloc[0] else ""
+            total_harus_diterima = df_inv[df_inv["Tipe"]=="Keluar"]["Jumlah"].sum()
+            total_sudah_diterima = df_inv[df_inv["Tipe"]=="Masuk"]["Jumlah"].sum()
+            piutang_invoice = total_harus_diterima - total_sudah_diterima
+    
+            # Hitung umur piutang (aging)
+            aging = (pd.Timestamp.today() - tgl_pemesanan).days
+            overdue = aging > overdue_days
+    
+            aging_rows.append({
+                "Nama Pemesan": nama_pemesan,
+                "No Invoice": no_invoice,
+                "Tanggal Pemesanan": tgl_pemesanan,
+                "Piutang": piutang_invoice,
+                "Aging (hari)": aging,
+                "Overdue": overdue
+            })
+    
+        df_aging = pd.DataFrame(aging_rows)
+        return df_aging
+    
+    # Contoh penggunaan:
+    df_aging = generate_aging_report(df_cashflow, overdue_days=30)
+    
+    # Highlight overdue
+    def highlight_overdue(row):
+        return ["background-color: #FF9999" if row.Overdue else "" for _ in row]
+    
+    st.markdown("### ⏳ Aging Report / Invoice Belum Lunas")
+    st.dataframe(df_aging.style.apply(highlight_overdue, axis=1), use_container_width=True)
 #======================================================================================================================================
 from streamlit_option_menu import option_menu
 import streamlit as st

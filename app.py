@@ -2327,13 +2327,40 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     total_masuk = df_cashflow[df_cashflow["Tipe"]=="Masuk"]["Jumlah"].sum()
     total_keluar = df_cashflow[df_cashflow["Tipe"]=="Keluar"]["Jumlah"].sum()
     saldo = total_masuk - total_keluar
-    total_piutang = df_cashflow[(df_cashflow["Tipe"]=="Masuk") & (df_cashflow["Status"]=="Belum Lunas")]["Jumlah"].sum()
+    invoices = df_cashflow["No Invoice"].unique()
 
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Masuk", format_rp(total_masuk))
-    col2.metric("Total Keluar", format_rp(total_keluar))
-    col3.metric("Saldo Akhir", format_rp(saldo))
-    col4.metric("Piutang Belum Lunas", format_rp(total_piutang))
+    piutang_total = 0
+    
+    for inv in invoices:
+        df_inv = df_cashflow[df_cashflow["No Invoice"] == inv]
+        
+        # Total yang seharusnya diterima = sum Harga Jual (Tipe Masuk atau Keluar Harga Jual)
+        # Kita bisa ambil semua baris Keluar/Harga Jual atau baris Masuk jika sudah ada
+        total_harus_diterima = df_inv.loc[df_inv["Tipe"]=="Masuk", "Jumlah"].sum()
+        
+        # Jika belum ada pembayaran Masuk, gunakan total harga jual dari Keluar (otomatis)
+        if total_harus_diterima == 0:
+            # Misal Keluar = harga beli, Masuk = harga jual, jika Masuk belum ada, ambil harga jual dari df_data
+            # Kita bisa pakai baris Keluar + Status Belum Lunas sebagai referensi
+            total_harus_diterima = df_inv.loc[df_inv["Tipe"]=="Keluar", "Jumlah"].sum()
+        
+        # Total yang sudah diterima = sum baris Masuk
+        total_sudah_diterima = df_inv.loc[df_inv["Tipe"]=="Masuk", "Jumlah"].sum()
+        
+        # Piutang invoice = yang belum diterima
+        piutang_invoice = total_harus_diterima - total_sudah_diterima
+        
+        # Tambahkan ke total piutang, hanya jika > 0
+        if piutang_invoice > 0:
+            piutang_total += piutang_invoice
+    
+    total_piutang = piutang_total
+
+    #col1, col2, col3, col4 = st.columns(4)
+    st.metric("Total Masuk", format_rp(total_masuk))
+    st.metric("Total Keluar", format_rp(total_keluar))
+    st.metric("Saldo Akhir", format_rp(saldo))
+    st.metric("Piutang Belum Lunas", format_rp(total_piutang))
 
     st.markdown("### 🔍 Data Cashflow Realtime")
     st.dataframe(df_cashflow.sort_values(by="Tanggal", ascending=False), use_container_width=True)

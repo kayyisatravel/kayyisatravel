@@ -2190,9 +2190,8 @@ def format_rp(x):
 def input_cashflow():
     with st.expander("✏️ Input Data Cashflow"):
         st.markdown("### Input Data Arus Kas Manual")
-        
-        tanggal = st.date_input("Tanggal", value=date.today(), key="tanggal_manual")
-        tipe = st.selectbox("Tipe", ["Masuk", "Keluar"], key="tipe_manual")
+        tanggal = st.date_input("Tanggal", value=date.today())
+        tipe = st.selectbox("Tipe", ["Masuk", "Keluar"])
         
         kategori_masuk = ["Penjualan Tiket Pesawat", "Penjualan Hotel", "Penjualan Kereta", "Komisi Agen", "Lain-lain"]
         kategori_keluar = ["Pembelian Tiket Pesawat", "Pembelian Hotel", "Pembelian Kereta", "Gaji Karyawan",
@@ -2200,16 +2199,16 @@ def input_cashflow():
                            "Kerugian Salah Order", "Kerugian Pembatalan", "Kerugian Kerusakan / Rusak", 
                            "Kerugian Lainnya", "Lain-lain"]
         kategori_opsi = kategori_masuk if tipe == "Masuk" else kategori_keluar
-        kategori = st.selectbox("Kategori", kategori_opsi, key="kategori_manual")
+        kategori = st.selectbox("Kategori", kategori_opsi)
         if kategori == "Lain-lain":
-            kategori = st.text_input("Jelaskan kategori lainnya", key="kategori_khusus_manual")
+            kategori = st.text_input("Jelaskan kategori lainnya")
         
-        no_invoice = st.text_input("No Invoice", key="no_invoice_manual")
-        keterangan = st.text_input("Keterangan", key="keterangan_manual")
-        jumlah = st.number_input("Jumlah (Rp)", min_value=0, step=1, format="%d", key="jumlah_manual")
-        status = st.selectbox("Status", ["Lunas", "Belum Lunas"], key="status_manual")
+        no_invoice = st.text_input("No Invoice")
+        keterangan = st.text_input("Keterangan")
+        jumlah = st.number_input("Jumlah (Rp)", min_value=0, step=1, format="%d")
+        status = st.selectbox("Status", ["Lunas", "Belum Lunas"])
         
-        if st.button("Simpan Data Manual", key="btn_simpan_manual"):
+        if st.button("Simpan Data Manual"):
             if jumlah <= 0:
                 st.error("Jumlah harus lebih dari 0")
                 return
@@ -2227,21 +2226,21 @@ def input_cashflow():
                 st.session_state.cashflow_manual = []
             st.session_state.cashflow_manual.append(new_row)
             st.success("✅ Data berhasil disimpan sementara (belum dikirim ke GSheets)")
-
+        
         # Tampilkan data manual
         if "cashflow_manual" in st.session_state and st.session_state.cashflow_manual:
             st.markdown("#### Data Arus Kas Manual Belum Terkirim")
             df_manual = pd.DataFrame(st.session_state.cashflow_manual)
             st.dataframe(df_manual)
 
-# ---------------------------
+# ==========================
 # Laporan Cashflow Realtime
-# ---------------------------
+# ==========================
 def laporan_cashflow():
     with st.expander("💸 Laporan Cashflow Realtime"):
         st.markdown("### Ringkasan Arus Kas")
 
-        # Ambil data Arus Kas (sheet)
+        # --- Ambil data Arus Kas ---
         ws_cashflow = connect_to_gsheet(SHEET_ID, "Arus Kas")
         raw_cf = ws_cashflow.get_all_values()
         if not raw_cf or len(raw_cf) < 2:
@@ -2249,14 +2248,12 @@ def laporan_cashflow():
         else:
             header = [h.strip() for h in raw_cf[0]]
             df_cashflow = pd.DataFrame(raw_cf[1:], columns=header)
-            if "Jumlah" in df_cashflow.columns:
-                df_cashflow["Jumlah"] = df_cashflow["Jumlah"].replace(r"[^\d]", "", regex=True).astype(float)
-            if "Tanggal" in df_cashflow.columns:
-                df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors="coerce")
+            df_cashflow["Jumlah"] = df_cashflow["Jumlah"].replace(r"[^\d]", "", regex=True).astype(float)
+            df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors="coerce")
             if "Sumber" not in df_cashflow.columns:
                 df_cashflow["Sumber"] = "Data Otomatis"
 
-        # Sinkronisasi otomatis dari sheet Data
+        # --- Sinkronisasi Otomatis dari sheet Data ---
         ws_data = connect_to_gsheet(SHEET_ID, "Data")
         raw_data = ws_data.get_all_values()
         if raw_data and len(raw_data) > 1:
@@ -2266,10 +2263,10 @@ def laporan_cashflow():
             df_data["Tgl Pemesanan"] = pd.to_datetime(df_data["Tgl Pemesanan"], dayfirst=True, errors="coerce")
             df_data["Harga Jual"] = df_data["Harga Jual"].replace(r"[^\d]", "", regex=True).astype(float)
 
-            # Filter transaksi Lunas
+            # --- Filter transaksi Lunas ---
             df_lunas = df_data[df_data["Keterangan"].str.contains("Lunas", na=False)].copy()
-
-            # Ambil tanggal pelunasan dari Keterangan
+            
+            # Ambil tanggal pelunasan dari Keterangan atau Tgl Pemesanan
             def extract_date(ket, default_date):
                 import re
                 patterns = [r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})"]
@@ -2286,7 +2283,7 @@ def laporan_cashflow():
                 lambda row: extract_date(row["Keterangan"], row["Tgl Pemesanan"] if pd.notnull(row["Tgl Pemesanan"]) else pd.Timestamp.now()), axis=1
             )
 
-            # Filter No Invoice yang sudah ada di Arus Kas
+            # Cegah duplikasi invoice
             existing_invoices = df_cashflow["No Invoice"].astype(str).unique().tolist() if not df_cashflow.empty else []
             df_pemasukan_baru = df_lunas[~df_lunas["No Invoice"].isin(existing_invoices)].copy()
 
@@ -2303,12 +2300,15 @@ def laporan_cashflow():
                 })
                 df_cashflow = pd.concat([df_cashflow, df_pemasukan_baru_cf], ignore_index=True)
 
-        # Gabungkan dengan manual input
+        # --- Monitoring Piutang Belum Lunas ---
+        df_piutang = df_data[~df_data["Keterangan"].str.contains("Lunas", na=False)] if 'df_data' in locals() else pd.DataFrame()
+
+        # --- Gabungkan dengan Manual Input ---
         if "cashflow_manual" in st.session_state and st.session_state.cashflow_manual:
             df_manual = pd.DataFrame(st.session_state.cashflow_manual)
             df_cashflow = pd.concat([df_cashflow, df_manual], ignore_index=True)
 
-        # Ringkasan
+        # --- Ringkasan ---
         total_masuk = df_cashflow[df_cashflow["Tipe"]=="Masuk"]["Jumlah"].sum()
         total_keluar = df_cashflow[df_cashflow["Tipe"]=="Keluar"]["Jumlah"].sum()
         saldo = total_masuk - total_keluar
@@ -2320,9 +2320,14 @@ def laporan_cashflow():
         st.markdown("### 🔍 Data Cashflow Realtime")
         st.dataframe(df_cashflow.sort_values(by="Tanggal", ascending=False))
 
-# ---------------------------
+        # --- Tampilkan Piutang Belum Lunas ---
+        if not df_piutang.empty:
+            st.markdown("### 🔔 Monitoring Invoice Belum Lunas")
+            st.dataframe(df_piutang[["No Invoice","Tgl Pemesanan","Harga Jual","Keterangan"]])
+
+# ==========================
 # Main App
-# ---------------------------
+# ==========================
 st.title("📊 Monitoring Cashflow Realtime")
 input_cashflow()
 laporan_cashflow()

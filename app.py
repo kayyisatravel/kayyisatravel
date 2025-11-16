@@ -2193,7 +2193,7 @@ def input_cashflow():
 
         tanggal = st.date_input("Tanggal", value=date.today(), key="tanggal_manual")
         tipe = st.selectbox("Tipe", ["Masuk", "Keluar"], key="tipe_manual")
-
+        
         kategori_masuk = ["Penjualan Tiket Pesawat", "Penjualan Hotel", "Penjualan Kereta", "Komisi Agen", "Lain-lain"]
         kategori_keluar = ["Pembelian Tiket Pesawat", "Pembelian Hotel", "Pembelian Kereta", "Gaji Karyawan",
                            "Operasional Kantor", "Marketing & Promosi", "Pajak dan Biaya Lainnya", 
@@ -2203,12 +2203,12 @@ def input_cashflow():
         kategori = st.selectbox("Kategori", kategori_opsi, key="kategori_manual")
         if kategori == "Lain-lain":
             kategori = st.text_input("Jelaskan kategori lainnya", key="kategori_lain_manual")
-
+        
         no_invoice = st.text_input("No Invoice", key="no_invoice_manual")
         keterangan = st.text_input("Keterangan", key="keterangan_manual")
         jumlah = st.number_input("Jumlah (Rp)", min_value=0, step=1, format="%d", key="jumlah_manual")
         status = st.selectbox("Status", ["Lunas", "Belum Lunas"], key="status_manual")
-
+        
         if st.button("Simpan Data Manual", key="simpan_manual"):
             if jumlah <= 0:
                 st.error("Jumlah harus lebih dari 0")
@@ -2244,7 +2244,7 @@ def laporan_cashflow():
         # --- Ambil data Arus Kas ---
         ws_cashflow = connect_to_gsheet(SHEET_ID, "Arus Kas")
         raw_cf = ws_cashflow.get_all_values()
-        if not raw_cf or len(raw_cf) < 2:
+        if not raw_cf or len(raw_cf)<2:
             df_cashflow = pd.DataFrame(columns=["Tanggal","Tipe","Kategori","No Invoice","Keterangan","Jumlah","Status","Sumber"])
         else:
             header = [h.strip() for h in raw_cf[0]]
@@ -2257,60 +2257,37 @@ def laporan_cashflow():
         # --- Sinkronisasi Otomatis dari sheet Data ---
         ws_data = connect_to_gsheet(SHEET_ID, "Data")
         raw_data = ws_data.get_all_values()
-        if raw_data and len(raw_data) > 1:
+        if raw_data and len(raw_data)>1:
             header_data = [h.strip() for h in raw_data[0]]
             df_data = pd.DataFrame(raw_data[1:], columns=header_data)
             df_data["No Invoice"] = df_data["No Invoice"].astype(str)
             df_data["Tgl Pemesanan"] = pd.to_datetime(df_data["Tgl Pemesanan"], dayfirst=True, errors="coerce")
             df_data["Harga Jual"] = df_data["Harga Jual"].replace(r"[^\d]", "", regex=True).astype(float)
 
-            # Transaksi Belum Lunas → dicatat sebagai pengeluaran (Keluar)
-            df_belum = df_data[~df_data["Keterangan"].str.contains("Lunas", na=False)].copy()
-            df_belum["Tanggal Invoice"] = df_belum["Tgl Pemesanan"].fillna(pd.Timestamp.now())
-            df_belum_cf = pd.DataFrame({
-                "Tanggal": df_belum["Tanggal Invoice"],
-                "Tipe": "Keluar",
-                "Kategori": "Piutang Customer",
-                "No Invoice": df_belum["No Invoice"],
-                "Keterangan": df_belum["Keterangan"],
-                "Jumlah": df_belum["Harga Jual"],
-                "Status": "Belum Lunas",
-                "Sumber": "Data Otomatis"
-            })
-
-            # Transaksi Lunas → dicatat sebagai pemasukan (Masuk)
-            import re
-            def extract_date(ket, default_date):
-                patterns = [r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})"]
-                for p in patterns:
-                    m = re.search(p, str(ket))
-                    if m:
-                        try:
-                            return pd.to_datetime(m.group(1), dayfirst=True, errors='coerce')
-                        except:
-                            return default_date
-                return default_date
-
-            df_lunas = df_data[df_data["Keterangan"].str.contains("Lunas", na=False)].copy()
-            df_lunas["Tanggal Invoice"] = df_lunas.apply(
-                lambda row: extract_date(row["Keterangan"], row["Tgl Pemesanan"] if pd.notnull(row["Tgl Pemesanan"]) else pd.Timestamp.now()), axis=1
+            # --- Proses Status Lunas / Belum Lunas ---
+            df_data["Status_Cashflow"] = df_data["Keterangan"].apply(lambda x: "Lunas" if "Lunas" in str(x) else "Belum Lunas")
+            df_data["Tanggal Invoice"] = df_data.apply(
+                lambda row: row["Tgl Pemesanan"] if row["Status_Cashflow"]=="Belum Lunas" 
+                else pd.to_datetime(str(row["Keterangan"].split("Lunas")[-1].strip()), dayfirst=True, errors="coerce")
+                , axis=1
             )
-            df_lunas_cf = pd.DataFrame({
-                "Tanggal": df_lunas["Tanggal Invoice"],
-                "Tipe": "Masuk",
-                "Kategori": "Pembayaran Customer",
-                "No Invoice": df_lunas["No Invoice"],
-                "Keterangan": df_lunas["Keterangan"],
-                "Jumlah": df_lunas["Harga Jual"],
-                "Status": "Lunas",
-                "Sumber": "Data Otomatis"
-            })
+            df_data["Tipe_Cashflow"] = df_data["Status_Cashflow"].apply(lambda x: "Masuk" if x=="Lunas" else "Keluar")
 
-            # Gabungkan dan cegah duplikasi invoice
             existing_invoices = df_cashflow["No Invoice"].astype(str).unique().tolist() if not df_cashflow.empty else []
-            df_auto = pd.concat([df_belum_cf, df_lunas_cf], ignore_index=True)
-            df_auto = df_auto[~df_auto["No Invoice"].isin(existing_invoices)]
-            df_cashflow = pd.concat([df_cashflow, df_auto], ignore_index=True)
+            df_new = df_data[~df_data["No Invoice"].isin(existing_invoices)].copy()
+
+            if not df_new.empty:
+                df_new_cf = pd.DataFrame({
+                    "Tanggal": df_new["Tanggal Invoice"],
+                    "Tipe": df_new["Tipe_Cashflow"],
+                    "Kategori": df_new["Status_Cashflow"].apply(lambda x: "Pembayaran Customer" if x=="Lunas" else "Piutang Customer"),
+                    "No Invoice": df_new["No Invoice"],
+                    "Keterangan": df_new["Keterangan"],
+                    "Jumlah": df_new["Harga Jual"],
+                    "Status": df_new["Status_Cashflow"],
+                    "Sumber": "Data Otomatis"
+                })
+                df_cashflow = pd.concat([df_cashflow, df_new_cf], ignore_index=True)
 
         # --- Gabungkan dengan Manual Input ---
         if "cashflow_manual" in st.session_state and st.session_state.cashflow_manual:

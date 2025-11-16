@@ -2194,9 +2194,9 @@ def clean_price_column(col):
     col = col.replace("", "0")
     return col.astype(float)
 
-# ==========================
-# Fungsi parsing cashflow otomatis
-# ==========================
+# ---------------------------
+# Parse otomatis cashflow
+# ---------------------------
 def parse_cashflow_from_data(df_data, df_cashflow_existing):
     """Menghasilkan DataFrame cashflow otomatis dari Data, menghindari duplikasi invoice, dan agregasi per invoice"""
     if df_data.empty:
@@ -2232,7 +2232,7 @@ def parse_cashflow_from_data(df_data, df_cashflow_existing):
         # Tentukan status
         status = "Belum Lunas" if any("Belum Lunas" in k for k in group["Keterangan"]) else "Lunas"
         
-        # Keluar = Harga Beli (selalu ada)
+        # Keluar = Harga Beli
         cashflow_rows.append({
             "Tanggal": tgl,
             "Tipe": "Keluar",
@@ -2304,19 +2304,19 @@ with st.expander("✏️ Input Data Cashflow Manual"):
 # Laporan Cashflow Realtime
 # --------------------------
 with st.expander("💸 Laporan Cashflow Realtime"):
-    # Ambil Sheet Arus Kas
-    ws_cashflow = connect_to_gsheet(SHEET_ID, "Arus Kas")
-    # placeholder: simulasi df_cashflow
-    df_cashflow = pd.DataFrame(columns=["Tanggal","Tipe","Kategori","No Invoice","Keterangan","Jumlah","Status","Sumber"])
-    
-    # Ambil Sheet Data
+
+    # Ambil Sheet Data & Arus Kas
     ws_data = connect_to_gsheet(SHEET_ID, "Data")
-    # placeholder: simulasi df_data
-    df_data = pd.DataFrame()  # ganti dengan panggilan gspread
+    df_data = pd.DataFrame(ws_data.get_all_records())
     
+    ws_cashflow = connect_to_gsheet(SHEET_ID, "Arus Kas")
+    df_cashflow_existing = pd.DataFrame(ws_cashflow.get_all_records())
+
     # Parse otomatis dari Data
-    df_cf_auto = parse_cashflow_from_data(df_data, df_cashflow)
-    df_cashflow = pd.concat([df_cashflow, df_cf_auto], ignore_index=True)
+    df_cf_auto = parse_cashflow_from_data(df_data, df_cashflow_existing)
+    
+    # Gabungkan existing + otomatis
+    df_cashflow = pd.concat([df_cashflow_existing, df_cf_auto], ignore_index=True)
     
     # Gabungkan manual
     if "cashflow_manual" in st.session_state and st.session_state.cashflow_manual:
@@ -2336,7 +2336,7 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     col4.metric("Piutang Belum Lunas", format_rp(total_piutang))
 
     st.markdown("### 🔍 Data Cashflow Realtime")
-    st.dataframe(df_cashflow.sort_values(by="Tanggal", ascending=False))
+    st.dataframe(df_cashflow.sort_values(by="Tanggal", ascending=False), use_container_width=True)
 
 #======================================================================================================================================
 from streamlit_option_menu import option_menu

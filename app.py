@@ -2415,7 +2415,6 @@ with st.expander("💸 Laporan Cashflow Realtime"):
                 "Overdue": overdue
             })
         
-        st.dataframe(df_aging.style.apply(highlight_overdue, axis=1), use_container_width=True)
         df_aging = pd.DataFrame(aging_rows)
         df_aging["Piutang"] = df_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
         return df_aging

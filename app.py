@@ -2410,11 +2410,12 @@ with st.expander("💸 Laporan Cashflow Realtime"):
                 "Nama Pemesan": nama_pemesan,
                 "No Invoice": no_invoice,
                 "Tanggal Pemesanan": tgl_pemesanan,
-                "Piutang": piutang_invoice,
+                "Piutang": round(piutang_invoice),
                 "Aging (hari)": aging,
                 "Overdue": overdue
             })
-    
+        df_aging["Piutang"] = df_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
+        st.dataframe(df_aging.style.apply(highlight_overdue, axis=1), use_container_width=True)
         df_aging = pd.DataFrame(aging_rows)
         return df_aging
     

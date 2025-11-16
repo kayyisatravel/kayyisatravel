@@ -2199,8 +2199,8 @@ def clean_price_column(col):
     return col.astype(float)
 
 # Contoh penggunaan:
-df_data["Harga Beli"] = clean_price_column(df_data["Harga Beli"])
-df_data["Harga Jual"] = clean_price_column(df_data["Harga Jual"])
+#df_data["Harga Beli"] = clean_price_column(df_data["Harga Beli"])
+#df_data["Harga Jual"] = clean_price_column(df_data["Harga Jual"])
 
 def parse_cashflow_from_data(df_data, df_cashflow_existing):
     df_cf = []

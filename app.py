@@ -2195,69 +2195,88 @@ def clean_price_column(col):
     return col.astype(float)
 
 # ---------------------------
-# Parse otomatis cashflow
+# Parse otomatis cashflow dengan Invoice_Key
 # ---------------------------
 def parse_cashflow_from_data(df_data, df_cashflow_existing):
-    """Menghasilkan DataFrame cashflow otomatis dari Data, menghindari duplikasi invoice, dan agregasi per invoice"""
+    """
+    Menghasilkan DataFrame cashflow otomatis dari Data, menghindari duplikasi invoice,
+    agregasi per pemesan + invoice (Invoice_Key), dan aman untuk transaksi tanpa invoice.
+    """
     if df_data.empty:
         return pd.DataFrame(columns=["Tanggal","Tipe","Kategori","No Invoice","Keterangan","Jumlah","Status","Sumber"])
-    
+
     # Bersihkan harga
     df_data["Harga Beli"] = clean_price_column(df_data.get("Harga Beli", pd.Series([0]*len(df_data))))
     df_data["Harga Jual"] = clean_price_column(df_data.get("Harga Jual", pd.Series([0]*len(df_data))))
-    
+
     # Pastikan kolom penting
-    df_data["No Invoice"] = df_data["No Invoice"].astype(str)
+    df_data["No Invoice"] = df_data["No Invoice"].fillna("").astype(str)
     df_data["Tgl Pemesanan"] = pd.to_datetime(df_data["Tgl Pemesanan"], errors="coerce")
     df_data["Keterangan"] = df_data.get("Keterangan", "").astype(str)
-    
-    existing_invoices = set(df_cashflow_existing["No Invoice"].astype(str)) if not df_cashflow_existing.empty else set()
-    
+    df_data["Nama Pemesan"] = df_data.get("Nama Pemesan", "").astype(str)
+
+    # Buat Invoice_Key: Nama Pemesan + No Invoice, atau Nama Pemesan + index jika kosong
+    df_data["Invoice_Key"] = df_data.apply(
+        lambda x: f"{x['Nama Pemesan']}_MANUAL_{x.name}" if x["No Invoice"]=="" else f"{x['Nama Pemesan']}_{x['No Invoice']}",
+        axis=1
+    )
+
+    # Ambil daftar invoice_key yang sudah ada di cashflow_existing untuk hindari duplikasi
+    existing_keys = set()
+    if not df_cashflow_existing.empty:
+        # Buat Invoice_Key di existing juga supaya bisa dibandingkan
+        df_cashflow_existing["Invoice_Key"] = df_cashflow_existing.apply(
+            lambda x: f"{x.get('Nama Pemesan','')}_MANUAL_{x.name}" if x.get("No Invoice","")=="" else f"{x.get('Nama Pemesan','')}_{x.get('No Invoice','')}",
+            axis=1
+        )
+        existing_keys = set(df_cashflow_existing["Invoice_Key"])
+
     cashflow_rows = []
-    
-    # Group per invoice
-    grouped = df_data.groupby("No Invoice")
-    
-    for invoice, group in grouped:
-        if invoice in existing_invoices:
+
+    # Group berdasarkan Invoice_Key
+    grouped = df_data.groupby("Invoice_Key")
+    for key, group in grouped:
+        if key in existing_keys:
             continue  # skip duplikasi
-        
-        tgl = group["Tgl Pemesanan"].min()  # pakai tanggal pemesanan pertama
+
+        tgl = group["Tgl Pemesanan"].min()
         keterangan = "; ".join(group["Keterangan"].unique())
-        
-        # Hitung total Harga Beli / Harga Jual
+        invoice_no = group["No Invoice"].iloc[0] if group["No Invoice"].iloc[0] else ""
         total_beli = group["Harga Beli"].sum()
         total_jual = group["Harga Jual"].sum()
-        
-        # Tentukan status
         status = "Belum Lunas" if any("Belum Lunas" in k for k in group["Keterangan"]) else "Lunas"
-        
-        # Keluar = Harga Beli
+
+        # Baris Keluar (Harga Beli)
         cashflow_rows.append({
             "Tanggal": tgl,
             "Tipe": "Keluar",
             "Kategori": "Penjualan",
-            "No Invoice": invoice,
+            "No Invoice": invoice_no,
             "Keterangan": keterangan,
             "Jumlah": total_beli,
             "Status": status,
-            "Sumber": "Data Otomatis"
+            "Sumber": "Data Otomatis",
+            "Nama Pemesan": group["Nama Pemesan"].iloc[0],
+            "Invoice_Key": key
         })
-        
-        # Masuk = Harga Jual (hanya jika Lunas)
+
+        # Baris Masuk (Harga Jual) hanya jika Lunas
         if status == "Lunas":
             cashflow_rows.append({
                 "Tanggal": tgl,
                 "Tipe": "Masuk",
                 "Kategori": "Pembayaran Customer",
-                "No Invoice": invoice,
+                "No Invoice": invoice_no,
                 "Keterangan": keterangan,
                 "Jumlah": total_jual,
                 "Status": status,
-                "Sumber": "Data Otomatis"
+                "Sumber": "Data Otomatis",
+                "Nama Pemesan": group["Nama Pemesan"].iloc[0],
+                "Invoice_Key": key
             })
-    
+
     return pd.DataFrame(cashflow_rows)
+
 
 # --------------------------
 # Input Manual Cashflow

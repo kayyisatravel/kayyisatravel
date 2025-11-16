@@ -2187,6 +2187,21 @@ def format_rp(x):
 # ---------------------------
 # Input Manual Cashflow
 # ---------------------------
+# Fungsi untuk membersihkan kolom harga
+def clean_price_column(col):
+    # ubah NaN jadi string kosong
+    col = col.fillna("").astype(str)
+    # hapus semua selain angka
+    col = col.str.replace(r"[^\d]", "", regex=True)
+    # ubah string kosong menjadi 0
+    col = col.replace("", "0")
+    # konversi ke float
+    return col.astype(float)
+
+# Contoh penggunaan:
+df_data["Harga Beli"] = clean_price_column(df_data["Harga Beli"])
+df_data["Harga Jual"] = clean_price_column(df_data["Harga Jual"])
+
 def parse_cashflow_from_data(df_data, df_cashflow_existing):
     df_cf = []
     existing_invoices = df_cashflow_existing["No Invoice"].astype(str).tolist() if not df_cashflow_existing.empty else []

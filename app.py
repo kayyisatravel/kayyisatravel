@@ -2341,6 +2341,10 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     st.metric("Saldo Akhir", format_rp(saldo))
 
     st.markdown("### 🔍 Data Cashflow Realtime")
+    if "Tanggal" in df_cashflow.columns:
+        df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors='coerce')
+        df_cashflow["Tanggal"].fillna(pd.Timestamp.today(), inplace=True)
+    
     st.dataframe(df_cashflow.sort_values(by="Tanggal", ascending=False), use_container_width=True)
 
     # ---------------------------

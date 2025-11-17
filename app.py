@@ -2268,6 +2268,7 @@ def parse_cashflow_from_data(df_data, df_cashflow_existing):
 # Input Manual Cashflow
 # ---------------------------
 with st.expander("✏️ Input Data Cashflow Manual"):
+    ws_cashflow = client.open("SHEET_ID").worksheet("Arus Kas")
     tanggal = st.date_input("Tanggal", value=date.today(), key="tgl_input")
     tipe = st.selectbox("Tipe", ["Masuk", "Keluar"], key="tipe_input")
 
@@ -2310,6 +2311,18 @@ with st.expander("✏️ Input Data Cashflow Manual"):
                 st.session_state.cashflow_manual = []
             st.session_state.cashflow_manual.append(new_row)
             st.success("✅ Data berhasil disimpan sementara (belum dikirim ke GSheets)")
+    if st.button("Kirim Manual ke GSheets"):
+        if "cashflow_manual" in st.session_state and st.session_state.cashflow_manual:
+            df_manual = pd.DataFrame(st.session_state.cashflow_manual)
+            # konversi tanggal agar aman di GSheets
+            df_manual["Tanggal"] = df_manual["Tanggal"].dt.strftime("%Y-%m-%d")
+            # ws_cashflow adalah worksheet Arus Kas
+            ws_cashflow.append_rows(df_manual.values.tolist())
+            st.success("✅ Data manual berhasil dikirim ke GSheets")
+            # kosongkan session_state agar tidak double push
+            st.session_state.cashflow_manual = []
+        else:
+            st.warning("Tidak ada data manual untuk dikirim")
 
 # ---------------------------
 # Laporan Cashflow Realtime

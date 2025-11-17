@@ -2472,7 +2472,7 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     # =========================
     # TAMPILAN AGING REPORT
     # =========================
-    df_aging = generate_aging_report(df_cashflow)
+    df_aging = generate_aging_report(df_cashflow, df_data)
     df_aging = df_aging.sort_values(by="Aging (hari)", ascending=False)
     
     def highlight_overdue(row):

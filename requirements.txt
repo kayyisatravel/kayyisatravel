@@ -32,3 +32,4 @@ holidays
 matplotlib>=3.0.0
 prophet
 plotly
+seaborn

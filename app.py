@@ -2282,42 +2282,68 @@ def parse_cashflow_from_data(df_data, df_cashflow_existing):
 # Input Manual Cashflow
 # --------------------------
 with st.expander("✏️ Input Data Cashflow Manual"):
+    # --- Input Dasar ---
     tanggal = st.date_input("Tanggal", value=date.today(), key="tgl_input")
     tipe = st.selectbox("Tipe", ["Masuk", "Keluar"], key="tipe_input")
-    
-    kategori_masuk = ["Penjualan Tiket Pesawat", "Penjualan Hotel", "Penjualan Kereta", "Komisi Agen", "Lain-lain"]
-    kategori_keluar = ["Pembelian Tiket Pesawat", "Pembelian Hotel", "Pembelian Kereta", "Gaji Karyawan",
-                       "Operasional Kantor", "Marketing & Promosi", "Pajak dan Biaya Lainnya", 
-                       "Kerugian Salah Order", "Kerugian Pembatalan", "Kerugian Kerusakan / Rusak", 
-                       "Kerugian Lainnya", "Lain-lain"]
-    kategori_opsi = kategori_masuk if tipe=="Masuk" else kategori_keluar
+
+    # --- Kategori ---
+    kategori_masuk = [
+        "Penjualan Tiket Pesawat", "Penjualan Hotel", "Penjualan Kereta",
+        "Komisi Agen", "Lain-lain"
+    ]
+    kategori_keluar = [
+        "Pembelian Tiket Pesawat", "Pembelian Hotel", "Pembelian Kereta",
+        "Gaji Karyawan", "Operasional Kantor", "Marketing & Promosi",
+        "Pajak dan Biaya Lainnya", "Kerugian Salah Order", "Kerugian Pembatalan",
+        "Kerugian Kerusakan / Rusak", "Kerugian Lainnya", "Lain-lain"
+    ]
+    kategori_opsi = kategori_masuk if tipe == "Masuk" else kategori_keluar
     kategori = st.selectbox("Kategori", kategori_opsi, key="kategori_input")
     if kategori == "Lain-lain":
         kategori = st.text_input("Jelaskan kategori lainnya", key="kategori_lain_input")
-    
-    no_invoice = st.text_input("No Invoice", key="no_invoice_input")
+
+    # --- No Invoice wajib ---
+    no_invoice = st.text_input(
+        "No Invoice (unik, misal OPR-YYYYMMDD-001 untuk pengeluaran operasional)",
+        key="no_invoice_input"
+    )
+
     keterangan = st.text_input("Keterangan", key="keterangan_input")
     jumlah = st.number_input("Jumlah (Rp)", min_value=0, step=1, format="%d", key="jumlah_input")
     status_manual = st.selectbox("Status", ["Lunas", "Belum Lunas"], key="status_input")
 
     if st.button("Simpan Data Manual", key="btn_simpan_manual"):
+        # --- Validasi dasar ---
         if jumlah <= 0:
             st.error("Jumlah harus lebih dari 0")
+        elif no_invoice.strip() == "":
+            st.error("No Invoice wajib diisi dan harus unik")
         else:
+            # --- Buat row baru ---
             new_row = {
                 "Tanggal": pd.to_datetime(tanggal),
                 "Tipe": tipe,
                 "Kategori": kategori,
-                "No Invoice": str(no_invoice),
+                "No Invoice": str(no_invoice).strip(),
                 "Keterangan": keterangan,
                 "Jumlah": jumlah,
                 "Status": status_manual,
                 "Sumber": "Manual Input"
             }
+
+            # --- Simpan sementara di session state ---
             if "cashflow_manual" not in st.session_state:
                 st.session_state.cashflow_manual = []
             st.session_state.cashflow_manual.append(new_row)
-            st.success("✅ Data berhasil disimpan sementara (belum dikirim ke GSheets)")
+
+            st.success(f"✅ Data berhasil disimpan sementara (belum dikirim ke GSheets). Jumlah: Rp {jumlah:,}")
+
+# --- Catatan untuk sistem ---
+# 1. Semua transaksi manual akan tercatat di df_cashflow,
+#    tapi tidak akan mempengaruhi Aging Report jika bukan invoice pelanggan.
+# 2. Pastikan No Invoice unik untuk transaksi manual agar tidak terjadi duplikasi.
+# 3. Transaksi operasional atau pengeluaran lainnya cukup dibuat No Invoice dummy (misal OPR-YYYYMMDD-001).
+
 
 # --------------------------
 # Laporan Cashflow Realtime

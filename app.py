@@ -2335,10 +2335,41 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     total_masuk = df_cashflow[df_cashflow["Tipe"]=="Masuk"]["Jumlah"].sum()
     total_keluar = df_cashflow[df_cashflow["Tipe"]=="Keluar"]["Jumlah"].sum()
     saldo = total_masuk - total_keluar
+    invoices = df_cashflow["No Invoice"].unique()
+    piutang_total = 0
 
+    # Gunakan Invoice_Key, bukan No Invoice
+    invoice_keys = df_cashflow["Invoice_Key"].unique()
+    
+    for key in invoice_keys:
+    
+        # Data cashflow untuk invoice ini
+        df_inv_cf = df_cashflow[df_cashflow["Invoice_Key"] == key]
+    
+        # Ambil NO INVOICE untuk pemetaan ke df_data
+        inv_no = df_inv_cf["No Invoice"].iloc[0]
+    
+        # Ambil harga jual dari DF_DATA
+        df_inv_data = df_data[df_data["Invoice_Key"] == key]
+        total_harga_jual = df_inv_data["Harga Jual"].sum()
+    
+        # Total pembayaran masuk
+        total_sudah_diterima = df_inv_cf[df_inv_cf["Tipe"]=="Masuk"]["Jumlah"].sum()
+    
+        # Rumus piutang yang benar
+        piutang_invoice = total_harga_jual - total_sudah_diterima
+    
+        if piutang_invoice > 0:
+            piutang_total += piutang_invoice
+
+    
+    total_piutang = piutang_total
+
+    #col1, col2, col3, col4 = st.columns(4)
     st.metric("Total Masuk", format_rp(total_masuk))
     st.metric("Total Keluar", format_rp(total_keluar))
     st.metric("Saldo Akhir", format_rp(saldo))
+    st.metric("Piutang Belum Lunas", format_rp(total_piutang))
 
     st.markdown("### 🔍 Data Cashflow Realtime")
     if "Tanggal" in df_cashflow.columns:

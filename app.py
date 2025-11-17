@@ -2426,14 +2426,16 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         for key in df_unpaid["Invoice_Key"].unique():
             
             # Cashflow untuk invoice ini
-            df_inv_cf = df_unpaid[df_unpaid["Invoice_Key"] == key]
+            df_inv = df_unpaid[df_unpaid["Invoice_Key"] == key]
+            if df_inv.empty:
+                continue
     
             # Data "DATA" untuk ambil harga jual
             df_inv_data = df_data[df_data["Invoice_Key"] == key]
     
             # Nama & invoice number
-            nama_pemesan = df_inv_cf["Nama Pemesan"].iloc[0]
-            no_invoice = df_inv_cf["No Invoice"].iloc[0]
+            nama_pemesan = df_inv["Nama Pemesan"].iloc[0] if "Nama Pemesan" in df_inv.columns and not df_inv["Nama Pemesan"].isna().all() else "Unknown"
+            no_invoice = df_inv["No Invoice"].iloc[0] if "No Invoice" in df_inv.columns and not df_inv["No Invoice"].isna().all() else ""
     
             # Tanggal pemesanan = tanggal paling awal pada invoice
             tgl_pemesanan = df_inv_cf["Tanggal"].min()

@@ -2268,6 +2268,9 @@ def parse_cashflow_from_data(df_data, df_cashflow_existing):
 # Input Manual Cashflow
 # ---------------------------
 with st.expander("✏️ Input Data Cashflow Manual"):
+    scope = ["https://spreadsheets.google.com/feeds","https://www.googleapis.com/auth/drive"]
+    creds = Credentials.from_service_account_file("service_account.json", scopes=scope)
+    client = gspread.authorize(creds)
     ws_cashflow = client.open_by_key(SHEET_ID).worksheet("Arus Kas")
     tanggal = st.date_input("Tanggal", value=date.today(), key="tgl_input")
     tipe = st.selectbox("Tipe", ["Masuk", "Keluar"], key="tipe_input")

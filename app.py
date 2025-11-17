@@ -2516,5 +2516,148 @@ with st.expander("💸 Laporan Cashflow Realtime"):
  #   st.title("⚙️ Pengaturan Sistem")
     # form setting admin, kategori, dll
 
-            
-        
+with st.expander("💸 Uji Coba Laporan Keuangan Lengkap"):
+    import streamlit as st
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    from datetime import date
+    
+    # ===============================
+    # Fungsi Helper
+    # ===============================
+    def format_rp(x):
+        return f"Rp {x:,.0f}"
+    
+    def categorize_cashflow(row):
+        """Kategorikan cashflow untuk arus kas operasional / investasi / pendanaan"""
+        if row['Kategori'] in [
+            "Penjualan Tiket Pesawat","Penjualan Hotel","Penjualan Kereta",
+            "Komisi Agen","Lain-lain"
+        ]:
+            return "Operasional"
+        elif row['Kategori'] in ["Pembelian Aset","Investasi Lainnya"]:
+            return "Investasi"
+        elif row['Kategori'] in ["Modal Pemilik","Dana Investor"]:
+            return "Pendanaan"
+        else:
+            return "Operasional"
+    
+    # ===============================
+    # Ambil Data Cashflow
+    # ===============================
+    # Asumsikan df_cashflow & df_data sudah tersedia
+    df_cashflow = st.session_state.df_cashflow
+    df_data = st.session_state.df_data
+    
+    df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors='coerce')
+    df_cashflow["Jenis_ArusKas"] = df_cashflow.apply(categorize_cashflow, axis=1)
+    
+    # ===============================
+    # 1️⃣ Neraca + Ekuitas
+    # ===============================
+    st.markdown("## 🏦 Neraca & Ekuitas")
+    
+    # Aset
+    kas = df_cashflow[df_cashflow["Tipe"]=="Masuk"]["Jumlah"].sum() - df_cashflow[df_cashflow["Tipe"]=="Keluar"]["Jumlah"].sum()
+    piutang = 0
+    for key in df_cashflow["Invoice_Key"].unique():
+        df_inv_cf = df_cashflow[df_cashflow["Invoice_Key"]==key]
+        df_inv_data = df_data[df_data["Invoice_Key"]==key]
+        total_jual = df_inv_data["Harga Jual"].sum()
+        total_masuk = df_inv_cf[df_inv_cf["Tipe"]=="Masuk"]["Jumlah"].sum()
+        piutang_invoice = total_jual - total_masuk
+        if piutang_invoice > 0:
+            piutang += piutang_invoice
+    
+    aset = kas + piutang
+    
+    # Liabilitas (utang kartu kredit / pengeluaran > kas)
+    liabilitas = max(0, -kas)
+    
+    # Ekuitas
+    ekuitas = aset - liabilitas
+    
+    st.metric("Kas", format_rp(kas))
+    st.metric("Piutang", format_rp(piutang))
+    st.metric("Liabilitas", format_rp(liabilitas))
+    st.metric("Ekuitas Bersih", format_rp(ekuitas))
+    
+    # ===============================
+    # 2️⃣ Laporan Laba Rugi
+    # ===============================
+    st.markdown("## 📊 Laporan Laba Rugi")
+    
+    # Hitung Pendapatan & Beban
+    pendapatan = df_cashflow[(df_cashflow["Tipe"]=="Masuk") & (df_cashflow["Kategori"].str.contains("Penjualan"))]["Jumlah"].sum()
+    beban = df_cashflow[(df_cashflow["Tipe"]=="Keluar")]["Jumlah"].sum()
+    
+    laba_rugi = pendapatan - beban
+    
+    st.metric("Pendapatan", format_rp(pendapatan))
+    st.metric("Beban", format_rp(beban))
+    st.metric("Laba / Rugi Bersih", format_rp(laba_rugi))
+    
+    # ===============================
+    # 3️⃣ Arus Kas Terstruktur
+    # ===============================
+    st.markdown("## 💰 Arus Kas (Operasional / Investasi / Pendanaan)")
+    
+    df_arus_kas = df_cashflow.groupby(["Jenis_ArusKas","Tipe"])["Jumlah"].sum().reset_index()
+    df_arus_kas_pivot = df_arus_kas.pivot(index="Jenis_ArusKas", columns="Tipe", values="Jumlah").fillna(0)
+    df_arus_kas_pivot["Netto"] = df_arus_kas_pivot.get("Masuk",0) - df_arus_kas_pivot.get("Keluar",0)
+    st.dataframe(df_arus_kas_pivot)
+    
+    # Visualisasi Arus Kas
+    st.markdown("### Visualisasi Arus Kas")
+    df_arus_kas_plot = df_arus_kas_pivot.reset_index()
+    df_arus_kas_plot.plot(
+        x="Jenis_ArusKas", 
+        y=["Masuk","Keluar","Netto"], 
+        kind="bar",
+        figsize=(8,5)
+    )
+    st.pyplot(plt.gcf())
+    
+    # ===============================
+    # 4️⃣ Aging Report / Piutang
+    # ===============================
+    st.markdown("## ⏳ Aging Piutang Belum Lunas")
+    
+    def generate_aging(df_cashflow, df_data):
+        df_unpaid = df_cashflow[df_cashflow["Status"]=="Belum Lunas"]
+        aging_rows = []
+        for key in df_unpaid["Invoice_Key"].unique():
+            df_inv_cf = df_unpaid[df_unpaid["Invoice_Key"]==key]
+            df_inv_data = df_data[df_data["Invoice_Key"]==key]
+            total_jual = df_inv_data["Harga Jual"].sum() if not df_inv_data.empty else 0
+            total_masuk = df_inv_cf[df_inv_cf["Tipe"]=="Masuk"]["Jumlah"].sum()
+            piutang = total_jual - total_masuk
+            tgl = df_inv_cf["Tanggal"].min()
+            nama = df_inv_cf["Nama Pemesan"].iloc[0]
+            aging_days = (pd.Timestamp.today() - tgl).days
+            overdue = aging_days > 30
+            aging_rows.append({
+                "Nama Pemesan": nama,
+                "No Invoice": key,
+                "Piutang": piutang,
+                "Tanggal": tgl,
+                "Aging (hari)": aging_days,
+                "Overdue": overdue
+            })
+        df_aging = pd.DataFrame(aging_rows)
+        return df_aging
+    
+    df_aging = generate_aging(df_cashflow, df_data)
+    st.dataframe(df_aging.style.apply(lambda row: ["background-color:#FF9999" if row.Overdue else "" for _ in row], axis=1))
+    
+    # ===============================
+    # 5️⃣ Grafik Piutang Aging
+    # ===============================
+    st.markdown("### Visualisasi Piutang Aging")
+    if not df_aging.empty:
+        plt.figure(figsize=(8,5))
+        sns.barplot(x="Nama Pemesan", y="Piutang", data=df_aging, hue="Overdue")
+        plt.xticks(rotation=45)
+        st.pyplot(plt.gcf())
+

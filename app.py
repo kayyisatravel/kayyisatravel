@@ -2268,7 +2268,7 @@ def parse_cashflow_from_data(df_data, df_cashflow_existing):
 # Input Manual Cashflow
 # ---------------------------
 with st.expander("✏️ Input Data Cashflow Manual"):
-    ws_cashflow = client.open("https://docs.google.com/spreadsheets/d/1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8/edit?gid=2002229406#gid=2002229406").worksheet("Arus Kas")
+    ws_cashflow = client.open("1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8").worksheet("Arus Kas")
     tanggal = st.date_input("Tanggal", value=date.today(), key="tgl_input")
     tipe = st.selectbox("Tipe", ["Masuk", "Keluar"], key="tipe_input")
 

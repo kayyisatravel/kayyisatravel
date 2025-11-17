@@ -2386,25 +2386,46 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     st.markdown("### 🔍 Data Cashflow Realtime")
     st.dataframe(df_cashflow.sort_values(by="Tanggal", ascending=False), use_container_width=True)
 
-    def generate_aging_report(df_cashflow, overdue_days=30):
+    def generate_aging_report(df_cashflow, df_data, overdue_days=30):
         """
-        Menghasilkan DataFrame invoice belum lunas dengan aging, menandai overdue
+        Menghasilkan laporan aging berdasarkan harga jual & pembayaran actual.
+        Menggunakan Invoice_Key agar akurat, termasuk invoice tanpa nomor.
         """
-        # Filter invoice belum lunas
-        df_unpaid = df_cashflow[df_cashflow["Status"]=="Belum Lunas"].copy()
+        # Ambil hanya invoice dengan status Belum Lunas (cashflow existing)
+        df_unpaid = df_cashflow[df_cashflow["Status"] == "Belum Lunas"].copy()
     
-        # Group per Invoice_Key untuk total piutang
         aging_rows = []
-        for key in df_unpaid["Invoice_Key"].unique():
-            df_inv = df_unpaid[df_unpaid["Invoice_Key"]==key]
-            tgl_pemesanan = df_inv["Tanggal"].min()
-            nama_pemesan = df_inv["Nama Pemesan"].iloc[0]
-            no_invoice = df_inv["No Invoice"].iloc[0] if df_inv["No Invoice"].iloc[0] else ""
-            total_harus_diterima = df_inv[df_inv["Tipe"]=="Keluar"]["Jumlah"].sum()
-            total_sudah_diterima = df_inv[df_inv["Tipe"]=="Masuk"]["Jumlah"].sum()
-            piutang_invoice = total_harus_diterima - total_sudah_diterima
     
-            # Hitung umur piutang (aging)
+        # Loop berdasarkan Invoice_Key
+        for key in df_unpaid["Invoice_Key"].unique():
+            
+            # Cashflow untuk invoice ini
+            df_inv_cf = df_unpaid[df_unpaid["Invoice_Key"] == key]
+    
+            # Data "DATA" untuk ambil harga jual
+            df_inv_data = df_data[df_data["Invoice_Key"] == key]
+    
+            # Nama & invoice number
+            nama_pemesan = df_inv_cf["Nama Pemesan"].iloc[0]
+            no_invoice = df_inv_cf["No Invoice"].iloc[0]
+    
+            # Tanggal pemesanan = tanggal paling awal pada invoice
+            tgl_pemesanan = df_inv_cf["Tanggal"].min()
+    
+            # 📌 Harga Jual dari DF_DATA (yg benar)
+            total_harga_jual = df_inv_data["Harga Jual"].sum()
+    
+            # 📌 Total pembayaran masuk
+            total_sudah_diterima = df_inv_cf[df_inv_cf["Tipe"] == "Masuk"]["Jumlah"].sum()
+    
+            # 📌 Piutang yang benar
+            piutang_invoice = total_harga_jual - total_sudah_diterima
+    
+            # Skip jika piutang sudah 0
+            if piutang_invoice <= 0:
+                continue
+    
+            # Aging hari
             aging = (pd.Timestamp.today() - tgl_pemesanan).days
             overdue = aging > overdue_days
     
@@ -2412,14 +2433,18 @@ with st.expander("💸 Laporan Cashflow Realtime"):
                 "Nama Pemesan": nama_pemesan,
                 "No Invoice": no_invoice,
                 "Tanggal Pemesanan": tgl_pemesanan,
-                "Piutang": round(piutang_invoice),
+                "Piutang": piutang_invoice,
                 "Aging (hari)": aging,
                 "Overdue": overdue
             })
-        
+    
         df_aging = pd.DataFrame(aging_rows)
-        df_aging["Piutang"] = df_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
-        return df_aging
+
+    # Formatting kolom Piutang
+    df_aging["Piutang"] = df_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
+
+    return df_aging
+
     
     # Contoh penggunaan:
     df_aging = generate_aging_report(df_cashflow, overdue_days=30)

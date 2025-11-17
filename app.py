@@ -2440,10 +2440,10 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     
         df_aging = pd.DataFrame(aging_rows)
 
-    # Formatting kolom Piutang
-    df_aging["Piutang"] = df_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
-
-    return df_aging
+        # Formatting kolom Piutang
+        df_aging["Piutang"] = df_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
+    
+        return df_aging
 
     
     # Contoh penggunaan:

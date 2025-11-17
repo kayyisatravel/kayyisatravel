@@ -2349,29 +2349,31 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     invoices = df_cashflow["No Invoice"].unique()
 
     piutang_total = 0
+
+    # Gunakan Invoice_Key, bukan No Invoice
+    invoice_keys = df_cashflow["Invoice_Key"].unique()
     
-    for inv in invoices:
-        df_inv = df_cashflow[df_cashflow["No Invoice"] == inv]
-        
-        # Total yang seharusnya diterima = sum Harga Jual (Tipe Masuk atau Keluar Harga Jual)
-        # Kita bisa ambil semua baris Keluar/Harga Jual atau baris Masuk jika sudah ada
-        total_harus_diterima = df_inv.loc[df_inv["Tipe"]=="Masuk", "Jumlah"].sum()
-        
-        # Jika belum ada pembayaran Masuk, gunakan total harga jual dari Keluar (otomatis)
-        if total_harus_diterima == 0:
-            # Misal Keluar = harga beli, Masuk = harga jual, jika Masuk belum ada, ambil harga jual dari df_data
-            # Kita bisa pakai baris Keluar + Status Belum Lunas sebagai referensi
-            total_harus_diterima = df_inv.loc[df_inv["Tipe"]=="Keluar", "Jumlah"].sum()
-        
-        # Total yang sudah diterima = sum baris Masuk
-        total_sudah_diterima = df_inv.loc[df_inv["Tipe"]=="Masuk", "Jumlah"].sum()
-        
-        # Piutang invoice = yang belum diterima
-        piutang_invoice = total_harus_diterima - total_sudah_diterima
-        
-        # Tambahkan ke total piutang, hanya jika > 0
+    for key in invoice_keys:
+    
+        # Data cashflow untuk invoice ini
+        df_inv_cf = df_cashflow[df_cashflow["Invoice_Key"] == key]
+    
+        # Ambil NO INVOICE untuk pemetaan ke df_data
+        inv_no = df_inv_cf["No Invoice"].iloc[0]
+    
+        # Ambil harga jual dari DF_DATA
+        df_inv_data = df_data[df_data["Invoice_Key"] == key]
+        total_harga_jual = df_inv_data["Harga Jual"].sum()
+    
+        # Total pembayaran masuk
+        total_sudah_diterima = df_inv_cf[df_inv_cf["Tipe"]=="Masuk"]["Jumlah"].sum()
+    
+        # Rumus piutang yang benar
+        piutang_invoice = total_harga_jual - total_sudah_diterima
+    
         if piutang_invoice > 0:
             piutang_total += piutang_invoice
+
     
     total_piutang = piutang_total
 

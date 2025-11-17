@@ -2282,44 +2282,28 @@ def parse_cashflow_from_data(df_data, df_cashflow_existing):
 # Input Manual Cashflow
 # --------------------------
 with st.expander("✏️ Input Data Cashflow Manual"):
-    # --- Input Dasar ---
     tanggal = st.date_input("Tanggal", value=date.today(), key="tgl_input")
     tipe = st.selectbox("Tipe", ["Masuk", "Keluar"], key="tipe_input")
-
-    # --- Kategori ---
-    kategori_masuk = [
-        "Penjualan Tiket Pesawat", "Penjualan Hotel", "Penjualan Kereta",
-        "Komisi Agen", "Lain-lain"
-    ]
-    kategori_keluar = [
-        "Pembelian Tiket Pesawat", "Pembelian Hotel", "Pembelian Kereta",
-        "Gaji Karyawan", "Operasional Kantor", "Marketing & Promosi",
-        "Pajak dan Biaya Lainnya", "Kerugian Salah Order", "Kerugian Pembatalan",
-        "Kerugian Kerusakan / Rusak", "Kerugian Lainnya", "Lain-lain"
-    ]
-    kategori_opsi = kategori_masuk if tipe == "Masuk" else kategori_keluar
+    
+    kategori_masuk = ["Penjualan Tiket Pesawat", "Penjualan Hotel", "Penjualan Kereta", "Komisi Agen", "Lain-lain"]
+    kategori_keluar = ["Pembelian Tiket Pesawat", "Pembelian Hotel", "Pembelian Kereta", "Gaji Karyawan",
+                       "Operasional Kantor", "Marketing & Promosi", "Pajak dan Biaya Lainnya", 
+                       "Kerugian Salah Order", "Kerugian Pembatalan", "Kerugian Kerusakan / Rusak", 
+                       "Kerugian Lainnya", "Lain-lain"]
+    kategori_opsi = kategori_masuk if tipe=="Masuk" else kategori_keluar
     kategori = st.selectbox("Kategori", kategori_opsi, key="kategori_input")
     if kategori == "Lain-lain":
         kategori = st.text_input("Jelaskan kategori lainnya", key="kategori_lain_input")
-
-    # --- No Invoice wajib ---
-    no_invoice = st.text_input(
-        "No Invoice (unik, misal OPR-YYYYMMDD-001 untuk pengeluaran operasional)",
-        key="no_invoice_input"
-    )
-
+    
+    no_invoice = st.text_input("No Invoice (boleh kosong untuk transaksi manual)", key="no_invoice_input")
     keterangan = st.text_input("Keterangan", key="keterangan_input")
     jumlah = st.number_input("Jumlah (Rp)", min_value=0, step=1, format="%d", key="jumlah_input")
     status_manual = st.selectbox("Status", ["Lunas", "Belum Lunas"], key="status_input")
 
     if st.button("Simpan Data Manual", key="btn_simpan_manual"):
-        # --- Validasi dasar ---
         if jumlah <= 0:
             st.error("Jumlah harus lebih dari 0")
-        elif no_invoice.strip() == "":
-            st.error("No Invoice wajib diisi dan harus unik")
         else:
-            # --- Buat row baru ---
             new_row = {
                 "Tanggal": pd.to_datetime(tanggal),
                 "Tipe": tipe,
@@ -2328,21 +2312,13 @@ with st.expander("✏️ Input Data Cashflow Manual"):
                 "Keterangan": keterangan,
                 "Jumlah": jumlah,
                 "Status": status_manual,
-                "Sumber": "Manual Input"
+                "Sumber": "Manual Input",
+                "Is_Invoice": False  # Aman untuk Aging Report
             }
-
-            # --- Simpan sementara di session state ---
             if "cashflow_manual" not in st.session_state:
                 st.session_state.cashflow_manual = []
             st.session_state.cashflow_manual.append(new_row)
-
-            st.success(f"✅ Data berhasil disimpan sementara (belum dikirim ke GSheets). Jumlah: Rp {jumlah:,}")
-
-# --- Catatan untuk sistem ---
-# 1. Semua transaksi manual akan tercatat di df_cashflow,
-#    tapi tidak akan mempengaruhi Aging Report jika bukan invoice pelanggan.
-# 2. Pastikan No Invoice unik untuk transaksi manual agar tidak terjadi duplikasi.
-# 3. Transaksi operasional atau pengeluaran lainnya cukup dibuat No Invoice dummy (misal OPR-YYYYMMDD-001).
+            st.success("✅ Data berhasil disimpan sementara (belum dikirim ke GSheets)")
 
 
 # --------------------------
@@ -2412,48 +2388,32 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     st.markdown("### 🔍 Data Cashflow Realtime")
     st.dataframe(df_cashflow.sort_values(by="Tanggal", ascending=False), use_container_width=True)
 
-    def generate_aging_report(df_cashflow, df_data, overdue_days=30):
+    def generate_aging_report(df_cashflow, overdue_days=30):
         """
-        Menghasilkan laporan aging berdasarkan harga jual & pembayaran actual.
-        Menggunakan Invoice_Key agar akurat, termasuk invoice tanpa nomor.
+        Menghasilkan DataFrame invoice belum lunas dengan aging,
+        menandai overdue, aman untuk transaksi manual
         """
-        # Ambil hanya invoice dengan status Belum Lunas (cashflow existing)
-        df_unpaid = df_cashflow[df_cashflow["Status"] == "Belum Lunas"].copy()
+        # Hanya hitung invoice resmi (Is_Invoice=True atau kolom tidak ada)
+        df_unpaid = df_cashflow[
+            (df_cashflow["Status"]=="Belum Lunas") & 
+            (df_cashflow.get("Is_Invoice", True))
+        ].copy()
     
         aging_rows = []
-    
-        # Loop berdasarkan Invoice_Key
-        for key in df_unpaid["Invoice_Key"].unique():
+        for key in df_unpaid["No Invoice"].unique():
+            df_inv = df_unpaid[df_unpaid["No Invoice"] == key]
             
-            # Cashflow untuk invoice ini
-            df_inv = df_unpaid[df_unpaid["Invoice_Key"] == key]
             if df_inv.empty:
-                continue
-    
-            # Data "DATA" untuk ambil harga jual
-            df_inv_data = df_data[df_data["Invoice_Key"] == key]
-    
-            # Nama & invoice number
+                continue  # aman, skip jika tidak ada baris
+            
+            tgl_pemesanan = df_inv["Tanggal"].min()
             nama_pemesan = df_inv["Nama Pemesan"].iloc[0] if "Nama Pemesan" in df_inv.columns and not df_inv["Nama Pemesan"].isna().all() else "Unknown"
             no_invoice = df_inv["No Invoice"].iloc[0] if "No Invoice" in df_inv.columns and not df_inv["No Invoice"].isna().all() else ""
-    
-            # Tanggal pemesanan = tanggal paling awal pada invoice
-            tgl_pemesanan = df_inv_cf["Tanggal"].min()
-    
-            # 📌 Harga Jual dari DF_DATA (yg benar)
-            total_harga_jual = df_inv_data["Harga Jual"].sum()
-    
-            # 📌 Total pembayaran masuk
-            total_sudah_diterima = df_inv_cf[df_inv_cf["Tipe"] == "Masuk"]["Jumlah"].sum()
-    
-            # 📌 Piutang yang benar
-            piutang_invoice = total_harga_jual - total_sudah_diterima
-    
-            # Skip jika piutang sudah 0
-            if piutang_invoice <= 0:
-                continue
-    
-            # Aging hari
+            
+            total_harus_diterima = df_inv[df_inv["Tipe"]=="Keluar"]["Jumlah"].sum()
+            total_sudah_diterima = df_inv[df_inv["Tipe"]=="Masuk"]["Jumlah"].sum()
+            piutang_invoice = total_harus_diterima - total_sudah_diterima
+            
             aging = (pd.Timestamp.today() - tgl_pemesanan).days
             overdue = aging > overdue_days
     
@@ -2461,23 +2421,29 @@ with st.expander("💸 Laporan Cashflow Realtime"):
                 "Nama Pemesan": nama_pemesan,
                 "No Invoice": no_invoice,
                 "Tanggal Pemesanan": tgl_pemesanan,
-                "Piutang": piutang_invoice,
+                "Piutang": round(piutang_invoice),
                 "Aging (hari)": aging,
                 "Overdue": overdue
             })
-    
+        
         df_aging = pd.DataFrame(aging_rows)
-
-        # Formatting kolom Piutang
-        df_aging["Piutang"] = df_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
-    
+        if not df_aging.empty:
+            df_aging["Piutang"] = df_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
+        
         return df_aging
-
     
-    # Contoh penggunaan:
-    df_aging = generate_aging_report(df_cashflow, df_data, overdue_days=30)
+    # =========================
+    # Contoh penggunaan Aging Report
+    # =========================
+    # Gabungkan data otomatis + manual
+    if "cashflow_manual" in st.session_state:
+        df_cashflow_all = pd.concat([df_cashflow, pd.DataFrame(st.session_state.cashflow_manual)], ignore_index=True)
+    else:
+        df_cashflow_all = df_cashflow.copy()
+    
+    df_aging = generate_aging_report(df_cashflow_all, overdue_days=30)
     df_aging = df_aging.sort_values(by="Aging (hari)", ascending=False)
-
+    
     # Highlight overdue
     def highlight_overdue(row):
         return ["background-color: #FF9999" if row.Overdue else "" for _ in row]

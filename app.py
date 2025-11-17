@@ -2483,37 +2483,37 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     st.dataframe(df_aging.style.apply(highlight_overdue, axis=1), use_container_width=True)
 
 #======================================================================================================================================
-from streamlit_option_menu import option_menu
-import streamlit as st
+#from streamlit_option_menu import option_menu
+#import streamlit as st
 
 # Sidebar Menu
-with st.sidebar:
-    selected = option_menu(
-        menu_title="Menu Utama",  # required
-        options=["Dashboard", "Cashflow", "Invoice", "Transaksi", "Settings"],  # required
-        icons=["bar-chart", "currency-dollar", "file-earmark-text", "truck", "gear"],  # optional
-        menu_icon="cast",  # optional
-        default_index=0,  # optional
-    )
+#with st.sidebar:
+ #   selected = option_menu(
+  #      menu_title="Menu Utama",  # required
+   #     options=["Dashboard", "Cashflow", "Invoice", "Transaksi", "Settings"],  # required
+    #    icons=["bar-chart", "currency-dollar", "file-earmark-text", "truck", "gear"],  # optional
+     #   menu_icon="cast",  # optional
+      #  default_index=0,  # optional
+    #)
 
 # Konten berdasarkan menu
-if selected == "Dashboard":
-    st.title("📊 Ringkasan Dashboard")
+#if selected == "Dashboard":
+ #   st.title("📊 Ringkasan Dashboard")
     
-elif selected == "Cashflow":
-    st.title("💸 Laporan Arus Kas")
+#elif selected == "Cashflow":
+ #   st.title("💸 Laporan Arus Kas")
     # tampilkan kode cashflow Anda di sini
 
-elif selected == "Invoice":
-    st.title("🧾 Manajemen Invoice")
+#elif selected == "Invoice":
+ #   st.title("🧾 Manajemen Invoice")
     # tampilkan invoice belum lunas, reminder, dll
 
-elif selected == "Transaksi":
-    st.title("📦 Transaksi Pemesanan")
+#elif selected == "Transaksi":
+ #   st.title("📦 Transaksi Pemesanan")
     # tampilkan semua transaksi
 
-elif selected == "Settings":
-    st.title("⚙️ Pengaturan Sistem")
+#elif selected == "Settings":
+ #   st.title("⚙️ Pengaturan Sistem")
     # form setting admin, kategori, dll
 
             

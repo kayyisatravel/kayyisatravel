@@ -2415,43 +2415,39 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     # Fungsi Aging Report Aman
     # ---------------------------
     def generate_aging_report(df_cashflow, df_data, overdue_days=30):
-        # Merge dengan manual jika ada
         if "cashflow_manual" in st.session_state:
             df_manual = pd.DataFrame(st.session_state.cashflow_manual)
             df_cashflow = pd.concat([df_cashflow, df_manual], ignore_index=True)
     
-        # Filter yang belum lunas
+        # hanya belum lunas
         df_unpaid = df_cashflow[df_cashflow["Status"] == "Belum Lunas"].copy()
     
-        # Gunakan Invoice_Key asli (paling aman)
-        df_unpaid["Invoice_Key_Final"] = df_unpaid.apply(
-            lambda x: x["No Invoice"] if x["No Invoice"] else x["Invoice_Key"], axis=1
-        )
+        # Gunakan No Invoice sebagai key utama
+        df_unpaid["Invoice_Key_Final"] = df_unpaid["No Invoice"].astype(str)
     
         aging_rows = []
     
         for key in df_unpaid["Invoice_Key_Final"].unique():
+    
+            # data cashflow
             df_inv_cf = df_unpaid[df_unpaid["Invoice_Key_Final"] == key]
     
-            # Cari juga di df_data
-            df_inv_data = df_data[df_data["Invoice_Key"] == key]
+            # data harga jual dari df_data
+            df_inv_data = df_data[df_data["No Invoice"].astype(str) == key]
     
-            # Tanggal
+            # tanggal
             tgl_pemesanan = df_inv_cf["Tanggal"].min()
     
-            # Nama pemesan
-            if "Nama Pemesan" in df_inv_cf:
-                nama_pemesan = df_inv_cf["Nama Pemesan"].iloc[0]
-            else:
-                nama_pemesan = "-"
+            # nama
+            nama_pemesan = df_inv_cf["Nama Pemesan"].iloc[0] if "Nama Pemesan" in df_inv_cf else "-"
     
-            # Harga jual total (Sumber df_data, BUKAN df_cashflow)
+            # total harga jual
             total_harga_jual = df_inv_data["Harga Jual"].sum() if not df_inv_data.empty else 0
     
-            # Pembayaran masuk
+            # total pembayaran masuk
             total_sudah_diterima = df_inv_cf[df_inv_cf["Tipe"]=="Masuk"]["Jumlah"].sum()
     
-            # Piutang
+            # piutang
             piutang_invoice = total_harga_jual - total_sudah_diterima
     
             aging = (pd.Timestamp.today() - tgl_pemesanan).days
@@ -2467,11 +2463,11 @@ with st.expander("💸 Laporan Cashflow Realtime"):
             })
     
         df_aging = pd.DataFrame(aging_rows)
-    
         if not df_aging.empty:
             df_aging["Piutang"] = df_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
     
         return df_aging
+
 
 
     # =========================

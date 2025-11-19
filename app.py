@@ -2424,25 +2424,27 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     
         # Tambahkan internal key unik untuk setiap transaksi di df_data
         df_data["_Data_Key"] = df_data.apply(
-            lambda x:
+            lambda x: 
                 (x["No Invoice"].strip() if str(x["No Invoice"]).strip() != "" else "NOINV")
-                + "_" + x["Nama Pemesan"],
+                + "_" + x["Nama Pemesan"] + "_" + str(x.name),
             axis=1
         )
-
     
         # Tambahkan key yang sama ke df_cashflow
         def build_cf_key(row):
             nama = str(row.get("Nama Pemesan", "")).strip()
             if nama == "" or nama.lower() == "nan":
                 nama = "UNKNOWN"
-    
+        
             noinv = str(row.get("No Invoice", "")).strip()
-    
+        
+            # Jika ada No Invoice → invoice based key
             if noinv != "":
                 return noinv + "_" + nama
-            
+        
+            # Jika tidak ada invoice → unique per row
             return "NOINV_" + nama + "_" + str(row.name)
+
     
         df_cashflow["_Data_Key"] = df_cashflow.apply(build_cf_key, axis=1)
     
@@ -2451,6 +2453,7 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     
         aging_rows = []
     
+        # Loop per transaksi (per baris)
         for idx, row_cf in df_unpaid.iterrows():
     
             key = row_cf["_Data_Key"]
@@ -2461,11 +2464,11 @@ with st.expander("💸 Laporan Cashflow Realtime"):
             # Cari transaksi data berdasarkan key
             df_match = df_data[df_data["_Data_Key"] == key]
     
-            # ⛔ FIX: Jangan pernah pakai Harga Beli untuk piutang
             if not df_match.empty:
                 total_harga_jual = df_match["Harga Jual"].sum()
             else:
-                total_harga_jual = 0
+                # fallback jika tidak ada match
+                total_harga_jual = row_cf["Jumlah"]
     
             # Hitung pembayaran masuk
             total_masuk = df_cashflow[
@@ -2494,13 +2497,6 @@ with st.expander("💸 Laporan Cashflow Realtime"):
             df_aging["Piutang"] = df_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
     
         return df_aging
-
-
-
-
-
-
-
 
 
     # =========================

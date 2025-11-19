@@ -2432,36 +2432,37 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         """
     
         # ---------------------------
-        # Bersihkan kolom Harga Jual
+        # Bersihkan kolom Harga Jual di df_data
         # ---------------------------
-        df_data["Harga Jual"] = df_data.get("Harga Jual", 0).fillna(0)
-        df_data["Harga Jual"] = df_data["Harga Jual"].astype(float)
+        df_data["Harga Jual"] = df_data.get("Harga Jual", 0).fillna(0).astype(float)
     
         # ---------------------------
-        # Tambahkan internal key unik untuk df_data
+        # Buat key unik per transaksi di df_data
         # ---------------------------
-        df_data["_Data_Key"] = df_data.apply(
-            lambda x: (
-                str(x.get("No Invoice","")).strip() if str(x.get("No Invoice","")).strip() != "" else "NOINV"
-            ) + "_" + str(x.get("Nama Pemesan","UNKNOWN")).strip() + "_" +
-            x.get("Tgl Pemesanan", pd.Timestamp.today()).strftime("%Y%m%d%H%M%S") + "_" +
-            str(int(x.get("Harga Jual",0))),
-            axis=1
-        )
-    
-        # ---------------------------
-        # Tambahkan internal key untuk df_cashflow
-        # ---------------------------
-        def build_cf_key(row):
+        def generate_data_key(row):
+            no_inv = str(row.get("No Invoice", "")).strip()
             nama = str(row.get("Nama Pemesan", "UNKNOWN")).strip()
-            noinv = str(row.get("No Invoice", "")).strip()
-            if noinv != "":
-                return noinv + "_" + nama
+            if no_inv != "":
+                return f"{no_inv}_{nama}"
             else:
-                # fallback untuk manual / tanpa invoice
-                return "NOINV_" + nama + "_" + str(row.name) + "_" + str(int(row.get("Jumlah",0)))
-        
-        df_cashflow["_Data_Key"] = df_cashflow.apply(build_cf_key, axis=1)
+                tgl = pd.to_datetime(row.get("Tgl Pemesanan", pd.Timestamp.today())).strftime("%Y%m%d%H%M%S")
+                return f"NOINV_{nama}_{tgl}_{row.name}"
+    
+        df_data["_Data_Key"] = df_data.apply(generate_data_key, axis=1)
+    
+        # ---------------------------
+        # Buat key unik per transaksi di df_cashflow
+        # ---------------------------
+        def generate_cf_key(row):
+            no_inv = str(row.get("No Invoice", "")).strip()
+            nama = str(row.get("Nama Pemesan", "UNKNOWN")).strip()
+            if no_inv != "":
+                return f"{no_inv}_{nama}"
+            else:
+                tgl = pd.to_datetime(row.get("Tanggal", pd.Timestamp.today())).strftime("%Y%m%d%H%M%S")
+                return f"NOINV_{nama}_{tgl}_{row.name}"
+    
+        df_cashflow["_Data_Key"] = df_cashflow.apply(generate_cf_key, axis=1)
     
         # ---------------------------
         # Filter hanya transaksi belum lunas
@@ -2480,15 +2481,17 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     
             # Cari data penjualan di df_data
             df_match = df_data[df_data["_Data_Key"] == key]
+    
             if not df_match.empty:
                 total_harga_jual = df_match["Harga Jual"].sum()
             else:
                 # fallback untuk transaksi manual / tidak ada di df_data
-                total_harga_jual = row_cf.get("Jumlah", 0)
+                # ambil dari kolom 'Harga Jual' jika ada, atau 'Jumlah'
+                total_harga_jual = row_cf.get("Harga Jual", row_cf.get("Jumlah", 0))
     
             # Total pembayaran masuk
             total_masuk = df_cashflow[
-                (df_cashflow["_Data_Key"] == key) &
+                (df_cashflow["_Data_Key"] == key) & 
                 (df_cashflow["Tipe"] == "Masuk")
             ]["Jumlah"].sum()
     
@@ -2500,7 +2503,7 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     
             aging_rows.append({
                 "Nama Pemesan/Keterangan": nama_pemesan,
-                "No Invoice": no_invoice,
+                "No Invoice": no_invoice if no_invoice != "" else "(Belum ada)",
                 "Tanggal Pemesanan": tgl,
                 "Piutang": piutang,
                 "Aging (hari)": aging,

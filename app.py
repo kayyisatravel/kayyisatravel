@@ -2423,43 +2423,41 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         df_unpaid = df_cashflow[df_cashflow["Status"] == "Belum Lunas"].copy()
     
         # Gunakan No Invoice sebagai key utama
-        df_unpaid["Invoice_Key_Final"] = df_unpaid["No Invoice"].astype(str)
+        # INTERNAL KEY: hanya untuk grouping
+        df_unpaid["_Invoice_Key_Internal"] = df_unpaid.apply(
+            lambda row:
+                str(row["No Invoice"]).strip()
+                if pd.notna(row["No Invoice"]) and str(row["No Invoice"]).strip() != ""
+                else f"NOINV_GROUP_{row['Nama Pemesan']}",
+            axis=1
+        )
+        
         aging_rows = []
-    
-        for key in df_unpaid["Invoice_Key_Final"].unique():
-    
-            # data cashflow
-            df_inv_cf = df_unpaid[df_unpaid["Invoice_Key_Final"] == key]
-    
-            # data harga jual dari df_data
+        
+        for key in df_unpaid["_Invoice_Key_Internal"].unique():
+        
+            df_inv_cf = df_unpaid[df_unpaid["_Invoice_Key_Internal"] == key]
+        
             df_inv_data = df_data[df_data["No Invoice"].astype(str) == key]
-    
-            # tanggal
+        
             tgl_pemesanan = df_inv_cf["Tanggal"].min()
-    
-            # nama
-            nama_pemesan = df_inv_cf["Nama Pemesan"].iloc[0] if "Nama Pemesan" in df_inv_cf else "-"
-    
-            # total harga jual
+            nama_pemesan = df_inv_cf["Nama Pemesan"].iloc[0]
+        
             total_harga_jual = df_inv_data["Harga Jual"].sum() if not df_inv_data.empty else 0
-    
-            # total pembayaran masuk
             total_sudah_diterima = df_inv_cf[df_inv_cf["Tipe"]=="Masuk"]["Jumlah"].sum()
-    
-            # piutang
             piutang_invoice = total_harga_jual - total_sudah_diterima
-    
+        
             aging = (pd.Timestamp.today() - tgl_pemesanan).days
-            overdue = aging > overdue_days
-    
+        
             aging_rows.append({
                 "Nama Pemesan/Keterangan": nama_pemesan,
-                "No Invoice": key,
+                "No Invoice": df_inv_cf["No Invoice"].iloc[0] if pd.notna(df_inv_cf["No Invoice"].iloc[0]) else "",
                 "Tanggal Pemesanan": tgl_pemesanan,
                 "Piutang": piutang_invoice,
                 "Aging (hari)": aging,
-                "Overdue": overdue
+                "Overdue": aging > overdue_days
             })
+
     
         df_aging = pd.DataFrame(aging_rows)
         if not df_aging.empty:

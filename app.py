@@ -2424,11 +2424,12 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     
         # Tambahkan internal key unik untuk setiap transaksi di df_data
         df_data["_Data_Key"] = df_data.apply(
-            lambda x: 
-                (x["No Invoice"].strip() if str(x["No Invoice"]).strip() != "" else "NOINV")
-                + "_" + x["Nama Pemesan"] + "_" + str(x.name),
+            lambda x: (
+                str(x["No Invoice"]).strip() if str(x["No Invoice"]).strip() != "" else "NOINV"
+            ) + "_" + x["Nama Pemesan"].strip() + "_" + x["Tanggal"].strftime("%Y%m%d%H%M%S") + "_" + str(int(x["Harga Jual"])),
             axis=1
         )
+
     
         # Tambahkan key yang sama ke df_cashflow
         def build_cf_key(row):
@@ -2446,7 +2447,13 @@ with st.expander("💸 Laporan Cashflow Realtime"):
             return "NOINV_" + nama + "_" + str(row.name)
 
     
-        df_cashflow["_Data_Key"] = df_cashflow.apply(build_cf_key, axis=1)
+        df_cashflow["_Data_Key"] = df_cashflow.apply(
+            lambda x: (
+                str(x["No Invoice"]).strip() if str(x["No Invoice"]).strip() != "" else "NOINV"
+            ) + "_" + x["Nama Pemesan"].strip() + "_" + x["Tanggal"].strftime("%Y%m%d%H%M%S") + "_" + str(int(x["Jumlah"])),
+            axis=1
+        )
+
     
         # Filter hanya transaksi belum lunas
         df_unpaid = df_cashflow[df_cashflow["Status"] == "Belum Lunas"].copy()

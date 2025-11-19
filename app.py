@@ -2433,7 +2433,15 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         )
         
         aging_rows = []
-        
+        # Tambahkan INTERNAL KEY di df_cashflow
+        df_cashflow["_Invoice_Key_Internal"] = df_cashflow.apply(
+            lambda row:
+                str(row["No Invoice"]).strip()
+                if pd.notna(row["No Invoice"]) and str(row["No Invoice"]).strip() != ""
+                else f"NOINV_GROUP_{row['Nama Pemesan']}",
+            axis=1
+        )
+
         for key in df_unpaid["_Invoice_Key_Internal"].unique():
         
             df_inv_cf = df_unpaid[df_unpaid["_Invoice_Key_Internal"] == key]

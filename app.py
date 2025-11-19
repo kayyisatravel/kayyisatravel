@@ -2464,11 +2464,7 @@ with st.expander("💸 Laporan Cashflow Realtime"):
             if not df_match.empty:
                 total_harga_jual = df_match["Harga Jual"].sum()
             else:
-                df_fallback = df_data[df_data["Nama Pemesan"] == nama_pemesan]
-                if not df_fallback.empty:
-                    total_harga_jual = df_fallback["Harga Jual"].sum()
-                else:
-                    total_harga_jual = 0
+                total_harga_jual = 0
     
             # Hitung pembayaran masuk
             total_masuk = df_cashflow[

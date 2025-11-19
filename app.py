@@ -2423,18 +2423,7 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         df_unpaid = df_cashflow[df_cashflow["Status"] == "Belum Lunas"].copy()
     
         # Gunakan No Invoice sebagai key utama
-        df_unpaid["Invoice_Key_Final"] = df_unpaid.apply(
-            lambda row:
-                # jika ada No Invoice → gunakan sebagai key
-                str(row["No Invoice"]).strip() 
-                if pd.notna(row["No Invoice"]) and str(row["No Invoice"]).strip() != "" 
-                
-                # jika tidak ada No Invoice → gabung per Nama Pemesan
-                else f"NOINV_{row['Nama Pemesan']}",
-            axis=1
-        )
-
-    
+        df_unpaid["Invoice_Key_Final"] = df_unpaid["No Invoice"].astype(str)
         aging_rows = []
     
         for key in df_unpaid["Invoice_Key_Final"].unique():

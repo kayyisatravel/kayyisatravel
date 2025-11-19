@@ -2454,7 +2454,10 @@ with st.expander("💸 Laporan Cashflow Realtime"):
                 total_harga_jual = df_inv_data["Harga Jual"].sum() if not df_inv_data.empty else 0
 
         
-            total_sudah_diterima = df_inv_cf[df_inv_cf["Tipe"]=="Masuk"]["Jumlah"].sum()
+            total_sudah_diterima = df_cashflow[
+                (df_cashflow["Tipe"] == "Masuk") &
+                (df_cashflow["_Invoice_Key_Internal"] == key)
+            ]["Jumlah"].sum()
             piutang_invoice = total_harga_jual - total_sudah_diterima
         
             aging = (pd.Timestamp.today().normalize() - tgl_pemesanan.normalize()).days

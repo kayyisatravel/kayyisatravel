@@ -2469,13 +2469,12 @@ with st.expander("💸 Laporan Cashflow Realtime"):
             tgl = row_cf["Tanggal"]
     
             # Cari transaksi data berdasarkan key
-            df_match = df_data[df_data["_Data_Key"] == key]
-    
+            df_match = df_data[df_data["_Data_Key"] == row_cf["_Data_Key"]]
             if not df_match.empty:
                 total_harga_jual = df_match["Harga Jual"].sum()
             else:
-                # fallback jika tidak ada match
-                total_harga_jual = row_cf["Jumlah"]
+                total_harga_jual = row_cf["Jumlah"]  # fallback
+
     
             # Hitung pembayaran masuk
             total_masuk = df_cashflow[

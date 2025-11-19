@@ -2425,9 +2425,10 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         # Gunakan No Invoice sebagai key utama
         # INTERNAL KEY: hanya untuk grouping
         df_unpaid["_Invoice_Key_Internal"] = df_unpaid.apply(
-            lambda row: str(row["No Invoice"]).strip()
-            if pd.notna(row["No Invoice"]) and str(row["No Invoice"]).strip() != ""
-            else f"NOINV_{row['Nama Pemesan']}_{row['Tanggal'].strftime('%Y%m%d%H%M%S')}",
+            lambda row:
+                str(row["No Invoice"]).strip()
+                if pd.notna(row["No Invoice"]) and str(row["No Invoice"]).strip() != ""
+                else f"NOINV_GROUP_{row['Nama Pemesan']}",
             axis=1
         )
 

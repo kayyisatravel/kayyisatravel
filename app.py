@@ -2524,15 +2524,15 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     # =========================
     # TAMPILAN AGING REPORT DI STREAMLIT
     # =========================
-    def tampilkan_aging_report(df_cashflow, df_data, overdue_days=30):
-        df_aging = generate_aging_report(df_cashflow, df_data, overdue_days)
-        df_aging = df_aging.sort_values(by="Aging (hari)", ascending=False)
     
-        def highlight_overdue(row):
-            return ["background-color: #FF9999" if row.Overdue else "" for _ in row]
+    df_aging = generate_aging_report(df_cashflow, df_data)
+    df_aging = df_aging.sort_values(by="Aging (hari)", ascending=False)
     
-        st.markdown("### ⏳ Aging Report / Invoice Belum Lunas")
-        st.dataframe(df_aging.style.apply(highlight_overdue, axis=1), use_container_width=True)
+    def highlight_overdue(row):
+        return ["background-color: #FF9999" if row.Overdue else "" for _ in row]
+    
+    st.markdown("### ⏳ Aging Report / Invoice Belum Lunas")
+    st.dataframe(df_aging.style.apply(highlight_overdue, axis=1), use_container_width=True)
 
 
 #======================================================================================================================================

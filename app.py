@@ -2418,42 +2418,63 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     # Fungsi Aging Report Aman
     # ---------------------------
     def generate_aging_report(df_cashflow, df_data, overdue_days=30):
+        # Gabungkan manual cashflow jika ada
         if "cashflow_manual" in st.session_state:
             df_manual = pd.DataFrame(st.session_state.cashflow_manual)
             df_cashflow = pd.concat([df_cashflow, df_manual], ignore_index=True)
     
+        # Filter hanya yang belum lunas
+        df_unpaid = df_cashflow[df_cashflow["Status"] == "Belum Lunas"].copy()
+    
+        # Buat internal key
+        def get_internal_key(row):
+            if pd.notna(row["No Invoice"]) and str(row["No Invoice"]).strip() != "":
+                return str(row["No Invoice"]).strip()
+            else:
+                # Gunakan kombinasi Nama Pemesan + Tanggal + Jumlah untuk unik per transaksi
+                return f"NOINV_{row['Nama Pemesan']}_{row['Tanggal'].strftime('%Y%m%d%H%M%S%f')}_{int(row['Jumlah'])}"
+    
+        df_unpaid["_Invoice_Key_Internal"] = df_unpaid.apply(get_internal_key, axis=1)
+        df_cashflow["_Invoice_Key_Internal"] = df_cashflow.apply(get_internal_key, axis=1)
+    
         aging_rows = []
     
-        # Kelompokkan berdasarkan Nama Pemesan + No Invoice
-        grouped = df_cashflow.groupby(["Nama Pemesan", "No Invoice"])
-        for (nama_pemesan, no_invoice), group in grouped:
-            tgl_pemesanan = group["Tanggal"].min()
+        for key in df_unpaid["_Invoice_Key_Internal"].unique():
+            df_inv_cf = df_unpaid[df_unpaid["_Invoice_Key_Internal"] == key]
+            row = df_inv_cf.iloc[0]
+            nama_pemesan = row["Nama Pemesan"]
+            no_invoice_display = row["No Invoice"]
+            tgl_pemesanan = row["Tanggal"]
     
-            # Hitung total harga jual dari df_data
-            if no_invoice:
-                df_inv_data = df_data[df_data["No Invoice"]==no_invoice]
+            # Ambil harga jual dari df_data
+            if pd.notna(no_invoice_display) and str(no_invoice_display).strip() != "":
+                df_inv_data = df_data[df_data["No Invoice"] == no_invoice_display]
             else:
-                df_inv_data = df_data[df_data["Nama Pemesan"]==nama_pemesan]
+                # Ambil harga jual untuk transaksi spesifik berdasarkan pemesan + jumlah + tanggal
+                df_inv_data = df_data[
+                    (df_data["Nama Pemesan"] == nama_pemesan) &
+                    (df_data["Harga Jual"] == row["Jumlah"])
+                ]
+            total_harga_jual = df_inv_data["Harga Jual"].sum() if not df_inv_data.empty else row["Jumlah"]
     
-            total_harga_jual = df_inv_data["Harga Jual"].sum() if not df_inv_data.empty else group["Jumlah"].sum()
+            # Total pembayaran masuk untuk transaksi ini
+            total_sudah_diterima = df_cashflow[
+                (df_cashflow["Tipe"] == "Masuk") &
+                (df_cashflow["_Invoice_Key_Internal"] == key)
+            ]["Jumlah"].sum()
     
-            # Total pembayaran masuk
-            total_sudah_diterima = group[group["Tipe"]=="Masuk"]["Jumlah"].sum()
-    
-            # Piutang = total harga jual - pembayaran masuk
-            piutang_invoice = max(total_harga_jual - total_sudah_diterima, 0)
+            piutang_invoice = total_harga_jual - total_sudah_diterima
     
             aging = (pd.Timestamp.today().normalize() - tgl_pemesanan.normalize()).days
     
-            if piutang_invoice > 0:
-                aging_rows.append({
-                    "Nama Pemesan/Keterangan": nama_pemesan,
-                    "No Invoice": no_invoice,
-                    "Tanggal Pemesanan": tgl_pemesanan,
-                    "Piutang": piutang_invoice,
-                    "Aging (hari)": aging,
-                    "Overdue": aging > overdue_days
-                })
+            aging_rows.append({
+                "Nama Pemesan/Keterangan": nama_pemesan,
+                "No Invoice": no_invoice_display if pd.notna(no_invoice_display) else "",
+                "Tanggal Pemesanan": tgl_pemesanan,
+                "Piutang": piutang_invoice,
+                "Aging (hari)": aging,
+                "Overdue": aging > overdue_days
+            })
     
         df_aging = pd.DataFrame(aging_rows)
         if not df_aging.empty:

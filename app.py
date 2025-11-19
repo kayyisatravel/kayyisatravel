@@ -2418,74 +2418,84 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     # Fungsi Aging Report Aman
     # ---------------------------
     def generate_aging_report(df_cashflow, df_data, overdue_days=30):
-
-        # Pastikan clean number untuk Harga Jual
-        df_data["Harga Jual"] = clean_price_column(df_data["Harga Jual"])
+        """
+        Generate Aging Report dari cashflow dan data penjualan.
+        
+        Args:
+            df_cashflow (pd.DataFrame): Data cashflow gabungan (existing + otomatis + manual)
+            df_data (pd.DataFrame): Data master penjualan
+            overdue_days (int): batas hari untuk dianggap overdue
+        
+        Returns:
+            pd.DataFrame: Data Aging Report
+        """
     
-        # Tambahkan internal key unik untuk setiap transaksi di df_data
+        # ---------------------------
+        # Bersihkan kolom Harga Jual
+        # ---------------------------
+        df_data["Harga Jual"] = df_data.get("Harga Jual", 0).fillna(0)
+        df_data["Harga Jual"] = df_data["Harga Jual"].astype(float)
+    
+        # ---------------------------
+        # Tambahkan internal key unik untuk df_data
+        # ---------------------------
         df_data["_Data_Key"] = df_data.apply(
             lambda x: (
-                str(x["No Invoice"]).strip() if str(x["No Invoice"]).strip() != "" else "NOINV"
-            ) + "_" + x["Nama Pemesan"].strip() + "_" + x["Tanggal"].strftime("%Y%m%d%H%M%S") + "_" + str(int(x["Harga Jual"])),
+                str(x.get("No Invoice","")).strip() if str(x.get("No Invoice","")).strip() != "" else "NOINV"
+            ) + "_" + str(x.get("Nama Pemesan","UNKNOWN")).strip() + "_" +
+            x.get("Tgl Pemesanan", pd.Timestamp.today()).strftime("%Y%m%d%H%M%S") + "_" +
+            str(int(x.get("Harga Jual",0))),
             axis=1
         )
-
     
-        # Tambahkan key yang sama ke df_cashflow
+        # ---------------------------
+        # Tambahkan internal key untuk df_cashflow
+        # ---------------------------
         def build_cf_key(row):
-            nama = str(row.get("Nama Pemesan", "")).strip()
-            if nama == "" or nama.lower() == "nan":
-                nama = "UNKNOWN"
-        
+            nama = str(row.get("Nama Pemesan", "UNKNOWN")).strip()
             noinv = str(row.get("No Invoice", "")).strip()
-        
-            # Jika ada No Invoice → invoice based key
             if noinv != "":
                 return noinv + "_" + nama
+            else:
+                # fallback untuk manual / tanpa invoice
+                return "NOINV_" + nama + "_" + str(row.name) + "_" + str(int(row.get("Jumlah",0)))
         
-            # Jika tidak ada invoice → unique per row
-            return "NOINV_" + nama + "_" + str(row.name)
-
+        df_cashflow["_Data_Key"] = df_cashflow.apply(build_cf_key, axis=1)
     
-        df_cashflow["_Data_Key"] = df_cashflow.apply(
-            lambda x: (
-                str(x["No Invoice"]).strip() if str(x["No Invoice"]).strip() != "" else "NOINV"
-            ) + "_" + x["Nama Pemesan"].strip() + "_" + x["Tanggal"].strftime("%Y%m%d%H%M%S") + "_" + str(int(x["Jumlah"])),
-            axis=1
-        )
-
-    
+        # ---------------------------
         # Filter hanya transaksi belum lunas
+        # ---------------------------
         df_unpaid = df_cashflow[df_cashflow["Status"] == "Belum Lunas"].copy()
     
+        # ---------------------------
+        # Hitung Aging
+        # ---------------------------
         aging_rows = []
-    
-        # Loop per transaksi (per baris)
         for idx, row_cf in df_unpaid.iterrows():
-    
             key = row_cf["_Data_Key"]
-            nama_pemesan = row_cf["Nama Pemesan"]
-            no_invoice = row_cf["No Invoice"]
-            tgl = row_cf["Tanggal"]
+            nama_pemesan = row_cf.get("Nama Pemesan", "UNKNOWN")
+            no_invoice = row_cf.get("No Invoice", "")
+            tgl = row_cf.get("Tanggal", pd.Timestamp.today())
     
-            # Cari transaksi data berdasarkan key
-            df_match = df_data[df_data["_Data_Key"] == row_cf["_Data_Key"]]
+            # Cari data penjualan di df_data
+            df_match = df_data[df_data["_Data_Key"] == key]
             if not df_match.empty:
                 total_harga_jual = df_match["Harga Jual"].sum()
             else:
-                total_harga_jual = row_cf["Jumlah"]  # fallback
-
+                # fallback untuk transaksi manual / tidak ada di df_data
+                total_harga_jual = row_cf.get("Jumlah", 0)
     
-            # Hitung pembayaran masuk
+            # Total pembayaran masuk
             total_masuk = df_cashflow[
                 (df_cashflow["_Data_Key"] == key) &
                 (df_cashflow["Tipe"] == "Masuk")
             ]["Jumlah"].sum()
     
+            # Piutang
             piutang = total_harga_jual - total_masuk
     
             # Hitung aging
-            aging = (pd.Timestamp.today().normalize() - tgl.normalize()).days
+            aging = (pd.Timestamp.today().normalize() - pd.to_datetime(tgl).normalize()).days
     
             aging_rows.append({
                 "Nama Pemesan/Keterangan": nama_pemesan,
@@ -2496,13 +2506,16 @@ with st.expander("💸 Laporan Cashflow Realtime"):
                 "Overdue": aging > overdue_days
             })
     
-        # Buat dataframe hasil
+        # ---------------------------
+        # Buat DataFrame hasil
+        # ---------------------------
         df_aging = pd.DataFrame(aging_rows)
     
         if not df_aging.empty:
             df_aging["Piutang"] = df_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
     
         return df_aging
+
 
 
     # =========================

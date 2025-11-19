@@ -2424,11 +2424,12 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     
         # Tambahkan internal key unik untuk setiap transaksi di df_data
         df_data["_Data_Key"] = df_data.apply(
-            lambda x: 
+            lambda x:
                 (x["No Invoice"].strip() if str(x["No Invoice"]).strip() != "" else "NOINV")
-                + "_" + x["Nama Pemesan"] + "_" + str(x.name),
+                + "_" + x["Nama Pemesan"],
             axis=1
         )
+
     
         # Tambahkan key yang sama ke df_cashflow
         def build_cf_key(row):

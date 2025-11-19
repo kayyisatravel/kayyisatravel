@@ -2438,20 +2438,29 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         
             df_inv_cf = df_unpaid[df_unpaid["_Invoice_Key_Internal"] == key]
         
-            df_inv_data = df_data[df_data["No Invoice"].astype(str) == key]
+            # --- TANGGAL PEMESANAN ---
+            tgl_pemesanan = df_inv_cf["Tgl Pemesanan"].min()   # pastikan pakai header yang benar dari master data
         
-            tgl_pemesanan = df_inv_cf["Tanggal"].min()
             nama_pemesan = df_inv_cf["Nama Pemesan"].iloc[0]
+            no_invoice_display = df_inv_cf["No Invoice"].iloc[0]
         
-            total_harga_jual = df_inv_data["Harga Jual"].sum() if not df_inv_data.empty else 0
+            # --- HITUNG PIUTANG ---
+            if pd.notna(no_invoice_display) and str(no_invoice_display).strip() != "":
+                # Jika ada invoice, ambil total harga jual dari df_data
+                df_inv_data = df_data[df_data["No Invoice"] == no_invoice_display]
+                total_harga_jual = df_inv_data["Harga Jual"].sum() if not df_inv_data.empty else 0
+            else:
+                # Jika TIDAK ada invoice → ambil total harga jual dari baris-baris transaksi pemesan
+                total_harga_jual = df_inv_cf["Harga Jual"].sum()
+        
             total_sudah_diterima = df_inv_cf[df_inv_cf["Tipe"]=="Masuk"]["Jumlah"].sum()
             piutang_invoice = total_harga_jual - total_sudah_diterima
         
-            aging = (pd.Timestamp.today() - tgl_pemesanan).days
+            aging = (pd.Timestamp.today().normalize() - tgl_pemesanan.normalize()).days
         
             aging_rows.append({
                 "Nama Pemesan/Keterangan": nama_pemesan,
-                "No Invoice": df_inv_cf["No Invoice"].iloc[0] if pd.notna(df_inv_cf["No Invoice"].iloc[0]) else "",
+                "No Invoice": no_invoice_display if pd.notna(no_invoice_display) else "",
                 "Tanggal Pemesanan": tgl_pemesanan,
                 "Piutang": piutang_invoice,
                 "Aging (hari)": aging,

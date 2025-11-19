@@ -2242,6 +2242,7 @@ def parse_cashflow_from_data(df_data, df_cashflow_existing):
             "No Invoice": invoice_no,
             "Keterangan": "; ".join(group["Keterangan"].unique()),
             "Jumlah": group["Harga Beli"].sum(),
+            "Harga Jual": total_harga_jual,
             "Status": status,
             "Sumber": "Data Otomatis",
             "Nama Pemesan": nama_pemesan,
@@ -2487,7 +2488,7 @@ with st.expander("💸 Laporan Cashflow Realtime"):
             else:
                 # fallback untuk transaksi manual / tidak ada di df_data
                 # ambil dari kolom 'Harga Jual' jika ada, atau 'Jumlah'
-                total_harga_jual = row_cf.get("Harga Jual", row_cf.get("Jumlah", 0))
+                total_harga_jual = row_cf.get("Harga Jual", 0)
     
             # Total pembayaran masuk
             total_masuk = df_cashflow[

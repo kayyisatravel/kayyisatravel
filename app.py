@@ -2439,8 +2439,7 @@ with st.expander("💸 Laporan Cashflow Realtime"):
             df_inv_cf = df_unpaid[df_unpaid["_Invoice_Key_Internal"] == key]
         
             # --- TANGGAL PEMESANAN ---
-            tgl_pemesanan = df_inv_cf["Tgl Pemesanan"].min()   # pastikan pakai header yang benar dari master data
-        
+            tgl_pemesanan = df_inv_cf["Tanggal"].min()
             nama_pemesan = df_inv_cf["Nama Pemesan"].iloc[0]
             no_invoice_display = df_inv_cf["No Invoice"].iloc[0]
         

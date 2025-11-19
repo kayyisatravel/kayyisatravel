@@ -2449,8 +2449,10 @@ with st.expander("💸 Laporan Cashflow Realtime"):
                 df_inv_data = df_data[df_data["No Invoice"] == no_invoice_display]
                 total_harga_jual = df_inv_data["Harga Jual"].sum() if not df_inv_data.empty else 0
             else:
-                # Jika TIDAK ada invoice → ambil total harga jual dari baris-baris transaksi pemesan
-                total_harga_jual = df_inv_cf["Harga Jual"].sum()
+                # Ambil harga dari DF_DATA berdasarkan nama pemesan
+                df_inv_data = df_data[df_data["Nama Pemesan"] == nama_pemesan]
+                total_harga_jual = df_inv_data["Harga Jual"].sum() if not df_inv_data.empty else 0
+
         
             total_sudah_diterima = df_inv_cf[df_inv_cf["Tipe"]=="Masuk"]["Jumlah"].sum()
             piutang_invoice = total_harga_jual - total_sudah_diterima

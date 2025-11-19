@@ -2419,21 +2419,18 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     # ---------------------------
     def generate_aging_report(df_cashflow, df_data, overdue_days=30):
 
-        # Bersihkan harga
         df_data["Harga Jual"] = clean_price_column(df_data["Harga Jual"])
     
         # Pastikan df_data sudah punya Invoice_Key
         if "Invoice_Key" not in df_data.columns:
-            df_data["No Invoice"] = df_data["No Invoice"].fillna("").astype(str)
             df_data["Invoice_Key"] = df_data.apply(
-                lambda x: 
+                lambda x:
                     f"{x['Nama Pemesan']}_{x['No Invoice']}"
-                    if x["No Invoice"] != ""
+                    if str(x['No Invoice']).strip() != ""
                     else f"{x['Nama Pemesan']}_NOINV_{x.name}",
                 axis=1
             )
     
-        # Filter yang Belum Lunas
         df_unpaid = df_cashflow[df_cashflow["Status"] == "Belum Lunas"].copy()
     
         aging_rows = []
@@ -2441,31 +2438,24 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         for idx, row_cf in df_unpaid.iterrows():
     
             key = row_cf["Invoice_Key"]
-            nama_pemesan = row_cf["Nama Pemesan"]
-            no_invoice = row_cf["No Invoice"]
-            tgl = row_cf["Tanggal"]
     
-            # Match DF_DATA berdasarkan Invoice_Key
             df_match = df_data[df_data["Invoice_Key"] == key]
     
-            # Harga jual total = SUM semua penumpang (data asli)
             total_harga_jual = df_match["Harga Jual"].sum()
     
-            # Total pembayaran masuk
             total_masuk = df_cashflow[
                 (df_cashflow["Invoice_Key"] == key) &
                 (df_cashflow["Tipe"] == "Masuk")
             ]["Jumlah"].sum()
     
-            # Rumus piutang final
             piutang = total_harga_jual - total_masuk
     
-            aging = (pd.Timestamp.today().normalize() - tgl.normalize()).days
+            aging = (pd.Timestamp.today().normalize() - row_cf["Tanggal"].normalize()).days
     
             aging_rows.append({
-                "Nama Pemesan/Keterangan": nama_pemesan,
-                "No Invoice": no_invoice,
-                "Tanggal Pemesanan": tgl,
+                "Nama Pemesan/Keterangan": row_cf["Nama Pemesan"],
+                "No Invoice": row_cf["No Invoice"],
+                "Tanggal Pemesanan": row_cf["Tanggal"],
                 "Piutang": piutang,
                 "Aging (hari)": aging,
                 "Overdue": aging > overdue_days
@@ -2477,6 +2467,7 @@ with st.expander("💸 Laporan Cashflow Realtime"):
             df_aging["Piutang"] = df_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
     
         return df_aging
+
 
 
 

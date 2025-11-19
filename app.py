@@ -2432,10 +2432,19 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     
         # Tambahkan key yang sama ke df_cashflow
         def build_cf_key(row):
-            if str(row["No Invoice"]).strip() != "":
-                return row["No Invoice"].strip() + "_" + row["Nama Pemesan"]
-            else:
-                return "NOINV_" + row["Nama Pemesan"] + "_" + str(row.name)
+            nama = str(row.get("Nama Pemesan", "")).strip()
+            if nama == "" or nama.lower() == "nan":
+                nama = "UNKNOWN"
+        
+            noinv = str(row.get("No Invoice", "")).strip()
+        
+            # Jika ada No Invoice → invoice based key
+            if noinv != "":
+                return noinv + "_" + nama
+        
+            # Jika tidak ada invoice → unique per row
+            return "NOINV_" + nama + "_" + str(row.name)
+
     
         df_cashflow["_Data_Key"] = df_cashflow.apply(build_cf_key, axis=1)
     

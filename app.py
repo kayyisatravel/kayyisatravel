@@ -2424,28 +2424,24 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     
         # Tambahkan internal key unik untuk setiap transaksi di df_data
         df_data["_Data_Key"] = df_data.apply(
-            lambda x: 
-                (x["No Invoice"].strip() if str(x["No Invoice"]).strip() != "" else "NOINV")
-                + "_" + x["Nama Pemesan"] + "_" + str(x.name),
+            lambda x:
+                f"{x['Nama Pemesan']}_{x['No Invoice']}"
+                if str(x['No Invoice']).strip() != ""
+                else f"{x['Nama Pemesan']}_NOINV",
             axis=1
         )
+
     
         # Tambahkan key yang sama ke df_cashflow
         def build_cf_key(row):
             nama = str(row.get("Nama Pemesan", "")).strip()
-            if nama == "" or nama.lower() == "nan":
-                nama = "UNKNOWN"
-        
             noinv = str(row.get("No Invoice", "")).strip()
         
-            # Jika ada No Invoice → invoice based key
             if noinv != "":
-                return noinv + "_" + nama
-        
-            # Jika tidak ada invoice → unique per row
-            return "NOINV_" + nama + "_" + str(row.name)
+                return f"{nama}_{noinv}"
+            else:
+                return f"{nama}_NOINV"
 
-    
         df_cashflow["_Data_Key"] = df_cashflow.apply(build_cf_key, axis=1)
     
         # Filter hanya transaksi belum lunas

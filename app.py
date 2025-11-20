@@ -2062,7 +2062,7 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     # ======================
     # 6️⃣ Filter Nama Pemesan
     # ======================
-    pemesan_list = df_cashflow["Pemesan"].dropna().unique()
+    pemesan_list = df_cashflow["Nama Pemesan"].dropna().unique()
     pemesan_filter = st.selectbox(
         "Nama Pemesan",
         ["Semua"] + list(pemesan_list)

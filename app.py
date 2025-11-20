@@ -2450,12 +2450,27 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         kategori_list = df_cashflow["Kategori"].unique()
     
     kategori_filter = colf2.selectbox("Kategori", ["Semua"] + list(kategori_list))
-    
-    # Filter Bulan
+
+    nama_bulan = {
+        "Januari": 1,
+        "Februari": 2,
+        "Maret": 3,
+        "April": 4,
+        "Mei": 5,
+        "Juni": 6,
+        "Juli": 7,
+        "Agustus": 8,
+        "September": 9,
+        "Oktober": 10,
+        "November": 11,
+        "Desember": 12
+    }
+
     bulan_filter = colf3.selectbox(
         "Bulan",
-        ["Semua"] + [1,2,3,4,5,6,7,8,9,10,11,12]
+        ["Semua"] + list(nama_bulan.keys())
     )
+
     
     # Filter Tahun
     tahun_filter = colf4.selectbox(
@@ -2479,7 +2494,8 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     
     # Filter bulan
     if bulan_filter != "Semua":
-        df_filtered = df_filtered[df_filtered["Bulan"] == bulan_filter]
+        bulan_num = nama_bulan[bulan_filter]
+        df_filtered = df_filtered[df_filtered["Bulan"] == bulan_num]
     
     # Filter tahun
     if tahun_filter != "Semua":

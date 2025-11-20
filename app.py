@@ -2483,15 +2483,15 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         height=500
     )
 
-    st.markdown("### 🔍 Data Cashflow Realtime")
-    if "Tanggal" in df_cashflow.columns:
-        df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors='coerce')
-        df_cashflow["Tanggal"].fillna(pd.Timestamp.today(), inplace=True)
+    #st.markdown("### 🔍 Data Cashflow Realtime")
+    #if "Tanggal" in df_cashflow.columns:
+     #   df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors='coerce')
+      #  df_cashflow["Tanggal"].fillna(pd.Timestamp.today(), inplace=True)
     
-    st.dataframe(df_cashflow.sort_values(by="Tanggal", ascending=False), use_container_width=True)
+    #st.dataframe(df_cashflow.sort_values(by="Tanggal", ascending=False), use_container_width=True)
 
     # ---------------------------
-    # Fungsi Aging Report Aman
+    # Fungsi Aging Report
     # ---------------------------
     
     def generate_aging_report(df_cashflow, df_data, overdue_days=30):

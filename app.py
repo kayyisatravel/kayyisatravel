@@ -1995,23 +1995,61 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     
     st.markdown("### 🔧 Filter Cashflow")
 
-    # Pastikan kolom Bulan dan Tahun tersedia
+    # Pastikan kolom Bulan/Tahun tersedia
+    df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors='coerce')
     df_cashflow["Bulan"] = df_cashflow["Tanggal"].dt.month
     df_cashflow["Tahun"] = df_cashflow["Tanggal"].dt.year
     
-    colf1, colf2, colf3, colf4 = st.columns(4)
+    # -----------------------------
+    # 1️⃣ Pilih Jenis Filter Waktu
+    # -----------------------------
+    filter_mode = st.radio(
+        "Pilih Jenis Filter Waktu",
+        ["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"],
+        horizontal=True,
+        key="filter_mode_radio"
+    )
     
-    # ======================
-    # 1️⃣ Filter Tipe Transaksi
-    # ======================
+    # -----------------------------
+    # 2️⃣ Filter Waktu Dinamis
+    # -----------------------------
+    if filter_mode == "📆 Rentang Tanggal":
+        cold1, cold2 = st.columns(2)
+        tanggal_mulai = cold1.date_input("Dari tanggal", df_cashflow["Tanggal"].min())
+        tanggal_akhir = cold2.date_input("Sampai tanggal", df_cashflow["Tanggal"].max())
+        df_filtered = df_cashflow[
+            (df_cashflow["Tanggal"] >= pd.to_datetime(tanggal_mulai)) &
+            (df_cashflow["Tanggal"] <= pd.to_datetime(tanggal_akhir))
+        ]
+    
+    elif filter_mode == "🗓️ Bulanan":
+        tahun_filter = st.selectbox("Tahun", sorted(df_cashflow["Tahun"].unique()))
+        bulan_map = {
+            "Januari":1,"Februari":2,"Maret":3,"April":4,"Mei":5,"Juni":6,
+            "Juli":7,"Agustus":8,"September":9,"Oktober":10,"November":11,"Desember":12
+        }
+        bulan_filter = st.selectbox("Bulan", list(bulan_map.keys()))
+        df_filtered = df_cashflow[
+            (df_cashflow["Tahun"] == tahun_filter) &
+            (df_cashflow["Bulan"] == bulan_map[bulan_filter])
+        ]
+    
+    elif filter_mode == "📅 Tahunan":
+        tahun_filter = st.selectbox("Tahun", sorted(df_cashflow["Tahun"].unique()))
+        df_filtered = df_cashflow[df_cashflow["Tahun"] == tahun_filter]
+    
+    # -----------------------------
+    # 3️⃣ Filter Tipe Transaksi & Kategori
+    # -----------------------------
+    colf1, colf2 = st.columns(2)
+    
+    # Tipe transaksi
     tipe_filter = colf1.selectbox(
         "Jenis Transaksi",
         ["Semua", "Masuk", "Keluar"]
     )
     
-    # ======================
-    # 2️⃣ Filter Kategori Otomatis
-    # ======================
+    # Kategori (otomatis menyesuaikan tipe)
     if tipe_filter == "Masuk":
         kategori_list = df_cashflow[df_cashflow["Tipe"]=="Masuk"]["Kategori"].unique()
     elif tipe_filter == "Keluar":
@@ -2021,100 +2059,36 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     
     kategori_filter = colf2.selectbox("Kategori", ["Semua"] + list(kategori_list))
     
-    # ======================
-    # 3️⃣ Filter Bulan (Nama Bulan)
-    # ======================
-    nama_bulan = {
-        "Januari": 1,
-        "Februari": 2,
-        "Maret": 3,
-        "April": 4,
-        "Mei": 5,
-        "Juni": 6,
-        "Juli": 7,
-        "Agustus": 8,
-        "September": 9,
-        "Oktober": 10,
-        "November": 11,
-        "Desember": 12
-    }
-    
-    bulan_filter = colf3.selectbox(
-        "Bulan",
-        ["Semua"] + list(nama_bulan.keys())
-    )
-    
-    # ======================
-    # 4️⃣ Filter Tahun
-    # ======================
-    tahun_filter = colf4.selectbox(
-        "Tahun",
-        ["Semua"] + sorted(df_cashflow["Tahun"].unique())
-    )
-    
-    # ======================
-    # 5️⃣ Filter Tanggal Presisi
-    # ======================
-    cold1, cold2 = st.columns(2)
-    tanggal_mulai = cold1.date_input("Dari tanggal", df_cashflow["Tanggal"].min())
-    tanggal_akhir = cold2.date_input("Sampai tanggal", df_cashflow["Tanggal"].max())
-    
-    # ======================
-    # 6️⃣ Filter Nama Pemesan
-    # ======================
-    pemesan_list = df_cashflow["Nama Pemesan"].dropna().unique()
-    pemesan_filter = st.selectbox(
-        "Nama Pemesan",
-        ["Semua"] + list(pemesan_list)
-    )
-    
-    # ==============================
-    # 🔍 PROSES FILTERING
-    # ==============================
-    df_filtered = df_cashflow.copy()
-    
-    # Filter tipe transaksi
     if tipe_filter != "Semua":
         df_filtered = df_filtered[df_filtered["Tipe"] == tipe_filter]
-    
-    # Filter kategori
     if kategori_filter != "Semua":
         df_filtered = df_filtered[df_filtered["Kategori"] == kategori_filter]
     
-    # Filter bulan
-    if bulan_filter != "Semua":
-        bulan_num = nama_bulan[bulan_filter]
-        df_filtered = df_filtered[df_filtered["Bulan"] == bulan_num]
+    # -----------------------------
+    # 4️⃣ Filter Nama Pemesan (otomatis deteksi kolom)
+    # -----------------------------
+    possible_name_cols = ["Pemesan", "Nama Pemesan", "Nama", "Customer", "Pemesanan", "Atas Nama"]
+    col_pemesan = next((c for c in possible_name_cols if c in df_cashflow.columns), None)
     
-    # Filter tahun
-    if tahun_filter != "Semua":
-        df_filtered = df_filtered[df_filtered["Tahun"] == tahun_filter]
+    if col_pemesan:
+        pemesan_list = df_cashflow[col_pemesan].dropna().unique()
+        pemesan_filter = st.selectbox("Nama Pemesan", ["Semua"] + list(pemesan_list))
+        if pemesan_filter != "Semua":
+            df_filtered = df_filtered[df_filtered[col_pemesan] == pemesan_filter]
     
-    # Filter tanggal
-    df_filtered = df_filtered[
-        (df_filtered["Tanggal"] >= pd.to_datetime(tanggal_mulai)) &
-        (df_filtered["Tanggal"] <= pd.to_datetime(tanggal_akhir))
-    ]
-    
-    # Filter pemesan
-    if pemesan_filter != "Semua":
-        df_filtered = df_filtered[df_filtered["Pemesan"] == pemesan_filter]
-    
-    
-    # ==============================
-    # 7️⃣ Tampilkan Total Masuk/Keluar dari Hasil Filter
-    # ==============================
+    # -----------------------------
+    # 5️⃣ Total Masuk & Keluar hasil filter
+    # -----------------------------
     col_total1, col_total2 = st.columns(2)
-    
     total_masuk_filtered = df_filtered[df_filtered["Tipe"]=="Masuk"]["Jumlah"].sum()
     total_keluar_filtered = df_filtered[df_filtered["Tipe"]=="Keluar"]["Jumlah"].sum()
     
     col_total1.metric("💰 Total Masuk (Filtered)", format_rp(total_masuk_filtered))
     col_total2.metric("📤 Total Keluar (Filtered)", format_rp(total_keluar_filtered))
     
-    # ==============================
-    # 8️⃣ Tabel Hasil Filter
-    # ==============================
+    # -----------------------------
+    # 6️⃣ Tabel Detail Transaksi
+    # -----------------------------
     st.markdown("## 📋 Detail Transaksi Cashflow (Sudah Difilter)")
     
     df_show = df_filtered.copy()
@@ -2126,16 +2100,6 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         height=500
     )
 
-    
-    st.markdown("## 🧾 Daftar Piutang Belum Lunas")
-
-    if len(df_piutang) > 0:
-        df_piutang["Total"] = df_piutang["Total"].apply(format_rp)
-        df_piutang["Terbayar"] = df_piutang["Terbayar"].apply(format_rp)
-        df_piutang["Sisa"] = df_piutang["Sisa"].apply(format_rp)
-        st.dataframe(df_piutang, use_container_width=True)
-    else:
-        st.success("Semua invoice telah lunas.")
 
     #st.markdown("### 🔍 Data Cashflow Realtime")
     #if "Tanggal" in df_cashflow.columns:

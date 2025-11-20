@@ -1982,7 +1982,7 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     row2_col1.metric("🏦 Saldo Akhir", format_rp(saldo))
     row2_col2.metric("🧾 Piutang Belum Lunas", format_rp(total_piutang))
 
-    st.markdown("## 🔍 Insight Keuangan")
+    #st.markdown("## 🔍 Insight Keuangan")
 
     if saldo < 0:
         st.error("⚠️ Saldo negatif. Perlu kontrol pengeluaran atau percepat penagihan piutang.")

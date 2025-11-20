@@ -2408,7 +2408,7 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     total_piutang = piutang_total
     df_piutang = pd.DataFrame(list_piutang, columns=["Invoice", "Total", "Terbayar", "Sisa"])
     
-    #col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4 = st.columns(4)
     col1.metric("💰 Total Masuk", format_rp(total_masuk))
     col2.metric("📤 Total Keluar", format_rp(total_keluar))
     col3.metric("🏦 Saldo Akhir", format_rp(saldo))

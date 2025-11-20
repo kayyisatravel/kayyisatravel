@@ -1659,442 +1659,7 @@ with st.expander("🎫 Generator E-Tiket + Simpan Data"):
                 st.rerun()
 
 st.markdown("""<hr style="border-top: 1px solid #7f8c8d;">""", unsafe_allow_html=True)
-#=================================================================================================================================================================
-from prophet import Prophet
-from prophet.plot import plot_plotly
-import plotly.graph_objects as go
 
-with st.expander("📘 Laporan Keuangan Lengkap"):
-    st.markdown("### 📊 Filter Laporan")
-
-    df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce")
-
-    filter_mode = st.radio(
-        "Pilih Jenis Filter Tanggal", 
-        ["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"], 
-        horizontal=True,
-        key="filter_tanggal_mode"
-    )
-
-    df_filtered = df.copy()
-
-    if filter_mode == "📆 Rentang Tanggal":
-        tgl_awal = st.date_input("Tanggal Awal", date.today().replace(day=1), key="tgl_awal_input")
-        tgl_akhir = st.date_input("Tanggal Akhir", date.today(), key="tgl_akhir_input")
-        if tgl_awal > tgl_akhir:
-            tgl_awal, tgl_akhir = tgl_akhir, tgl_awal
-        df_filtered = df[
-            (df["Tgl Pemesanan"] >= pd.to_datetime(tgl_awal)) &
-            (df["Tgl Pemesanan"] <= pd.to_datetime(tgl_akhir))
-        ]
-
-    elif filter_mode == "🗓️ Bulanan":
-        bulan_nama = {
-            "Januari": 1, "Februari": 2, "Maret": 3, "April": 4,
-            "Mei": 5, "Juni": 6, "Juli": 7, "Agustus": 8,
-            "September": 9, "Oktober": 10, "November": 11, "Desember": 12
-        }
-        bulan_label = list(bulan_nama.keys())
-        bulan_pilihan = st.selectbox("Pilih Bulan", bulan_label, index=date.today().month - 1, key="filter_bulan_input")
-        tahun_bulan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True), key="filter_tahun_bulanan")
-        df_filtered = df[
-            (df["Tgl Pemesanan"].dt.month == bulan_nama[bulan_pilihan]) &
-            (df["Tgl Pemesanan"].dt.year == tahun_bulan)
-        ]
-
-    elif filter_mode == "📅 Tahunan":
-        tahun_pilihan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True), key="filter_tahun_tahunan")
-        df_filtered = df[df["Tgl Pemesanan"].dt.year == tahun_pilihan]
-
-
-    # Tambahan filter Pemesan dan Admin
-    st.markdown("### 🧍 Filter Tambahan")
-    pemesan_list = ["(Semua)"] + sorted(df["Nama Pemesan"].dropna().unique())
-    admin_list = ["(Semua)"] + sorted(df["Admin"].dropna().unique())
-
-    selected_pemesan = st.selectbox("Nama Pemesan", pemesan_list)
-    selected_admin = st.selectbox("Admin", admin_list)
-
-    if selected_pemesan != "(Semua)":
-        df_filtered = df_filtered[df_filtered["Nama Pemesan"] == selected_pemesan]
-    if selected_admin != "(Semua)":
-        df_filtered = df_filtered[df_filtered["Admin"] == selected_admin]
-
-    if df_filtered.empty:
-        st.warning("❌ Tidak ada data sesuai filter.")
-    else:
-        # Parse harga jika masih string
-        def parse_harga(h):
-            if pd.isna(h): return 0
-            s = str(h).replace("Rp", "").replace(".", "").replace(",", "").strip()
-            try: return float(s)
-            except: return 0
-
-        df_filtered["Harga Jual (Num)"] = df_filtered["Harga Jual"].apply(parse_harga)
-        df_filtered["Harga Beli (Num)"] = df_filtered["Harga Beli"].apply(parse_harga)
-
-        total_jual = df_filtered["Harga Jual (Num)"].sum()
-        total_beli = df_filtered["Harga Beli (Num)"].sum()
-        total_profit = total_jual - total_beli
-
-        col1, col2 = st.columns([1, 1])
-        col1.metric("💰 Total Penjualan", f"Rp {int(total_jual):,}".replace(",", "."))
-        col2.metric("💸 Total Pembelian", f"Rp {int(total_beli):,}".replace(",", "."))
-        with col2:
-            st.metric("📈 Profit", f"Rp {int(total_profit):,}".replace(",", "."))
-            
-        # Grafik Tren Penjualan
-        st.markdown("### 📈 Grafik Tren Penjualan")
-        df_chart = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().reset_index()
-        st.line_chart(df_chart.rename(columns={"Tgl Pemesanan": "index"}).set_index("index"))
-
-        # Rekap tambahan bulanan per tanggal
-        if filter_mode == "🗓️ Bulanan":
-            df_filtered["Tanggal"] = df_filtered["Tgl Pemesanan"].dt.day
-            summary_bulanan = pd.DataFrame(index=["Total Penjualan", "Total Pembelian", "Laba"])
-            for day in range(1, 32):
-                day_data = df_filtered[df_filtered["Tanggal"] == day]
-                jual = day_data["Harga Jual (Num)"].sum()
-                beli = day_data["Harga Beli (Num)"].sum()
-                laba = jual - beli
-                summary_bulanan[day] = [jual, beli, laba]
-
-            st.markdown("### 📅 Rekap Bulanan per Tanggal")
-            st.dataframe(summary_bulanan.style.format("Rp {:,.0f}"), use_container_width=True)
-
-        # Rekap tambahan tahunan per bulan
-        if filter_mode == "📅 Tahunan":
-            df_filtered["Bulan"] = df_filtered["Tgl Pemesanan"].dt.month
-            nama_bulan = {
-                1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "Mei", 6: "Jun",
-                7: "Jul", 8: "Agu", 9: "Sep", 10: "Okt", 11: "Nov", 12: "Des"
-            }
-
-            summary_tahunan = pd.DataFrame(index=["Total Penjualan", "Total Pembelian", "Laba"])
-            for month in range(1, 13):
-                month_data = df_filtered[df_filtered["Bulan"] == month]
-                jual = month_data["Harga Jual (Num)"].sum()
-                beli = month_data["Harga Beli (Num)"].sum()
-                laba = jual - beli
-                summary_tahunan[nama_bulan[month]] = [jual, beli, laba]
-
-            st.markdown("### 📆 Rekap Tahunan per Bulan")
-            st.dataframe(summary_tahunan.style.format("Rp {:,.0f}"), use_container_width=True)
-            
-        # Ringkasan per Admin
-        st.markdown("### 🧑‍💼 Ringkasan per Admin")
-        st.dataframe(
-            df_filtered.groupby("Admin")["Harga Jual (Num)"].sum().reset_index(name="Total Penjualan"),
-            use_container_width=True
-        )
-
-        # Ringkasan per Pemesan
-        st.markdown("### 👥 Ringkasan per Pemesan")
-        st.dataframe(
-            df_filtered.groupby("Nama Pemesan")["Harga Jual (Num)"].sum().reset_index(name="Total Penjualan"),
-            use_container_width=True
-        )
-        
-        # Tabel detail
-        with st.expander("📄 Lihat Tabel Detail"):
-            st.dataframe(df_filtered, use_container_width=True)
-        st.markdown("### 🤖 Analisa Keuangan Otomatis")
-
-        avg_profit = df_filtered["Harga Jual (Num)"].sum() - df_filtered["Harga Beli (Num)"].sum()
-        num_days = df_filtered["Tgl Pemesanan"].dt.date.nunique()
-        avg_profit_per_day = avg_profit / num_days if num_days else 0
-        
-        top_admin = df_filtered.groupby("Admin")["Harga Jual (Num)"].sum().idxmax()
-        top_pemesan = df_filtered.groupby("Nama Pemesan")["Harga Jual (Num)"].sum().idxmax()
-        
-        max_day = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().idxmax()
-        max_day_val = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().max()
-        
-        st.markdown(f"""
-        - 💼 **Rata-rata laba harian**: Rp {int(avg_profit_per_day):,}.  
-        - 🏆 **Admin dengan penjualan tertinggi**: {top_admin}  
-        - 🙋 **Pemesan paling aktif**: {top_pemesan}  
-        - 📅 **Hari dengan omset tertinggi**: {max_day.date()} sebesar Rp {int(max_day_val):,}  
-        """)
-        
-        with st.expander("🔮 Prediksi Omzet / Laba per Bulan (Dinamis)"):
-            df_prophet = df_filtered.copy()
-            df_prophet = df_prophet.groupby("Tgl Pemesanan")[["Harga Jual (Num)", "Harga Beli (Num)"]].sum().reset_index()
-            df_prophet["ds"] = df_prophet["Tgl Pemesanan"]
-            df_prophet["y"] = df_prophet["Harga Jual (Num)"] - df_prophet["Harga Beli (Num)"]
-        
-            # Gunakan hanya data 3 bulan terakhir untuk pelatihan (opsional)
-            if len(df_prophet) >= 90:
-                df_prophet = df_prophet[df_prophet["ds"] >= df_prophet["ds"].max() - pd.DateOffset(months=3)]
-        
-            model = Prophet()
-            model.fit(df_prophet[["ds", "y"]])
-        
-            future = model.make_future_dataframe(periods=90)  # 3 bulan ke depan
-            forecast = model.predict(future)
-        
-            # 🎛️ Input UI: Pilih bulan dan tahun target
-            all_months = [f"{i:02d}" for i in range(1, 13)]
-            month_map = {
-                "01": "Januari", "02": "Februari", "03": "Maret", "04": "April", "05": "Mei", "06": "Juni",
-                "07": "Juli", "08": "Agustus", "09": "September", "10": "Oktober", "11": "November", "12": "Desember"
-            }
-            month_select = st.selectbox("📅 Pilih Bulan", options=all_months, format_func=lambda x: month_map[x])
-            year_select = st.selectbox("🗓️ Pilih Tahun", options=sorted(forecast["ds"].dt.year.unique()))
-        
-            # 🧠 Filter forecast ke bulan & tahun yang dipilih
-            forecast_selected = forecast[
-                (forecast["ds"].dt.month == int(month_select)) &
-                (forecast["ds"].dt.year == year_select)
-            ]
-        
-            if forecast_selected.empty:
-                st.warning("📭 Tidak ada prediksi tersedia untuk bulan & tahun yang dipilih.")
-            else:
-                total_yhat = forecast_selected["yhat"].sum()
-                min_yhat = forecast_selected["yhat"].min()
-                max_yhat = forecast_selected["yhat"].max()
-                delta_trend = forecast_selected["trend"].iloc[-1] - forecast_selected["trend"].iloc[0]
-        
-                # Tampilkan grafik prediksi bulan tersebut
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(x=forecast_selected["ds"], y=forecast_selected["yhat"], name="Prediksi Laba"))
-                fig.update_layout(title=f"📈 Prediksi Laba - {month_map[month_select]} {year_select}")
-                st.plotly_chart(fig, use_container_width=True)
-        
-                # 🧾 Ringkasan
-                st.markdown("### 📊 Ringkasan Prediksi Bulanan:")
-                st.markdown(f"""
-                - 🗓️ Bulan dipilih: **{month_map[month_select]} {year_select}**
-                - 📈 **Total laba diprediksi**: Rp {int(total_yhat):,}
-                - 🔼 **Hari terbaik (estimasi)**: Rp {int(max_yhat):,}
-                - 🔽 **Hari terendah (estimasi)**: Rp {int(min_yhat):,}
-                - 📊 **Tren bulan ini**: {'meningkat' if delta_trend > 0 else 'menurun' if delta_trend < 0 else 'stabil'} (Δ Rp {int(delta_trend):,})
-                """)
-        
-                # Perbandingan dengan bulan sebelumnya
-                prev_month = int(month_select) - 1 if int(month_select) > 1 else 12
-                prev_year = year_select if int(month_select) > 1 else year_select - 1
-                forecast_prev = forecast[
-                    (forecast["ds"].dt.month == prev_month) &
-                    (forecast["ds"].dt.year == prev_year)
-                ]
-                if not forecast_prev.empty:
-                    total_prev = forecast_prev["yhat"].sum()
-                    delta = total_yhat - total_prev
-                    st.markdown(f"📉 **Perbandingan dengan bulan sebelumnya ({month_map[str(prev_month).zfill(2)]} {prev_year})**: Rp {int(total_prev):,} → Rp {int(total_yhat):,} (Δ Rp {int(delta):,})")
-
-
-        with st.expander("📊 Perbandingan Kinerja Bulanan / YTD"):
-            df_filtered["Bulan"] = df_filtered["Tgl Pemesanan"].dt.to_period("M")
-            df_monthly = df_filtered.groupby("Bulan")[["Harga Jual (Num)", "Harga Beli (Num)"]].sum().reset_index()
-            df_monthly["Laba"] = df_monthly["Harga Jual (Num)"] - df_monthly["Harga Beli (Num)"]
-            df_monthly["Bulan"] = df_monthly["Bulan"].astype(str)
-        
-            fig = go.Figure()
-            fig.add_trace(go.Bar(x=df_monthly["Bulan"], y=df_monthly["Harga Jual (Num)"], name="Penjualan"))
-            fig.add_trace(go.Bar(x=df_monthly["Bulan"], y=df_monthly["Harga Beli (Num)"], name="Pembelian"))
-            fig.add_trace(go.Scatter(x=df_monthly["Bulan"], y=df_monthly["Laba"], mode="lines+markers", name="Laba"))
-        
-            fig.update_layout(barmode='group', title="Kinerja Bulanan", xaxis_title="Bulan", yaxis_title="Rp")
-            st.plotly_chart(fig, use_container_width=True)
-
-        with st.expander("🚨 Deteksi Anomali Penjualan"):
-            df_anomali = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().reset_index()
-            q1 = df_anomali["Harga Jual (Num)"].quantile(0.25)
-            q3 = df_anomali["Harga Jual (Num)"].quantile(0.75)
-            iqr = q3 - q1
-            lower_bound = q1 - 1.5 * iqr
-            upper_bound = q3 + 1.5 * iqr
-        
-            anomalies = df_anomali[
-                (df_anomali["Harga Jual (Num)"] < lower_bound) |
-                (df_anomali["Harga Jual (Num)"] > upper_bound)
-            ]
-        
-            st.dataframe(anomalies, use_container_width=True)
-            st.markdown(f"🔍 Ditemukan **{len(anomalies)}** hari dengan penjualan di luar batas normal (IQR).")
-
-        with st.expander("💼 Segmentasi Produk berdasarkan Profitabilitas"):
-            if "Tipe" in df_filtered.columns:
-                df_segment = df_filtered.copy()
-                df_segment["Profit"] = df_segment["Harga Jual (Num)"] - df_segment["Harga Beli (Num)"]
-                segment = df_segment.groupby("Tipe")[["Harga Jual (Num)", "Harga Beli (Num)", "Profit"]].sum().reset_index()
-                segment["Profit Margin (%)"] = 100 * segment["Profit"] / segment["Harga Jual (Num)"]
-        
-                st.dataframe(segment.sort_values("Profit", ascending=False), use_container_width=True)
-        
-                fig = go.Figure()
-                fig.add_trace(go.Bar(
-                    x=segment["Tipe"],
-                    y=segment["Profit Margin (%)"],
-                    name="Margin (%)"
-                ))
-                fig.update_layout(title="Segmentasi Produk: Profit Margin", xaxis_title="Produk", yaxis_title="Margin %")
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info("Kolom 'Tipe' tidak tersedia.")
-
-
-#=================================================================================================================================================================
-import streamlit as st
-import pandas as pd
-import holidays
-import matplotlib.pyplot as plt
-
-with st.expander("📊 Analisa Laporan Keuangan"):
-
-    # Pastikan kolom datetime sudah benar
-    df_filtered["Tgl Pemesanan"] = pd.to_datetime(df_filtered["Tgl Pemesanan"], errors="coerce")
-    
-    if "Harga Jual" in df_filtered.columns:
-        df_filtered["Harga Jual (Num)"] = (
-            df_filtered["Harga Jual"]
-            .astype(str)
-            .replace("[Rp.,\s]", "", regex=True)
-            .astype(float)
-        )
-    else:
-        st.error("❌ Kolom 'Harga Jual' tidak ditemukan. Tidak bisa melanjutkan analisa.")
-
-    years = df_filtered["Tgl Pemesanan"].dt.year.dropna().unique()
-    id_holidays = holidays.Indonesia(years=years)
-
-    # ----- HARiAN -----
-    df_daily = (
-        df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"]
-        .sum()
-        .reset_index()
-        .sort_values("Tgl Pemesanan")
-    )
-    df_daily["Pct_Change"] = df_daily["Harga Jual (Num)"].pct_change() * 100
-    df_daily["Is_Holiday"] = df_daily["Tgl Pemesanan"].isin(id_holidays)
-    df_daily["Is_Weekend"] = df_daily["Tgl Pemesanan"].dt.dayofweek >= 5  # Sabtu=5, Minggu=6
-    df_daily["Near_Holiday"] = df_daily["Is_Holiday"] | df_daily["Is_Weekend"]
-
-    threshold_drop_daily = -20
-    penurunan_signifikan_harian = df_daily[df_daily["Pct_Change"] <= threshold_drop_daily]
-
-    # ----- BULANAN -----
-    df_filtered["YearMonth"] = df_filtered["Tgl Pemesanan"].dt.to_period("M")
-    df_monthly = (
-        df_filtered.groupby("YearMonth")["Harga Jual (Num)"]
-        .sum()
-        .reset_index()
-        .sort_values("YearMonth")
-    )
-    df_monthly["Pct_Change"] = df_monthly["Harga Jual (Num)"].pct_change() * 100
-    df_monthly["MonthStart"] = df_monthly["YearMonth"].dt.to_timestamp()
-    
-    def check_month_holiday(ts):
-        return any([(ts + pd.Timedelta(days=i)) in id_holidays for i in range(31)])
-    
-    df_monthly["Is_Holiday_Month"] = df_monthly["MonthStart"].apply(check_month_holiday).astype(bool)
-    df_monthly["Is_Weekend_Month"] = (df_monthly["MonthStart"].dt.weekday >= 5).astype(bool)
-    df_monthly["Near_Holiday"] = df_monthly["Is_Holiday_Month"] | df_monthly["Is_Weekend_Month"]
-    
-    threshold_drop_monthly = -15
-    penurunan_signifikan_bulanan = df_monthly[df_monthly["Pct_Change"] <= threshold_drop_monthly]
-
-    # ----- TAHUNAN -----
-    df_filtered["Year"] = df_filtered["Tgl Pemesanan"].dt.year
-    df_yearly = (
-        df_filtered.groupby("Year")["Harga Jual (Num)"]
-        .sum()
-        .reset_index()
-        .sort_values("Year")
-    )
-    df_yearly["Pct_Change"] = df_yearly["Harga Jual (Num)"].pct_change() * 100
-
-    def check_year_holiday(y):
-        # Cek apakah ada hari libur di tahun tersebut
-        # Diasumsikan selalu ada, tapi bisa dioptimasi sesuai kebutuhan
-        return any([date.year == y for date in id_holidays])
-
-    df_yearly["Is_Holiday_Year"] = df_yearly["Year"].apply(check_year_holiday)
-    df_yearly["Near_Holiday"] = df_yearly["Is_Holiday_Year"]  # Tahun lebih longgar, cuma cek ada libur
-
-    threshold_drop_yearly = -10
-    penurunan_signifikan_tahunan = df_yearly[df_yearly["Pct_Change"] <= threshold_drop_yearly]
-
-    # --- Output Analisa ---
-    st.markdown("### 📉 Penurunan Signifikan Harian ( > 20% drop )")
-    if not penurunan_signifikan_harian.empty:
-        for _, row in penurunan_signifikan_harian.iterrows():
-            date_str = row["Tgl Pemesanan"].strftime("%Y-%m-%d")
-            drop = row["Pct_Change"]
-            near_holiday = "Ya" if row["Near_Holiday"] else "Tidak"
-            st.write(f"- 📅 {date_str} : Penurunan {drop:.2f}% dari hari sebelumnya.")
-            st.write(f"  - Dekat Hari Libur / Weekend? **{near_holiday}**")
-    else:
-        st.write("✅ Tidak ada penurunan signifikan harian terdeteksi.")
-
-    st.markdown("### 📉 Penurunan Signifikan Bulanan ( > 15% drop )")
-    if not penurunan_signifikan_bulanan.empty:
-        for _, row in penurunan_signifikan_bulanan.iterrows():
-            month_str = row["YearMonth"].strftime("%Y-%m")
-            drop = row["Pct_Change"]
-            near_holiday = "Ya" if row["Near_Holiday"] else "Tidak"
-            st.write(f"- 🗓️ {month_str} : Penurunan {drop:.2f}% dari bulan sebelumnya.")
-            st.write(f"  - Bulan ada hari libur / weekend panjang? **{near_holiday}**")
-    else:
-        st.write("✅ Tidak ada penurunan signifikan bulanan terdeteksi.")
-
-    st.markdown("### 📉 Penurunan Signifikan Tahunan ( > 10% drop )")
-    if not penurunan_signifikan_tahunan.empty:
-        for _, row in penurunan_signifikan_tahunan.iterrows():
-            year_str = str(int(row["Year"]))
-            drop = row["Pct_Change"]
-            near_holiday = "Ya" if row["Near_Holiday"] else "Tidak"
-            st.write(f"- 📆 {year_str} : Penurunan {drop:.2f}% dari tahun sebelumnya.")
-            st.write(f"  - Tahun dengan libur nasional? **{near_holiday}**")
-    else:
-        st.write("✅ Tidak ada penurunan signifikan tahunan terdeteksi.")
-
-    # --- Rekomendasi ---
-    st.markdown("### 💡 Rekomendasi:")
-    if not penurunan_signifikan_harian.empty or not penurunan_signifikan_bulanan.empty or not penurunan_signifikan_tahunan.empty:
-        st.markdown("""
-        - Tinjau aktivitas pemasaran dan operasional di tanggal/bulan/tahun yang mengalami penurunan.
-        - Periksa apakah penurunan terkait dengan hari libur panjang, weekend, atau faktor eksternal lain.
-        - Buat strategi promosi yang menyasar periode rentan tersebut.
-        - Analisa faktor internal seperti stok, harga, layanan untuk menemukan penyebab penurunan.
-        """)
-    else:
-        st.markdown("Tidak ada penurunan signifikan, pertahankan strategi yang berjalan.")
-
-    # --- Visualisasi ---
-    st.markdown("### 📈 Grafik Penjualan Harian dengan Penurunan & Hari Libur")
-    fig, ax = plt.subplots(figsize=(10, 4))
-    ax.plot(df_daily["Tgl Pemesanan"], df_daily["Harga Jual (Num)"], label="Penjualan Harian", marker='o')
-    ax.scatter(penurunan_signifikan_harian["Tgl Pemesanan"], penurunan_signifikan_harian["Harga Jual (Num)"], color='red', label="Penurunan Signifikan")
-    holidays_weekends = df_daily[df_daily["Near_Holiday"]]
-    ax.scatter(holidays_weekends["Tgl Pemesanan"], holidays_weekends["Harga Jual (Num)"], color='green', alpha=0.3, label="Hari Libur / Weekend")
-    ax.set_xlabel("Tanggal")
-    ax.set_ylabel("Total Penjualan")
-    ax.legend()
-    ax.grid(True)
-    st.pyplot(fig)
-
-    st.markdown("### 📈 Grafik Penjualan Bulanan")
-    fig2, ax2 = plt.subplots(figsize=(10, 4))
-    ax2.plot(df_monthly["YearMonth"].dt.to_timestamp(), df_monthly["Harga Jual (Num)"], label="Penjualan Bulanan", marker='o')
-    ax2.scatter(penurunan_signifikan_bulanan["MonthStart"], penurunan_signifikan_bulanan["Harga Jual (Num)"], color='red', label="Penurunan Signifikan")
-    ax2.set_xlabel("Bulan")
-    ax2.set_ylabel("Total Penjualan")
-    ax2.legend()
-    ax2.grid(True)
-    st.pyplot(fig2)
-
-    st.markdown("### 📈 Grafik Penjualan Tahunan")
-    fig3, ax3 = plt.subplots(figsize=(10, 4))
-    ax3.plot(df_yearly["Year"], df_yearly["Harga Jual (Num)"], label="Penjualan Tahunan", marker='o')
-    ax3.scatter(penurunan_signifikan_tahunan["Year"], penurunan_signifikan_tahunan["Harga Jual (Num)"], color='red', label="Penurunan Signifikan")
-    ax3.set_xlabel("Tahun")
-    ax3.set_ylabel("Total Penjualan")
-    ax3.legend()
-    ax3.grid(True)
-    st.pyplot(fig3)
 
 #===============================================================================================================================
 import pandas as pd
@@ -2669,7 +2234,442 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     st.markdown("### ⏳ Aging Report / Invoice Belum Lunas")
     st.dataframe(df_aging.style.apply(highlight_overdue, axis=1), use_container_width=True)
 
+#=================================================================================================================================================================
+from prophet import Prophet
+from prophet.plot import plot_plotly
+import plotly.graph_objects as go
 
+with st.expander("📘 Laporan Transaksi Penjualan"):
+    st.markdown("### 📊 Filter Laporan")
+
+    df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce")
+
+    filter_mode = st.radio(
+        "Pilih Jenis Filter Tanggal", 
+        ["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"], 
+        horizontal=True,
+        key="filter_tanggal_mode"
+    )
+
+    df_filtered = df.copy()
+
+    if filter_mode == "📆 Rentang Tanggal":
+        tgl_awal = st.date_input("Tanggal Awal", date.today().replace(day=1), key="tgl_awal_input")
+        tgl_akhir = st.date_input("Tanggal Akhir", date.today(), key="tgl_akhir_input")
+        if tgl_awal > tgl_akhir:
+            tgl_awal, tgl_akhir = tgl_akhir, tgl_awal
+        df_filtered = df[
+            (df["Tgl Pemesanan"] >= pd.to_datetime(tgl_awal)) &
+            (df["Tgl Pemesanan"] <= pd.to_datetime(tgl_akhir))
+        ]
+
+    elif filter_mode == "🗓️ Bulanan":
+        bulan_nama = {
+            "Januari": 1, "Februari": 2, "Maret": 3, "April": 4,
+            "Mei": 5, "Juni": 6, "Juli": 7, "Agustus": 8,
+            "September": 9, "Oktober": 10, "November": 11, "Desember": 12
+        }
+        bulan_label = list(bulan_nama.keys())
+        bulan_pilihan = st.selectbox("Pilih Bulan", bulan_label, index=date.today().month - 1, key="filter_bulan_input")
+        tahun_bulan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True), key="filter_tahun_bulanan")
+        df_filtered = df[
+            (df["Tgl Pemesanan"].dt.month == bulan_nama[bulan_pilihan]) &
+            (df["Tgl Pemesanan"].dt.year == tahun_bulan)
+        ]
+
+    elif filter_mode == "📅 Tahunan":
+        tahun_pilihan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True), key="filter_tahun_tahunan")
+        df_filtered = df[df["Tgl Pemesanan"].dt.year == tahun_pilihan]
+
+
+    # Tambahan filter Pemesan dan Admin
+    st.markdown("### 🧍 Filter Tambahan")
+    pemesan_list = ["(Semua)"] + sorted(df["Nama Pemesan"].dropna().unique())
+    admin_list = ["(Semua)"] + sorted(df["Admin"].dropna().unique())
+
+    selected_pemesan = st.selectbox("Nama Pemesan", pemesan_list)
+    selected_admin = st.selectbox("Admin", admin_list)
+
+    if selected_pemesan != "(Semua)":
+        df_filtered = df_filtered[df_filtered["Nama Pemesan"] == selected_pemesan]
+    if selected_admin != "(Semua)":
+        df_filtered = df_filtered[df_filtered["Admin"] == selected_admin]
+
+    if df_filtered.empty:
+        st.warning("❌ Tidak ada data sesuai filter.")
+    else:
+        # Parse harga jika masih string
+        def parse_harga(h):
+            if pd.isna(h): return 0
+            s = str(h).replace("Rp", "").replace(".", "").replace(",", "").strip()
+            try: return float(s)
+            except: return 0
+
+        df_filtered["Harga Jual (Num)"] = df_filtered["Harga Jual"].apply(parse_harga)
+        df_filtered["Harga Beli (Num)"] = df_filtered["Harga Beli"].apply(parse_harga)
+
+        total_jual = df_filtered["Harga Jual (Num)"].sum()
+        total_beli = df_filtered["Harga Beli (Num)"].sum()
+        total_profit = total_jual - total_beli
+
+        col1, col2 = st.columns([1, 1])
+        col1.metric("💰 Total Penjualan", f"Rp {int(total_jual):,}".replace(",", "."))
+        col2.metric("💸 Total Pembelian", f"Rp {int(total_beli):,}".replace(",", "."))
+        with col2:
+            st.metric("📈 Profit", f"Rp {int(total_profit):,}".replace(",", "."))
+            
+        # Grafik Tren Penjualan
+        st.markdown("### 📈 Grafik Tren Penjualan")
+        df_chart = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().reset_index()
+        st.line_chart(df_chart.rename(columns={"Tgl Pemesanan": "index"}).set_index("index"))
+
+        # Rekap tambahan bulanan per tanggal
+        if filter_mode == "🗓️ Bulanan":
+            df_filtered["Tanggal"] = df_filtered["Tgl Pemesanan"].dt.day
+            summary_bulanan = pd.DataFrame(index=["Total Penjualan", "Total Pembelian", "Laba"])
+            for day in range(1, 32):
+                day_data = df_filtered[df_filtered["Tanggal"] == day]
+                jual = day_data["Harga Jual (Num)"].sum()
+                beli = day_data["Harga Beli (Num)"].sum()
+                laba = jual - beli
+                summary_bulanan[day] = [jual, beli, laba]
+
+            st.markdown("### 📅 Rekap Bulanan per Tanggal")
+            st.dataframe(summary_bulanan.style.format("Rp {:,.0f}"), use_container_width=True)
+
+        # Rekap tambahan tahunan per bulan
+        if filter_mode == "📅 Tahunan":
+            df_filtered["Bulan"] = df_filtered["Tgl Pemesanan"].dt.month
+            nama_bulan = {
+                1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "Mei", 6: "Jun",
+                7: "Jul", 8: "Agu", 9: "Sep", 10: "Okt", 11: "Nov", 12: "Des"
+            }
+
+            summary_tahunan = pd.DataFrame(index=["Total Penjualan", "Total Pembelian", "Laba"])
+            for month in range(1, 13):
+                month_data = df_filtered[df_filtered["Bulan"] == month]
+                jual = month_data["Harga Jual (Num)"].sum()
+                beli = month_data["Harga Beli (Num)"].sum()
+                laba = jual - beli
+                summary_tahunan[nama_bulan[month]] = [jual, beli, laba]
+
+            st.markdown("### 📆 Rekap Tahunan per Bulan")
+            st.dataframe(summary_tahunan.style.format("Rp {:,.0f}"), use_container_width=True)
+            
+        # Ringkasan per Admin
+        st.markdown("### 🧑‍💼 Ringkasan per Admin")
+        st.dataframe(
+            df_filtered.groupby("Admin")["Harga Jual (Num)"].sum().reset_index(name="Total Penjualan"),
+            use_container_width=True
+        )
+
+        # Ringkasan per Pemesan
+        st.markdown("### 👥 Ringkasan per Pemesan")
+        st.dataframe(
+            df_filtered.groupby("Nama Pemesan")["Harga Jual (Num)"].sum().reset_index(name="Total Penjualan"),
+            use_container_width=True
+        )
+        
+        # Tabel detail
+        with st.expander("📄 Lihat Tabel Detail"):
+            st.dataframe(df_filtered, use_container_width=True)
+        st.markdown("### 🤖 Analisa Keuangan Otomatis")
+
+        avg_profit = df_filtered["Harga Jual (Num)"].sum() - df_filtered["Harga Beli (Num)"].sum()
+        num_days = df_filtered["Tgl Pemesanan"].dt.date.nunique()
+        avg_profit_per_day = avg_profit / num_days if num_days else 0
+        
+        top_admin = df_filtered.groupby("Admin")["Harga Jual (Num)"].sum().idxmax()
+        top_pemesan = df_filtered.groupby("Nama Pemesan")["Harga Jual (Num)"].sum().idxmax()
+        
+        max_day = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().idxmax()
+        max_day_val = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().max()
+        
+        st.markdown(f"""
+        - 💼 **Rata-rata laba harian**: Rp {int(avg_profit_per_day):,}.  
+        - 🏆 **Admin dengan penjualan tertinggi**: {top_admin}  
+        - 🙋 **Pemesan paling aktif**: {top_pemesan}  
+        - 📅 **Hari dengan omset tertinggi**: {max_day.date()} sebesar Rp {int(max_day_val):,}  
+        """)
+        
+        with st.expander("🔮 Prediksi Omzet / Laba per Bulan (Dinamis)"):
+            df_prophet = df_filtered.copy()
+            df_prophet = df_prophet.groupby("Tgl Pemesanan")[["Harga Jual (Num)", "Harga Beli (Num)"]].sum().reset_index()
+            df_prophet["ds"] = df_prophet["Tgl Pemesanan"]
+            df_prophet["y"] = df_prophet["Harga Jual (Num)"] - df_prophet["Harga Beli (Num)"]
+        
+            # Gunakan hanya data 3 bulan terakhir untuk pelatihan (opsional)
+            if len(df_prophet) >= 90:
+                df_prophet = df_prophet[df_prophet["ds"] >= df_prophet["ds"].max() - pd.DateOffset(months=3)]
+        
+            model = Prophet()
+            model.fit(df_prophet[["ds", "y"]])
+        
+            future = model.make_future_dataframe(periods=90)  # 3 bulan ke depan
+            forecast = model.predict(future)
+        
+            # 🎛️ Input UI: Pilih bulan dan tahun target
+            all_months = [f"{i:02d}" for i in range(1, 13)]
+            month_map = {
+                "01": "Januari", "02": "Februari", "03": "Maret", "04": "April", "05": "Mei", "06": "Juni",
+                "07": "Juli", "08": "Agustus", "09": "September", "10": "Oktober", "11": "November", "12": "Desember"
+            }
+            month_select = st.selectbox("📅 Pilih Bulan", options=all_months, format_func=lambda x: month_map[x])
+            year_select = st.selectbox("🗓️ Pilih Tahun", options=sorted(forecast["ds"].dt.year.unique()))
+        
+            # 🧠 Filter forecast ke bulan & tahun yang dipilih
+            forecast_selected = forecast[
+                (forecast["ds"].dt.month == int(month_select)) &
+                (forecast["ds"].dt.year == year_select)
+            ]
+        
+            if forecast_selected.empty:
+                st.warning("📭 Tidak ada prediksi tersedia untuk bulan & tahun yang dipilih.")
+            else:
+                total_yhat = forecast_selected["yhat"].sum()
+                min_yhat = forecast_selected["yhat"].min()
+                max_yhat = forecast_selected["yhat"].max()
+                delta_trend = forecast_selected["trend"].iloc[-1] - forecast_selected["trend"].iloc[0]
+        
+                # Tampilkan grafik prediksi bulan tersebut
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=forecast_selected["ds"], y=forecast_selected["yhat"], name="Prediksi Laba"))
+                fig.update_layout(title=f"📈 Prediksi Laba - {month_map[month_select]} {year_select}")
+                st.plotly_chart(fig, use_container_width=True)
+        
+                # 🧾 Ringkasan
+                st.markdown("### 📊 Ringkasan Prediksi Bulanan:")
+                st.markdown(f"""
+                - 🗓️ Bulan dipilih: **{month_map[month_select]} {year_select}**
+                - 📈 **Total laba diprediksi**: Rp {int(total_yhat):,}
+                - 🔼 **Hari terbaik (estimasi)**: Rp {int(max_yhat):,}
+                - 🔽 **Hari terendah (estimasi)**: Rp {int(min_yhat):,}
+                - 📊 **Tren bulan ini**: {'meningkat' if delta_trend > 0 else 'menurun' if delta_trend < 0 else 'stabil'} (Δ Rp {int(delta_trend):,})
+                """)
+        
+                # Perbandingan dengan bulan sebelumnya
+                prev_month = int(month_select) - 1 if int(month_select) > 1 else 12
+                prev_year = year_select if int(month_select) > 1 else year_select - 1
+                forecast_prev = forecast[
+                    (forecast["ds"].dt.month == prev_month) &
+                    (forecast["ds"].dt.year == prev_year)
+                ]
+                if not forecast_prev.empty:
+                    total_prev = forecast_prev["yhat"].sum()
+                    delta = total_yhat - total_prev
+                    st.markdown(f"📉 **Perbandingan dengan bulan sebelumnya ({month_map[str(prev_month).zfill(2)]} {prev_year})**: Rp {int(total_prev):,} → Rp {int(total_yhat):,} (Δ Rp {int(delta):,})")
+
+
+        with st.expander("📊 Perbandingan Kinerja Bulanan / YTD"):
+            df_filtered["Bulan"] = df_filtered["Tgl Pemesanan"].dt.to_period("M")
+            df_monthly = df_filtered.groupby("Bulan")[["Harga Jual (Num)", "Harga Beli (Num)"]].sum().reset_index()
+            df_monthly["Laba"] = df_monthly["Harga Jual (Num)"] - df_monthly["Harga Beli (Num)"]
+            df_monthly["Bulan"] = df_monthly["Bulan"].astype(str)
+        
+            fig = go.Figure()
+            fig.add_trace(go.Bar(x=df_monthly["Bulan"], y=df_monthly["Harga Jual (Num)"], name="Penjualan"))
+            fig.add_trace(go.Bar(x=df_monthly["Bulan"], y=df_monthly["Harga Beli (Num)"], name="Pembelian"))
+            fig.add_trace(go.Scatter(x=df_monthly["Bulan"], y=df_monthly["Laba"], mode="lines+markers", name="Laba"))
+        
+            fig.update_layout(barmode='group', title="Kinerja Bulanan", xaxis_title="Bulan", yaxis_title="Rp")
+            st.plotly_chart(fig, use_container_width=True)
+
+        with st.expander("🚨 Deteksi Anomali Penjualan"):
+            df_anomali = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().reset_index()
+            q1 = df_anomali["Harga Jual (Num)"].quantile(0.25)
+            q3 = df_anomali["Harga Jual (Num)"].quantile(0.75)
+            iqr = q3 - q1
+            lower_bound = q1 - 1.5 * iqr
+            upper_bound = q3 + 1.5 * iqr
+        
+            anomalies = df_anomali[
+                (df_anomali["Harga Jual (Num)"] < lower_bound) |
+                (df_anomali["Harga Jual (Num)"] > upper_bound)
+            ]
+        
+            st.dataframe(anomalies, use_container_width=True)
+            st.markdown(f"🔍 Ditemukan **{len(anomalies)}** hari dengan penjualan di luar batas normal (IQR).")
+
+        with st.expander("💼 Segmentasi Produk berdasarkan Profitabilitas"):
+            if "Tipe" in df_filtered.columns:
+                df_segment = df_filtered.copy()
+                df_segment["Profit"] = df_segment["Harga Jual (Num)"] - df_segment["Harga Beli (Num)"]
+                segment = df_segment.groupby("Tipe")[["Harga Jual (Num)", "Harga Beli (Num)", "Profit"]].sum().reset_index()
+                segment["Profit Margin (%)"] = 100 * segment["Profit"] / segment["Harga Jual (Num)"]
+        
+                st.dataframe(segment.sort_values("Profit", ascending=False), use_container_width=True)
+        
+                fig = go.Figure()
+                fig.add_trace(go.Bar(
+                    x=segment["Tipe"],
+                    y=segment["Profit Margin (%)"],
+                    name="Margin (%)"
+                ))
+                fig.update_layout(title="Segmentasi Produk: Profit Margin", xaxis_title="Produk", yaxis_title="Margin %")
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Kolom 'Tipe' tidak tersedia.")
+
+
+#=================================================================================================================================================================
+import streamlit as st
+import pandas as pd
+import holidays
+import matplotlib.pyplot as plt
+
+with st.expander("📊 Analisa Laporan Keuangan"):
+
+    # Pastikan kolom datetime sudah benar
+    df_filtered["Tgl Pemesanan"] = pd.to_datetime(df_filtered["Tgl Pemesanan"], errors="coerce")
+    
+    if "Harga Jual" in df_filtered.columns:
+        df_filtered["Harga Jual (Num)"] = (
+            df_filtered["Harga Jual"]
+            .astype(str)
+            .replace("[Rp.,\s]", "", regex=True)
+            .astype(float)
+        )
+    else:
+        st.error("❌ Kolom 'Harga Jual' tidak ditemukan. Tidak bisa melanjutkan analisa.")
+
+    years = df_filtered["Tgl Pemesanan"].dt.year.dropna().unique()
+    id_holidays = holidays.Indonesia(years=years)
+
+    # ----- HARiAN -----
+    df_daily = (
+        df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"]
+        .sum()
+        .reset_index()
+        .sort_values("Tgl Pemesanan")
+    )
+    df_daily["Pct_Change"] = df_daily["Harga Jual (Num)"].pct_change() * 100
+    df_daily["Is_Holiday"] = df_daily["Tgl Pemesanan"].isin(id_holidays)
+    df_daily["Is_Weekend"] = df_daily["Tgl Pemesanan"].dt.dayofweek >= 5  # Sabtu=5, Minggu=6
+    df_daily["Near_Holiday"] = df_daily["Is_Holiday"] | df_daily["Is_Weekend"]
+
+    threshold_drop_daily = -20
+    penurunan_signifikan_harian = df_daily[df_daily["Pct_Change"] <= threshold_drop_daily]
+
+    # ----- BULANAN -----
+    df_filtered["YearMonth"] = df_filtered["Tgl Pemesanan"].dt.to_period("M")
+    df_monthly = (
+        df_filtered.groupby("YearMonth")["Harga Jual (Num)"]
+        .sum()
+        .reset_index()
+        .sort_values("YearMonth")
+    )
+    df_monthly["Pct_Change"] = df_monthly["Harga Jual (Num)"].pct_change() * 100
+    df_monthly["MonthStart"] = df_monthly["YearMonth"].dt.to_timestamp()
+    
+    def check_month_holiday(ts):
+        return any([(ts + pd.Timedelta(days=i)) in id_holidays for i in range(31)])
+    
+    df_monthly["Is_Holiday_Month"] = df_monthly["MonthStart"].apply(check_month_holiday).astype(bool)
+    df_monthly["Is_Weekend_Month"] = (df_monthly["MonthStart"].dt.weekday >= 5).astype(bool)
+    df_monthly["Near_Holiday"] = df_monthly["Is_Holiday_Month"] | df_monthly["Is_Weekend_Month"]
+    
+    threshold_drop_monthly = -15
+    penurunan_signifikan_bulanan = df_monthly[df_monthly["Pct_Change"] <= threshold_drop_monthly]
+
+    # ----- TAHUNAN -----
+    df_filtered["Year"] = df_filtered["Tgl Pemesanan"].dt.year
+    df_yearly = (
+        df_filtered.groupby("Year")["Harga Jual (Num)"]
+        .sum()
+        .reset_index()
+        .sort_values("Year")
+    )
+    df_yearly["Pct_Change"] = df_yearly["Harga Jual (Num)"].pct_change() * 100
+
+    def check_year_holiday(y):
+        # Cek apakah ada hari libur di tahun tersebut
+        # Diasumsikan selalu ada, tapi bisa dioptimasi sesuai kebutuhan
+        return any([date.year == y for date in id_holidays])
+
+    df_yearly["Is_Holiday_Year"] = df_yearly["Year"].apply(check_year_holiday)
+    df_yearly["Near_Holiday"] = df_yearly["Is_Holiday_Year"]  # Tahun lebih longgar, cuma cek ada libur
+
+    threshold_drop_yearly = -10
+    penurunan_signifikan_tahunan = df_yearly[df_yearly["Pct_Change"] <= threshold_drop_yearly]
+
+    # --- Output Analisa ---
+    st.markdown("### 📉 Penurunan Signifikan Harian ( > 20% drop )")
+    if not penurunan_signifikan_harian.empty:
+        for _, row in penurunan_signifikan_harian.iterrows():
+            date_str = row["Tgl Pemesanan"].strftime("%Y-%m-%d")
+            drop = row["Pct_Change"]
+            near_holiday = "Ya" if row["Near_Holiday"] else "Tidak"
+            st.write(f"- 📅 {date_str} : Penurunan {drop:.2f}% dari hari sebelumnya.")
+            st.write(f"  - Dekat Hari Libur / Weekend? **{near_holiday}**")
+    else:
+        st.write("✅ Tidak ada penurunan signifikan harian terdeteksi.")
+
+    st.markdown("### 📉 Penurunan Signifikan Bulanan ( > 15% drop )")
+    if not penurunan_signifikan_bulanan.empty:
+        for _, row in penurunan_signifikan_bulanan.iterrows():
+            month_str = row["YearMonth"].strftime("%Y-%m")
+            drop = row["Pct_Change"]
+            near_holiday = "Ya" if row["Near_Holiday"] else "Tidak"
+            st.write(f"- 🗓️ {month_str} : Penurunan {drop:.2f}% dari bulan sebelumnya.")
+            st.write(f"  - Bulan ada hari libur / weekend panjang? **{near_holiday}**")
+    else:
+        st.write("✅ Tidak ada penurunan signifikan bulanan terdeteksi.")
+
+    st.markdown("### 📉 Penurunan Signifikan Tahunan ( > 10% drop )")
+    if not penurunan_signifikan_tahunan.empty:
+        for _, row in penurunan_signifikan_tahunan.iterrows():
+            year_str = str(int(row["Year"]))
+            drop = row["Pct_Change"]
+            near_holiday = "Ya" if row["Near_Holiday"] else "Tidak"
+            st.write(f"- 📆 {year_str} : Penurunan {drop:.2f}% dari tahun sebelumnya.")
+            st.write(f"  - Tahun dengan libur nasional? **{near_holiday}**")
+    else:
+        st.write("✅ Tidak ada penurunan signifikan tahunan terdeteksi.")
+
+    # --- Rekomendasi ---
+    st.markdown("### 💡 Rekomendasi:")
+    if not penurunan_signifikan_harian.empty or not penurunan_signifikan_bulanan.empty or not penurunan_signifikan_tahunan.empty:
+        st.markdown("""
+        - Tinjau aktivitas pemasaran dan operasional di tanggal/bulan/tahun yang mengalami penurunan.
+        - Periksa apakah penurunan terkait dengan hari libur panjang, weekend, atau faktor eksternal lain.
+        - Buat strategi promosi yang menyasar periode rentan tersebut.
+        - Analisa faktor internal seperti stok, harga, layanan untuk menemukan penyebab penurunan.
+        """)
+    else:
+        st.markdown("Tidak ada penurunan signifikan, pertahankan strategi yang berjalan.")
+
+    # --- Visualisasi ---
+    st.markdown("### 📈 Grafik Penjualan Harian dengan Penurunan & Hari Libur")
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.plot(df_daily["Tgl Pemesanan"], df_daily["Harga Jual (Num)"], label="Penjualan Harian", marker='o')
+    ax.scatter(penurunan_signifikan_harian["Tgl Pemesanan"], penurunan_signifikan_harian["Harga Jual (Num)"], color='red', label="Penurunan Signifikan")
+    holidays_weekends = df_daily[df_daily["Near_Holiday"]]
+    ax.scatter(holidays_weekends["Tgl Pemesanan"], holidays_weekends["Harga Jual (Num)"], color='green', alpha=0.3, label="Hari Libur / Weekend")
+    ax.set_xlabel("Tanggal")
+    ax.set_ylabel("Total Penjualan")
+    ax.legend()
+    ax.grid(True)
+    st.pyplot(fig)
+
+    st.markdown("### 📈 Grafik Penjualan Bulanan")
+    fig2, ax2 = plt.subplots(figsize=(10, 4))
+    ax2.plot(df_monthly["YearMonth"].dt.to_timestamp(), df_monthly["Harga Jual (Num)"], label="Penjualan Bulanan", marker='o')
+    ax2.scatter(penurunan_signifikan_bulanan["MonthStart"], penurunan_signifikan_bulanan["Harga Jual (Num)"], color='red', label="Penurunan Signifikan")
+    ax2.set_xlabel("Bulan")
+    ax2.set_ylabel("Total Penjualan")
+    ax2.legend()
+    ax2.grid(True)
+    st.pyplot(fig2)
+
+    st.markdown("### 📈 Grafik Penjualan Tahunan")
+    fig3, ax3 = plt.subplots(figsize=(10, 4))
+    ax3.plot(df_yearly["Year"], df_yearly["Harga Jual (Num)"], label="Penjualan Tahunan", marker='o')
+    ax3.scatter(penurunan_signifikan_tahunan["Year"], penurunan_signifikan_tahunan["Harga Jual (Num)"], color='red', label="Penurunan Signifikan")
+    ax3.set_xlabel("Tahun")
+    ax3.set_ylabel("Total Penjualan")
+    ax3.legend()
+    ax3.grid(True)
+    st.pyplot(fig3)
 #======================================================================================================================================
 #from streamlit_option_menu import option_menu
 #import streamlit as st

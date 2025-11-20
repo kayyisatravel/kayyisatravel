@@ -2089,24 +2089,6 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     else:
         st.success("Semua invoice telah lunas.")
 
-    st.markdown("## 📈 Grafik Cashflow")
-
-    # Chart Masuk-Keluar Bulanan
-    df_chart = df_filtered.copy()
-    df_chart["Bulan"] = df_chart["Tanggal"].dt.to_period("M").astype(str)
-    df_summary = df_chart.groupby(["Bulan", "Tipe"])["Jumlah"].sum().reset_index()
-    df_pivot = df_summary.pivot(index="Bulan", columns="Tipe", values="Jumlah").fillna(0)
-
-    st.line_chart(df_pivot)
-
-    # Saldo berjalan
-    df_chart = df_chart.sort_values("Tanggal")
-    df_chart["Saldo"] = df_chart.apply(
-        lambda r: r["Jumlah"] if r["Tipe"]=="Masuk" else -r["Jumlah"], axis=1
-    ).cumsum()
-
-    st.markdown("### 🏦 Grafik Saldo Berjalan")
-    st.area_chart(df_chart[["Tanggal", "Saldo"]].set_index("Tanggal"))
     #st.markdown("### 🔍 Data Cashflow Realtime")
     #if "Tanggal" in df_cashflow.columns:
      #   df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors='coerce')
@@ -2234,6 +2216,24 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     st.markdown("### ⏳ Aging Report / Invoice Belum Lunas")
     st.dataframe(df_aging.style.apply(highlight_overdue, axis=1), use_container_width=True)
 
+    st.markdown("## 📈 Grafik Cashflow")
+
+    # Chart Masuk-Keluar Bulanan
+    df_chart = df_filtered.copy()
+    df_chart["Bulan"] = df_chart["Tanggal"].dt.to_period("M").astype(str)
+    df_summary = df_chart.groupby(["Bulan", "Tipe"])["Jumlah"].sum().reset_index()
+    df_pivot = df_summary.pivot(index="Bulan", columns="Tipe", values="Jumlah").fillna(0)
+
+    st.line_chart(df_pivot)
+
+    # Saldo berjalan
+    df_chart = df_chart.sort_values("Tanggal")
+    df_chart["Saldo"] = df_chart.apply(
+        lambda r: r["Jumlah"] if r["Tipe"]=="Masuk" else -r["Jumlah"], axis=1
+    ).cumsum()
+
+    st.markdown("### 🏦 Grafik Saldo Berjalan")
+    st.area_chart(df_chart[["Tanggal", "Saldo"]].set_index("Tanggal"))
 #=================================================================================================================================================================
 from prophet import Prophet
 from prophet.plot import plot_plotly

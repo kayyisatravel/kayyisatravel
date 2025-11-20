@@ -2369,6 +2369,10 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     st.session_state.df_cashflow = df_cashflow_combined
 
     df_cashflow = st.session_state.df_cashflow
+    if "Tanggal" in df_cashflow.columns:
+        df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors='coerce')
+        df_cashflow["Tanggal"].fillna(pd.Timestamp.today(), inplace=True)
+        
     total_masuk = df_cashflow[df_cashflow["Tipe"]=="Masuk"]["Jumlah"].sum()
     total_keluar = df_cashflow[df_cashflow["Tipe"]=="Keluar"]["Jumlah"].sum()
     saldo = total_masuk - total_keluar
@@ -2377,7 +2381,8 @@ with st.expander("💸 Laporan Cashflow Realtime"):
 
     # Gunakan Invoice_Key, bukan No Invoice
     invoice_keys = df_cashflow["Invoice_Key"].unique()
-    
+
+    list_piutang = []
     for key in invoice_keys:
     
         # Data cashflow untuk invoice ini
@@ -2398,15 +2403,83 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     
         if piutang_invoice > 0:
             piutang_total += piutang_invoice
-
+            list_piutang.append([inv_no, total_harga_jual, total_sudah_diterima, piutang_invoice])
     
     total_piutang = piutang_total
-
+    df_piutang = pd.DataFrame(list_piutang, columns=["Invoice", "Total", "Terbayar", "Sisa"])
+    
     #col1, col2, col3, col4 = st.columns(4)
-    st.metric("Total Masuk", format_rp(total_masuk))
-    st.metric("Total Keluar", format_rp(total_keluar))
-    st.metric("Saldo Akhir", format_rp(saldo))
-    st.metric("Piutang Belum Lunas", format_rp(total_piutang))
+    col1.metric("💰 Total Masuk", format_rp(total_masuk))
+    col2.metric("📤 Total Keluar", format_rp(total_keluar))
+    col3.metric("🏦 Saldo Akhir", format_rp(saldo))
+    col4.metric("🧾 Piutang Belum Lunas", format_rp(piutang_total))
+
+    st.markdown("### 🔧 Filter Cashflow")
+
+    colf1, colf2, colf3 = st.columns(3)
+
+    tanggal_mulai = colf1.date_input("Dari tanggal", df_cashflow["Tanggal"].min())
+    tanggal_akhir = colf2.date_input("Sampai tanggal", df_cashflow["Tanggal"].max())
+    tipe_filter = colf3.selectbox("Jenis Transaksi", ["Semua", "Masuk", "Keluar"])
+
+    df_filtered = df_cashflow[
+        (df_cashflow["Tanggal"] >= pd.to_datetime(tanggal_mulai)) &
+        (df_cashflow["Tanggal"] <= pd.to_datetime(tanggal_akhir))
+    ]
+
+    if tipe_filter != "Semua":
+        df_filtered = df_filtered[df_filtered["Tipe"] == tipe_filter]
+
+    st.markdown("## 📈 Grafik Cashflow")
+
+    # Chart Masuk-Keluar Bulanan
+    df_chart = df_filtered.copy()
+    df_chart["Bulan"] = df_chart["Tanggal"].dt.to_period("M").astype(str)
+    df_summary = df_chart.groupby(["Bulan", "Tipe"])["Jumlah"].sum().reset_index()
+    df_pivot = df_summary.pivot(index="Bulan", columns="Tipe", values="Jumlah").fillna(0)
+
+    st.line_chart(df_pivot)
+
+    # Saldo berjalan
+    df_chart = df_chart.sort_values("Tanggal")
+    df_chart["Saldo"] = df_chart.apply(
+        lambda r: r["Jumlah"] if r["Tipe"]=="Masuk" else -r["Jumlah"], axis=1
+    ).cumsum()
+
+    st.markdown("### 🏦 Grafik Saldo Berjalan")
+    st.area_chart(df_chart[["Tanggal", "Saldo"]].set_index("Tanggal"))
+
+    st.markdown("## 🧾 Daftar Piutang Belum Lunas")
+
+    if len(df_piutang) > 0:
+        df_piutang["Total"] = df_piutang["Total"].apply(format_rp)
+        df_piutang["Terbayar"] = df_piutang["Terbayar"].apply(format_rp)
+        df_piutang["Sisa"] = df_piutang["Sisa"].apply(format_rp)
+        st.dataframe(df_piutang, use_container_width=True)
+    else:
+        st.success("Semua invoice telah lunas.")
+
+    st.markdown("## 🔍 Insight Keuangan")
+
+    if saldo < 0:
+        st.error("⚠️ Saldo negatif. Perlu kontrol pengeluaran atau percepat penagihan piutang.")
+    elif piutang_total > total_masuk:
+        st.warning("🟡 Piutang lebih besar dari pemasukan. Cashflow berpotensi ketat.")
+    elif total_keluar > total_masuk:
+        st.warning("📉 Pengeluaran lebih besar dari pemasukan bulan ini.")
+    else:
+        st.success("🟢 Cashflow sehat. Arus kas berjalan stabil.")
+
+    st.markdown("## 📋 Detail Transaksi Cashflow")
+
+    df_show = df_filtered.copy()
+    df_show["Jumlah"] = df_show["Jumlah"].apply(format_rp)
+
+    st.dataframe(
+        df_show.sort_values("Tanggal", ascending=False),
+        use_container_width=True,
+        height=500
+    )
 
     st.markdown("### 🔍 Data Cashflow Realtime")
     if "Tanggal" in df_cashflow.columns:

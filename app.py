@@ -2416,6 +2416,17 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     row2_col1.metric("🏦 Saldo Akhir", format_rp(saldo))
     row2_col2.metric("🧾 Piutang Belum Lunas", format_rp(total_piutang))
 
+    st.markdown("## 🔍 Insight Keuangan")
+
+    if saldo < 0:
+        st.error("⚠️ Saldo negatif. Perlu kontrol pengeluaran atau percepat penagihan piutang.")
+    elif piutang_total > total_masuk:
+        st.warning("🟡 Piutang lebih besar dari pemasukan. Cashflow berpotensi ketat.")
+    elif total_keluar > total_masuk:
+        st.warning("📉 Pengeluaran lebih besar dari pemasukan bulan ini.")
+    else:
+        st.success("🟢 Cashflow sehat. Arus kas berjalan stabil.")
+    
     st.markdown("### 🔧 Filter Cashflow")
 
     colf1, colf2, colf3 = st.columns(3)
@@ -2431,17 +2442,6 @@ with st.expander("💸 Laporan Cashflow Realtime"):
 
     if tipe_filter != "Semua":
         df_filtered = df_filtered[df_filtered["Tipe"] == tipe_filter]
-
-    st.markdown("## 🔍 Insight Keuangan")
-
-    if saldo < 0:
-        st.error("⚠️ Saldo negatif. Perlu kontrol pengeluaran atau percepat penagihan piutang.")
-    elif piutang_total > total_masuk:
-        st.warning("🟡 Piutang lebih besar dari pemasukan. Cashflow berpotensi ketat.")
-    elif total_keluar > total_masuk:
-        st.warning("📉 Pengeluaran lebih besar dari pemasukan bulan ini.")
-    else:
-        st.success("🟢 Cashflow sehat. Arus kas berjalan stabil.")
 
     st.markdown("## 📋 Detail Transaksi Cashflow")
 

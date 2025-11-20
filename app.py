@@ -2007,8 +2007,9 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         "Pilih Jenis Filter Waktu",
         ["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"],
         horizontal=True,
-        key="filter_mode_radio"
+        key="filter_mode_radio_v2"
     )
+
     
     # -----------------------------
     # 2️⃣ Filter Waktu Dinamis

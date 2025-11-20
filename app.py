@@ -2289,8 +2289,7 @@ with st.expander("✏️ Input Data Cashflow Manual"):
 
     kategori_masuk = ["Penjualan Tiket Pesawat", "Penjualan Hotel", "Penjualan Kereta", "Komisi Agen", "Lain-lain"]
     kategori_keluar = [
-        "Pembelian Tiket Pesawat", "Pembelian Hotel", "Pembelian Kereta", "Gaji Karyawan",
-        "Operasional Kantor", "Marketing & Promosi", "Pajak dan Biaya Lainnya",
+        "Gaji Karyawan", "Operasional Kantor", "Pembayaran Pinjaman (Hutang/Credit Card)", "Marketing & Promosi", "Pajak dan Biaya Lainnya",
         "Kerugian Salah Order", "Kerugian Pembatalan", "Kerugian Kerusakan / Rusak",
         "Kerugian Lainnya", "Lain-lain"
     ]

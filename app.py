@@ -2429,19 +2429,62 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     
     st.markdown("### 🔧 Filter Cashflow")
 
-    colf1, colf2, colf3 = st.columns(3)
-
-    tanggal_mulai = colf1.date_input("Dari tanggal", df_cashflow["Tanggal"].min())
-    tanggal_akhir = colf2.date_input("Sampai tanggal", df_cashflow["Tanggal"].max())
-    tipe_filter = colf3.selectbox("Jenis Transaksi", ["Semua", "Masuk", "Keluar"])
-
-    df_filtered = df_cashflow[
-        (df_cashflow["Tanggal"] >= pd.to_datetime(tanggal_mulai)) &
-        (df_cashflow["Tanggal"] <= pd.to_datetime(tanggal_akhir))
-    ]
-
+    # Pastikan kolom Bulan dan Tahun tersedia
+    df_cashflow["Bulan"] = df_cashflow["Tanggal"].dt.month
+    df_cashflow["Tahun"] = df_cashflow["Tanggal"].dt.year
+    
+    colf1, colf2, colf3, colf4 = st.columns(4)
+    
+    # Filter Tipe Transaksi
+    tipe_filter = colf1.selectbox(
+        "Jenis Transaksi",
+        ["Semua", "Masuk", "Keluar"]
+    )
+    
+    # Filter Kategori (otomatis mengikuti tipe)
+    if tipe_filter == "Masuk":
+        kategori_list = df_cashflow[df_cashflow["Tipe"]=="Masuk"]["Kategori"].unique()
+    elif tipe_filter == "Keluar":
+        kategori_list = df_cashflow[df_cashflow["Tipe"]=="Keluar"]["Kategori"].unique()
+    else:
+        kategori_list = df_cashflow["Kategori"].unique()
+    
+    kategori_filter = colf2.selectbox("Kategori", ["Semua"] + list(kategori_list))
+    
+    # Filter Bulan
+    bulan_filter = colf3.selectbox(
+        "Bulan",
+        ["Semua"] + [1,2,3,4,5,6,7,8,9,10,11,12]
+    )
+    
+    # Filter Tahun
+    tahun_filter = colf4.selectbox(
+        "Tahun",
+        ["Semua"] + sorted(df_cashflow["Tahun"].unique())
+    )
+    
+    # ==============================
+    # 🔍 PROSES FILTERING
+    # ==============================
+    
+    df_filtered = df_cashflow.copy()
+    
+    # Filter tipe transaksi
     if tipe_filter != "Semua":
         df_filtered = df_filtered[df_filtered["Tipe"] == tipe_filter]
+    
+    # Filter kategori
+    if kategori_filter != "Semua":
+        df_filtered = df_filtered[df_filtered["Kategori"] == kategori_filter]
+    
+    # Filter bulan
+    if bulan_filter != "Semua":
+        df_filtered = df_filtered[df_filtered["Bulan"] == bulan_filter]
+    
+    # Filter tahun
+    if tahun_filter != "Semua":
+        df_filtered = df_filtered[df_filtered["Tahun"] == tahun_filter]
+
 
     st.markdown("## 📋 Detail Transaksi Cashflow")
 

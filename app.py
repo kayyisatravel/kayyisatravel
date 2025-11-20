@@ -2408,11 +2408,13 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     total_piutang = piutang_total
     df_piutang = pd.DataFrame(list_piutang, columns=["Invoice", "Total", "Terbayar", "Sisa"])
     
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("💰 Total Masuk", format_rp(total_masuk))
-    col2.metric("📤 Total Keluar", format_rp(total_keluar))
-    col3.metric("🏦 Saldo Akhir", format_rp(saldo))
-    col4.metric("🧾 Piutang Belum Lunas", format_rp(piutang_total))
+    row1_col1, row1_col2 = st.columns(2)
+    row1_col1.metric("💰 Total Masuk", format_rp(total_masuk))
+    row1_col2.metric("📤 Total Keluar", format_rp(total_keluar))
+    
+    row2_col1, row2_col2 = st.columns(2)
+    row2_col1.metric("🏦 Saldo Akhir", format_rp(saldo))
+    row2_col2.metric("🧾 Piutang Belum Lunas", format_rp(total_piutang))
 
     st.markdown("### 🔧 Filter Cashflow")
 

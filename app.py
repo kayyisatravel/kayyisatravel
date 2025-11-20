@@ -2287,7 +2287,9 @@ with st.expander("✏️ Input Data Cashflow Manual"):
     tanggal = st.date_input("Tanggal", value=date.today(), key="tgl_input")
     tipe = st.selectbox("Tipe", ["Masuk", "Keluar"], key="tipe_input")
 
-    kategori_masuk = ["Penjualan Tiket Pesawat", "Penjualan Hotel", "Penjualan Kereta", "Komisi Agen", "Lain-lain"]
+    kategori_masuk = ["Komisi & Fee dari Pihak Ketiga", "Service Fee (proses Refund/Reschedule)", "Fee dari Add-on/Produk Tambahan", 
+        "Jasa Pengurusan Dokumen", "Paket Wisata / Tour", "Lain-lain"
+    ]
     kategori_keluar = [
         "Gaji Karyawan", "Operasional Kantor", "Pembayaran Pinjaman (Hutang/Credit Card)", "Marketing & Promosi", "Pajak dan Biaya Lainnya",
         "Kerugian Salah Order", "Kerugian Pembatalan", "Kerugian Kerusakan / Rusak",

@@ -1356,7 +1356,8 @@ with st.expander("💾 Database Pemesan", expanded=False):
                     "Sumber Dana",
                     ["", "Dana Tunai/Cash", "Credit Card", "Redeem Point"],
                     index=(["", "Dana Tunai/Cash", "Credit Card", "Redeem Point"]
-                           .index(row_to_edit.get("Sumber Dana", "")))
+                           .index(row_to_edit.get("Sumber Dana", ""))),
+                    key="edit_sumber_dana"
                 )
         
                 # Mapping detail dana
@@ -1381,7 +1382,8 @@ with st.expander("💾 Database Pemesan", expanded=False):
                     "Detail Dana",
                     detail_choices,
                     index=(detail_choices.index(row_to_edit.get("Detail Dana", ""))
-                           if row_to_edit.get("Detail Dana", "") in detail_choices else 0)
+                           if row_to_edit.get("Detail Dana", "") in detail_choices else 0),
+                    key="edit_detail_dana"
                 )
         
                 platform_choices = [
@@ -1393,7 +1395,8 @@ with st.expander("💾 Database Pemesan", expanded=False):
                     "Platform",
                     platform_choices,
                     index=(platform_choices.index(row_to_edit.get("Platform", ""))
-                           if row_to_edit.get("Platform", "") in platform_choices else 0)
+                           if row_to_edit.get("Platform", "") in platform_choices else 0),
+                    key="edit_platform"
                 )
         
                 # ===========================================

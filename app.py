@@ -1315,10 +1315,10 @@ with st.expander("💾 Database Pemesan", expanded=False):
 # === Edit Form untuk 1 Baris ===
         if len(selected_data) == 1:
             with st.expander('Edit Data yang dipilih'):
-                #st.markdown("### ✏️ Edit Data Terpilih")
+        
                 row_to_edit = selected_data.iloc[0]
-            
-                # Fungsi bantu amankan tanggal
+        
+                # ===== Fungsi bantu amankan tanggal =====
                 def safe_date(val):
                     if isinstance(val, date):
                         return val
@@ -1330,8 +1330,11 @@ with st.expander("💾 Database Pemesan", expanded=False):
                     if isinstance(val, pd.Timestamp):
                         return val.date()
                     return date.today()
-            
-                # Ambil dan validasi input
+        
+                # ============================
+                # === INPUT FIELD EDIT MODE ===
+                # ============================
+        
                 nama_pemesan_form = st.text_input("Nama Pemesan", row_to_edit.get("Nama Pemesan", ""), key="edit_nama_pemesan")
                 tgl_pemesanan_form = st.date_input("Tgl Pemesanan", safe_date(row_to_edit.get("Tgl Pemesanan")), key="edit_tgl_pemesanan")
                 tgl_berangkat_form = st.date_input("Tgl Berangkat", safe_date(row_to_edit.get("Tgl Berangkat")), key="edit_tgl_berangkat")
@@ -1344,30 +1347,80 @@ with st.expander("💾 Database Pemesan", expanded=False):
                 no_invoice_form = st.text_input("No Invoice", row_to_edit.get("No Invoice", ""), key="edit_no_invoice")
                 keterangan_form = st.text_input("Keterangan", row_to_edit.get("Keterangan", ""), key="edit_keterangan")
                 admin_form = st.text_input("Admin", row_to_edit.get("Admin", ""), key="edit_admin")
-
-            
+        
+                # ===========================================
+                # === BARU: SUMBER DANA / DETAIL DANA / PLATFORM ===
+                # ===========================================
+        
+                sumber_dana_form = st.selectbox(
+                    "Sumber Dana",
+                    ["", "Dana Tunai/Cash", "Credit Card", "Redeem Point"],
+                    index=(["", "Dana Tunai/Cash", "Credit Card", "Redeem Point"]
+                           .index(row_to_edit.get("Sumber Dana", "")))
+                )
+        
+                # Mapping detail dana
+                detail_mapping = {
+                    "Dana Tunai/Cash": [
+                        "Debit BCA", "Debit Mandiri", "Debit BRI", "Debit BNI", "Debit BSI",
+                        "Debit Mega", "Debit SeaBank",
+                        "VA BCA", "VA Mandiri", "VA BRI", "VA BNI",
+                        "OVO", "DANA", "GOPAY", "ShopeePay", "Sakuku", "Blu Instant", "Biblipay"
+                    ],
+                    "Credit Card": [
+                        "BCA", "Mandiri", "BRI", "BNI", "BSI", "UOB", "Mega", "Allo"
+                    ],
+                    "Redeem Point": [
+                        "Tiket.com Points", "Traveloka Points", "Garuda Miles"
+                    ]
+                }
+        
+                detail_choices = [""] + detail_mapping.get(sumber_dana_form, [])
+        
+                detail_dana_form = st.selectbox(
+                    "Detail Dana",
+                    detail_choices,
+                    index=(detail_choices.index(row_to_edit.get("Detail Dana", ""))
+                           if row_to_edit.get("Detail Dana", "") in detail_choices else 0)
+                )
+        
+                platform_choices = [
+                    "", "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin",
+                    "KAI Access", "RedDoorz", "Garuda App", "Citilink App", "Lainnya..."
+                ]
+        
+                platform_form = st.selectbox(
+                    "Platform",
+                    platform_choices,
+                    index=(platform_choices.index(row_to_edit.get("Platform", ""))
+                           if row_to_edit.get("Platform", "") in platform_choices else 0)
+                )
+        
+                # ===========================================
+                # === SIMPAN PERUBAHAN KE GSheet ===
+                # ===========================================
+        
                 if st.button("💾 Simpan Perubahan ke GSheet"):
                     try:
                         worksheet = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
                         all_data = worksheet.get_all_records()
                         df_all = pd.DataFrame(all_data)
-                        
-                        # Normalisasi kedua dataframe
+        
                         df_all = normalize_df(df_all)
                         selected_norm = normalize_df(pd.DataFrame([row_to_edit])).reset_index(drop=True)
-                        
+        
                         mask = (
                             (df_all["Nama Pemesan_str"] == selected_norm.loc[0, "Nama Pemesan_str"]) &
-                            (df_all["Nama Customer_str"] == selected_norm.loc[0, "Nama Customer_str"]) &  
+                            (df_all["Nama Customer_str"] == selected_norm.loc[0, "Nama Customer_str"]) &
                             (df_all["Kode Booking_str"] == selected_norm.loc[0, "Kode Booking_str"]) &
                             (df_all["Tgl Berangkat_str"] == selected_norm.loc[0, "Tgl Berangkat_str"])
                         )
-    
-            
+        
                         if not mask.any():
                             st.warning("❌ Data asli tidak ditemukan di Google Sheets.")
                         else:
                             index = mask.idxmax()
+        
                             colmap = {
                                 "Nama Pemesan": nama_pemesan_form,
                                 "Tgl Pemesanan": tgl_pemesanan_form.strftime('%Y-%m-%d'),
@@ -1378,22 +1431,27 @@ with st.expander("💾 Database Pemesan", expanded=False):
                                 "Rute": rute_form,
                                 "Harga Beli": harga_beli_form,
                                 "Harga Jual": harga_jual_form,
-                                #"Tipe": tipe_form.upper(),
-                                #"BF/NBF": bf_nbf_form,
                                 "No Invoice": no_invoice_form,
                                 "Keterangan": keterangan_form,
-                                "Admin": admin_form
+                                "Admin": admin_form,
+        
+                                # ==== BARU TAMBAHAN ====
+                                "Sumber Dana": sumber_dana_form,
+                                "Detail Dana": detail_dana_form,
+                                "Platform": platform_form
                             }
-            
+        
                             for col, val in colmap.items():
                                 if col in df_all.columns:
                                     worksheet.update_cell(index + 2, df_all.columns.get_loc(col) + 1, val)
                                     time.sleep(0.2)
+        
                             st.success("✅ Data berhasil diperbarui ke Google Sheets.")
                             st.cache_data.clear()
-            
+        
                     except Exception as e:
                         st.error(f"❌ Gagal update: {e}")
+
                         st.text(f"📋 Type: {type(e)}")
 
         

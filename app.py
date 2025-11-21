@@ -878,8 +878,12 @@ with st.expander("✏️ Input Manual Data"):
             "Keterangan": keterangan,
             "Nama Pemesan": nama_pemesan,
             "Admin": admin,
-            "% Laba": pct_laba
+            "% Laba": pct_laba,
+            "Sumber Dana": sumber_dana,
+            "Detail Dana": detail_dana,
+            "Platform": platform
         }
+
         if "bulk_parsed" not in st.session_state:
             st.session_state.bulk_parsed = pd.DataFrame()
         st.session_state.bulk_parsed = pd.concat(

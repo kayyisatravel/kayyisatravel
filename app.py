@@ -2107,12 +2107,12 @@ def parse_cashflow_from_data(df_data, df_cashflow_existing):
         # =====================================================
 
         if "credit" in sumber_dana or "cc" in sumber_dana or "kartu" in sumber_dana:
-            kategori_modal = "Modal CC"   # 💳 hutang CC
+            kategori_modal = "Penjualan (Credit Card)"   # 💳 hutang CC
         elif "redeem" in sumber_dana or "point" in sumber_dana:
-            kategori_modal = "Modal Points"
+            kategori_modal = "Penjualan (Redeem Points)"
             total_modal = 0               # Tidak keluar uang
         else:
-            kategori_modal = "Penjualan"  # Existing logic
+            kategori_modal = "Penjualan (Cash/Tunai)"  # Existing logic
 
         # Keluar = modal
         cashflow_rows.append({

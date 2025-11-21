@@ -893,7 +893,12 @@ with st.expander("✏️ Input Manual Data"):
         
             # Bersihkan kolom dari spasi berlebih
             df.columns = df.columns.str.strip()
-        
+            # === Pastikan kolom baru tersedia ===
+            required_cols = ["Sumber Dana", "Detail Dana", "Platform"]
+            for col in required_cols:
+                if col not in df.columns:
+                    df[col] = ""
+
             # Tambahkan kolom jika belum ada (agar preview lengkap)
             for col in ["Laba", "% Laba"]:
                 if col not in df.columns:

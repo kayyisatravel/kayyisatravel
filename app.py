@@ -654,7 +654,6 @@ with st.expander('⌨️ Upload Data Text'):
         height=200
     )
 
-
     if st.button("🔍 Proses Bulk"):
         entries = []
         labels = []
@@ -671,41 +670,123 @@ with st.expander('⌨️ Upload Data Text'):
             st.session_state.bulk_entries_raw = entries
             st.session_state.bulk_labels = labels
             st.session_state.bulk_parsed = pd.concat(entries, ignore_index=True)
-    
+
     # Jika ada hasil bulk_entries_raw, tampilkan UI editing
     if "bulk_parsed" in st.session_state and not st.session_state.bulk_parsed.empty:
         df = st.session_state.bulk_parsed
-    
+
         if "edit_mode_bulk" not in st.session_state:
             st.session_state.edit_mode_bulk = False
-    
+
         # Checkbox untuk mengaktifkan edit mode
-        # Aktifkan mode edit manual
         edit_mode = st.checkbox("✏️ Edit Data Manual", value=st.session_state.get("edit_mode_bulk", False))
-        
+
         if edit_mode:
             st.session_state.edit_mode_bulk = True
             st.markdown("#### 📝 Edit Beberapa Baris")
-        
-            # Pilih beberapa baris
+
             selected_rows = st.multiselect("Pilih baris yang ingin diedit:", options=df.index.tolist())
-        
-            edited_rows = {}  # Simpan perubahan per baris
-        
+            edited_rows = {}
+
             for i in selected_rows:
                 row_data = df.iloc[i].to_dict()
                 st.markdown(f"---\n##### ✏️ Baris ke-{i}")
+
                 with st.expander(f"📝 Edit Data Baris {i}", expanded=True):
                     updated_row = {}
+
                     for col, val in row_data.items():
+
+                        # ========== HANDLE TANGGAL ==========
                         if col in ["Tgl Pemesanan", "Tgl Berangkat"]:
                             try:
                                 val = pd.to_datetime(val).date()
                             except:
                                 val = pd.Timestamp.today().date()
+
                             new_val = st.date_input(f"{col} (Baris {i})", value=val, key=f"{col}_{i}")
+                            updated_row[col] = new_val
+                            continue
+
+                        # ========== HANDLE NUMERIC ==========
                         elif isinstance(val, (int, float)):
                             new_val = st.text_input(f"{col} (Baris {i})", value=str(val), key=f"{col}_{i}")
+                            updated_row[col] = new_val
+                            continue
+
+                        # ========== HANDLE DROPDOWN: SUMBER DANA ==========
+                        elif col == "Sumber Dana":
+                            sumber_dana_options = [
+                                "Dana Tunai/Cash",
+                                "Credit Card",
+                                "Reedem Point"
+                            ]
+
+                            default_val = str(val) if str(val) in sumber_dana_options else "Dana Tunai/Cash"
+
+                            new_val = st.selectbox(
+                                f"{col} (Baris {i})",
+                                options=sumber_dana_options,
+                                index=sumber_dana_options.index(default_val),
+                                key=f"{col}_{i}"
+                            )
+
+                            updated_row[col] = new_val
+                            continue
+
+                        # ========== HANDLE DROPDOWN: DETAIL DANA ==========
+                        elif col == "Detail Dana":
+                            sumber_dana = updated_row.get("Sumber Dana", row_data.get("Sumber Dana", ""))
+
+                            if sumber_dana == "Dana Tunai/Cash":
+                                detail_options = [
+                                    "Debit BCA", "Debit Mandiri", "Debit BRI", "Debit BNI", "Debit BSI", "Debit Mega", "Debit Seabank",
+                                    "VA BCA", "VA Mandiri", "VA BRI", "VA BNI",
+                                    "Ovo", "Dana", "Gopay", "ShopeePay", "Sakuku", "Blu Instant", "Bibli Pay"
+                                ]
+                            elif sumber_dana == "Credit Card":
+                                detail_options = ["BCA", "Mandiri", "BRI", "BNI", "BSI", "UOB", "Mega", "Allo"]
+                            elif sumber_dana == "Reedem Point":
+                                detail_options = ["Tikom", "Traveloka", "Garuda"]
+                            else:
+                                detail_options = [""]
+
+                            default_val = str(val) if str(val) in detail_options else detail_options[0]
+
+                            new_val = st.selectbox(
+                                f"{col} (Baris {i})",
+                                options=detail_options,
+                                index=detail_options.index(default_val),
+                                key=f"{col}_{i}"
+                            )
+
+                            updated_row[col] = new_val
+                            continue
+
+                        # ========== HANDLE DROPDOWN: PLATFORM ==========
+                        elif col == "Platform":
+                            platform_options = [
+                                "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin",
+                                "KAI Access", "RedDoorz",
+                                "Garuda App", "Citilink App", "Lion Air Group App", "AirAsia App",
+                                "Booking.com", "OYO", "Dafam",
+                                "Lainnya"
+                            ]
+
+                            default_val = str(val) if str(val) in platform_options else "Lainnya"
+
+                            new_val = st.selectbox(
+                                f"{col} (Baris {i})",
+                                options=platform_options,
+                                index=platform_options.index(default_val),
+                                key=f"{col}_{i}"
+                            )
+
+                            updated_row[col] = new_val
+                            continue
+
+
+                        # ========== HANDLE DEFAULT TEXT ==========
                         else:
                             if col == "Keterangan":
                                 default_val = "Belum Lunas" if pd.isna(val) or str(val).strip() == "" else str(val)
@@ -715,34 +796,34 @@ with st.expander('⌨️ Upload Data Text'):
                                 default_val = "PA" if pd.isna(val) or str(val).strip() == "" else str(val)
                             else:
                                 default_val = str(val) if pd.notna(val) else ""
+
                             new_val = st.text_input(f"{col} (Baris {i})", value=default_val, key=f"{col}_{i}")
-                        updated_row[col] = new_val
+                            updated_row[col] = new_val
+
                     edited_rows[i] = updated_row
-        
+
             # Simpan semua perubahan
             if st.button("💾 Simpan Semua Perubahan"):
-                for i, updated_row in edited_rows.items():
-                    for col, val in updated_row.items():
+                for i, updated in edited_rows.items():
+                    for col, val in updated.items():
                         df.at[i, col] = val
-            
+
                 st.session_state.bulk_parsed = df
-                st.session_state.edit_mode_bulk = False  # ⬅️ Reset ke tampilan semula
+                st.session_state.edit_mode_bulk = False
                 st.success(f"✅ {len(edited_rows)} baris berhasil diperbarui.")
                 st.rerun()
 
-    
         else:
             st.session_state.edit_mode_bulk = False
             st.markdown("#### 📊 Data Gabungan Hasil Bulk")
             st.dataframe(st.session_state.bulk_parsed, use_container_width=True)
 
-
-    
-    # Bulk save button
+    # Bulk save
     if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bulk ke GSheet"):
         save_gsheet(st.session_state.bulk_parsed)
         for k in ["bulk_parsed", "bulk_input", "file_uploader"]:
             st.session_state.pop(k, None)
+
         st.rerun()
 
 with st.expander("✏️ Input Manual Data"):

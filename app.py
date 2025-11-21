@@ -674,6 +674,11 @@ with st.expander('⌨️ Upload Data Text'):
     # Jika ada hasil bulk_entries_raw, tampilkan UI editing
     if "bulk_parsed" in st.session_state and not st.session_state.bulk_parsed.empty:
         df = st.session_state.bulk_parsed
+        
+        required_cols = ["Sumber Dana", "Detail Dana", "Platform"]
+        for col in required_cols:
+            if col not in df.columns:
+                df[col] = ""
 
         if "edit_mode_bulk" not in st.session_state:
             st.session_state.edit_mode_bulk = False

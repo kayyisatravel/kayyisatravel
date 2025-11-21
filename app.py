@@ -921,56 +921,136 @@ with st.expander("✏️ Input Manual Data"):
             if edit_mode:
                 st.session_state.edit_mode_bulk = True
                 st.markdown("#### 📝 Form Edit Manual Per Baris")
-        
-                row_index = st.number_input("Pilih baris ke-", min_value=0, max_value=len(df) - 1, step=1)
+                
+                row_index = st.number_input(
+                    "Pilih baris ke-",
+                    min_value=0,
+                    max_value=len(df) - 1,
+                    step=1
+                )
+            
                 row_data = df.iloc[row_index].to_dict()
                 updated_row = {}
-        
+            
+                # === Mapping Detail Dana ===
+                detail_mapping = {
+                    "Dana Tunai/Cash": [
+                        "Debit BCA", "Debit Mandiri", "Debit BRI", "Debit BNI", "Debit BSI",
+                        "Debit Mega", "Debit SeaBank",
+                        "VA BCA", "VA Mandiri", "VA BRI", "VA BNI",
+                        "OVO", "DANA", "GOPAY", "ShopeePay", "Sakuku", "Blu Instant", "Biblipay"
+                    ],
+                    "Credit Card": [
+                        "BCA", "Mandiri", "BRI", "BNI", "BSI", "UOB", "Mega", "Allo"
+                    ],
+                    "Redeem Point": [
+                        "Tiket.com Points", "Traveloka Points", "Garuda Miles"
+                    ]
+                }
+            
+                # === Platform options ===
+                platform_options = [
+                    "", "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin",
+                    "KAI Access", "RedDoorz", "Garuda App", "Citilink App", "Lainnya..."
+                ]
+            
+                # === Render fields ===
                 for col, val in row_data.items():
+            
+                    # 🔹 DATE FIELDS
                     if col in ["Tgl Pemesanan", "Tgl Berangkat"]:
-                        if pd.isna(val) or val == "":
-                            val = pd.Timestamp.today()
-                        else:
-                            try:
-                                val = pd.to_datetime(val).date()
-                            except:
-                                val = pd.Timestamp.today().date()
+                        try:
+                            val = pd.to_datetime(val).date()
+                        except:
+                            val = date.today()
                         new_val = st.date_input(f"{col}", value=val)
+            
+                    # 🔹 NUMERIC FIELDS
                     elif col in ["Harga Beli", "Harga Jual"]:
-                        new_val = st.number_input(f"{col}", value=float(val) if val != "" else 0.0, step=1000.0, format="%.0f")
+                        new_val = st.number_input(
+                            f"{col}",
+                            value=float(val) if str(val).strip() != "" else 0.0,
+                            step=1000.0,
+                            format="%.0f"
+                        )
+            
+                    # 🔹 AUTO-CALCULATED (READ ONLY)
                     elif col in ["Laba", "% Laba"]:
-                        st.markdown(f"**{col}:** {val:.2f}")  # tampilkan saja, tidak bisa diubah
+                        st.info(f"{col}: {val}")
                         new_val = val
+            
+                    # 🔹 SUMBER DANA (dropdown)
+                    elif col == "Sumber Dana":
+                        new_val = st.selectbox(
+                            "Sumber Dana",
+                            ["", "Dana Tunai/Cash", "Credit Card", "Redeem Point"],
+                            index=(["", "Dana Tunai/Cash", "Credit Card", "Redeem Point"].index(val)
+                                   if val in ["", "Dana Tunai/Cash", "Credit Card", "Redeem Point"] else 0)
+                        )
+            
+                    # 🔹 DETAIL DANA (dependent dropdown)
+                    elif col == "Detail Dana":
+                        sumber_selected = updated_row.get("Sumber Dana", row_data.get("Sumber Dana", ""))
+            
+                        if sumber_selected in detail_mapping:
+                            choices = [""] + detail_mapping[sumber_selected]
+                        else:
+                            choices = [""]
+            
+                        new_val = st.selectbox(
+                            "Detail Dana",
+                            choices,
+                            index=(choices.index(val) if val in choices else 0)
+                        )
+            
+                    # 🔹 PLATFORM (dropdown)
+                    elif col == "Platform":
+                        new_val = st.selectbox(
+                            "Platform Pembelian",
+                            platform_options,
+                            index=(platform_options.index(val) if val in platform_options else 0)
+                        )
+            
+                    # 🔹 TEXT INPUT (default)
                     else:
-                        new_val = st.text_input(f"{col}", value=str(val) if pd.notna(val) else "")
+                        new_val = st.text_input(
+                            f"{col}",
+                            value=str(val) if pd.notna(val) else ""
+                        )
+            
                     updated_row[col] = new_val
-        
+            
+                # === SAVE BUTTON ===
                 if st.button("💾 Simpan Perubahan"):
-                    for col in updated_row:
+                    for col, val in updated_row.items():
+            
                         if col in ["Harga Beli", "Harga Jual"]:
                             try:
-                                df.at[row_index, col] = float(updated_row[col])
+                                df.at[row_index, col] = float(val)
                             except:
                                 df.at[row_index, col] = 0.0
+            
                         elif col in ["Tgl Pemesanan", "Tgl Berangkat"]:
                             try:
-                                df.at[row_index, col] = pd.to_datetime(updated_row[col]).date()
+                                df.at[row_index, col] = pd.to_datetime(val).date()
                             except:
-                                df.at[row_index, col] = pd.Timestamp.today().date()
+                                df.at[row_index, col] = date.today()
+            
                         elif col not in ["Laba", "% Laba"]:
-                            df.at[row_index, col] = updated_row[col]
-        
-                    # Recalculate after update
+                            df.at[row_index, col] = val
+            
+                    # === Recalculate laba ===
                     df.at[row_index, "Laba"] = df.at[row_index, "Harga Jual"] - df.at[row_index, "Harga Beli"]
                     df.at[row_index, "% Laba"] = (
                         round((df.at[row_index, "Laba"] / df.at[row_index, "Harga Beli"]) * 100, 2)
                         if df.at[row_index, "Harga Beli"] > 0 else 0.0
                     )
-        
+            
                     st.session_state.bulk_parsed = df
                     st.session_state.edit_mode_bulk = False
                     st.success("✅ Perubahan disimpan.")
-                    st.experimental_rerun()
+                    st.rerun()
+
         
             else:
                 st.session_state.edit_mode_bulk = False

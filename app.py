@@ -859,6 +859,39 @@ with st.expander("✏️ Input Manual Data"):
         nama_pemesan = st.text_input("Masukkan Nama Pemesan")
 
     admin = st.selectbox("Admin", ["PA", "MA"])
+    # === SUMBER DANA ===
+    sumber_dana = st.selectbox(
+        "Sumber Dana",
+        ["", "Dana Tunai/Cash", "Credit Card", "Redeem Point"]
+    )
+    
+    # === DETAIL DANA ===
+    detail_mapping = {
+        "Dana Tunai/Cash": [
+            "Debit BCA", "Debit Mandiri", "Debit BRI", "Debit BNI", "Debit BSI",
+            "Debit Mega", "Debit SeaBank",
+            "VA BCA", "VA Mandiri", "VA BRI", "VA BNI",
+            "OVO", "DANA", "GOPAY", "ShopeePay", "Sakuku", "Blu Instant", "Biblipay"
+        ],
+        "Credit Card": [
+            "BCA", "Mandiri", "BRI", "BNI", "BSI", "UOB", "Mega", "Allo"
+        ],
+        "Redeem Point": [
+            "Tiket.com Points", "Traveloka Points", "Garuda Miles"
+        ]
+    }
+    
+    detail_dana = st.selectbox(
+        "Detail Dana",
+        [""] + detail_mapping.get(sumber_dana, [])
+    )
+    
+    # === PLATFORM ===
+    platform = st.selectbox(
+        "Platform",
+        ["", "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin",
+         "KAI Access", "RedDoorz", "Garuda App", "Citilink App", "Lainnya..."]
+    )
 
     if st.button("Preview"):
         new_data = {

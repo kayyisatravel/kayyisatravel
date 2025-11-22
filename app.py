@@ -2467,7 +2467,37 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     
     else:
         st.warning("Laporan Laba Rugi tidak dapat ditampilkan — data belum lengkap.")
-        
+    
+    st.markdown("""
+    **Laporan Laba Rugi** menunjukkan apakah bisnis *untung atau rugi* dalam periode yang Anda pilih.
+
+    **🔹 Pendapatan**  
+    Semua uang yang masuk dari pelanggan (penjualan tiket, jasa, fee, dll).
+
+    **🔹 HPP / Modal**  
+    Biaya untuk membeli barang/jasa yang dijual ke customer  
+    (misal: harga beli tiket dari maskapai).
+
+    **🔹 Beban Operasional**  
+    Semua biaya untuk menjalankan bisnis, seperti:  
+    - gaji  
+    - operasional kantor  
+    - marketing  
+    - pajak  
+    - kerugian order
+
+    **🔹 Laba Bersih = Pendapatan – HPP – Operasional**  
+    Angka ini menunjukkan **keuntungan bersih** yang benar-benar menjadi milik bisnis.
+    """)
+
+    # INTERPRETASI OTOMATIS
+    if laba_bersih > 0:
+        st.success(f"Bisnis **untung**, karena laba bersih = {format_rp(laba_bersih)}.")
+    elif laba_bersih == 0:
+        st.info("Bisnis berada di titik impas (break even). Tidak untung, tidak rugi.")
+    else:
+        st.error(f"Bisnis **rugi**, karena laba bersih = {format_rp(laba_bersih)}.")
+  
     # =====================================================
     # 📗 NERACA SEDERHANA (BALANCE SHEET)
     # =====================================================

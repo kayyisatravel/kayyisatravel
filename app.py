@@ -2324,32 +2324,43 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     # =====================================================
     # 📘 LAPORAN LABA RUGI (INCOME STATEMENT)
     # =====================================================
-    st.markdown("## 📘 Laporan Laba Rugi (Berdasarkan Filter)")
     
-    # Pendapatan (transaksi masuk)
-    pendapatan_filtered = df_filtered[df_filtered["Tipe"]=="Masuk"]["Jumlah"].sum()
+    required_cols = ["Tipe", "Jumlah", "Kategori"]
     
-    # HPP / Modal (diambil dari kategori modal otomatis)
-    hpp_filtered = df_filtered[
-        df_filtered["Kategori"].str.contains("Penjualan", na=False)
-    ]["Jumlah"].sum()
+    if (
+        'df_filtered' in locals() or 'df_filtered' in globals()
+    ) and all(col in df_filtered.columns for col in required_cols):
     
-    # Beban Operasional (semua kategori keluar selain modal)
-    operasional_filtered = df_filtered[
-        (df_filtered["Tipe"]=="Keluar") &
-        (~df_filtered["Kategori"].str.contains("Penjualan", na=False))
-    ]["Jumlah"].sum()
+        st.markdown("## 📘 Laporan Laba Rugi (Berdasarkan Filter)")
     
-    laba_kotor = pendapatan_filtered - hpp_filtered
-    laba_bersih = laba_kotor - operasional_filtered
+        # Pendapatan (Masuk)
+        pendapatan_filtered = df_filtered[df_filtered["Tipe"]=="Masuk"]["Jumlah"].sum()
     
-    col_laba1, col_laba2 = st.columns(2)
-    col_laba1.metric("Pendapatan", format_rp(pendapatan_filtered))
-    col_laba2.metric("HPP / Modal", format_rp(hpp_filtered))
+        # HPP / Modal
+        hpp_filtered = df_filtered[
+            df_filtered["Kategori"].str.contains("Penjualan", na=False)
+        ]["Jumlah"].sum()
     
-    col_laba3, col_laba4 = st.columns(2)
-    col_laba3.metric("Beban Operasional", format_rp(operasional_filtered))
-    col_laba4.metric("Laba Bersih", format_rp(laba_bersih))
+        # Beban Operasional (kategori keluar selain modal)
+        operasional_filtered = df_filtered[
+            (df_filtered["Tipe"]=="Keluar") &
+            (~df_filtered["Kategori"].str.contains("Penjualan", na=False))
+        ]["Jumlah"].sum()
+    
+        laba_kotor = pendapatan_filtered - hpp_filtered
+        laba_bersih = laba_kotor - operasional_filtered
+    
+        col_laba1, col_laba2 = st.columns(2)
+        col_laba1.metric("Pendapatan", format_rp(pendapatan_filtered))
+        col_laba2.metric("HPP / Modal", format_rp(hpp_filtered))
+    
+        col_laba3, col_laba4 = st.columns(2)
+        col_laba3.metric("Beban Operasional", format_rp(operasional_filtered))
+        col_laba4.metric("Laba Bersih", format_rp(laba_bersih))
+    
+    else:
+        st.warning("Laporan Laba Rugi tidak dapat ditampilkan — data belum lengkap.")
+
 
     
     st.markdown("### 🔧 Filter Cashflow")

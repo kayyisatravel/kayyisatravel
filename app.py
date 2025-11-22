@@ -2141,10 +2141,12 @@ def parse_cashflow_from_data(df_data, df_cashflow_existing,
                 "Nama Pemesan": nama_pemesan,
                 "Invoice_Key": key,
 
-                "Sumber Dana": "Customer",
-                "Detail Dana": "-",
-                "Platform": platform
+                "Sumber Dana": sumber_dana_form if sumber_dana_form else "Customer",
+                "Detail Dana": detail_dana_form if detail_dana_form else "-",
+                "Platform": platform_form if platform_form else group["Platform"].iloc[0]
             })
+
+    return pd.DataFrame(cashflow_rows)
 
 
 

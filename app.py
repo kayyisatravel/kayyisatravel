@@ -2687,25 +2687,72 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     """)
 
     
-    # =====================================================
+    # =============================
     # 🔍 Insight Keuangan Tambahan
-    # =====================================================
-    st.markdown("## 🔍 Insight Keuangan Tambahan")
+    # =============================
+    st.markdown("**Insight Keuangan Tambahan**")
     
+    # 1️⃣ Laba Bersih
     if laba_bersih < 0:
-        st.warning("⚠️ Laba bersih negatif. Perlu mengevaluasi harga jual atau biaya operasional.")
+        if total_piutang > abs(laba_bersih):
+            st.info(
+                f"Laba bersih periode ini terlihat negatif karena sebagian besar pendapatan "
+                f"masih dalam bentuk piutang sebesar {format_rp(total_piutang)}. "
+                "Jika piutang diterima, laba akan berbalik positif."
+            )
+        else:
+            st.warning(
+                "⚠️ Laba bersih negatif. Perlu mengevaluasi harga jual, biaya modal, atau biaya operasional."
+            )
     
+    # 2️⃣ Cashflow Operasional
     if cf_operasional < 0:
-        st.error("🔥 Cashflow operasional negatif. Bisnis tidak menghasilkan uang dari kegiatan utama.")
+        if total_piutang > abs(cf_operasional):
+            st.info(
+                f"Cashflow operasional saat ini negatif sebesar {format_rp(cf_operasional)}, "
+                f"namun sebagian besar pendapatan masih piutang ({format_rp(total_piutang)}). "
+                "Setelah piutang diterima, cashflow bisa menjadi positif."
+            )
+        else:
+            st.error(
+                f"🔥 Cashflow operasional negatif ({format_rp(cf_operasional)}). "
+                "Bisnis tidak menghasilkan uang dari kegiatan utama saat ini."
+            )
+    else:
+        st.success(f"💰 Cashflow operasional positif ({format_rp(cf_operasional)}). Arus kas sehat.")
     
+    # 3️⃣ Piutang vs Kas
     if aset_piutang > aset_kas:
-        st.warning("🟡 Piutang lebih besar dari kas. Potensi macetnya arus kas jangka pendek.")
+        st.info(
+            f"🟡 Piutang ({format_rp(aset_piutang)}) lebih besar dari kas ({format_rp(aset_kas)}). "
+            "Perlu perencanaan penerimaan pembayaran agar kas tetap lancar."
+        )
     
+    # 4️⃣ Hutang vs Kas
     if hutang_total > aset_kas:
-        st.error("⚠️ Hutang lebih besar dari kas. Perlu strategi pembayaran hutang.")
+        if total_piutang > (hutang_total - aset_kas):
+            st.info(
+                f"Kas saat ini ({format_rp(aset_kas)}) lebih kecil dari total hutang ({format_rp(hutang_total)}), "
+                f"namun sebagian pendapatan masih piutang ({format_rp(total_piutang)}). "
+                "Setelah piutang diterima, kas akan cukup untuk menutupi kewajiban."
+            )
+        else:
+            st.error(
+                f"⚠️ Kas ({format_rp(aset_kas)}) lebih kecil dari hutang ({format_rp(hutang_total)}). "
+                "Perlu strategi pembayaran hutang untuk menghindari masalah arus kas."
+            )
+    else:
+        st.success(
+            f"✅ Struktur keuangan aman: kas ({format_rp(aset_kas)}) cukup untuk menutup hutang jangka pendek ({format_rp(hutang_total)})."
+        )
     
+    # 5️⃣ Efisiensi Operasional
     if operasional_filtered > pendapatan_filtered * 0.7:
-        st.warning("📉 Beban operasional >70% dari pendapatan. Efisiensi perlu ditingkatkan.")
+        st.warning(
+            f"📉 Beban operasional ({format_rp(operasional_filtered)}) >70% dari pendapatan ({format_rp(pendapatan_filtered)}). "
+            "Perlu evaluasi efisiensi biaya."
+        )
+
 
 
     

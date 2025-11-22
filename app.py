@@ -2534,6 +2534,32 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
         st.write("Modal:", format_rp(modal))
         st.markdown("**Total Pasiva:** " + format_rp(hutang_total + modal))
 
+    st.markdown("""
+    **Neraca** menggambarkan posisi kesehatan keuangan Anda saat ini.
+
+    ### 🔸 ASET  
+    Apa yang bisnis MILIKI:  
+    - **Kas**: uang yang tersedia sekarang  
+    - **Piutang**: uang yang masih harus ditagih ke customer  
+
+    ### 🔸 KEWAJIBAN (Hutang)  
+    Apa yang bisnis HARUS BAYAR ke pihak lain  
+    (misal: tagihan kartu kredit, hutang modal, cicilan).
+
+    ### 🔸 MODAL  
+    Selisih antara aset dan hutang.  
+    Ini menunjukkan **nilai bersih bisnis**.
+
+    **Rumus:**  
+    👉 ASET = HUTANG + MODAL
+    """)
+
+    # INTERPRETASI OTOMATIS
+    if hutang_total > aset_kas:
+        st.error("Hutang lebih besar dari kas. Perlu hati-hati dalam pengelolaan arus kas.")
+    else:
+        st.success("Struktur keuangan aman: hutang masih dalam batas jual beli normal.")
+    
     # =====================================================
     # 📙 CASHFLOW STATEMENT
     # =====================================================

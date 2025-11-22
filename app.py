@@ -2288,7 +2288,7 @@ with st.expander("💸 Laporan Cashflow Realtime"):
             color: #31708f;
             font-size: 24px;
         ">
-            💳 Sisa Hutang CC: {format_rp(sisa_hutang_cc)}
+            💳 Sisa Hutang Kartu Kredit: {format_rp(sisa_hutang_cc)}
         </div>
         """,
         unsafe_allow_html=True

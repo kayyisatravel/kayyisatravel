@@ -3126,13 +3126,16 @@ with st.expander("📘 Laporan Transaksi Penjualan"):
                 """,
                 unsafe_allow_html=True
             )
-        col1, col2 = st.columns([1, 1])
+        # Baris 1
+        col1, col2 = st.columns(2)
         with col1:
             metric_card("💰 Total Penjualan", f"Rp {int(total_jual):,}".replace(",", "."))
-        
         with col2:
             metric_card("💸 Total Pembelian", f"Rp {int(total_beli):,}".replace(",", "."))
-            metric_card("📈 Profit", f"Rp {int(total_profit):,}".replace(",", "."))
+        
+        # Baris 2 (full width)
+        metric_card("📈 Profit", f"Rp {int(total_profit):,}".replace(",", "."))
+
 
             
         # Grafik Tren Penjualan

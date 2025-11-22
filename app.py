@@ -2634,10 +2634,9 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     if cf_operasional < 0:
         if total_piutang > abs(cf_operasional):
             st.info(
-                f"Cashflow operasional periode ini negatif, namun penyebab utamanya adalah "
-                f"banyak pembayaran customer yang belum masuk. Piutang sebesar "
-                f"{format_rp(total_piutang)} akan memperbaiki posisi kas ketika dibayarkan. "
-                "Situasi ini umum terjadi pada bisnis travel yang membayar supplier di awal."
+                f"Cashflow operasional negatif terutama karena pembayaran customer "
+                f"belum diterima. Piutang sebesar {format_rp(total_piutang)} akan "
+                "memperbaiki arus kas ketika masuk."
             )
         else:
             st.error(

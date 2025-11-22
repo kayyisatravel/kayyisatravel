@@ -2441,7 +2441,7 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
         st.markdown("## 📘 Laporan Laba Rugi (Berdasarkan Filter)")
     
         # Pendapatan (Masuk)
-        pendapatan_filtered = df_filtered[df_filtered["Tipe"]=="Masuk"]["Jumlah"].sum()
+        pendapatan_filtered = df_data[df_data["Tanggal"].between(start,end)]["Harga Jual"].sum()
     
         # HPP / Modal
         hpp_filtered = df_filtered[

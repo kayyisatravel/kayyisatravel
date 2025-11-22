@@ -2130,7 +2130,7 @@ def parse_cashflow_from_data(df_data, df_cashflow_existing):
 
             # NEW COLUMNS
             "Sumber Dana": group["Sumber Dana"].iloc[0],
-            "Detail Dana": detail_dana,
+            "Detail Dana": group["Detail Dana"].iloc[0],
             "Platform": platform
         })
 
@@ -2152,8 +2152,8 @@ def parse_cashflow_from_data(df_data, df_cashflow_existing):
                 "Nama Pemesan": nama_pemesan,
                 "Invoice_Key": key,
 
-                "Sumber Dana": "Customer",
-                "Detail Dana": "-",
+                "Sumber Dana": sumber_dana_form,
+                "Detail Dana": detail_dana_form,
                 "Platform": platform
             })
 

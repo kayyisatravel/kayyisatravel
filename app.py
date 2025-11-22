@@ -1666,12 +1666,19 @@ with st.expander("💾 Database Pemesan", expanded=False):
         # Tampilkan notifikasi di sidebar
         with st.sidebar:
             st.markdown("---")
-            st.markdown("### 💰 Belum dibuatkan Invoice")
-            st.info(f"Total penjualan tanpa invoice: **Rp {total_uninvoice:,.0f}**")
-            if total_uninvoice >= 25_000_000:
-                st.success("✅ Sudah mencapai 25 juta")
-            elif total_uninvoice >= 23_000_000:
-                st.warning("⚠️ Hampir mencapai 25 juta")
+            
+            # Greeting profesional di sidebar
+            st.markdown("""
+            <div style="padding: 10px; border-radius: 10px; background-color: #34495e; color: #ecf0f1; margin-bottom: 20px;">
+                <h3 style="color:#f39c12; margin-bottom:5px;">Selamat Datang di Management Dashboard | Kayyisa Tour & Travel</h3>
+                <p style="font-size:0.9em; margin:0 0 10px 0;">
+                Platform ini memberikan visibilitas penuh atas kinerja bisnis perusahaan, menyatukan data keuangan dan operasional dalam satu tampilan yang mudah dipahami, sehingga memungkinkan strategi yang lebih efisien dan tepat sasaran.
+                </p>
+                <p style="font-size:0.9em; margin:0;">
+                Sistem ini dirancang untuk memudahkan manajemen operasional dan keuangan perusahaan, memberikan informasi secara real-time, serta mendukung pengambilan keputusan yang cepat dan tepat untuk pertumbuhan bisnis yang berkelanjutan.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
 
 # === Tombol Aksi ===
         col_pdf, col_excel, col_email = st.columns(3)

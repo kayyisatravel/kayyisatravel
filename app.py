@@ -2623,6 +2623,36 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     col_cf3.metric("Cashflow Pendanaan", format_rp(cf_pendanaan))
     col_cf4.metric("Total Cashflow", format_rp(cf_total))
 
+    st.markdown("""
+    **Cashflow Statement** menjelaskan dari mana uang datang dan ke mana uang pergi.
+
+    ### 🔹 1. Cashflow Operasional  
+    Uang dari aktivitas utama bisnis:  
+    - Penjualan  
+    - Pembayaran customer  
+    - Pengeluaran operasional  
+
+    Jika angkanya **positif**, bisnis menghasilkan uang dari aktivitas rutin.  
+    Jika **negatif**, operasional menyedot kas.
+
+    ### 🔹 2. Cashflow Investasi  
+    Terkait pembelian aset (inventaris, peralatan).  
+    Biasanya NEGATIF (karena beli aset).
+
+    ### 🔹 3. Cashflow Pendanaan  
+    Terkait hutang & tambahan modal.  
+    Contoh: bayar cicilan kartu kredit.
+
+    ### 🔹 4. Total Cashflow  
+    Perubahan kas dalam periode tersebut.
+    """)
+
+    # INTERPRETASI OTOMATIS
+    if cf_operasional < 0:
+        st.error("Cashflow operasional negatif — bisnis tidak menghasilkan uang dari aktivitas utama.")
+    else:
+        st.success("Cashflow operasional positif — bisnis sehat secara arus kas.")
+    
     # =====================================================
     # 🔍 Insight Keuangan Tambahan
     # =====================================================
@@ -2642,9 +2672,6 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     
     if operasional_filtered > pendapatan_filtered * 0.7:
         st.warning("📉 Beban operasional >70% dari pendapatan. Efisiensi perlu ditingkatkan.")
-
-
-
 
 
     

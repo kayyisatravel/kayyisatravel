@@ -2262,6 +2262,23 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         df_cashflow_combined = pd.concat([df_cashflow_combined, pd.DataFrame(st.session_state.cashflow_manual)], ignore_index=True)
     st.session_state.df_cashflow = df_cashflow_combined
 
+    df_cc_hutang = df_cashflow_combined[
+        (df_cashflow_combined["Kategori"].str.contains("Credit Card", na=False)) &
+        (df_cashflow_combined["Tipe"]=="Keluar")
+    ]
+    df_cc_bayar = df_cashflow_combined[
+        (df_cashflow_combined["Kategori"].str.contains("Credit Card", na=False)) &
+        (df_cashflow_combined["Tipe"]=="Masuk")
+    ]
+    sisa_hutang_cc = df_cc_hutang["Jumlah"].sum() - df_cc_bayar["Jumlah"].sum()
+    st.info(f"💳 Sisa Hutang CC: {format_rp(sisa_hutang_cc)}")
+
+    df_masuk = df_cashflow_combined[df_cashflow_combined["Tipe"]=="Masuk"]
+    kas_per_sumber = df_masuk.groupby(["Sumber Dana","Detail Dana"])["Jumlah"].sum().reset_index()
+    
+    st.markdown("**💰 Kas Masuk per Bank / E-Wallet**")
+    st.dataframe(kas_per_sumber)
+    
     df_cashflow = st.session_state.df_cashflow
     if "Tanggal" in df_cashflow.columns:
         df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors='coerce')

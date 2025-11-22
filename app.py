@@ -2280,8 +2280,8 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     df_masuk = df_cashflow_combined[df_cashflow_combined["Tipe"]=="Masuk"]
     kas_per_sumber = df_masuk.groupby(["Sumber Dana","Detail Dana"])["Jumlah"].sum().reset_index()
     
-    st.markdown("**💰 Kas Masuk per Bank / E-Wallet**")
-    st.dataframe(kas_per_sumber)
+    #st.markdown("**💰 Kas Masuk per Bank / E-Wallet**")
+    #st.dataframe(kas_per_sumber)
     
     df_cashflow = st.session_state.df_cashflow
     if "Tanggal" in df_cashflow.columns:

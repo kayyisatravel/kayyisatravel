@@ -2275,7 +2275,22 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         (df_cashflow_combined["Tipe"]=="Masuk")
     ]
     sisa_hutang_cc = df_cc_hutang["Jumlah"].sum() - df_cc_bayar["Jumlah"].sum()
-    st.info(f"💳 Sisa Hutang CC: {format_rp(sisa_hutang_cc)}")
+    st.markdown(
+        f"""
+        <div style="
+            background-color:#d9edf7;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 5px solid #31708f;
+            text-align: center;
+            font-weight: bold;
+            color: #31708f;
+        ">
+            💳 Sisa Hutang CC: {format_rp(sisa_hutang_cc)}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     df_masuk = df_cashflow_combined[df_cashflow_combined["Tipe"]=="Masuk"]
     kas_per_sumber = df_masuk.groupby(["Sumber Dana","Detail Dana"])["Jumlah"].sum().reset_index()

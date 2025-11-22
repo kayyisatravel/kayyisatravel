@@ -2282,9 +2282,11 @@ with st.expander("💸 Laporan Cashflow Realtime"):
             padding: 15px;
             border-radius: 5px;
             border-left: 5px solid #31708f;
+            border-right: 5px solid #31708f;
             text-align: center;
             font-weight: bold;
             color: #31708f;
+            font-size: 24px;
         ">
             💳 Sisa Hutang CC: {format_rp(sisa_hutang_cc)}
         </div>

@@ -3021,6 +3021,7 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     def highlight_overdue(row):
         return ["background-color: #FF9999" if row.Overdue else "" for _ in row]
     
+with st.expander("⏳ Aging Report / Invoice Belum Lunas"):
     st.markdown("### ⏳ Aging Report / Invoice Belum Lunas")
     st.dataframe(df_aging.style.apply(highlight_overdue, axis=1), use_container_width=True)
 

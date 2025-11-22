@@ -2320,49 +2320,7 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         st.warning("📉 Pengeluaran lebih besar dari pemasukan bulan ini.")
     else:
         st.success("🟢 Cashflow sehat. Arus kas berjalan stabil.")
-
-    # =====================================================
-    # 📘 LAPORAN LABA RUGI (INCOME STATEMENT)
-    # =====================================================
-    
-    required_cols = ["Tipe", "Jumlah", "Kategori"]
-    
-    if (
-        'df_filtered' in locals() or 'df_filtered' in globals()
-    ) and all(col in df_filtered.columns for col in required_cols):
-    
-        st.markdown("## 📘 Laporan Laba Rugi (Berdasarkan Filter)")
-    
-        # Pendapatan (Masuk)
-        pendapatan_filtered = df_filtered[df_filtered["Tipe"]=="Masuk"]["Jumlah"].sum()
-    
-        # HPP / Modal
-        hpp_filtered = df_filtered[
-            df_filtered["Kategori"].str.contains("Penjualan", na=False)
-        ]["Jumlah"].sum()
-    
-        # Beban Operasional (kategori keluar selain modal)
-        operasional_filtered = df_filtered[
-            (df_filtered["Tipe"]=="Keluar") &
-            (~df_filtered["Kategori"].str.contains("Penjualan", na=False))
-        ]["Jumlah"].sum()
-    
-        laba_kotor = pendapatan_filtered - hpp_filtered
-        laba_bersih = laba_kotor - operasional_filtered
-    
-        col_laba1, col_laba2 = st.columns(2)
-        col_laba1.metric("Pendapatan", format_rp(pendapatan_filtered))
-        col_laba2.metric("HPP / Modal", format_rp(hpp_filtered))
-    
-        col_laba3, col_laba4 = st.columns(2)
-        col_laba3.metric("Beban Operasional", format_rp(operasional_filtered))
-        col_laba4.metric("Laba Bersih", format_rp(laba_bersih))
-    
-    else:
-        st.warning("Laporan Laba Rugi tidak dapat ditampilkan — data belum lengkap.")
-
-
-    
+ 
     st.markdown("### 🔧 Filter Cashflow")
 
     # Pastikan kolom Bulan/Tahun tersedia
@@ -2470,7 +2428,45 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         use_container_width=True,
         height=500
     )
-
+    # =====================================================
+    # 📘 LAPORAN LABA RUGI (INCOME STATEMENT)
+    # =====================================================
+    
+    required_cols = ["Tipe", "Jumlah", "Kategori"]
+    
+    if (
+        'df_filtered' in locals() or 'df_filtered' in globals()
+    ) and all(col in df_filtered.columns for col in required_cols):
+    
+        st.markdown("## 📘 Laporan Laba Rugi (Berdasarkan Filter)")
+    
+        # Pendapatan (Masuk)
+        pendapatan_filtered = df_filtered[df_filtered["Tipe"]=="Masuk"]["Jumlah"].sum()
+    
+        # HPP / Modal
+        hpp_filtered = df_filtered[
+            df_filtered["Kategori"].str.contains("Penjualan", na=False)
+        ]["Jumlah"].sum()
+    
+        # Beban Operasional (kategori keluar selain modal)
+        operasional_filtered = df_filtered[
+            (df_filtered["Tipe"]=="Keluar") &
+            (~df_filtered["Kategori"].str.contains("Penjualan", na=False))
+        ]["Jumlah"].sum()
+    
+        laba_kotor = pendapatan_filtered - hpp_filtered
+        laba_bersih = laba_kotor - operasional_filtered
+    
+        col_laba1, col_laba2 = st.columns(2)
+        col_laba1.metric("Pendapatan", format_rp(pendapatan_filtered))
+        col_laba2.metric("HPP / Modal", format_rp(hpp_filtered))
+    
+        col_laba3, col_laba4 = st.columns(2)
+        col_laba3.metric("Beban Operasional", format_rp(operasional_filtered))
+        col_laba4.metric("Laba Bersih", format_rp(laba_bersih))
+    
+    else:
+        st.warning("Laporan Laba Rugi tidak dapat ditampilkan — data belum lengkap.")
 
     #st.markdown("### 🔍 Data Cashflow Realtime")
     #if "Tanggal" in df_cashflow.columns:

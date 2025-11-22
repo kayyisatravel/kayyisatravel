@@ -2715,7 +2715,7 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     # =====================================================
     # 📙 CASHFLOW STATEMENT
     # =====================================================
-    st.markdown("## 📙 Cashflow Statement (Berdasarkan Filter)")
+    st.markdown("## 📙 Cashflow Statement")
     
     # Mapping kategori sederhana
     operasional_kat = [
@@ -2768,12 +2768,16 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     cf_total = cf_operasional + cf_investasi + cf_pendanaan
     
     col_cf1, col_cf2 = st.columns(2)
-    col_cf1.metric("Cashflow Operasional", format_rp(cf_operasional))
-    col_cf2.metric("Cashflow Investasi", format_rp(cf_investasi))
+    with col_cf1:
+        metric_card("💼 Cashflow Operasional", format_rp(cf_operasional))
+    with col_cf2:
+        metric_card("🏗️ Cashflow Investasi", format_rp(cf_investasi))
     
     col_cf3, col_cf4 = st.columns(2)
-    col_cf3.metric("Cashflow Pendanaan", format_rp(cf_pendanaan))
-    col_cf4.metric("Total Cashflow", format_rp(cf_total))
+    with col_cf3:
+        metric_card("🏦 Cashflow Pendanaan", format_rp(cf_pendanaan))
+    with col_cf4:
+        metric_card("📊 Total Cashflow", format_rp(cf_total))
 
     # INTERPRETASI OTOMATIS
     # Interpretasi Cashflow Operasional

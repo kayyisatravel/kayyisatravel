@@ -578,7 +578,7 @@ with col1:
     )
 
 with col2:
-    st.image(logo_path, width=150)  # ganti URL dengan logo lokal
+    st.image(logo_path, width=200)  # ganti URL dengan logo lokal
 
 # Garis horizontal
 st.markdown("""<hr style="border-top: 1px solid #7f8c8d;">""", unsafe_allow_html=True)

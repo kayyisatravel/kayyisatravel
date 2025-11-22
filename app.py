@@ -2431,7 +2431,7 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     # =====================================================
     # 📘 LAPORAN LABA RUGI (INCOME STATEMENT)
     # =====================================================
-    
+with st.expander("📘 Laporan Laba/Rugi - Neraca"):    
     required_cols = ["Tipe", "Jumlah", "Kategori"]
     
     if (

@@ -2467,7 +2467,131 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     
     else:
         st.warning("Laporan Laba Rugi tidak dapat ditampilkan — data belum lengkap.")
+        
+    # =====================================================
+    # 📗 NERACA SEDERHANA (BALANCE SHEET)
+    # =====================================================
+    st.markdown("## 📗 Neraca Sederhana")
+    
+    # Aset
+    aset_kas = saldo
+    aset_piutang = total_piutang
+    aset_total = aset_kas + aset_piutang
+    
+    # Hutang diambil dari cashflow (kategori yang termasuk hutang)
+    hutang_kategori = [
+        "Pembayaran Pinjaman (Hutang/Credit Card)",
+        "Penjualan (Credit Card)"  # jika ingin dihitung sebagai kewajiban
+    ]
+    
+    hutang_total = df_cashflow[
+        df_cashflow["Kategori"].isin(hutang_kategori)
+    ]["Jumlah"].sum()
+    
+    modal = aset_total - hutang_total
+    
+    col_n1, col_n2 = st.columns(2)
+    
+    with col_n1:
+        st.markdown("### **Aset**")
+        st.write("Kas:", format_rp(aset_kas))
+        st.write("Piutang:", format_rp(aset_piutang))
+        st.markdown("**Total Aset:** " + format_rp(aset_total))
+    
+    with col_n2:
+        st.markdown("### **Kewajiban & Modal**")
+        st.write("Total Hutang:", format_rp(hutang_total))
+        st.write("Modal:", format_rp(modal))
+        st.markdown("**Total Pasiva:** " + format_rp(hutang_total + modal))
 
+    # =====================================================
+    # 📙 CASHFLOW STATEMENT
+    # =====================================================
+    st.markdown("## 📙 Cashflow Statement (Berdasarkan Filter)")
+    
+    # Mapping kategori sederhana
+    operasional_kat = [
+        "Pembayaran Customer",
+        "Penjualan (Cash/Tunai)",
+        "Penjualan (Credit Card)",
+        "Penjualan (Redeem Points)",
+        "Gaji Karyawan",
+        "Operasional Kantor",
+        "Marketing & Promosi",
+        "Pajak dan Biaya Lainnya",
+        "Kerugian Salah Order",
+        "Kerugian Pembatalan",
+        "Kerugian Kerusakan / Rusak",
+        "Kerugian Lainnya"
+    ]
+    
+    investasi_kat = [
+        "Pembelian Aset", "Peralatan", "Inventaris"   # jika nanti digunakan
+    ]
+    
+    pendanaan_kat = [
+        "Pembayaran Pinjaman (Hutang/Credit Card)",
+        "Penambahan Modal",
+        "Pinjaman Masuk"
+    ]
+    
+    def cf_sum(df, tipe, categories):
+        return df[
+            (df["Kategori"].isin(categories)) &
+            (df["Tipe"] == tipe)
+        ]["Jumlah"].sum()
+    
+    # Operasional
+    ops_masuk = cf_sum(df_filtered, "Masuk", operasional_kat)
+    ops_keluar = cf_sum(df_filtered, "Keluar", operasional_kat)
+    cf_operasional = ops_masuk - ops_keluar
+    
+    # Investasi
+    inv_masuk = cf_sum(df_filtered, "Masuk", investasi_kat)
+    inv_keluar = cf_sum(df_filtered, "Keluar", investasi_kat)
+    cf_investasi = inv_masuk - inv_keluar
+    
+    # Pendanaan
+    fund_masuk = cf_sum(df_filtered, "Masuk", pendanaan_kat)
+    fund_keluar = cf_sum(df_filtered, "Keluar", pendanaan_kat)
+    cf_pendanaan = fund_masuk - fund_keluar
+    
+    # Total Cashflow
+    cf_total = cf_operasional + cf_investasi + cf_pendanaan
+    
+    col_cf1, col_cf2 = st.columns(2)
+    col_cf1.metric("Cashflow Operasional", format_rp(cf_operasional))
+    col_cf2.metric("Cashflow Investasi", format_rp(cf_investasi))
+    
+    col_cf3, col_cf4 = st.columns(2)
+    col_cf3.metric("Cashflow Pendanaan", format_rp(cf_pendanaan))
+    col_cf4.metric("Total Cashflow", format_rp(cf_total))
+
+    # =====================================================
+    # 🔍 Insight Keuangan Tambahan
+    # =====================================================
+    st.markdown("## 🔍 Insight Keuangan Tambahan")
+    
+    if laba_bersih < 0:
+        st.warning("⚠️ Laba bersih negatif. Perlu mengevaluasi harga jual atau biaya operasional.")
+    
+    if cf_operasional < 0:
+        st.error("🔥 Cashflow operasional negatif. Bisnis tidak menghasilkan uang dari kegiatan utama.")
+    
+    if aset_piutang > aset_kas:
+        st.warning("🟡 Piutang lebih besar dari kas. Potensi macetnya arus kas jangka pendek.")
+    
+    if hutang_total > aset_kas:
+        st.error("⚠️ Hutang lebih besar dari kas. Perlu strategi pembayaran hutang.")
+    
+    if operasional_filtered > pendapatan_filtered * 0.7:
+        st.warning("📉 Beban operasional >70% dari pendapatan. Efisiensi perlu ditingkatkan.")
+
+
+
+
+
+    
     #st.markdown("### 🔍 Data Cashflow Realtime")
     #if "Tanggal" in df_cashflow.columns:
      #   df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors='coerce')

@@ -2467,7 +2467,21 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     
     else:
         st.warning("Laporan Laba Rugi tidak dapat ditampilkan — data belum lengkap.")
-    
+        
+    # INTERPRETASI OTOMATIS
+    if laba_bersih > 0:
+        st.success(f"Bisnis **untung**, karena laba bersih = {format_rp(laba_bersih)}.")
+    elif laba_bersih == 0:
+        st.info("Bisnis berada di titik impas (break even). Tidak untung, tidak rugi.")
+    elif laba_bersih < 0 and total_piutang > abs(laba_bersih):
+        st.info(
+            f"Laba bersih periode ini terlihat negatif karena sebagian besar pendapatan "
+            f"masih dalam bentuk piutang sebesar {format_rp(total_piutang)}. "
+            "Jika piutang tersebut dibayar, laba akan berbalik positif."
+        )
+    else:
+        st.error(f"Bisnis **rugi**, karena laba bersih = {format_rp(laba_bersih)}.")
+        
     st.markdown("""
     **Laporan Laba Rugi** menunjukkan apakah bisnis *untung atau rugi* dalam periode yang Anda pilih.
 
@@ -2489,20 +2503,6 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     **🔹 Laba Bersih = Pendapatan – HPP – Operasional**  
     Angka ini menunjukkan **keuntungan bersih** yang benar-benar menjadi milik bisnis.
     """)
-
-    # INTERPRETASI OTOMATIS
-    if laba_bersih > 0:
-        st.success(f"Bisnis **untung**, karena laba bersih = {format_rp(laba_bersih)}.")
-    elif laba_bersih == 0:
-        st.info("Bisnis berada di titik impas (break even). Tidak untung, tidak rugi.")
-    elif laba_bersih < 0 and total_piutang > abs(laba_bersih):
-        st.info(
-            f"Laba bersih periode ini terlihat negatif karena sebagian besar pendapatan "
-            f"masih dalam bentuk piutang sebesar {format_rp(total_piutang)}. "
-            "Jika piutang tersebut dibayar, laba akan berbalik positif."
-        )
-    else:
-        st.error(f"Bisnis **rugi**, karena laba bersih = {format_rp(laba_bersih)}.")
   
     # =====================================================
     # 📗 NERACA SEDERHANA (BALANCE SHEET)
@@ -2540,6 +2540,12 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
         st.write("Modal:", format_rp(modal))
         st.markdown("**Total Pasiva:** " + format_rp(hutang_total + modal))
 
+    # INTERPRETASI OTOMATIS
+    if hutang_total > aset_kas:
+        st.error("Hutang lebih besar dari kas. Perlu hati-hati dalam pengelolaan arus kas.")
+    else:
+        st.success("Struktur keuangan aman: hutang masih dalam batas jual beli normal.")
+
     st.markdown("""
     **Neraca** menggambarkan posisi kesehatan keuangan Anda saat ini.
 
@@ -2559,12 +2565,6 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     **Rumus:**  
     👉 ASET = HUTANG + MODAL
     """)
-
-    # INTERPRETASI OTOMATIS
-    if hutang_total > aset_kas:
-        st.error("Hutang lebih besar dari kas. Perlu hati-hati dalam pengelolaan arus kas.")
-    else:
-        st.success("Struktur keuangan aman: hutang masih dalam batas jual beli normal.")
     
     # =====================================================
     # 📙 CASHFLOW STATEMENT
@@ -2629,6 +2629,12 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     col_cf3.metric("Cashflow Pendanaan", format_rp(cf_pendanaan))
     col_cf4.metric("Total Cashflow", format_rp(cf_total))
 
+    # INTERPRETASI OTOMATIS
+    if cf_operasional < 0:
+        st.error("Cashflow operasional negatif — bisnis tidak menghasilkan uang dari aktivitas utama.")
+    else:
+        st.success("Cashflow operasional positif — bisnis sehat secara arus kas.")
+
     st.markdown("""
     **Cashflow Statement** menjelaskan dari mana uang datang dan ke mana uang pergi.
 
@@ -2653,11 +2659,6 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     Perubahan kas dalam periode tersebut.
     """)
 
-    # INTERPRETASI OTOMATIS
-    if cf_operasional < 0:
-        st.error("Cashflow operasional negatif — bisnis tidak menghasilkan uang dari aktivitas utama.")
-    else:
-        st.success("Cashflow operasional positif — bisnis sehat secara arus kas.")
     
     # =====================================================
     # 🔍 Insight Keuangan Tambahan

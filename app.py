@@ -528,6 +528,9 @@ def save_gsheet(df: pd.DataFrame):
 
 
 
+import streamlit as st
+import os
+
 # --- TAMPILAN UTAMA ---
 # CSS custom
 st.markdown("""
@@ -558,17 +561,28 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Path logo lokal
+logo_path = os.path.join("assets", "Logo Perusahaan.jpeg")
+
 # Layout: 2 kolom
 col1, col2 = st.columns([2, 1])
 
 with col1:
-    st.markdown('<div class="main-header">Management Dashboard |<span class="highlight">Kayyisa Tour & Travel</span></div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Business Management System</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="main-header">Management Dashboard |<span class="highlight">Kayyisa Tour & Travel</span></div>', 
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        '<div class="sub-header">Business Management System</div>', 
+        unsafe_allow_html=True
+    )
 
 with col2:
-    st.image("https://www.pngmart.com/files/17/Travel-Icon-PNG-Image.png", width=150)
+    st.image(logo_path, width=150)  # ganti URL dengan logo lokal
 
+# Garis horizontal
 st.markdown("""<hr style="border-top: 1px solid #7f8c8d;">""", unsafe_allow_html=True)
+
 #with st.sidebar:
     
 # --- SECTION 1: UPLOAD & OCR ---

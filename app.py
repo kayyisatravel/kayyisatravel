@@ -2495,6 +2495,12 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
         st.success(f"Bisnis **untung**, karena laba bersih = {format_rp(laba_bersih)}.")
     elif laba_bersih == 0:
         st.info("Bisnis berada di titik impas (break even). Tidak untung, tidak rugi.")
+    elif laba_bersih < 0 and total_piutang > abs(laba_bersih):
+        st.info(
+            f"Laba bersih periode ini terlihat negatif karena sebagian besar pendapatan "
+            f"masih dalam bentuk piutang sebesar {format_rp(total_piutang)}. "
+            "Jika piutang tersebut dibayar, laba akan berbalik positif."
+        )
     else:
         st.error(f"Bisnis **rugi**, karena laba bersih = {format_rp(laba_bersih)}.")
   

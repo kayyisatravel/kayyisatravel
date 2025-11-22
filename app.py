@@ -2518,7 +2518,7 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
         'df_filtered' in locals() or 'df_filtered' in globals()
     ) and all(col in df_filtered.columns for col in required_cols):
     
-        st.markdown("## 📘 Laporan Laba Rugi (Berdasarkan Filter)")
+        st.markdown("## 📘 Laporan Laba Rugi")
     
         # Pendapatan (Masuk)
         pendapatan_filtered = df_filtered[df_filtered["Tipe"]=="Masuk"]["Jumlah"].sum()
@@ -2610,19 +2610,68 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     
     modal = aset_total - hutang_total
     
-    col_n1, col_n2 = st.columns(2)
+    balance_style = """
+    <style>
+    .bs-card {
+        background: #ffffff;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        margin-bottom: 15px;
+        border: 1px solid #e6e6e6;
+    }
     
+    .bs-title {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        color: #333;
+    }
+    
+    .bs-item {
+        font-size: 16px;
+        margin: 6px 0;
+        color: #444;
+    }
+    
+    .bs-total {
+        margin-top: 12px;
+        font-size: 18px;
+        font-weight: 700;
+        color: #111;
+    }
+    </style>
+    """
+    st.markdown(balance_style, unsafe_allow_html=True)
+    col_n1, col_n2 = st.columns(2)
+
     with col_n1:
-        st.markdown("### **Aset**")
-        st.write("Kas:", format_rp(aset_kas))
-        st.write("Piutang:", format_rp(aset_piutang))
-        st.markdown("**Total Aset:** " + format_rp(aset_total))
+        st.markdown(
+            f"""
+            <div class="bs-card">
+                <div class="bs-title">📦 Aset</div>
+                <div class="bs-item">Kas: {format_rp(aset_kas)}</div>
+                <div class="bs-item">Piutang: {format_rp(aset_piutang)}</div>
+                <div class="bs-total">Total Aset: {format_rp(aset_total)}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
     
     with col_n2:
-        st.markdown("### **Kewajiban & Modal**")
-        st.write("Total Hutang:", format_rp(hutang_total))
-        st.write("Modal:", format_rp(modal))
-        st.markdown("**Total Pasiva:** " + format_rp(hutang_total + modal))
+        st.markdown(
+            f"""
+            <div class="bs-card">
+                <div class="bs-title">🏛️ Kewajiban & Modal</div>
+                <div class="bs-item">Total Hutang: {format_rp(hutang_total)}</div>
+                <div class="bs-item">Modal: {format_rp(modal)}</div>
+                <div class="bs-total">Total Pasiva: {format_rp(hutang_total + modal)}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
 
     # INTERPRETASI OTOMATIS
     if hutang_total > aset_kas:

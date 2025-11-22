@@ -2538,12 +2538,16 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
         laba_bersih = laba_kotor - operasional_filtered
     
         col_laba1, col_laba2 = st.columns(2)
-        col_laba1.metric("Pendapatan", format_rp(pendapatan_filtered))
-        col_laba2.metric("HPP / Modal", format_rp(hpp_filtered))
-    
+        with col_laba1:
+            metric_card("📈 Pendapatan", format_rp(pendapatan_filtered))
+        with col_laba2:
+            metric_card("📉 HPP / Modal", format_rp(hpp_filtered))
+        
         col_laba3, col_laba4 = st.columns(2)
-        col_laba3.metric("Beban Operasional", format_rp(operasional_filtered))
-        col_laba4.metric("Laba Bersih", format_rp(laba_bersih))
+        with col_laba3:
+            metric_card("💼 Beban Operasional", format_rp(operasional_filtered))
+        with col_laba4:
+            metric_card("💰 Laba Bersih", format_rp(laba_bersih))
     
     else:
         st.warning("Laporan Laba Rugi tidak dapat ditampilkan — data belum lengkap.")

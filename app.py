@@ -2542,9 +2542,22 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
 
     # INTERPRETASI OTOMATIS
     if hutang_total > aset_kas:
-        st.error("Hutang lebih besar dari kas. Perlu hati-hati dalam pengelolaan arus kas.")
+        if total_piutang > (hutang_total - aset_kas):
+            st.info(
+                f"Kas saat ini lebih kecil dari total hutang, namun sebagian besar pendapatan "
+                f"masih dalam bentuk piutang sebesar {format_rp(total_piutang)}. "
+                "Setelah piutang diterima, kas akan cukup untuk menutupi kewajiban."
+            )
+        else:
+            st.error(
+                "Kas lebih kecil dari total hutang dan piutang tidak cukup menutupi kekurangannya. "
+                "Perlu hati-hati dalam pengelolaan arus kas dan prioritas pembayaran."
+            )
     else:
-        st.success("Struktur keuangan aman: hutang masih dalam batas jual beli normal.")
+        st.success(
+            "Struktur keuangan aman: kas saat ini mencukupi untuk menutup hutang jangka pendek."
+        )
+
 
     st.markdown("""
     **Neraca** menggambarkan posisi kesehatan keuangan Anda saat ini.

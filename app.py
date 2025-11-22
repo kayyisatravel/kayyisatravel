@@ -2492,8 +2492,12 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     total_masuk_filtered = df_filtered[df_filtered["Tipe"]=="Masuk"]["Jumlah"].sum()
     total_keluar_filtered = df_filtered[df_filtered["Tipe"]=="Keluar"]["Jumlah"].sum()
     
-    col_total1.metric("💰 Total Masuk (Filtered)", format_rp(total_masuk_filtered))
-    col_total2.metric("📤 Total Keluar (Filtered)", format_rp(total_keluar_filtered))
+    with col_total1:
+        metric_card("💰 Total Masuk (Filtered)", format_rp(total_masuk_filtered))
+    
+    with col_total2:
+        metric_card("📤 Total Keluar (Filtered)", format_rp(total_keluar_filtered))
+
     
     # -----------------------------
     # 6️⃣ Tabel Detail Transaksi

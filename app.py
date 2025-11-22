@@ -30,7 +30,7 @@ now = datetime.now(ZoneInfo("Asia/Jakarta"))
 
 #refresh
 # --- PAGE CONFIG ---
-st.set_page_config(page_title="OCR & Dashboard Tiket", layout="centered")
+st.set_page_config(page_title="OCR & Dashboard Tiket", layout="centered", initial_sidebar_state="expanded")
 
 # --- CACHE RESOURCES ---
 @st.cache_resource

@@ -2690,7 +2690,7 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     # =============================
     # 🔍 Insight Keuangan Tambahan
     # =============================
-    st.markdown("**Insight Keuangan Tambahan**")
+    st.markdown("## Kesimpulan")
     
     # 1️⃣ Laba Bersih
     if laba_bersih < 0:

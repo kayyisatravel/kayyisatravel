@@ -2092,20 +2092,18 @@ def parse_cashflow_from_data(df_data, df_cashflow_existing,
                   else "Lunas")
 
         # =====================================================
-        # 🔥 1) KELUAR = modal (ambil dari data asli, tetap sama)
+        # 🔥 1) Hitung KELUAR: MODAL 
         # =====================================================
-        sumber_dana_keluar = group["Sumber Dana"].iloc[0]
-        detail_dana_keluar = group["Detail Dana"].iloc[0]
 
-        sumber_dana_lower = sumber_dana_keluar.lower()
-        if "credit" in sumber_dana_lower or "cc" in sumber_dana_lower or "kartu" in sumber_dana_lower:
-            kategori_modal = "Penjualan (Credit Card)"
-        elif "redeem" in sumber_dana_lower or "point" in sumber_dana_lower:
+        if "credit" in sumber_dana or "cc" in sumber_dana or "kartu" in sumber_dana:
+            kategori_modal = "Penjualan (Credit Card)"   # 💳 hutang CC
+        elif "redeem" in sumber_dana or "point" in sumber_dana:
             kategori_modal = "Penjualan (Redeem Points)"
-            total_modal = 0
+            total_modal = 0               # Tidak keluar uang
         else:
-            kategori_modal = "Penjualan (Cash/Tunai)"
+            kategori_modal = "Penjualan (Cash/Tunai)"  # Existing logic
 
+        # Keluar = modal
         cashflow_rows.append({
             "Tanggal": tgl,
             "Tipe": "Keluar",
@@ -2118,13 +2116,15 @@ def parse_cashflow_from_data(df_data, df_cashflow_existing,
             "Sumber": "Data Otomatis",
             "Nama Pemesan": nama_pemesan,
             "Invoice_Key": key,
-            "Sumber Dana": sumber_dana_keluar,
-            "Detail Dana": detail_dana_keluar,
-            "Platform": group["Platform"].iloc[0]
+
+            # NEW COLUMNS
+            "Sumber Dana": group["Sumber Dana"].iloc[0],
+            "Detail Dana": detail_dana,
+            "Platform": platform
         })
 
         # =====================================================
-        # 🔥 2) MASUK = pembayaran customer (ambil dari form / input)
+        # 🔥 2) Hitung MASUK: Pembayaran Customer (existing logic)
         # =====================================================
         total_sudah_dibayar = total_harga_jual if status=="Lunas" else 0
 
@@ -2140,12 +2140,11 @@ def parse_cashflow_from_data(df_data, df_cashflow_existing,
                 "Sumber": "Data Otomatis",
                 "Nama Pemesan": nama_pemesan,
                 "Invoice_Key": key,
-                "Sumber Dana": sumber_dana_form if sumber_dana_form else "Customer",
-                "Detail Dana": detail_dana_form if detail_dana_form else "-",
-                "Platform": platform_form if platform_form else group["Platform"].iloc[0]
-            })
 
-    return pd.DataFrame(cashflow_rows)
+                "Sumber Dana": "Customer",
+                "Detail Dana": "-",
+                "Platform": platform
+            })
 
 
 

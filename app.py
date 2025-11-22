@@ -2630,10 +2630,25 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     col_cf4.metric("Total Cashflow", format_rp(cf_total))
 
     # INTERPRETASI OTOMATIS
+    # Interpretasi Cashflow Operasional
     if cf_operasional < 0:
-        st.error("Cashflow operasional negatif — bisnis tidak menghasilkan uang dari aktivitas utama.")
+        if total_piutang > abs(cf_operasional):
+            st.info(
+                f"Cashflow operasional periode ini negatif, namun penyebab utamanya adalah "
+                f"banyak pembayaran customer yang belum masuk. Piutang sebesar "
+                f"{format_rp(total_piutang)} akan memperbaiki posisi kas ketika dibayarkan. "
+                "Situasi ini umum terjadi pada bisnis travel yang membayar supplier di awal."
+            )
+        else:
+            st.error(
+                "Cashflow operasional negatif dan tidak ditopang oleh piutang yang besar. "
+                "Perlu dievaluasi apakah pengeluaran terlalu tinggi atau pemasukan terlalu rendah."
+            )
     else:
-        st.success("Cashflow operasional positif — bisnis sehat secara arus kas.")
+        st.success(
+            "Cashflow operasional positif — aktivitas bisnis menghasilkan kas bersih dari operasional."
+        )
+
 
     st.markdown("""
     **Cashflow Statement** menjelaskan dari mana uang datang dan ke mana uang pergi.

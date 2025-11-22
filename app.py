@@ -2549,16 +2549,16 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     st.markdown("""
     **Neraca** menggambarkan posisi kesehatan keuangan Anda saat ini.
 
-    ### 🔸 ASET  
+    **🔸 Aset**  
     Apa yang bisnis MILIKI:  
     - **Kas**: uang yang tersedia sekarang  
     - **Piutang**: uang yang masih harus ditagih ke customer  
 
-    ### 🔸 KEWAJIBAN (Hutang)  
+    **🔸 Kewajiban (Hutang)** 
     Apa yang bisnis HARUS BAYAR ke pihak lain  
     (misal: tagihan kartu kredit, hutang modal, cicilan).
 
-    ### 🔸 MODAL  
+    **🔸 Modal**
     Selisih antara aset dan hutang.  
     Ini menunjukkan **nilai bersih bisnis**.
 
@@ -2638,7 +2638,7 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     st.markdown("""
     **Cashflow Statement** menjelaskan dari mana uang datang dan ke mana uang pergi.
 
-    ### 🔹 1. Cashflow Operasional  
+    **Cashflow Operasional**
     Uang dari aktivitas utama bisnis:  
     - Penjualan  
     - Pembayaran customer  
@@ -2647,15 +2647,15 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     Jika angkanya **positif**, bisnis menghasilkan uang dari aktivitas rutin.  
     Jika **negatif**, operasional menyedot kas.
 
-    ### 🔹 2. Cashflow Investasi  
+    **Cashflow Investasi**
     Terkait pembelian aset (inventaris, peralatan).  
     Biasanya NEGATIF (karena beli aset).
 
-    ### 🔹 3. Cashflow Pendanaan  
+    **Cashflow Pendanaan**  
     Terkait hutang & tambahan modal.  
     Contoh: bayar cicilan kartu kredit.
 
-    ### 🔹 4. Total Cashflow  
+    **Total Cashflow**  
     Perubahan kas dalam periode tersebut.
     """)
 

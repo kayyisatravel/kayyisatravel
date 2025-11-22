@@ -2340,13 +2340,55 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     total_piutang = piutang_total
     df_piutang = pd.DataFrame(list_piutang, columns=["Invoice", "Total", "Terbayar", "Sisa"])
     
-    row1_col1, row1_col2 = st.columns(2)
-    row1_col1.metric("💰 Total Masuk", format_rp(total_masuk))
-    row1_col2.metric("📤 Total Keluar", format_rp(total_keluar))
+    card_style = """
+    <style>
+    .metric-card {
+        background: #ffffff;
+        padding: 18px;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        text-align: center;
+        border: 1px solid #e6e6e6;
+    }
+    .metric-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #555;
+    }
+    .metric-value {
+        font-size: 28px;
+        font-weight: bold;
+        color: #000;
+        margin-top: 6px;
+    }
+    </style>
+    """
+    st.markdown(card_style, unsafe_allow_html=True)
     
-    row2_col1, row2_col2 = st.columns(2)
-    row2_col1.metric("🏦 Saldo Akhir", format_rp(saldo))
-    row2_col2.metric("🧾 Piutang Belum Lunas", format_rp(total_piutang))
+    def metric_card(title, value):
+        st.markdown(
+            f"""
+            <div class="metric-card">
+                <div class="metric-title">{title}</div>
+                <div class="metric-value">{value}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    
+    # ROW 1
+    col1, col2 = st.columns(2)
+    with col1:
+        metric_card("💰 Total Masuk", format_rp(total_masuk))
+    with col2:
+        metric_card("📤 Total Keluar", format_rp(total_keluar))
+    
+    # ROW 2
+    col3, col4 = st.columns(2)
+    with col3:
+        metric_card("🏦 Saldo Akhir", format_rp(saldo))
+    with col4:
+        metric_card("🧾 Piutang Belum Lunas", format_rp(total_piutang))
 
     #st.markdown("## 🔍 Insight Keuangan")
 

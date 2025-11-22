@@ -562,8 +562,8 @@ st.markdown("""
 col1, col2 = st.columns([2, 1])
 
 with col1:
-    st.markdown('<div class="main-header">Dashboard Tiket |<span class="highlight">Kayyisa Tour & Travel</span></div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Input & Simpan Data Pesanan</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">Management Dashboard |<span class="highlight">Kayyisa Tour & Travel</span></div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">Business Management System</div>', unsafe_allow_html=True)
 
 with col2:
     st.image("https://www.pngmart.com/files/17/Travel-Icon-PNG-Image.png", width=150)

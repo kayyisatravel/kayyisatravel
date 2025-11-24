@@ -2054,7 +2054,13 @@ def clean_price_column(col):
 # ---------------------------
 # Parse otomatis cashflow dari Data (FINAL VERSION)
 # ---------------------------
-def parse_cashflow_from_data(df_data, df_cashflow_existing, sumber_dana_input=None, detail_dana_input=None, platform_input=None):
+def parse_cashflow_from_data(
+    df_data, 
+    df_cashflow_existing, 
+    sumber_dana_input=None, 
+    detail_dana_input=None, 
+    platform_input=None
+):
     import pandas as pd
 
     if df_data.empty:
@@ -2068,6 +2074,7 @@ def parse_cashflow_from_data(df_data, df_cashflow_existing, sumber_dana_input=No
     df_data["Harga Beli"] = clean_price_column(df_data.get("Harga Beli", pd.Series([0]*len(df_data))))
     df_data["Harga Jual"] = clean_price_column(df_data.get("Harga Jual", pd.Series([0]*len(df_data))))
 
+    # Pastikan kolom ada
     for col in ["Sumber Dana", "Detail Dana", "Platform"]:
         if col not in df_data.columns:
             df_data[col] = ""
@@ -2077,47 +2084,54 @@ def parse_cashflow_from_data(df_data, df_cashflow_existing, sumber_dana_input=No
     df_data["Keterangan"] = df_data.get("Keterangan", "").astype(str)
     df_data["Nama Pemesan"] = df_data.get("Nama Pemesan", "").astype(str)
 
-    # Invoice_Key
+    # Buat Invoice_Key persis seperti existing
     df_data["Invoice_Key"] = df_data.apply(
-        lambda x: f"{x['Nama Pemesan']}_MANUAL_{x.name}" if x["No Invoice"]=="" else f"{x['Nama Pemesan']}_{x['No Invoice']}",
+        lambda x: f"{x['Nama Pemesan']}_MANUAL_{x.name}" if x["No Invoice"]=="" 
+                  else f"{x['Nama Pemesan']}_{x['No Invoice']}",
         axis=1
     )
 
+    # Ambil existing keys
     existing_keys = set()
     if not df_cashflow_existing.empty:
         df_cashflow_existing["Invoice_Key"] = df_cashflow_existing.apply(
-            lambda x: f"{x.get('Nama Pemesan','')}_MANUAL_{x.name}" if x.get("No Invoice","")=="" else f"{x.get('Nama Pemesan','')}_{x.get('No Invoice','')}",
+            lambda x: f"{x.get('Nama Pemesan','')}_MANUAL_{x.name}" 
+                      if x.get("No Invoice","")=="" 
+                      else f"{x.get('Nama Pemesan','')}_{x.get('No Invoice','')}",
             axis=1
         )
         existing_keys = set(df_cashflow_existing["Invoice_Key"])
 
     cashflow_rows = []
+
     grouped = df_data.groupby("Invoice_Key")
 
     for key, group in grouped:
+
         if key in existing_keys:
             continue
 
+        # Ambil data dasar
         tgl = group["Tgl Pemesanan"].min()
         nama_pemesan = group["Nama Pemesan"].iloc[0]
         invoice_no = group["No Invoice"].iloc[0] if group["No Invoice"].iloc[0] else ""
         total_modal = group["Harga Beli"].sum()
         total_harga_jual = group["Harga Jual"].sum()
 
-        # Status per baris
         status = (
             "Belum Lunas" 
             if invoice_no=="" or any("Belum Lunas" in k for k in group["Keterangan"])
             else "Lunas"
         )
 
+        # Ambil default dari data
         sumber_dana_default = group["Sumber Dana"].iloc[0].strip()
         detail_dana_default = group["Detail Dana"].iloc[0]
         platform_default = group["Platform"].iloc[0]
 
-        # ==============================
-        # 1) KELUAR = modal
-        # ==============================
+        # =====================================================
+        # 🔥 1) KELUAR = modal
+        # =====================================================
         sumber_dana_lower = sumber_dana_default.lower()
         if "credit" in sumber_dana_lower or "cc" in sumber_dana_lower or "kartu" in sumber_dana_lower:
             kategori_modal = "Penjualan (Credit Card)"
@@ -2144,21 +2158,22 @@ def parse_cashflow_from_data(df_data, df_cashflow_existing, sumber_dana_input=No
             "Platform": platform_default
         })
 
-        # ==============================
-        # 2) MASUK = pembayaran customer (hanya baris Lunas)
-        # ==============================
-        df_lunas = group[group["Keterangan"].str.contains("Lunas", case=False, na=False)]
-        for _, row in df_lunas.iterrows():
+        # =====================================================
+        # 🔥 2) MASUK = pembayaran customer
+        # =====================================================
+        total_sudah_dibayar = total_harga_jual if status=="Lunas" else 0
+
+        if total_sudah_dibayar > 0:
             cashflow_rows.append({
-                "Tanggal": row["Tgl Pemesanan"],
+                "Tanggal": tgl,
                 "Tipe": "Masuk",
                 "Kategori": "Pembayaran Customer",
                 "No Invoice": invoice_no,
-                "Keterangan": row["Keterangan"],
-                "Jumlah": row["Harga Jual"],
-                "Status": "Lunas",
+                "Keterangan": "; ".join(group["Keterangan"].unique()),
+                "Jumlah": total_sudah_dibayar,
+                "Status": status,
                 "Sumber": "Data Otomatis",
-                "Nama Pemesan": row["Nama Pemesan"],
+                "Nama Pemesan": nama_pemesan,
                 "Invoice_Key": key,
                 "Sumber Dana": sumber_dana_input if sumber_dana_input else "Customer",
                 "Detail Dana": detail_dana_input if detail_dana_input else "-",
@@ -2166,6 +2181,7 @@ def parse_cashflow_from_data(df_data, df_cashflow_existing, sumber_dana_input=No
             })
 
     return pd.DataFrame(cashflow_rows)
+
 
 
 

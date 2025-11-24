@@ -2104,26 +2104,30 @@ def parse_cashflow_from_data(
 
     cashflow_rows = []
 
-    # ------------------------------------------------
-    # Proses per baris, bukan hanya per Invoice_Key
-    # ------------------------------------------------
-    for idx, row in df_data.iterrows():
+    grouped = df_data.groupby("Invoice_Key")
 
-        key = row["Invoice_Key"]
+    for key, group in grouped:
 
-        # Lewati jika sudah ada di existing cashflow
         if key in existing_keys:
             continue
 
-        tgl = row["Tgl Pemesanan"]
-        nama_pemesan = row["Nama Pemesan"]
-        invoice_no = row["No Invoice"]
-        harga_beli = row["Harga Beli"]
-        harga_jual = row["Harga Jual"]
-        keterangan = row["Keterangan"]
-        sumber_dana_default = row["Sumber Dana"].strip()
-        detail_dana_default = row["Detail Dana"]
-        platform_default = row["Platform"]
+        # Ambil data dasar
+        tgl = group["Tgl Pemesanan"].min()
+        nama_pemesan = group["Nama Pemesan"].iloc[0]
+        invoice_no = group["No Invoice"].iloc[0] if group["No Invoice"].iloc[0] else ""
+        total_modal = group["Harga Beli"].sum()
+        total_harga_jual = group["Harga Jual"].sum()
+
+        status = (
+            "Belum Lunas" 
+            if invoice_no=="" or any("Belum Lunas" in k for k in group["Keterangan"])
+            else "Lunas"
+        )
+
+        # Ambil default dari data
+        sumber_dana_default = group["Sumber Dana"].iloc[0].strip()
+        detail_dana_default = group["Detail Dana"].iloc[0]
+        platform_default = group["Platform"].iloc[0]
 
         # =====================================================
         # 🔥 1) KELUAR = modal
@@ -2133,7 +2137,7 @@ def parse_cashflow_from_data(
             kategori_modal = "Penjualan (Credit Card)"
         elif "redeem" in sumber_dana_lower or "point" in sumber_dana_lower:
             kategori_modal = "Penjualan (Redeem Points)"
-            harga_beli = 0
+            total_modal = 0
         else:
             kategori_modal = "Penjualan (Cash/Tunai)"
 
@@ -2142,10 +2146,10 @@ def parse_cashflow_from_data(
             "Tipe": "Keluar",
             "Kategori": kategori_modal,
             "No Invoice": invoice_no,
-            "Keterangan": keterangan,
-            "Jumlah": harga_beli,
-            "Harga Jual": harga_jual,
-            "Status": "Belum Lunas" if "Belum Lunas" in keterangan else "Lunas",
+            "Keterangan": "; ".join(group["Keterangan"].unique()),
+            "Jumlah": total_modal,
+            "Harga Jual": total_harga_jual,
+            "Status": status,
             "Sumber": "Data Otomatis",
             "Nama Pemesan": nama_pemesan,
             "Invoice_Key": key,
@@ -2155,17 +2159,19 @@ def parse_cashflow_from_data(
         })
 
         # =====================================================
-        # 🔥 2) MASUK = pembayaran customer per baris
+        # 🔥 2) MASUK = pembayaran customer
         # =====================================================
-        if "Lunas" in keterangan:
+        total_sudah_dibayar = total_harga_jual if status=="Lunas" else 0
+
+        if total_sudah_dibayar > 0:
             cashflow_rows.append({
                 "Tanggal": tgl,
                 "Tipe": "Masuk",
                 "Kategori": "Pembayaran Customer",
                 "No Invoice": invoice_no,
-                "Keterangan": keterangan,
-                "Jumlah": harga_jual,
-                "Status": "Lunas",
+                "Keterangan": "; ".join(group["Keterangan"].unique()),
+                "Jumlah": total_sudah_dibayar,
+                "Status": status,
                 "Sumber": "Data Otomatis",
                 "Nama Pemesan": nama_pemesan,
                 "Invoice_Key": key,
@@ -2175,6 +2181,7 @@ def parse_cashflow_from_data(
             })
 
     return pd.DataFrame(cashflow_rows)
+
 
 
 # ---------------------------

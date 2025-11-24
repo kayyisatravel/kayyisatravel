@@ -2400,9 +2400,9 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     # ROW 1
     col1, col2 = st.columns(2)
     with col1:
-        metric_card("💰 Total Masuk", format_rp(total_masuk))
+        metric_card("💰 Total Pemasukan", format_rp(total_masuk))
     with col2:
-        metric_card("📤 Total Keluar", format_rp(total_keluar))
+        metric_card("📤 Total Pengeluaran", format_rp(total_keluar))
     
     # ROW 2
     col3, col4 = st.columns(2)

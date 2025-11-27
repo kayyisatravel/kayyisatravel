@@ -2468,7 +2468,15 @@ with st.expander("💸 Laporan Cashflow Realtime"):
 
     # --- Gabungkan cashflow existing + auto + manual session ---
     if not df_cf_auto.empty:
-        df_cashflow_combined = pd.concat([df_cashflow_existing, df_cf_auto], ignore_index=True) if not df_cashflow_existing.empty else df_cf_auto.copy()
+        df_cashflow_combined = (
+            pd.concat([
+                df_cashflow_existing,
+                df_cf_auto,
+                pd.DataFrame(st.session_state.get("cashflow_manual", []))
+            ], ignore_index=True)
+            .drop_duplicates(subset=["Tanggal","Jumlah","Kategori","Invoice_Key"], keep="last")
+        )
+
     else:
         df_cashflow_combined = df_cashflow_existing.copy() if not df_cashflow_existing.empty else pd.DataFrame()
 
@@ -2496,9 +2504,17 @@ with st.expander("💸 Laporan Cashflow Realtime"):
 
     # --- Hitung sisa hutang per akun (liabilities) ---
     if not df_liabilities_combined.empty:
-        summary_hutang = df_liabilities_combined.groupby("Akun", dropna=False)["Jumlah"].sum().reset_index()
+        df_liabilities_combined["Jumlah"] = df_liabilities_combined["Jumlah"].astype(float)
+    
+        summary_hutang = (
+            df_liabilities_combined
+            .groupby("Akun", as_index=False)
+            .agg({"Jumlah":"sum"})
+            .query("Jumlah != 0")
+        )
     else:
         summary_hutang = pd.DataFrame(columns=["Akun","Jumlah"])
+
 
     # --- Hitung cash-only flows (exclude Keluar yang sebenarnya adalah CC purchases) ---
     # Strategy: exclude 'Keluar' rows where Sumber Dana indicates credit/cc/kartu
@@ -2516,8 +2532,8 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         df_cash_only["Tanggal"].fillna(pd.Timestamp.today(), inplace=True)
 
     # --- Hitung totals dari cash-only ---
-    total_masuk = df_cash_only[df_cash_only.get("Tipe","")=="Masuk"]["Jumlah"].sum() if not df_cash_only.empty else 0.0
-    total_keluar = df_cash_only[df_cash_only.get("Tipe","")=="Keluar"]["Jumlah"].sum() if not df_cash_only.empty else 0.0
+    total_masuk  = df_cashflow_combined.query("Tipe=='Masuk'")["Jumlah"].sum() if not df_cash_only.empty else 0.0
+    total_keluar = df_cashflow_combined.query("Tipe=='Keluar'")["Jumlah"].sum() if not df_cash_only.empty else 0.0
     saldo = total_masuk - total_keluar
 
     # --- Piutang: hitung dari df_data (invoice basis) dikurangi penerimaan nyata (cash masuk di df_cashflow_combined) ---

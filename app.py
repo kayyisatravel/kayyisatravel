@@ -2498,28 +2498,39 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         df_cashflow_combined["Jumlah"] = pd.to_numeric(df_cashflow_combined["Jumlah"], errors="coerce").fillna(0.0)
 
     # --- Gabungkan liabilities manual + auto ---
-    df_liabilities_combined = pd.DataFrame()
-    if "liabilities_manual" in st.session_state:
-        df_liab_manual = pd.DataFrame(st.session_state.liabilities_manual)
-        df_liabilities_combined = pd.concat([df_liabilities_combined, df_liab_manual], ignore_index=True) if not df_liabilities_combined.empty else df_liab_manual.copy()
-    if not df_liabilities_auto.empty:
-        df_liabilities_combined = pd.concat([df_liabilities_combined, df_liabilities_auto], ignore_index=True) if not df_liabilities_combined.empty else df_liabilities_auto.copy()
-    # Ensure numeric
-    if not df_liabilities_combined.empty:
-        df_liabilities_combined["Jumlah"] = pd.to_numeric(df_liabilities_combined["Jumlah"], errors="coerce").fillna(0.0)
-
-    # --- Hitung sisa hutang per akun (liabilities) ---
-    if not df_liabilities_combined.empty:
-        df_liabilities_combined["Jumlah"] = df_liabilities_combined["Jumlah"].astype(float)
+    # ============================
+    # PIUTANG DAN HUTANG CC (baru)
+    # ============================
     
+    # 1) PIUTANG OTOMATIS + MANUAL
+    df_piutang_combined = pd.DataFrame()
+    
+    # piutang otomatis dari parser
+    if not df_piutang_auto.empty:
+        df_piutang_combined = df_piutang_auto.copy()
+    
+    # piutang manual
+    if "liabilities_manual" in st.session_state and st.session_state.liabilities_manual:
+        df_liab_manual = pd.DataFrame(st.session_state.liabilities_manual)
+        df_piutang_combined = (
+            pd.concat([df_piutang_combined, df_liab_manual], ignore_index=True)
+            if not df_piutang_combined.empty else df_liab_manual
+        )
+    
+    # 2) HUTANG KARTU KREDIT
+    df_hutang_cc_combined = df_hutang_cc_auto.copy() if not df_hutang_cc_auto.empty else pd.DataFrame()
+    
+    # Ringkasan hutang CC per akun
+    if not df_hutang_cc_combined.empty:
+        df_hutang_cc_combined["Jumlah"] = pd.to_numeric(df_hutang_cc_combined["Jumlah"], errors="coerce").fillna(0.0)
         summary_hutang = (
-            df_liabilities_combined
-            .groupby("Akun", as_index=False)
-            .agg({"Jumlah":"sum"})
+            df_hutang_cc_combined.groupby("Bank", as_index=False)
+            .agg({"Jumlah": "sum"})
             .query("Jumlah != 0")
         )
     else:
-        summary_hutang = pd.DataFrame(columns=["Akun","Jumlah"])
+        summary_hutang = pd.DataFrame(columns=["Bank", "Jumlah"])
+
 
 
     # --- Hitung cash-only flows (exclude Keluar yang sebenarnya adalah CC purchases) ---

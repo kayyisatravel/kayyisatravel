@@ -2104,213 +2104,215 @@ def safe_first(df, col):
 # ---------------------------
 # Parser with liabilities & journal
 # ---------------------------
-def parse_data_with_liabilities(
-    df_data,
-    df_cashflow_existing,
-    sumber_dana_input=None,
-    detail_dana_input=None,
-    platform_input=None
-):
-    import pandas as pd
+import pandas as pd
+import re
 
-    cashflow_rows = []
-    liability_rows = []
-    journal_rows = []
+# ---------------------------------------
+# Clean angka Rupiah
+# ---------------------------------------
+def clean_price(x):
+    x = str(x)
+    x = re.sub(r"[^\d]", "", x)
+    return float(x) if x else 0
 
+
+# ---------------------------------------
+# Fungsi utama (HYBRID)
+# ---------------------------------------
+def parse_financial_data(df_data, df_cashflow_existing):
+
+    # Safety handling
     if df_data.empty:
-        return pd.DataFrame(cashflow_rows), pd.DataFrame(liability_rows), pd.DataFrame(journal_rows)
+        return (
+            pd.DataFrame(),  # cashflow
+            pd.DataFrame(),  # piutang
+            pd.DataFrame(),  # hutang cc
+            pd.DataFrame()   # jurnal
+        )
 
-    df_data["Harga Beli"] = clean_price_column(df_data.get("Harga Beli", pd.Series([0]*len(df_data))))
-    df_data["Harga Jual"] = clean_price_column(df_data.get("Harga Jual", pd.Series([0]*len(df_data))))
-
-    for c in ["Sumber Dana", "Detail Dana", "Platform", "Card_Account", "Paid_Amount"]:
-        if c not in df_data.columns:
-            df_data[c] = ""
+    # ---------------------------------------
+    # 1. CLEANING
+    # ---------------------------------------
+    df_data["Harga Beli"] = df_data["Harga Beli"].apply(clean_price)
+    df_data["Harga Jual"] = df_data["Harga Jual"].apply(clean_price)
 
     df_data["No Invoice"] = df_data["No Invoice"].fillna("").astype(str)
-    df_data["Tgl Pemesanan"] = pd.to_datetime(df_data["Tgl Pemesanan"], dayfirst=True, errors='coerce')
-    df_data["Keterangan"] = df_data.get("Keterangan", "").astype(str)
-    df_data["Nama Pemesan"] = df_data.get("Nama Pemesan", "").astype(str)
+    df_data["Nama Pemesan"] = df_data["Nama Pemesan"].astype(str)
+    df_data["Keterangan"] = df_data["Keterangan"].astype(str)
 
+    df_data["Tgl Pemesanan"] = pd.to_datetime(
+        df_data["Tgl Pemesanan"], dayfirst=True, errors="coerce"
+    )
+
+    for col in ["Sumber Dana", "Detail Dana", "Platform"]:
+        if col not in df_data.columns:
+            df_data[col] = ""
+
+    # ---------------------------------------
+    # 2. GENERATE INVOICE_KEY
+    # ---------------------------------------
     df_data["Invoice_Key"] = df_data.apply(
-        lambda x: f"{x['Nama Pemesan']}_MANUAL_{x.name}" if x["No Invoice"]=="" else f"{x['Nama Pemesan']}_{x['No Invoice']}",
+        lambda x: f"{x['Nama Pemesan']}_{x['No Invoice']}"
+        if x["No Invoice"]
+        else f"{x['Nama Pemesan']}_MANUAL_{x.name}",
         axis=1
     )
 
-    existing_keys = set()
-    if not df_cashflow_existing.empty:
-        ck = df_cashflow_existing.copy()
-        ck["Invoice_Key"] = ck.apply(
-            lambda x: f"{x.get('Nama Pemesan','')}_MANUAL_{x.name}" if x.get("No Invoice","")=="" else f"{x.get('Nama Pemesan','')}_{x.get('No Invoice','')}",
-            axis=1
-        )
-        existing_keys = set(ck["Invoice_Key"])
+    # Existing keys
+    existing_keys = set(df_cashflow_existing.get("Invoice_Key", []))
 
-    grouped = df_data.groupby("Invoice_Key")
-    for key, group in grouped:
-        if key in existing_keys:
-            continue
-    
-        total_harga_lunas = group[group["Keterangan"].str.contains("Lunas", case=False, na=False)]["Harga Jual"].sum()
-        total_harga_belum = group[group["Keterangan"].str.contains("Belum", case=False, na=False)]["Harga Jual"].sum()
+    cashflow_rows = []
+    piutang_rows = []
+    hutang_cc_rows = []
+    jurnal_rows = []
 
+    # ---------------------------------------
+    # 3. LOOP TUNGGAL PER INVOICE
+    # ---------------------------------------
+    for key, group in df_data.groupby("Invoice_Key"):
 
-    for key, group in grouped:
+        # Skip jika sudah ada di existing cashflow
         if key in existing_keys:
             continue
 
+        nama = group["Nama Pemesan"].iloc[0]
+        invoice_no = group["No Invoice"].iloc[0]
         tgl = group["Tgl Pemesanan"].min()
-        nama_pemesan = group["Nama Pemesan"].iloc[0]
-        invoice_no = group["No Invoice"].iloc[0] if group["No Invoice"].iloc[0] else ""
+
+        sumber_dana = group["Sumber Dana"].iloc[0].strip().lower()
+        detail = group["Detail Dana"].iloc[0]
+        platform = group["Platform"].iloc[0]
+
         total_modal = group["Harga Beli"].sum()
-        total_harga_jual = group["Harga Jual"].sum()
+        total_jual = group["Harga Jual"].sum()
 
-        status = (
-            "Belum Lunas"
-            if invoice_no=="" or any("Belum Lunas" in k for k in group["Keterangan"])
-            else "Lunas"
-        )
+        # ---------------------------------------
+        # STATUS
+        # ---------------------------------------
+        status = "Lunas"
+        if invoice_no == "" or any("Belum Lunas" in x for x in group["Keterangan"]):
+            status = "Belum Lunas"
 
-        sumber_dana_default = group["Sumber Dana"].iloc[0].strip()
-        detail_dana_default = group["Detail Dana"].iloc[0]
-        platform_default = group["Platform"].iloc[0]
-        card_account_default = group.get("Card_Account", pd.Series([""]*len(group))).iloc[0]
-
-        sumber_lower = sumber_dana_default.lower() if isinstance(sumber_dana_default, str) else ""
-        used_card_flag = False
-        if any(k in sumber_lower for k in ["credit", "cc", "kartu"]):
-            used_card_flag = True
-
-        # 1) HPP handling
-        if used_card_flag:
-            liability_rows.append({
-                "Tanggal": tgl,
-                "Invoice_Key": key,
-                "Akun": f"Hutang Kartu - {card_account_default or 'Unknown Card'}",
-                "Jumlah": total_modal,
-                "Keterangan": f"HPP (via CC) {nama_pemesan} {invoice_no}",
-                "Sumber Dana": sumber_dana_default,
-                "Detail Dana": detail_dana_default,
-                "Platform": platform_default,
-                "Jenis": "TambahHutang"
-            })
-
-            journal_rows.append({
-                "Tanggal": tgl,
-                "Ref": key,
-                "Akun_Debit": "Harga Pokok Penjualan (HPP)",
-                "Debit": total_modal,
-                "Akun_Kredit": f"Hutang Kartu - {card_account_default or 'Unknown Card'}",
-                "Kredit": total_modal,
-                "Keterangan": f"HPP via CC - {nama_pemesan} {invoice_no}"
-            })
+        # ---------------------------------------
+        # MODAL (Keluar)
+        # ---------------------------------------
+        if "credit" in sumber_dana or "kartu" in sumber_dana or "cc" in sumber_dana:
+            kategori_modal = "Penjualan (Credit Card)"
+        elif "redeem" in sumber_dana or "point" in sumber_dana:
+            kategori_modal = "Penjualan (Redeem Points)"
+            total_modal = 0
         else:
-            cashflow_rows.append({
-                "Tanggal": tgl,
-                "Tipe": "Keluar",
-                "Kategori": "HPP",
-                "No Invoice": invoice_no,
-                "Keterangan": "; ".join(group["Keterangan"].unique()),
-                "Jumlah": total_modal,
-                "Status": status,
-                "Sumber": "Data Otomatis",
-                "Nama Pemesan": nama_pemesan,
-                "Invoice_Key": key,
-                "Sumber Dana": sumber_dana_default,
-                "Detail Dana": detail_dana_default,
-                "Platform": platform_default
-            })
+            kategori_modal = "Penjualan (Cash/Tunai)"
 
-            jurnal_kredit_akun = sumber_dana_default if sumber_dana_default else "Kas"
-            journal_rows.append({
-                "Tanggal": tgl,
-                "Ref": key,
-                "Akun_Debit": "Harga Pokok Penjualan (HPP)",
-                "Debit": total_modal,
-                "Akun_Kredit": jurnal_kredit_akun,
-                "Kredit": total_modal,
-                "Keterangan": f"HPP tunai - {nama_pemesan} {invoice_no}"
-            })
+        cashflow_rows.append({
+            "Tanggal": tgl,
+            "Tipe": "Keluar",
+            "Kategori": kategori_modal,
+            "No Invoice": invoice_no,
+            "Keterangan": "; ".join(group["Keterangan"].unique()),
+            "Jumlah": total_modal,
+            "Sumber": "Data Otomatis",
+            "Invoice_Key": key,
+            "Nama Pemesan": nama,
+            "Sumber Dana": sumber_dana,
+            "Detail Dana": detail,
+            "Platform": platform,
+        })
 
-        # 2) Payment from customer: check existing cashflow lines or Paid_Amount
-        ### Hitung pemasukan berdasarkan status transaksi BUKAN invoice
-        total_sudah_dibayar = total_harga_lunas
-        
-        ### Piutang
-        if total_harga_belum > 0:
-            liability_rows.append({
-                "Tanggal": tgl,
-                "Invoice_Key": key,
-                "Akun": "Piutang Usaha",
-                "Jumlah": total_harga_belum,
-                "Keterangan": f"Piutang atas transaksi {nama_pemesan} {invoice_no}",
-                "Jenis": "TambahPiutang"
-            })
-        
-            journal_rows.append({
-                "Tanggal": tgl,
-                "Ref": key,
-                "Akun_Debit": "Piutang Usaha",
-                "Debit": total_harga_belum,
-                "Akun_Kredit": "Pendapatan Penjualan",
-                "Kredit": total_harga_belum,
-                "Keterangan": f"Pengakuan Piutang - {nama_pemesan} {invoice_no}"
-            })
+        # ---------------------------------------
+        # PEMBAYARAN CUSTOMER (Masuk)
+        # ---------------------------------------
+        total_bayar = total_jual if status == "Lunas" else 0
 
-        if not df_cashflow_existing.empty and "Invoice_Key" in df_cashflow_existing.columns:
-            df_cf_inv = df_cashflow_existing[df_cashflow_existing.get("Invoice_Key","")==key]
-            total_sudah_dibayar = df_cf_inv[df_cf_inv["Tipe"]=="Masuk"]["Jumlah"].sum()
-        if "Paid_Amount" in group.columns:
-            try:
-                total_sudah_dibayar = max(total_sudah_dibayar, group["Paid_Amount"].astype(float).sum())
-            except Exception:
-                pass
-
-        if total_harga_lunas > 0:
+        if total_bayar > 0:
             cashflow_rows.append({
                 "Tanggal": tgl,
                 "Tipe": "Masuk",
-                "Kategori": "Penjualan",
+                "Kategori": "Pembayaran Customer",
                 "No Invoice": invoice_no,
                 "Keterangan": "; ".join(group["Keterangan"].unique()),
-                "Jumlah": total_sudah_dibayar,
-                "Status": status,
+                "Jumlah": total_bayar,
                 "Sumber": "Data Otomatis",
-                "Nama Pemesan": nama_pemesan,
                 "Invoice_Key": key,
-                "Sumber Dana": sumber_dana_input if sumber_dana_input else "Customer",
-                "Detail Dana": detail_dana_input if detail_dana_input else "-",
-                "Platform": platform_input if platform_input else platform_default
+                "Nama Pemesan": nama,
+                "Sumber Dana": "Customer",
+                "Detail Dana": "-",
+                "Platform": platform,
             })
 
-            akun_debit = sumber_dana_input if sumber_dana_input else "Kas"
-            journal_rows.append({
+        # ---------------------------------------
+        # PIUTANG
+        # ---------------------------------------
+        sisa = total_jual - total_bayar
+        if sisa > 0:
+            piutang_rows.append({
+                "Invoice_Key": key,
+                "No Invoice": invoice_no,
+                "Nama Pemesan": nama,
+                "Total": total_jual,
+                "Terbayar": total_bayar,
+                "Sisa": sisa,
+                "Status": "Belum Lunas",
+            })
+
+        # ---------------------------------------
+        # HUTANG KARTU KREDIT (jika modal via CC)
+        # ---------------------------------------
+        if kategori_modal == "Penjualan (Credit Card)":
+            hutang_cc_rows.append({
+                "Invoice_Key": key,
                 "Tanggal": tgl,
-                "Ref": key,
-                "Akun_Debit": "Kas",
-                "Debit": total_harga_lunas,
-                "Akun_Kredit": "Piutang Usaha",
-                "Kredit": total_harga_lunas,
-                "Keterangan": f"Pelunasan Customer - {nama_pemesan} {invoice_no}"
+                "Nama Pemesan": nama,
+                "Jumlah": total_modal,
+                "Bank": sumber_dana,
+                "Status": "Belum Dibayar CC"
             })
 
+        # ---------------------------------------
+        # JURNAL SEDERHANA (balance)
+        # ---------------------------------------
 
-    df_cashflow_rows = pd.DataFrame(cashflow_rows)
-    df_liability_rows = pd.DataFrame(liability_rows)
-    df_journal_rows = pd.DataFrame(journal_rows)
+        # 1. Jurnal HPP
+        jurnal_rows.append({
+            "Invoice_Key": key,
+            "Tanggal": tgl,
+            "Keterangan": f"HPP invoice {invoice_no}",
+            "Debit": "HPP",
+            "Kredit": "Persediaan",
+            "Jumlah": total_modal,
+        })
 
-    df_cashflow_rows = _ensure_columns(df_cashflow_rows, [
-        "Tanggal","Tipe","Kategori","No Invoice","Keterangan","Jumlah","Status",
-        "Sumber","Nama Pemesan","Invoice_Key","Sumber Dana","Detail Dana","Platform"
-    ])
-    df_liability_rows = _ensure_columns(df_liability_rows, [
-        "Tanggal","Invoice_Key","Akun","Jumlah","Keterangan","Sumber Dana","Detail Dana","Platform","Jenis"
-    ])
-    df_journal_rows = _ensure_columns(df_journal_rows, [
-        "Tanggal","Ref","Akun_Debit","Debit","Akun_Kredit","Kredit","Keterangan"
-    ])
+        # 2. Jurnal Penjualan
+        jurnal_rows.append({
+            "Invoice_Key": key,
+            "Tanggal": tgl,
+            "Keterangan": f"Penjualan invoice {invoice_no}",
+            "Debit": "Kas" if total_bayar > 0 else "Piutang",
+            "Kredit": "Penjualan",
+            "Jumlah": total_jual,
+        })
 
-    return df_cashflow_rows, df_liability_rows, df_journal_rows
+        # 3. Jurnal Hutang CC jika modal via CC
+        if kategori_modal == "Penjualan (Credit Card)":
+            jurnal_rows.append({
+                "Invoice_Key": key,
+                "Tanggal": tgl,
+                "Keterangan": f"Modal CC invoice {invoice_no}",
+                "Debit": "Persediaan",
+                "Kredit": "Hutang Kartu Kredit",
+                "Jumlah": total_modal,
+            })
+
+    # ---------------------------------------
+    # RETURN 4 DATAFRAME
+    # ---------------------------------------
+    return (
+        pd.DataFrame(cashflow_rows),
+        pd.DataFrame(piutang_rows),
+        pd.DataFrame(hutang_cc_rows),
+        pd.DataFrame(jurnal_rows)
+    )
+
 
 # ---------------------------
 # Streamlit UI

@@ -2584,7 +2584,7 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     if not df_journal_combined.empty:
         st.dataframe(
             df_journal_combined.reindex(
-                columns=["Tanggal","Ref","Akun_Debit","Debit","Akun_Kredit","Kredit","Keterangan"]
+                columns=["Tanggal","Ref","Akun_Debit","Debit","Akun_Kredit","Kredit", "Jumlah", "Keterangan"]
             ).sort_values(by="Tanggal", ascending=False).head(200)
         )
         csv = df_journal_combined.to_csv(index=False).encode("utf-8")

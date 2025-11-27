@@ -2119,6 +2119,16 @@ def clean_price(x):
     x = re.sub(r"[^\d]", "", x)
     return float(x) if x else 0
 
+def _ensure_columns(df, cols):
+    """
+    Pastikan dataframe df punya semua kolom di list cols.
+    Jika kolom tidak ada, buat dengan nilai default kosong atau NaN.
+    """
+    for c in cols:
+        if c not in df.columns:
+            df[c] = "" if df.empty else pd.NA
+    return df
+
 
 # ---------------------------------------
 # Fungsi utama (HYBRID)

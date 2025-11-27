@@ -2594,7 +2594,7 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         st.info("Belum ada hutang kartu tercatat.")
     else:
         for _, r in summary_hutang.iterrows():
-            st.write(f"🔸 {r['Akun']}: {format_rp(r['Jumlah'])}")
+            st.write(f"🔸 {r['Bank']}: {format_rp(r['Jumlah'])}")
 
     # --- Jurnal otomatis (gabungkan manual bila ada) ---
     df_journal_combined = df_journal_auto.copy() if not df_journal_auto.empty else pd.DataFrame()

@@ -2031,10 +2031,6 @@ import streamlit as st
 import pandas as pd
 from datetime import date, datetime
 
-# External libs for Google Sheets
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-
 # ---------------------------
 # Config
 # ---------------------------

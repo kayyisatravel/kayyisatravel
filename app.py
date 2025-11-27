@@ -3116,26 +3116,35 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     
 with st.expander("⏳ Aging Report / Invoice Belum Lunas"):
     st.markdown("### ⏳ Aging Report / Invoice Belum Lunas")
-    st.dataframe(df_aging.style.apply(highlight_overdue, axis=1), use_container_width=True)
+    
+    if not df_aging.empty:
+        st.dataframe(df_aging.style.apply(highlight_overdue_safe, axis=1), use_container_width=True)
+    else:
+        st.info("Belum ada transaksi belum lunas untuk ditampilkan.")
 
     st.markdown("## 📈 Grafik Cashflow")
 
     # Chart Masuk-Keluar Bulanan
-    df_chart = df_filtered.copy()
-    df_chart["Bulan"] = df_chart["Tanggal"].dt.to_period("M").astype(str)
-    df_summary = df_chart.groupby(["Bulan", "Tipe"])["Jumlah"].sum().reset_index()
-    df_pivot = df_summary.pivot(index="Bulan", columns="Tipe", values="Jumlah").fillna(0)
+    if "Tanggal" in df_filtered.columns:
+        df_chart = df_filtered.copy()
+        df_chart["Tanggal"] = pd.to_datetime(df_chart["Tanggal"], errors='coerce')
+        df_chart["Bulan"] = df_chart["Tanggal"].dt.to_period("M").astype(str)
+        df_summary = df_chart.groupby(["Bulan", "Tipe"])["Jumlah"].sum().reset_index()
+        df_pivot = df_summary.pivot(index="Bulan", columns="Tipe", values="Jumlah").fillna(0)
 
-    st.line_chart(df_pivot)
+        st.line_chart(df_pivot)
 
-    # Saldo berjalan
-    df_chart = df_chart.sort_values("Tanggal")
-    df_chart["Saldo"] = df_chart.apply(
-        lambda r: r["Jumlah"] if r["Tipe"]=="Masuk" else -r["Jumlah"], axis=1
-    ).cumsum()
+        # Saldo berjalan
+        df_chart = df_chart.sort_values("Tanggal")
+        df_chart["Saldo"] = df_chart.apply(
+            lambda r: r["Jumlah"] if r["Tipe"]=="Masuk" else -r["Jumlah"], axis=1
+        ).cumsum()
 
-    st.markdown("### 🏦 Grafik Saldo Berjalan")
-    st.area_chart(df_chart[["Tanggal", "Saldo"]].set_index("Tanggal"))
+        st.markdown("### 🏦 Grafik Saldo Berjalan")
+        st.area_chart(df_chart[["Tanggal", "Saldo"]].set_index("Tanggal"))
+    else:
+        st.info("Data cashflow belum tersedia atau kolom 'Tanggal' tidak ditemukan.")
+
 #=================================================================================================================================================================
 from prophet import Prophet
 from prophet.plot import plot_plotly

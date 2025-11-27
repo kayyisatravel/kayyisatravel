@@ -2595,9 +2595,9 @@ st.markdown("**Catatan:**\n- Pembelian via kartu kredit dicatat sebagai `Hutang 
 st.markdown("### 🔧 Filter Cashflow")
 
 # Pastikan kolom Bulan/Tahun tersedia
-df_cashflow_combined["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors='coerce')
-df_cashflow_combined["Bulan"] = df_cashflow["Tanggal"].dt.month
-df_cashflow_combined["Tahun"] = df_cashflow["Tanggal"].dt.year
+df_cashflow_combined["Tanggal"] = pd.to_datetime(df_cashflow_combined["Tanggal"], errors='coerce')
+df_cashflow_combined["Bulan"] = df_cashflow_combined["Tanggal"].dt.month
+df_cashflow_combined["Tahun"] = df_cashflow_combined["Tanggal"].dt.year
 df_cashflow = df_cashflow_combined
 
 # -----------------------------

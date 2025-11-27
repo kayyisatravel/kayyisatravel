@@ -2285,7 +2285,7 @@ def parse_financial_data(df_data, df_cashflow_existing):
             "Keterangan": f"HPP invoice {invoice_no}",
             "Debit": "HPP",
             "Kredit": "Persediaan",
-            "Jumlah": total_modal,
+            "Jumlah": total_modal,  # pastikan nominal modal masuk
         })
         # 2. Penjualan
         jurnal_rows.append({
@@ -2294,7 +2294,7 @@ def parse_financial_data(df_data, df_cashflow_existing):
             "Keterangan": f"Penjualan invoice {invoice_no}",
             "Debit": "Kas" if total_bayar > 0 else "Piutang",
             "Kredit": "Penjualan",
-            "Jumlah": total_jual,
+            "Jumlah": total_jual,  # pastikan nominal penjualan masuk
         })
         # 3. Hutang CC
         if kategori_modal == "Penjualan (Credit Card)":
@@ -2304,9 +2304,8 @@ def parse_financial_data(df_data, df_cashflow_existing):
                 "Keterangan": f"Modal CC invoice {invoice_no}",
                 "Debit": "Persediaan",
                 "Kredit": "Hutang Kartu Kredit",
-                "Jumlah": total_modal,
+                "Jumlah": total_modal,  # nominal modal via CC
             })
-
     # --- 2. LOOP CASHFLOW EXISTING UNTUK JURNAL PELUNASAN ---
     if not df_cashflow_existing.empty:
         # Pastikan jumlah numeric

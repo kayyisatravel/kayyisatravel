@@ -2098,6 +2098,13 @@ def _ensure_columns(df, cols):
             df[c] = pd.Series(dtype="object")
     return df
 
+def safe_first(df, col):
+    if col not in df.columns: 
+        return ""
+    if df.empty:
+        return ""
+    return df[col].iloc[0]
+
 # ---------------------------
 # Parser with liabilities & journal
 # ---------------------------
@@ -2430,7 +2437,7 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         invoice_keys = df_cashflow_combined["Invoice_Key"].unique()
         for key in invoice_keys:
             df_inv_cf = df_cashflow_combined[df_cashflow_combined["Invoice_Key"] == key]
-            inv_no = df_inv_cf["No Invoice"].iloc[0] if "No Invoice" in df_inv_cf.columns else ""
+            inv_no = safe_first(df_inv_cf, "No Invoice")
             df_inv_data = df_data[df_data.get("Invoice_Key","")==key] if not df_data.empty else pd.DataFrame()
             total_harga_jual = df_inv_data["Harga Jual"].sum() if not df_inv_data.empty else 0
             total_sudah_diterima = df_inv_cf[df_inv_cf.get("Tipe","")=="Masuk"]["Jumlah"].sum()

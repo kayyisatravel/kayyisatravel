@@ -2147,8 +2147,13 @@ def parse_data_with_liabilities(
         existing_keys = set(ck["Invoice_Key"])
 
     grouped = df_data.groupby("Invoice_Key")
-    total_harga_lunas = group[group["Keterangan"].str.contains("Lunas", case=False, na=False)]["Harga Jual"].sum()
-    total_harga_belum = group[group["Keterangan"].str.contains("Belum", case=False, na=False)]["Harga Jual"].sum()
+    for key, group in grouped:
+        if key in existing_keys:
+            continue
+    
+        total_harga_lunas = group[group["Keterangan"].str.contains("Lunas", case=False, na=False)]["Harga Jual"].sum()
+        total_harga_belum = group[group["Keterangan"].str.contains("Belum", case=False, na=False)]["Harga Jual"].sum()
+
 
     for key, group in grouped:
         if key in existing_keys:

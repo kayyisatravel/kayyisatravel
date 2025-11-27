@@ -2087,12 +2087,16 @@ def connect_to_gsheet(SHEET_ID, worksheet_name="Arus Kas"):
 # ---------------------------
 # Utility: ensure columns present
 # ---------------------------
-def _ensure_columns(df, cols):
-    for c in cols:
-        if c not in df.columns:
-            # create empty column with appropriate dtype
-            df[c] = pd.Series(dtype="object")
-    return df
+def clean_price_column(col):
+    col = col.fillna("").astype(str)
+    col = col.str.replace(r"[^\d]", "", regex=True)
+
+    # Jika terlalu panjang, batasi max 12 digit (maks 999 miliar)
+    col = col.apply(lambda x: x[:12])
+
+    col = col.replace("", "0")
+    return pd.to_numeric(col, errors="coerce").fillna(0)
+
 
 def safe_first(df, col):
     if col not in df.columns: 
@@ -2413,45 +2417,32 @@ with st.expander("✏️ Input Data Cashflow Manual"):
 # Laporan Cashflow Realtime
 # ---------------------------
 with st.expander("💸 Laporan Cashflow Realtime"):
-    # --- Ambil data dari GSheet (Data & Arus Kas) dengan safe fallback ---
+
+    # --- Ambil data dari GSheet dengan fallback ---
     try:
         ws_data = connect_to_gsheet(SHEET_ID, "Data")
         df_data = pd.DataFrame(ws_data.get_all_records())
-    except Exception as e:
+    except Exception:
         df_data = pd.DataFrame()
-        st.warning("Tidak bisa ambil sheet 'Data' (cek koneksi). Menggunakan data lokal jika ada.")
+        st.warning("Tidak bisa ambil sheet 'Data'. Menggunakan data lokal jika ada.")
 
     try:
         ws_cashflow = connect_to_gsheet(SHEET_ID, "Arus Kas")
         df_cashflow_existing = pd.DataFrame(ws_cashflow.get_all_records())
-    except Exception as e:
+    except Exception:
         df_cashflow_existing = pd.DataFrame()
-        st.warning("Tidak bisa ambil sheet 'Arus Kas' (cek koneksi). Menggunakan data lokal jika ada.")
+        st.warning("Tidak bisa ambil sheet 'Arus Kas'. Menggunakan data lokal jika ada.")
 
-    # --- Normalisasi numerik di df_data (jika ada) supaya Harga Beli/Jual selalu numeric ---
+    # --- Normalisasi df_data ---
     if not df_data.empty:
-        # Pastikan kolom ada lalu bersihkan
-        if "Harga Beli" in df_data.columns:
-            df_data["Harga Beli"] = clean_price_column(df_data["Harga Beli"])
-        else:
-            df_data["Harga Beli"] = 0.0
-        if "Harga Jual" in df_data.columns:
-            df_data["Harga Jual"] = clean_price_column(df_data["Harga Jual"])
-        else:
-            df_data["Harga Jual"] = 0.0
+        df_data["Harga Beli"] = clean_price_column(df_data.get("Harga Beli", 0.0))
+        df_data["Harga Jual"] = clean_price_column(df_data.get("Harga Jual", 0.0))
 
-        # Pastikan kolom keterangan & invoice & sumber ada
-        for c in ["Keterangan", "No Invoice", "Nama Pemesan", "Sumber Dana", "Detail Dana", "Platform", "Card_Account", "Paid_Amount"]:
+        for c in ["Keterangan","No Invoice","Nama Pemesan","Sumber Dana","Detail Dana","Platform","Card_Account","Paid_Amount"]:
             if c not in df_data.columns:
                 df_data[c] = ""
 
-        # Tgl Pemesanan parse
-        if "Tgl Pemesanan" in df_data.columns:
-            df_data["Tgl Pemesanan"] = pd.to_datetime(df_data["Tgl Pemesanan"], dayfirst=True, errors="coerce")
-        else:
-            df_data["Tgl Pemesanan"] = pd.NaT
-
-        # Build Invoice_Key (sama logika Anda)
+        df_data["Tgl Pemesanan"] = pd.to_datetime(df_data.get("Tgl Pemesanan", pd.NaT), dayfirst=True, errors="coerce")
         df_data["No Invoice"] = df_data["No Invoice"].fillna("").astype(str)
         df_data["Nama Pemesan"] = df_data["Nama Pemesan"].fillna("").astype(str)
         df_data["Invoice_Key"] = df_data.apply(
@@ -2459,136 +2450,97 @@ with st.expander("💸 Laporan Cashflow Realtime"):
             axis=1
         )
     else:
-        # empty placeholder columns to avoid key errors later
         df_data = pd.DataFrame(columns=[
-            "Tgl Pemesanan", "Harga Beli", "Harga Jual", "Keterangan", "No Invoice",
-            "Nama Pemesan", "Sumber Dana", "Detail Dana", "Platform", "Invoice_Key"
+            "Tgl Pemesanan","Harga Beli","Harga Jual","Keterangan","No Invoice",
+            "Nama Pemesan","Sumber Dana","Detail Dana","Platform","Invoice_Key"
         ])
 
-    # --- Parse otomatis (menghasilkan cashflow rows, liabilities rows, jurnal) ---
-    df_cf_auto, df_piutang_auto, df_hutang_cc_auto, df_journal_auto = parse_financial_data(
-        df_data,
-        df_cashflow_existing
+    # --- Parse otomatis ---
+    df_cf_auto, df_piutang_auto, df_hutang_cc_auto, df_journal_auto = parse_financial_data(df_data, df_cashflow_existing)
+
+    # --- Gabungkan cashflow existing + auto + manual (sekali) ---
+    cashflow_manual = pd.DataFrame(st.session_state.get("cashflow_manual", []))
+    df_cashflow_combined = pd.concat(
+        [df_cashflow_existing, df_cf_auto, cashflow_manual],
+        ignore_index=True
+    ) if not df_cf_auto.empty or not df_cashflow_existing.empty or not cashflow_manual.empty else pd.DataFrame()
+
+    # Drop duplicates lebih komprehensif
+    df_cashflow_combined = df_cashflow_combined.drop_duplicates(
+        subset=["Tanggal","Tipe","Kategori","Invoice_Key","Jumlah","Keterangan"], keep="last"
     )
 
-
-    # --- Gabungkan cashflow existing + auto + manual session ---
-    if not df_cf_auto.empty:
-        df_cashflow_combined = (
-            pd.concat([
-                df_cashflow_existing,
-                df_cf_auto,
-                pd.DataFrame(st.session_state.get("cashflow_manual", []))
-            ], ignore_index=True)
-            .drop_duplicates(subset=["Tanggal","Jumlah","Kategori","Invoice_Key"], keep="last")
-        )
-
-    else:
-        df_cashflow_combined = df_cashflow_existing.copy() if not df_cashflow_existing.empty else pd.DataFrame()
-
-    if "cashflow_manual" in st.session_state and st.session_state.cashflow_manual:
-        df_cashflow_combined = pd.concat([df_cashflow_combined, pd.DataFrame(st.session_state.cashflow_manual)], ignore_index=True) if not df_cashflow_combined.empty else pd.DataFrame(st.session_state.cashflow_manual)
-
-    # Ensure common columns exist and numeric conversion for safety
-    if df_cashflow_combined is None:
-        df_cashflow_combined = pd.DataFrame()
-    df_cashflow_combined = _ensure_columns(df_cashflow_combined, ["Tanggal","Tipe","Kategori","No Invoice","Keterangan","Jumlah","Status","Sumber","Nama Pemesan","Invoice_Key","Sumber Dana","Detail Dana","Platform","Akun"])
-    # convert Jumlah to numeric safely
+    # Pastikan kolom & numeric
+    df_cashflow_combined = _ensure_columns(
+        df_cashflow_combined,
+        ["Tanggal","Tipe","Kategori","No Invoice","Keterangan","Jumlah","Status","Sumber",
+         "Nama Pemesan","Invoice_Key","Sumber Dana","Detail Dana","Platform","Akun"]
+    )
     if not df_cashflow_combined.empty:
         df_cashflow_combined["Jumlah"] = pd.to_numeric(df_cashflow_combined["Jumlah"], errors="coerce").fillna(0.0)
+        df_cashflow_combined["Tanggal"] = pd.to_datetime(df_cashflow_combined["Tanggal"], errors="coerce")
+        df_cashflow_combined = df_cashflow_combined.dropna(subset=["Tanggal"])
 
-    # --- Gabungkan liabilities manual + auto ---
-    # ============================
-    # PIUTANG DAN HUTANG CC (baru)
-    # ============================
-    
-    # 1) PIUTANG OTOMATIS + MANUAL
-    df_piutang_combined = pd.DataFrame()
-    
-    # piutang otomatis dari parser
-    if not df_piutang_auto.empty:
-        df_piutang_combined = df_piutang_auto.copy()
-    
-    # piutang manual
-    if "liabilities_manual" in st.session_state and st.session_state.liabilities_manual:
-        df_liab_manual = pd.DataFrame(st.session_state.liabilities_manual)
-        df_piutang_combined = (
-            pd.concat([df_piutang_combined, df_liab_manual], ignore_index=True)
-            if not df_piutang_combined.empty else df_liab_manual
-        )
-    
-    # 2) HUTANG KARTU KREDIT
-    df_hutang_cc_combined = df_hutang_cc_auto.copy() if not df_hutang_cc_auto.empty else pd.DataFrame()
-    
-    # Ringkasan hutang CC per akun
-    if not df_hutang_cc_combined.empty:
-        df_hutang_cc_combined["Jumlah"] = pd.to_numeric(df_hutang_cc_combined["Jumlah"], errors="coerce").fillna(0.0)
-        summary_hutang = (
-            df_hutang_cc_combined.groupby("Bank", as_index=False)
-            .agg({"Jumlah": "sum"})
-            .query("Jumlah != 0")
-        )
-    else:
-        summary_hutang = pd.DataFrame(columns=["Bank", "Jumlah"])
-
-
-
-    # --- Hitung cash-only flows (exclude Keluar yang sebenarnya adalah CC purchases) ---
-    # Strategy: exclude 'Keluar' rows where Sumber Dana indicates credit/cc/kartu
+    # --- Hitung cash-only flows ---
     if not df_cashflow_combined.empty:
         df_cashflow_combined["Sumber Dana"] = df_cashflow_combined.get("Sumber Dana","").fillna("").astype(str)
         credit_mask = df_cashflow_combined["Sumber Dana"].str.lower().str.contains("credit|cc|kartu|card|kart", na=False)
-        # cash-only = semua baris ; kecuali baris Keluar yang berhubungan dengan credit_mask
         df_cash_only = df_cashflow_combined[~((df_cashflow_combined["Tipe"]=="Keluar") & credit_mask)].copy()
     else:
         df_cash_only = pd.DataFrame()
 
-    # normalize date column
-    if "Tanggal" in df_cash_only.columns and not df_cash_only.empty:
-        df_cash_only["Tanggal"] = pd.to_datetime(df_cash_only["Tanggal"], errors="coerce")
-        df_cash_only["Tanggal"].fillna(pd.Timestamp.today(), inplace=True)
-
-    # --- Hitung totals dari cash-only ---
-    total_masuk  = df_cashflow_combined.query("Tipe=='Masuk'")["Jumlah"].sum() if not df_cash_only.empty else 0.0
-    total_keluar = df_cashflow_combined.query("Tipe=='Keluar'")["Jumlah"].sum() if not df_cash_only.empty else 0.0
+    # --- Hitung totals ---
+    total_masuk = df_cash_only.query("Tipe=='Masuk'")["Jumlah"].sum() if not df_cash_only.empty else 0.0
+    total_keluar = df_cash_only.query("Tipe=='Keluar'")["Jumlah"].sum() if not df_cash_only.empty else 0.0
     saldo = total_masuk - total_keluar
 
-    # --- Piutang: hitung dari df_data (invoice basis) dikurangi penerimaan nyata (cash masuk di df_cashflow_combined) ---
-    piutang_total = 0.0
+    # --- Piutang proporsional per baris ---
     list_piutang = []
+    piutang_total = 0.0
     if not df_data.empty:
-        invoice_keys = df_data["Invoice_Key"].unique()
-        for key in invoice_keys:
-            df_inv_data = df_data[df_data["Invoice_Key"] == key]
-            total_harga_jual = df_inv_data["Harga Jual"].sum()
-            # jumlah pembayaran masuk (cash) untuk invoice ini — hanya consider Tipe == Masuk
-            if not df_cashflow_combined.empty and "Invoice_Key" in df_cashflow_combined.columns:
-                total_sudah_diterima = df_cashflow_combined[(df_cashflow_combined["Invoice_Key"]==key) & (df_cashflow_combined.get("Tipe","")=="Masuk")]["Jumlah"].sum()
-            else:
-                total_sudah_diterima = 0.0
-            piutang_invoice = max(0.0, total_harga_jual - total_sudah_diterima)
+        df_data_valid = df_data.dropna(subset=["Harga Jual"])
+        total_received_per_invoice = df_cash_only[df_cash_only["Tipe"]=="Masuk"].groupby("Invoice_Key")["Jumlah"].sum().to_dict()
+        for idx, row in df_data_valid.iterrows():
+            invoice_key = row["Invoice_Key"]
+            total_harga_jual = row["Harga Jual"]
+            received = total_received_per_invoice.get(invoice_key, 0.0)
+            piutang_invoice = max(0.0, total_harga_jual - min(total_harga_jual, received))
+            total_received_per_invoice[invoice_key] = max(0.0, received - total_harga_jual)
             if piutang_invoice > 0:
                 piutang_total += piutang_invoice
-                inv_no = safe_first(df_inv_data, "No Invoice")
-                list_piutang.append([inv_no, total_harga_jual, total_sudah_diterima, piutang_invoice])
+                inv_no = row["No Invoice"] if row["No Invoice"] else f"MANUAL_{idx}"
+                list_piutang.append([inv_no, total_harga_jual, total_harga_jual - piutang_invoice, piutang_invoice])
 
-    total_piutang = piutang_total
-    df_piutang = pd.DataFrame(list_piutang, columns=["Invoice", "Total", "Terbayar", "Sisa"]) if list_piutang else pd.DataFrame(columns=["Invoice","Total","Terbayar","Sisa"])
+    df_piutang = pd.DataFrame(list_piutang, columns=["Invoice","Total","Terbayar","Sisa"]) if list_piutang else pd.DataFrame(columns=["Invoice","Total","Terbayar","Sisa"])
 
-    # --- Tampilkan Metrics (rapi & validated) ---
+    # --- Ringkasan Hutang CC ---
+    df_hutang_cc_combined = df_hutang_cc_auto.copy() if not df_hutang_cc_auto.empty else pd.DataFrame()
+    if not df_hutang_cc_combined.empty:
+        df_hutang_cc_combined["Jumlah"] = pd.to_numeric(df_hutang_cc_combined["Jumlah"], errors="coerce").fillna(0.0)
+        summary_hutang = df_hutang_cc_combined.groupby("Bank", as_index=False).agg({"Jumlah":"sum"}).query("Jumlah != 0")
+    else:
+        summary_hutang = pd.DataFrame(columns=["Bank","Jumlah"])
+
+    # --- Jurnal otomatis + manual, hapus duplikat & filter NaT ---
+    df_journal_combined = pd.concat(
+        [pd.DataFrame(st.session_state.get("journal_manual", [])), df_journal_auto],
+        ignore_index=True
+    ) if not df_journal_auto.empty or st.session_state.get("journal_manual") else pd.DataFrame()
+    if not df_journal_combined.empty:
+        df_journal_combined["Tanggal"] = pd.to_datetime(df_journal_combined.get("Tanggal", pd.NaT), errors="coerce")
+        df_journal_combined = df_journal_combined.dropna(subset=["Tanggal"])
+        df_journal_combined = df_journal_combined.drop_duplicates(
+            subset=["Tanggal","Ref","Akun_Debit","Debit","Akun_Kredit","Kredit","Keterangan"], keep="last"
+        )
+
+    # --- Tampilkan Metrics ---
     col1, col2 = st.columns(2)
-    with col1:
-        metric_card("💰 Total Pemasukan", format_rp(total_masuk))
-    with col2:
-        metric_card("📤 Total Pengeluaran", format_rp(total_keluar))
-
+    metric_card("💰 Total Pemasukan", format_rp(total_masuk), col=col1)
+    metric_card("📤 Total Pengeluaran", format_rp(total_keluar), col=col2)
     col3, col4 = st.columns(2)
-    with col3:
-        metric_card("🏦 Saldo Akhir", format_rp(saldo))
-    with col4:
-        metric_card("🧾 Piutang Belum Lunas", format_rp(total_piutang))
+    metric_card("🏦 Saldo Akhir", format_rp(saldo), col=col3)
+    metric_card("🧾 Piutang Belum Lunas", format_rp(piutang_total), col=col4)
 
-    # --- Ringkasan Hutang kartu per akun ---
     st.subheader("💳 Ringkasan Hutang Kartu Kredit")
     if summary_hutang.empty:
         st.info("Belum ada hutang kartu tercatat.")
@@ -2596,30 +2548,28 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         for _, r in summary_hutang.iterrows():
             st.write(f"🔸 {r['Bank']}: {format_rp(r['Jumlah'])}")
 
-    # --- Jurnal otomatis (gabungkan manual bila ada) ---
-    df_journal_combined = df_journal_auto.copy() if not df_journal_auto.empty else pd.DataFrame()
-    if "journal_manual" in st.session_state and st.session_state.journal_manual:
-        df_journal_combined = pd.concat([pd.DataFrame(st.session_state.journal_manual), df_journal_combined], ignore_index=True)
-
     st.subheader("📘 Jurnal Akuntansi (Auto Generated)")
     if not df_journal_combined.empty:
-        st.dataframe(df_journal_combined.reindex(columns=["Tanggal","Ref","Akun_Debit","Debit","Akun_Kredit","Kredit","Keterangan"]).sort_values(by="Tanggal", ascending=False).head(200))
+        st.dataframe(
+            df_journal_combined.reindex(
+                columns=["Tanggal","Ref","Akun_Debit","Debit","Akun_Kredit","Kredit","Keterangan"]
+            ).sort_values(by="Tanggal", ascending=False).head(200)
+        )
+        csv = df_journal_combined.to_csv(index=False).encode("utf-8")
+        st.download_button("Download jurnal.csv", data=csv, file_name="jurnal_akuntansi.csv", mime="text/csv")
     else:
         st.write("Tidak ada jurnal otomatis saat ini.")
 
-    # --- Export opsi ---
-    if not df_journal_combined.empty:
-        csv = df_journal_combined.to_csv(index=False).encode("utf-8")
-        st.download_button("Download jurnal.csv", data=csv, file_name="jurnal_akuntansi.csv", mime="text/csv")
-
+    # --- Alerts ---
     if saldo < 0:
         st.error("⚠️ Saldo negatif. Perlu kontrol pengeluaran atau percepat penagihan piutang.")
-    elif total_piutang > total_masuk:
+    elif piutang_total > total_masuk:
         st.warning("🟡 Piutang lebih besar dari pemasukan. Cashflow berpotensi ketat.")
     elif total_keluar > total_masuk:
         st.warning("📉 Pengeluaran lebih besar dari pemasukan bulan ini.")
     else:
         st.success("🟢 Cashflow sehat. Arus kas berjalan stabil.")
+
 
 
 # Footer notes

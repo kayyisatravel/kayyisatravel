@@ -2582,6 +2582,7 @@ with st.expander("💸 Laporan Cashflow Realtime"):
 
     st.subheader("📘 Jurnal Akuntansi (Auto Generated)")
     if not df_journal_combined.empty:
+        df_journal_combined["Jumlah"] = df_journal_combined["Jumlah"].apply(format_rp)
         st.dataframe(
             df_journal_combined.reindex(
                 columns=["Tanggal","Ref","Akun_Debit","Debit","Akun_Kredit","Kredit", "Jumlah", "Keterangan"]

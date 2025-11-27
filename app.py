@@ -2466,7 +2466,11 @@ with st.expander("💸 Laporan Cashflow Realtime"):
         ])
 
     # --- Parse otomatis (menghasilkan cashflow rows, liabilities rows, jurnal) ---
-    df_cf_auto, df_liabilities_auto, df_journal_auto = parse_data_with_liabilities(df_data, df_cashflow_existing)
+    df_cf_auto, df_piutang_auto, df_hutang_cc_auto, df_journal_auto = parse_financial_data(
+        df_data,
+        df_cashflow_existing
+    )
+
 
     # --- Gabungkan cashflow existing + auto + manual session ---
     if not df_cf_auto.empty:

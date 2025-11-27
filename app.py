@@ -2726,291 +2726,159 @@ st.dataframe(
     # 📘 LAPORAN LABA RUGI (INCOME STATEMENT)
     # =====================================================
 with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):    
+
+    # ===========================
+    # 1️⃣ Laporan Laba/Rugi
+    # ===========================
     required_cols = ["Tipe", "Jumlah", "Kategori"]
-    
-    if (
-        'df_filtered' in locals() or 'df_filtered' in globals()
-    ) and all(col in df_filtered.columns for col in required_cols):
-    
+    df_ok = ('df_filtered' in locals() or 'df_filtered' in globals()) and all(col in df_filtered.columns for col in required_cols)
+
+    if df_ok:
         st.markdown("## 📘 Laporan Laba Rugi")
-    
+
         # Pendapatan (Masuk)
         pendapatan_filtered = df_filtered[df_filtered["Tipe"]=="Masuk"]["Jumlah"].sum()
-    
+
         # HPP / Modal
-        hpp_filtered = df_filtered[
-            df_filtered["Kategori"].str.contains("Penjualan", na=False)
-        ]["Jumlah"].sum()
-    
-        # Beban Operasional (kategori keluar selain modal)
+        hpp_filtered = df_filtered[df_filtered["Kategori"].str.contains("Penjualan", na=False)]["Jumlah"].sum()
+
+        # Beban Operasional
         operasional_filtered = df_filtered[
-            (df_filtered["Tipe"]=="Keluar") &
-            (~df_filtered["Kategori"].str.contains("Penjualan", na=False))
+            (df_filtered["Tipe"]=="Keluar") & (~df_filtered["Kategori"].str.contains("Penjualan", na=False))
         ]["Jumlah"].sum()
-    
+
         laba_kotor = pendapatan_filtered - hpp_filtered
         laba_bersih = laba_kotor - operasional_filtered
-    
+
+        # Tampilkan metric
         col_laba1, col_laba2 = st.columns(2)
-        with col_laba1:
-            metric_card("📈 Pendapatan", format_rp(pendapatan_filtered))
-        with col_laba2:
-            metric_card("📉 HPP / Modal", format_rp(hpp_filtered))
-        
+        with col_laba1: metric_card("📈 Pendapatan", format_rp(pendapatan_filtered))
+        with col_laba2: metric_card("📉 HPP / Modal", format_rp(hpp_filtered))
         col_laba3, col_laba4 = st.columns(2)
-        with col_laba3:
-            metric_card("💼 Beban Operasional", format_rp(operasional_filtered))
-        with col_laba4:
-            metric_card("💰 Laba Bersih", format_rp(laba_bersih))
-    
+        with col_laba3: metric_card("💼 Beban Operasional", format_rp(operasional_filtered))
+        with col_laba4: metric_card("💰 Laba Bersih", format_rp(laba_bersih))
     else:
         st.warning("Laporan Laba Rugi tidak dapat ditampilkan — data belum lengkap.")
-        
-    # INTERPRETASI OTOMATIS
+        laba_bersih = 0
+
+    # Interpretasi otomatis Laba/Rugi
+    total_piutang = piutang_total if 'piutang_total' in locals() else 0.0
     if laba_bersih > 0:
         st.success(f"Bisnis **untung**, karena laba bersih = {format_rp(laba_bersih)}.")
     elif laba_bersih == 0:
         st.info("Bisnis berada di titik impas (break even). Tidak untung, tidak rugi.")
     elif laba_bersih < 0 and total_piutang > abs(laba_bersih):
         st.info(
-            f"Laba bersih periode ini terlihat negatif karena sebagian besar pendapatan "
-            f"masih dalam bentuk piutang sebesar {format_rp(total_piutang)}. "
-            "Jika piutang tersebut dibayar, laba akan berbalik positif."
+            f"Laba bersih periode ini negatif karena sebagian pendapatan masih dalam piutang "
+            f"sebesar {format_rp(total_piutang)}. Setelah dibayar, laba bisa positif."
         )
     else:
         st.error(f"Bisnis **rugi**, karena laba bersih = {format_rp(laba_bersih)}.")
-        
+
+    # Markdown penjelasan
     st.markdown("""
-    **Laporan Laba Rugi** menunjukkan apakah bisnis *untung atau rugi* dalam periode yang Anda pilih.
+    **Laporan Laba Rugi** menunjukkan apakah bisnis *untung atau rugi* dalam periode tertentu.
 
-    **🔹 Pendapatan**  
-    Semua uang yang masuk dari pelanggan (penjualan tiket, jasa, fee, dll).
-
-    **🔹 HPP / Modal**  
-    Biaya untuk membeli barang/jasa yang dijual ke customer  
-    (misal: harga beli tiket dari maskapai).
-
-    **🔹 Beban Operasional**  
-    Semua biaya untuk menjalankan bisnis, seperti:  
-    - gaji  
-    - operasional kantor  
-    - marketing  
-    - pajak  
-    - kerugian order
-
-    **🔹 Laba Bersih = Pendapatan – HPP – Operasional**  
-    Angka ini menunjukkan **keuntungan bersih** yang benar-benar menjadi milik bisnis.
+    **🔹 Pendapatan** — semua uang masuk dari pelanggan  
+    **🔹 HPP / Modal** — biaya pembelian barang/jasa yang dijual  
+    **🔹 Beban Operasional** — biaya operasional seperti gaji, marketing, pajak, kerugian order  
+    **🔹 Laba Bersih = Pendapatan – HPP – Operasional**
     """)
-  
-    # =====================================================
-    # 📗 NERACA SEDERHANA (BALANCE SHEET)
-    # =====================================================
+
+    # ===========================
+    # 2️⃣ Neraca Sederhana
+    # ===========================
     st.markdown("## 📗 Neraca Sederhana")
-    
-    # Aset
-    aset_kas = saldo
-    aset_piutang = piutang_total
+
+    aset_kas = saldo if 'saldo' in locals() else 0.0
+    aset_piutang = piutang_total if 'piutang_total' in locals() else 0.0
     aset_total = aset_kas + aset_piutang
-    
-    # Hutang diambil dari cashflow (kategori yang termasuk hutang)
-    hutang_kategori = [
-        "Pembayaran Pinjaman (Hutang/Credit Card)",
-        "Penjualan (Credit Card)"  # jika ingin dihitung sebagai kewajiban
-    ]
-    
-    hutang_total = df_cashflow[
-        df_cashflow["Kategori"].isin(hutang_kategori)
-    ]["Jumlah"].sum()
-    
+
+    # Hutang
+    if 'df_cashflow' in locals() and not df_cashflow.empty:
+        hutang_kategori = ["Pembayaran Pinjaman (Hutang/Credit Card)", "Penjualan (Credit Card)"]
+        hutang_total = df_cashflow[df_cashflow["Kategori"].isin(hutang_kategori)]["Jumlah"].sum()
+    else:
+        hutang_total = 0.0
+
     modal = aset_total - hutang_total
-    
+
+    # Styling
     balance_style = """
     <style>
-    .bs-card {
-        background: #ffffff;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-        margin-bottom: 15px;
-        border: 1px solid #e6e6e6;
-    }
-    
-    .bs-title {
-        font-size: 20px;
-        font-weight: 700;
-        margin-bottom: 12px;
-        color: #333;
-    }
-    
-    .bs-item {
-        font-size: 16px;
-        margin: 6px 0;
-        color: #444;
-    }
-    
-    .bs-total {
-        margin-top: 12px;
-        font-size: 18px;
-        font-weight: 700;
-        color: #111;
-    }
+    .bs-card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); margin-bottom: 15px; border:1px solid #e6e6e6; }
+    .bs-title { font-size:20px; font-weight:700; margin-bottom:12px; color:#333; }
+    .bs-item { font-size:16px; margin:6px 0; color:#444; }
+    .bs-total { margin-top:12px; font-size:18px; font-weight:700; color:#111; }
     </style>
     """
     st.markdown(balance_style, unsafe_allow_html=True)
-    col_n1, col_n2 = st.columns(2)
 
+    col_n1, col_n2 = st.columns(2)
     with col_n1:
         st.markdown(
-            f"""
-            <div class="bs-card">
-                <div class="bs-title">📦 Aset</div>
-                <div class="bs-item">Kas: {format_rp(aset_kas)}</div>
-                <div class="bs-item">Piutang: {format_rp(aset_piutang)}</div>
-                <div class="bs-total">Total Aset: {format_rp(aset_total)}</div>
-            </div>
-            """,
+            f"<div class='bs-card'><div class='bs-title'>📦 Aset</div>"
+            f"<div class='bs-item'>Kas: {format_rp(aset_kas)}</div>"
+            f"<div class='bs-item'>Piutang: {format_rp(aset_piutang)}</div>"
+            f"<div class='bs-total'>Total Aset: {format_rp(aset_total)}</div></div>",
             unsafe_allow_html=True
         )
-    
     with col_n2:
         st.markdown(
-            f"""
-            <div class="bs-card">
-                <div class="bs-title">🏛️ Kewajiban & Modal</div>
-                <div class="bs-item">Total Hutang: {format_rp(hutang_total)}</div>
-                <div class="bs-item">Modal: {format_rp(modal)}</div>
-                <div class="bs-total">Total Pasiva: {format_rp(hutang_total + modal)}</div>
-            </div>
-            """,
+            f"<div class='bs-card'><div class='bs-title'>🏛️ Kewajiban & Modal</div>"
+            f"<div class='bs-item'>Total Hutang: {format_rp(hutang_total)}</div>"
+            f"<div class='bs-item'>Modal: {format_rp(modal)}</div>"
+            f"<div class='bs-total'>Total Pasiva: {format_rp(hutang_total + modal)}</div></div>",
             unsafe_allow_html=True
         )
 
-
-
-    # INTERPRETASI OTOMATIS
+    # Interpretasi Neraca
     if hutang_total > aset_kas:
         if total_piutang > (hutang_total - aset_kas):
-            st.info(
-                f"Kas saat ini lebih kecil dari total hutang, namun sebagian besar pendapatan "
-                f"masih dalam bentuk piutang sebesar {format_rp(total_piutang)}. "
-                "Setelah piutang diterima, kas akan cukup untuk menutupi kewajiban."
-            )
+            st.info(f"Kas kurang dari hutang, tapi piutang {format_rp(total_piutang)} akan menutupi.")
         else:
-            st.error(
-                "Kas lebih kecil dari total hutang dan piutang tidak cukup menutupi kekurangannya. "
-                "Perlu hati-hati dalam pengelolaan arus kas dan prioritas pembayaran."
-            )
+            st.error("Kas < hutang & piutang tidak cukup. Hati-hati dalam manajemen kas.")
     else:
-        st.success(
-            "Struktur keuangan aman: kas saat ini mencukupi untuk menutup hutang jangka pendek."
-        )
+        st.success("Kas cukup untuk menutup hutang jangka pendek.")
 
-
-    st.markdown("""
-    **Neraca** menggambarkan posisi kesehatan keuangan Anda saat ini.
-
-    **🔸 Aset**  
-    Apa yang bisnis MILIKI:  
-    - **Kas**: uang yang tersedia sekarang  
-    - **Piutang**: uang yang masih harus ditagih ke customer  
-
-    **🔸 Kewajiban (Hutang)** 
-    Apa yang bisnis HARUS BAYAR ke pihak lain  
-    (misal: tagihan kartu kredit, hutang modal, cicilan).
-
-    **🔸 Modal**
-    Selisih antara aset dan hutang.  
-    Ini menunjukkan **nilai bersih bisnis**.
-
-    **Rumus:**  
-    👉 ASET = HUTANG + MODAL
-    """)
-    
-    # =====================================================
-    # 📙 CASHFLOW STATEMENT
-    # =====================================================
+    # ===========================
+    # 3️⃣ Cashflow Statement
+    # ===========================
     st.markdown("## 📙 Cashflow Statement")
-    
-    # Mapping kategori sederhana
-    operasional_kat = [
-        "Pembayaran Customer",
-        "Penjualan (Cash/Tunai)",
-        "Penjualan (Credit Card)",
-        "Penjualan (Redeem Points)",
-        "Gaji Karyawan",
-        "Operasional Kantor",
-        "Marketing & Promosi",
-        "Pajak dan Biaya Lainnya",
-        "Kerugian Salah Order",
-        "Kerugian Pembatalan",
-        "Kerugian Kerusakan / Rusak",
-        "Kerugian Lainnya"
-    ]
-    
-    investasi_kat = [
-        "Pembelian Aset", "Peralatan", "Inventaris"   # jika nanti digunakan
-    ]
-    
-    pendanaan_kat = [
-        "Pembayaran Pinjaman (Hutang/Credit Card)",
-        "Penambahan Modal",
-        "Pinjaman Masuk"
-    ]
-    
-    def cf_sum(df, tipe, categories):
-        return df[
-            (df["Kategori"].isin(categories)) &
-            (df["Tipe"] == tipe)
-        ]["Jumlah"].sum()
-    
-    # Operasional
-    ops_masuk = cf_sum(df_filtered, "Masuk", operasional_kat)
-    ops_keluar = cf_sum(df_filtered, "Keluar", operasional_kat)
-    cf_operasional = ops_masuk - ops_keluar
-    
-    # Investasi
-    inv_masuk = cf_sum(df_filtered, "Masuk", investasi_kat)
-    inv_keluar = cf_sum(df_filtered, "Keluar", investasi_kat)
-    cf_investasi = inv_masuk - inv_keluar
-    
-    # Pendanaan
-    fund_masuk = cf_sum(df_filtered, "Masuk", pendanaan_kat)
-    fund_keluar = cf_sum(df_filtered, "Keluar", pendanaan_kat)
-    cf_pendanaan = fund_masuk - fund_keluar
-    
-    # Total Cashflow
-    cf_total = cf_operasional + cf_investasi + cf_pendanaan
-    
-    col_cf1, col_cf2 = st.columns(2)
-    with col_cf1:
-        metric_card("💼 Cashflow Operasional", format_rp(cf_operasional))
-    with col_cf2:
-        metric_card("🏗️ Cashflow Investasi", format_rp(cf_investasi))
-    
-    col_cf3, col_cf4 = st.columns(2)
-    with col_cf3:
-        metric_card("🏦 Cashflow Pendanaan", format_rp(cf_pendanaan))
-    with col_cf4:
-        metric_card("📊 Total Cashflow", format_rp(cf_total))
 
-    # INTERPRETASI OTOMATIS
-    # Interpretasi Cashflow Operasional
+    # Kategori
+    operasional_kat = ["Pembayaran Customer","Penjualan (Cash/Tunai)","Penjualan (Credit Card)",
+                       "Penjualan (Redeem Points)","Gaji Karyawan","Operasional Kantor",
+                       "Marketing & Promosi","Pajak dan Biaya Lainnya","Kerugian Salah Order",
+                       "Kerugian Pembatalan","Kerugian Kerusakan / Rusak","Kerugian Lainnya"]
+    investasi_kat = ["Pembelian Aset","Peralatan","Inventaris"]
+    pendanaan_kat = ["Pembayaran Pinjaman (Hutang/Credit Card)","Penambahan Modal","Pinjaman Masuk"]
+
+    def cf_sum(df, tipe, categories):
+        if 'df_filtered' not in locals() or df_filtered.empty: return 0
+        return df_filtered[(df_filtered["Kategori"].isin(categories)) & (df_filtered["Tipe"] == tipe)]["Jumlah"].sum()
+
+    cf_operasional = cf_sum(df_filtered, "Masuk", operasional_kat) - cf_sum(df_filtered, "Keluar", operasional_kat)
+    cf_investasi = cf_sum(df_filtered, "Masuk", investasi_kat) - cf_sum(df_filtered, "Keluar", investasi_kat)
+    cf_pendanaan = cf_sum(df_filtered, "Masuk", pendanaan_kat) - cf_sum(df_filtered, "Keluar", pendanaan_kat)
+    cf_total = cf_operasional + cf_investasi + cf_pendanaan
+
+    col_cf1, col_cf2 = st.columns(2)
+    with col_cf1: metric_card("💼 Cashflow Operasional", format_rp(cf_operasional))
+    with col_cf2: metric_card("🏗️ Cashflow Investasi", format_rp(cf_investasi))
+    col_cf3, col_cf4 = st.columns(2)
+    with col_cf3: metric_card("🏦 Cashflow Pendanaan", format_rp(cf_pendanaan))
+    with col_cf4: metric_card("📊 Total Cashflow", format_rp(cf_total))
+
+    # Interpretasi Cashflow
     if cf_operasional < 0:
         if total_piutang > abs(cf_operasional):
-            st.info(
-                f"Cashflow operasional negatif terutama karena pembayaran customer "
-                f"belum diterima. Piutang sebesar {format_rp(total_piutang)} akan "
-                "memperbaiki arus kas ketika masuk."
-            )
+            st.info(f"Cashflow operasional negatif karena pembayaran belum diterima, piutang {format_rp(total_piutang)} akan memperbaiki.")
         else:
-            st.error(
-                "Cashflow operasional negatif dan tidak ditopang oleh piutang yang besar. "
-                "Perlu dievaluasi apakah pengeluaran terlalu tinggi atau pemasukan terlalu rendah."
-            )
+            st.error("Cashflow operasional negatif & piutang tidak cukup. Evaluasi pengeluaran & pemasukan.")
     else:
-        st.success(
-            "Cashflow operasional positif — aktivitas bisnis menghasilkan kas bersih dari operasional."
-        )
+        st.success("Cashflow operasional positif — aktivitas bisnis menghasilkan kas bersih.")
+
 
 
     st.markdown("""

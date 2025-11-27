@@ -2543,13 +2543,20 @@ with st.expander("💸 Laporan Cashflow Realtime"):
             subset=["Tanggal","Ref","Akun_Debit","Debit","Akun_Kredit","Kredit","Keterangan"], keep="last"
         )
 
-    # --- Tampilkan Metrics ---
+    # ROW 1
     col1, col2 = st.columns(2)
-    metric_card("💰 Total Pemasukan", format_rp(total_masuk), col=col1)
-    metric_card("📤 Total Pengeluaran", format_rp(total_keluar), col=col2)
+    with col1:
+        metric_card("💰 Total Pemasukan", format_rp(total_masuk))
+    with col2:
+        metric_card("📤 Total Pengeluaran", format_rp(total_keluar))
+    
+    # ROW 2
     col3, col4 = st.columns(2)
-    metric_card("🏦 Saldo Akhir", format_rp(saldo), col=col3)
-    metric_card("🧾 Piutang Belum Lunas", format_rp(piutang_total), col=col4)
+    with col3:
+        metric_card("🏦 Saldo Akhir", format_rp(saldo))
+    with col4:
+        metric_card("🧾 Piutang Belum Lunas", format_rp(total_piutang))
+
 
     st.subheader("💳 Ringkasan Hutang Kartu Kredit")
     if summary_hutang.empty:

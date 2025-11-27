@@ -2791,7 +2791,7 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     
     # Aset
     aset_kas = saldo
-    aset_piutang = total_piutang
+    aset_piutang = piutang_total
     aset_total = aset_kas + aset_piutang
     
     # Hutang diambil dari cashflow (kategori yang termasuk hutang)

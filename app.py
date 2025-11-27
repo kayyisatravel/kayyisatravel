@@ -2555,7 +2555,7 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     with col3:
         metric_card("🏦 Saldo Akhir", format_rp(saldo))
     with col4:
-        metric_card("🧾 Piutang Belum Lunas", format_rp(total_piutang))
+        metric_card("🧾 Piutang Belum Lunas", format_rp(piutang_total))
 
 
     st.subheader("💳 Ringkasan Hutang Kartu Kredit")

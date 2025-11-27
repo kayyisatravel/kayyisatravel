@@ -2986,6 +2986,9 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     # Fungsi Aging Report
     # ---------------------------
     
+    # =========================
+    # Fungsi Aging Report Aman
+    # =========================
     def generate_aging_report(df_cashflow, df_data, overdue_days=30):
         """
         Generate Aging Report dari cashflow dan data penjualan.
@@ -3000,9 +3003,16 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
         """
     
         # ---------------------------
-        # Bersihkan kolom Harga Jual di df_data
+        # Pastikan kolom penting ada
         # ---------------------------
-        df_data["Harga Jual"] = df_data.get("Harga Jual", 0).fillna(0).astype(float)
+        for col in ["Harga Jual"]:
+            if col not in df_data.columns:
+                df_data[col] = 0
+        for col in ["Status", "Tanggal", "Jumlah", "Tipe", "No Invoice", "Nama Pemesan"]:
+            if col not in df_cashflow.columns:
+                df_cashflow[col] = None
+    
+        df_data["Harga Jual"] = df_data["Harga Jual"].fillna(0).astype(float)
     
         # ---------------------------
         # Buat key unik per transaksi di df_data
@@ -3013,9 +3023,10 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
             if no_inv != "":
                 return f"{no_inv}_{nama}"
             else:
-                tgl = pd.to_datetime(row.get("Tgl Pemesanan", pd.Timestamp.today())).strftime("%Y%m%d%H%M%S")
-                return f"NOINV_{nama}_{tgl}_{row.name}"
-    
+                tgl = pd.to_datetime(row.get("Tgl Pemesanan", pd.Timestamp.today()))
+                tgl_str = tgl.strftime("%Y%m%d%H%M%S")
+                return f"NOINV_{nama}_{tgl_str}_{row.name}"
+        
         df_data["_Data_Key"] = df_data.apply(generate_data_key, axis=1)
     
         # ---------------------------
@@ -3027,13 +3038,17 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
             if no_inv != "":
                 return f"{no_inv}_{nama}"
             else:
-                tgl = pd.to_datetime(row.get("Tanggal", pd.Timestamp.today())).strftime("%Y%m%d%H%M%S")
-                return f"NOINV_{nama}_{tgl}_{row.name}"
-    
+                try:
+                    tgl = pd.to_datetime(row.get("Tanggal", pd.Timestamp.today()))
+                except:
+                    tgl = pd.Timestamp.today()
+                tgl_str = tgl.strftime("%Y%m%d%H%M%S")
+                return f"NOINV_{nama}_{tgl_str}_{row.name}"
+        
         df_cashflow["_Data_Key"] = df_cashflow.apply(generate_cf_key, axis=1)
     
         # ---------------------------
-        # Filter hanya transaksi belum lunas
+        # Filter transaksi belum lunas
         # ---------------------------
         df_unpaid = df_cashflow[df_cashflow["Status"] == "Belum Lunas"].copy()
     
@@ -3046,28 +3061,25 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
             nama_pemesan = row_cf.get("Nama Pemesan", "UNKNOWN")
             no_invoice = row_cf.get("No Invoice", "")
             tgl = row_cf.get("Tanggal", pd.Timestamp.today())
+            try:
+                tgl = pd.to_datetime(tgl)
+            except:
+                tgl = pd.Timestamp.today()
     
-            # Cari data penjualan di df_data
+            # Cari data penjualan
             df_match = df_data[df_data["_Data_Key"] == key]
-    
             if not df_match.empty:
                 total_harga_jual = df_match["Harga Jual"].sum()
             else:
-                # fallback untuk transaksi manual / tidak ada di df_data
-                # ambil dari kolom 'Harga Jual' jika ada, atau 'Jumlah'
-                total_harga_jual = row_cf.get("Harga Jual", 0)
+                total_harga_jual = row_cf.get("Harga Jual", 0) or 0
     
-            # Total pembayaran masuk
             total_masuk = df_cashflow[
                 (df_cashflow["_Data_Key"] == key) & 
                 (df_cashflow["Tipe"] == "Masuk")
-            ]["Jumlah"].sum()
+            ]["Jumlah"].sum() or 0
     
-            # Piutang
             piutang = total_harga_jual - total_masuk
-    
-            # Hitung aging
-            aging = (pd.Timestamp.today().normalize() - pd.to_datetime(tgl).normalize()).days
+            aging = (pd.Timestamp.today().normalize() - tgl.normalize()).days
     
             aging_rows.append({
                 "Nama Pemesan/Keterangan": nama_pemesan,
@@ -3078,26 +3090,29 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
                 "Overdue": aging > overdue_days
             })
     
-        # ---------------------------
-        # Buat DataFrame hasil
-        # ---------------------------
         df_aging = pd.DataFrame(aging_rows)
     
-        if not df_aging.empty:
+        if not df_aging.empty and "Piutang" in df_aging.columns:
             df_aging["Piutang"] = df_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
     
         return df_aging
-
-
-
+    
+    
     # =========================
-    # TAMPILAN AGING REPORT-
+    # Tampilkan Aging Report
     # =========================
     df_aging = generate_aging_report(df_cashflow, df_data)
-    df_aging = df_aging.sort_values(by="Aging (hari)", ascending=False)
     
-    def highlight_overdue(row):
-        return ["background-color: #FF9999" if row.Overdue else "" for _ in row]
+    if not df_aging.empty and "Aging (hari)" in df_aging.columns:
+        df_aging = df_aging.sort_values(by="Aging (hari)", ascending=False)
+    
+        def highlight_overdue(row):
+            return ["background-color: #FF9999" if row.Overdue else "" for _ in row]
+    
+        st.dataframe(df_aging.style.apply(highlight_overdue, axis=1), use_container_width=True)
+    else:
+        st.info("Data Aging Report kosong atau belum ada transaksi yang belum lunas.")
+
     
 with st.expander("⏳ Aging Report / Invoice Belum Lunas"):
     st.markdown("### ⏳ Aging Report / Invoice Belum Lunas")

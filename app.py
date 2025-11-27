@@ -2147,6 +2147,8 @@ def parse_data_with_liabilities(
         existing_keys = set(ck["Invoice_Key"])
 
     grouped = df_data.groupby("Invoice_Key")
+    total_harga_lunas = group[group["Keterangan"].str.contains("Lunas", case=False, na=False)]["Harga Jual"].sum()
+    total_harga_belum = group[group["Keterangan"].str.contains("Belum", case=False, na=False)]["Harga Jual"].sum()
 
     for key, group in grouped:
         if key in existing_keys:
@@ -2226,7 +2228,30 @@ def parse_data_with_liabilities(
             })
 
         # 2) Payment from customer: check existing cashflow lines or Paid_Amount
-        total_sudah_dibayar = 0
+        ### Hitung pemasukan berdasarkan status transaksi BUKAN invoice
+        total_sudah_dibayar = total_harga_lunas
+        
+        ### Piutang
+        if total_harga_belum > 0:
+            liability_rows.append({
+                "Tanggal": tgl,
+                "Invoice_Key": key,
+                "Akun": "Piutang Usaha",
+                "Jumlah": total_harga_belum,
+                "Keterangan": f"Piutang atas transaksi {nama_pemesan} {invoice_no}",
+                "Jenis": "TambahPiutang"
+            })
+        
+            journal_rows.append({
+                "Tanggal": tgl,
+                "Ref": key,
+                "Akun_Debit": "Piutang Usaha",
+                "Debit": total_harga_belum,
+                "Akun_Kredit": "Pendapatan Penjualan",
+                "Kredit": total_harga_belum,
+                "Keterangan": f"Pengakuan Piutang - {nama_pemesan} {invoice_no}"
+            })
+
         if not df_cashflow_existing.empty and "Invoice_Key" in df_cashflow_existing.columns:
             df_cf_inv = df_cashflow_existing[df_cashflow_existing.get("Invoice_Key","")==key]
             total_sudah_dibayar = df_cf_inv[df_cf_inv["Tipe"]=="Masuk"]["Jumlah"].sum()
@@ -2236,7 +2261,7 @@ def parse_data_with_liabilities(
             except Exception:
                 pass
 
-        if total_sudah_dibayar > 0:
+        if total_harga_lunas > 0:
             cashflow_rows.append({
                 "Tanggal": tgl,
                 "Tipe": "Masuk",
@@ -2257,12 +2282,13 @@ def parse_data_with_liabilities(
             journal_rows.append({
                 "Tanggal": tgl,
                 "Ref": key,
-                "Akun_Debit": akun_debit,
-                "Debit": total_sudah_dibayar,
-                "Akun_Kredit": "Pendapatan Penjualan",
-                "Kredit": total_sudah_dibayar,
-                "Keterangan": f"Pembayaran customer - {nama_pemesan} {invoice_no}"
+                "Akun_Debit": "Kas",
+                "Debit": total_harga_lunas,
+                "Akun_Kredit": "Piutang Usaha",
+                "Kredit": total_harga_lunas,
+                "Keterangan": f"Pelunasan Customer - {nama_pemesan} {invoice_no}"
             })
+
 
     df_cashflow_rows = pd.DataFrame(cashflow_rows)
     df_liability_rows = pd.DataFrame(liability_rows)

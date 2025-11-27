@@ -3116,34 +3116,68 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
     
 with st.expander("⏳ Aging Report / Invoice Belum Lunas"):
     st.markdown("### ⏳ Aging Report / Invoice Belum Lunas")
-    
-    if not df_aging.empty:
-        st.dataframe(df_aging.style.apply(highlight_overdue_safe, axis=1), use_container_width=True)
+
+    # =============================
+    # Buat DataFrame Aging dari Cashflow Realtime
+    # =============================
+    if not df_cashflow_combined.empty and not df_data.empty:
+        # Pastikan kolom penting ada
+        for col in ["Tanggal","Status","No Invoice","Nama Pemesan","Jumlah"]:
+            if col not in df_cashflow_combined.columns:
+                df_cashflow_combined[col] = None
+
+        # Gunakan Invoice_Key untuk matching
+        df_data["Invoice_Key"] = df_data.get("Invoice_Key", df_data.apply(
+            lambda x: f"{x['Nama Pemesan']}_MANUAL_{x.name}" if x.get("No Invoice","")=="" else f"{x['Nama Pemesan']}_{x['No Invoice']}", axis=1
+        ))
+
+        df_cashflow_combined["Invoice_Key"] = df_cashflow_combined.get("Invoice_Key", df_cashflow_combined.apply(
+            lambda x: f"{x.get('Nama Pemesan','UNKNOWN')}_MANUAL_{x.name}" if x.get("No Invoice","")=="" else f"{x.get('Nama Pemesan','UNKNOWN')}_{x.get('No Invoice','')}", axis=1
+        ))
+
+        # Filter transaksi belum lunas
+        df_unpaid = df_cashflow_combined[df_cashflow_combined["Status"]=="Belum Lunas"].copy()
+
+        if not df_unpaid.empty:
+            # Merge dengan df_data untuk ambil Harga Jual
+            df_merged = df_unpaid.merge(
+                df_data[["Invoice_Key","Harga Jual","Tgl Pemesanan"]],
+                on="Invoice_Key",
+                how="left"
+            )
+
+            # Hitung sisa piutang
+            df_merged["Harga Jual"] = df_merged["Harga Jual"].fillna(0)
+            df_merged["Jumlah Masuk"] = df_cashflow_combined[
+                (df_cashflow_combined["Tipe"]=="Masuk")
+            ].groupby("Invoice_Key")["Jumlah"].transform("sum").fillna(0)
+
+            df_merged["Piutang"] = df_merged["Harga Jual"] - df_merged["Jumlah Masuk"]
+
+            # Hitung aging
+            df_merged["Tanggal Pemesanan"] = df_merged["Tgl Pemesanan"].fillna(df_merged["Tanggal"])
+            df_merged["Aging (hari)"] = (pd.Timestamp.today().normalize() - pd.to_datetime(df_merged["Tanggal Pemesanan"]).dt.normalize()).dt.days
+            df_merged["Overdue"] = df_merged["Aging (hari)"] > 30
+
+            # Ambil kolom penting
+            df_aging = df_merged[[
+                "Nama Pemesan","No Invoice","Tanggal Pemesanan","Piutang","Aging (hari)","Overdue"
+            ]].drop_duplicates()
+
+            # Format Rupiah
+            df_aging["Piutang"] = df_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
+
+            # Highlight overdue
+            def highlight_overdue(row):
+                return ["background-color: #FF9999" if row.Overdue else "" for _ in row]
+
+            st.dataframe(df_aging.style.apply(highlight_overdue, axis=1), use_container_width=True)
+
+        else:
+            st.info("Belum ada transaksi belum lunas untuk ditampilkan.")
     else:
-        st.info("Belum ada transaksi belum lunas untuk ditampilkan.")
+        st.info("Belum ada data cashflow atau data penjualan untuk Aging Report.")
 
-    st.markdown("## 📈 Grafik Cashflow")
-
-    # Chart Masuk-Keluar Bulanan
-    if "Tanggal" in df_filtered.columns:
-        df_chart = df_filtered.copy()
-        df_chart["Tanggal"] = pd.to_datetime(df_chart["Tanggal"], errors='coerce')
-        df_chart["Bulan"] = df_chart["Tanggal"].dt.to_period("M").astype(str)
-        df_summary = df_chart.groupby(["Bulan", "Tipe"])["Jumlah"].sum().reset_index()
-        df_pivot = df_summary.pivot(index="Bulan", columns="Tipe", values="Jumlah").fillna(0)
-
-        st.line_chart(df_pivot)
-
-        # Saldo berjalan
-        df_chart = df_chart.sort_values("Tanggal")
-        df_chart["Saldo"] = df_chart.apply(
-            lambda r: r["Jumlah"] if r["Tipe"]=="Masuk" else -r["Jumlah"], axis=1
-        ).cumsum()
-
-        st.markdown("### 🏦 Grafik Saldo Berjalan")
-        st.area_chart(df_chart[["Tanggal", "Saldo"]].set_index("Tanggal"))
-    else:
-        st.info("Data cashflow belum tersedia atau kolom 'Tanggal' tidak ditemukan.")
 
 #=================================================================================================================================================================
 from prophet import Prophet

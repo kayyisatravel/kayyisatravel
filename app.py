@@ -2030,6 +2030,8 @@ def save_kas(df: pd.DataFrame, worksheet):
 import streamlit as st
 import pandas as pd
 from datetime import date, datetime
+from gspread.exceptions import APIError
+
 
 # ---------------------------
 # Config
@@ -2105,11 +2107,17 @@ def safe_first(df, col):
         return ""
     return df[col].iloc[0]
 
-# ---------------------------
-# Parser with liabilities & journal
-# ---------------------------
-import pandas as pd
-import re
+@st.cache_data(ttl=600)  # cache 10 menit
+def load_sheet(sheet_id, worksheet_name):
+    try:
+        ws = connect_to_gsheet(sheet_id, worksheet_name)
+        records = ws.get_all_records()
+        df = pd.DataFrame(records)
+    except Exception:
+        st.warning(f"Tidak bisa ambil sheet '{worksheet_name}'. Menggunakan data kosong.")
+        df = pd.DataFrame()
+    return df
+    
 
 # ---------------------------------------
 # Clean angka Rupiah
@@ -2429,19 +2437,9 @@ with st.expander("✏️ Input Data Cashflow Manual"):
 with st.expander("💸 Laporan Cashflow Realtime"):
 
     # --- Ambil data dari GSheet (Data & Arus Kas) dengan fallback ---
-    try:
-        ws_data = connect_to_gsheet(SHEET_ID, "Data")
-        df_data = pd.DataFrame(ws_data.get_all_records())
-    except Exception:
-        df_data = pd.DataFrame()
-        st.warning("Tidak bisa ambil sheet 'Data'. Menggunakan data lokal jika ada.")
+    df_data = load_sheet(SHEET_ID, "Data")
+    df_cashflow_existing = load_sheet(SHEET_ID, "Arus Kas")
 
-    try:
-        ws_cashflow = connect_to_gsheet(SHEET_ID, "Arus Kas")
-        df_cashflow_existing = pd.DataFrame(ws_cashflow.get_all_records())
-    except Exception:
-        df_cashflow_existing = pd.DataFrame()
-        st.warning("Tidak bisa ambil sheet 'Arus Kas'. Menggunakan data lokal jika ada.")
 
     # --- Normalisasi df_data ---
     if not df_data.empty:

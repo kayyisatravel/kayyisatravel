@@ -2385,10 +2385,8 @@ def parse_financial_data(df_data, df_cashflow_existing):
 
     return df_cf_auto, df_piutang_auto, df_hutang_cc_auto, df_journal_auto
 
-st.write("DEBUG df_cashflow_existing head:", df_cashflow_existing.head())
-st.write("DEBUG df_cashflow_existing columns:", df_cashflow_existing.columns)
-st.write("DEBUG df_cashflow_existing info:")
-st.write(df_cashflow_existing.info())
+st.write("DEBUG df_cashflow_existing:", df_cashflow_existing)
+
 
 
 

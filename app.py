@@ -2385,7 +2385,10 @@ def parse_financial_data(df_data, df_cashflow_existing):
 
     return df_cf_auto, df_piutang_auto, df_hutang_cc_auto, df_journal_auto
 
-st.write("DEBUG df_cashflow_existing:", df_cashflow_existing)
+if 'df_cashflow_existing' in locals():
+    st.write("DEBUG df_cashflow_existing:", df_cashflow_existing)
+else:
+    st.write("DEBUG: df_cashflow_existing belum ada")
 
 
 

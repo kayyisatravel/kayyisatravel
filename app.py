@@ -2391,14 +2391,6 @@ import io
 
 
 # --- Debug df_data ---
-st.subheader("Debug: Struktur Data df_data")
-
-# Info ke string
-buffer = io.StringIO()
-df_data.info(buf=buffer)
-s = buffer.getvalue()
-st.text(s)  # pakai st.text agar multiline rapi
-
 # Tampilkan 5 baris pertama
 st.write(df_data.head())
 

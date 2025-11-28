@@ -2624,7 +2624,7 @@ with st.expander("📘 Jurnal Akuntansi"):
                     color: #31708f;
                     font-size: 24px;
                 ">
-                    💳 Sisa Hutang Kartu Kredit: {format_rp(summary_hutang)}
+                    💳 Sisa Hutang Kartu Kredit ({r['Bank']}): {format_rp(r['Jumlah'])}
                 </div>
                 """,
                 unsafe_allow_html=True

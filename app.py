@@ -2584,20 +2584,6 @@ with st.expander("📘 Jurnal Akuntansi"):
     df_journal_combined["Tanggal"] = pd.to_datetime(df_journal_combined["Tanggal"], errors="coerce")
     df_journal_combined = df_journal_combined.dropna(subset=["Tanggal"]).drop_duplicates(subset=journal_cols, keep="last")
 
-    # ROW 1
-    col1, col2 = st.columns(2)
-    with col1:
-        metric_card("💰 Total Pemasukan", format_rp(total_masuk))
-    with col2:
-        metric_card("📤 Total Pengeluaran", format_rp(total_keluar))
-    
-    # ROW 2
-    col3, col4 = st.columns(2)
-    with col3:
-        metric_card("🏦 Saldo Akhir", format_rp(saldo))
-    with col4:
-        metric_card("🧾 Piutang Belum Lunas", format_rp(piutang_total))
-
     if summary_hutang.empty:
         st.markdown(
                 f"""
@@ -2638,7 +2624,19 @@ with st.expander("📘 Jurnal Akuntansi"):
                 """,
                 unsafe_allow_html=True
             )
-
+    # ROW 1
+    col1, col2 = st.columns(2)
+    with col1:
+        metric_card("💰 Total Pemasukan", format_rp(total_masuk))
+    with col2:
+        metric_card("📤 Total Pengeluaran", format_rp(total_keluar))
+    
+    # ROW 2
+    col3, col4 = st.columns(2)
+    with col3:
+        metric_card("🏦 Saldo Akhir", format_rp(saldo))
+    with col4:
+        metric_card("🧾 Piutang Belum Lunas", format_rp(piutang_total))
 
     st.subheader("📘 Jurnal Akuntansi (Auto Generated)")
     if not df_journal_combined.empty:

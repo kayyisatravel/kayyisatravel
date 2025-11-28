@@ -2451,7 +2451,7 @@ with st.expander("✏️ Input Data Cashflow Manual"):
 # ---------------------------
 # Laporan Cashflow Realtime
 # ---------------------------
-with st.expander("💸 Laporan Cashflow Realtime"):
+with st.expander("📘 Jurnal Akuntansi"):
 
     # --- Ambil data dari GSheet (Data & Arus Kas) dengan fallback ---
     df_data = load_sheet(SHEET_ID, "Data")
@@ -2603,125 +2603,123 @@ with st.expander("💸 Laporan Cashflow Realtime"):
     else:
         st.success("🟢 Cashflow sehat. Arus kas berjalan stabil.")
 
-
-
 # Footer notes
-st.markdown("---")
-st.markdown("**Catatan:**\n- Pembelian via kartu kredit dicatat sebagai `Hutang Kartu - <Nama>` (liability) dan tidak mengurangi kas sampai pembayaran tagihan tercatat.\n- Pembayaran tagihan kartu dicatat sebagai pengurangan kas dan mengurangi liability.\n- Untuk otomasi pendapatan (cash-basis), sertakan kolom `Paid_Amount` atau catatan `Masuk` pada sheet 'Arus Kas'.")
+    st.markdown("---")
+    st.markdown("**Catatan:**\n- Pembelian via kartu kredit dicatat sebagai `Hutang Kartu - <Nama>` (liability) dan tidak mengurangi kas sampai pembayaran tagihan tercatat.\n- Pembayaran tagihan kartu dicatat sebagai pengurangan kas dan mengurangi liability.\n- Untuk otomasi pendapatan (cash-basis), sertakan kolom `Paid_Amount` atau catatan `Masuk` pada sheet 'Arus Kas'.")
 
- 
-st.markdown("### 🔧 Filter Cashflow")
-
-# Pastikan kolom Bulan/Tahun tersedia
-df_cashflow_combined["Tanggal"] = pd.to_datetime(df_cashflow_combined["Tanggal"], errors='coerce')
-df_cashflow_combined["Bulan"] = df_cashflow_combined["Tanggal"].dt.month
-df_cashflow_combined["Tahun"] = df_cashflow_combined["Tanggal"].dt.year
-df_cashflow = df_cashflow_combined
-
-# -----------------------------
-# 1️⃣ Pilih Jenis Filter Waktu
-# -----------------------------
-filter_mode = st.radio(
-    "Pilih Jenis Filter Waktu",
-    ["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"],
-    horizontal=True,
-    key="filter_mode_radio_v2"
-)
-
-
-# -----------------------------
-# 2️⃣ Filter Waktu Dinamis
-# -----------------------------
-if filter_mode == "📆 Rentang Tanggal":
-    cold1, cold2 = st.columns(2)
-    tanggal_mulai = cold1.date_input("Dari tanggal", df_cashflow["Tanggal"].min())
-    tanggal_akhir = cold2.date_input("Sampai tanggal", df_cashflow["Tanggal"].max())
-    df_filtered = df_cashflow[
-        (df_cashflow["Tanggal"] >= pd.to_datetime(tanggal_mulai)) &
-        (df_cashflow["Tanggal"] <= pd.to_datetime(tanggal_akhir))
-    ]
-
-elif filter_mode == "🗓️ Bulanan":
-    tahun_filter = st.selectbox("Tahun", sorted(df_cashflow["Tahun"].unique()))
-    bulan_map = {
-        "Januari":1,"Februari":2,"Maret":3,"April":4,"Mei":5,"Juni":6,
-        "Juli":7,"Agustus":8,"September":9,"Oktober":10,"November":11,"Desember":12
-    }
-    bulan_filter = st.selectbox("Bulan", list(bulan_map.keys()))
-    df_filtered = df_cashflow[
-        (df_cashflow["Tahun"] == tahun_filter) &
-        (df_cashflow["Bulan"] == bulan_map[bulan_filter])
-    ]
-
-elif filter_mode == "📅 Tahunan":
-    tahun_filter = st.selectbox("Tahun", sorted(df_cashflow["Tahun"].unique()))
-    df_filtered = df_cashflow[df_cashflow["Tahun"] == tahun_filter]
-
-# -----------------------------
-# 3️⃣ Filter Tipe Transaksi & Kategori
-# -----------------------------
-colf1, colf2 = st.columns(2)
-
-# Tipe transaksi
-tipe_filter = colf1.selectbox(
-    "Jenis Transaksi",
-    ["Semua", "Masuk", "Keluar"]
-)
-
-# Kategori (otomatis menyesuaikan tipe)
-if tipe_filter == "Masuk":
-    kategori_list = df_cashflow[df_cashflow["Tipe"]=="Masuk"]["Kategori"].unique()
-elif tipe_filter == "Keluar":
-    kategori_list = df_cashflow[df_cashflow["Tipe"]=="Keluar"]["Kategori"].unique()
-else:
-    kategori_list = df_cashflow["Kategori"].unique()
-
-kategori_filter = colf2.selectbox("Kategori", ["Semua"] + list(kategori_list))
-
-if tipe_filter != "Semua":
-    df_filtered = df_filtered[df_filtered["Tipe"] == tipe_filter]
-if kategori_filter != "Semua":
-    df_filtered = df_filtered[df_filtered["Kategori"] == kategori_filter]
-
-# -----------------------------
-# 4️⃣ Filter Nama Pemesan (otomatis deteksi kolom)
-# -----------------------------
-possible_name_cols = ["Pemesan", "Nama Pemesan", "Nama", "Customer", "Pemesanan", "Atas Nama"]
-col_pemesan = next((c for c in possible_name_cols if c in df_cashflow.columns), None)
-
-if col_pemesan:
-    pemesan_list = df_cashflow[col_pemesan].dropna().unique()
-    pemesan_filter = st.selectbox("Nama Pemesan", ["Semua"] + list(pemesan_list))
-    if pemesan_filter != "Semua":
-        df_filtered = df_filtered[df_filtered[col_pemesan] == pemesan_filter]
-
-# -----------------------------
-# 5️⃣ Total Masuk & Keluar hasil filter
-# -----------------------------
-col_total1, col_total2 = st.columns(2)
-total_masuk_filtered = df_filtered[df_filtered["Tipe"]=="Masuk"]["Jumlah"].sum()
-total_keluar_filtered = df_filtered[df_filtered["Tipe"]=="Keluar"]["Jumlah"].sum()
-
-with col_total1:
-    metric_card("💰 Total Masuk (Filtered)", format_rp(total_masuk_filtered))
-
-with col_total2:
-    metric_card("📤 Total Keluar (Filtered)", format_rp(total_keluar_filtered))
-
-
-# -----------------------------
-# 6️⃣ Tabel Detail Transaksi
-# -----------------------------
-st.markdown("## 📋 Detail Transaksi Cashflow (Sudah Difilter)")
-
-df_show = df_filtered.copy()
-df_show["Jumlah"] = df_show["Jumlah"].apply(format_rp)
-
-st.dataframe(
-    df_show.sort_values("Tanggal", ascending=False),
-    use_container_width=True,
-    height=500
-)
+with st.expander("💸 Laporan Cashflow Realtime"): 
+    st.markdown("### 🔧 Filter Cashflow")
+    
+    # Pastikan kolom Bulan/Tahun tersedia
+    df_cashflow_combined["Tanggal"] = pd.to_datetime(df_cashflow_combined["Tanggal"], errors='coerce')
+    df_cashflow_combined["Bulan"] = df_cashflow_combined["Tanggal"].dt.month
+    df_cashflow_combined["Tahun"] = df_cashflow_combined["Tanggal"].dt.year
+    df_cashflow = df_cashflow_combined
+    
+    # -----------------------------
+    # 1️⃣ Pilih Jenis Filter Waktu
+    # -----------------------------
+    filter_mode = st.radio(
+        "Pilih Jenis Filter Waktu",
+        ["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"],
+        horizontal=True,
+        key="filter_mode_radio_v2"
+    )
+    
+    
+    # -----------------------------
+    # 2️⃣ Filter Waktu Dinamis
+    # -----------------------------
+    if filter_mode == "📆 Rentang Tanggal":
+        cold1, cold2 = st.columns(2)
+        tanggal_mulai = cold1.date_input("Dari tanggal", df_cashflow["Tanggal"].min())
+        tanggal_akhir = cold2.date_input("Sampai tanggal", df_cashflow["Tanggal"].max())
+        df_filtered = df_cashflow[
+            (df_cashflow["Tanggal"] >= pd.to_datetime(tanggal_mulai)) &
+            (df_cashflow["Tanggal"] <= pd.to_datetime(tanggal_akhir))
+        ]
+    
+    elif filter_mode == "🗓️ Bulanan":
+        tahun_filter = st.selectbox("Tahun", sorted(df_cashflow["Tahun"].unique()))
+        bulan_map = {
+            "Januari":1,"Februari":2,"Maret":3,"April":4,"Mei":5,"Juni":6,
+            "Juli":7,"Agustus":8,"September":9,"Oktober":10,"November":11,"Desember":12
+        }
+        bulan_filter = st.selectbox("Bulan", list(bulan_map.keys()))
+        df_filtered = df_cashflow[
+            (df_cashflow["Tahun"] == tahun_filter) &
+            (df_cashflow["Bulan"] == bulan_map[bulan_filter])
+        ]
+    
+    elif filter_mode == "📅 Tahunan":
+        tahun_filter = st.selectbox("Tahun", sorted(df_cashflow["Tahun"].unique()))
+        df_filtered = df_cashflow[df_cashflow["Tahun"] == tahun_filter]
+    
+    # -----------------------------
+    # 3️⃣ Filter Tipe Transaksi & Kategori
+    # -----------------------------
+    colf1, colf2 = st.columns(2)
+    
+    # Tipe transaksi
+    tipe_filter = colf1.selectbox(
+        "Jenis Transaksi",
+        ["Semua", "Masuk", "Keluar"]
+    )
+    
+    # Kategori (otomatis menyesuaikan tipe)
+    if tipe_filter == "Masuk":
+        kategori_list = df_cashflow[df_cashflow["Tipe"]=="Masuk"]["Kategori"].unique()
+    elif tipe_filter == "Keluar":
+        kategori_list = df_cashflow[df_cashflow["Tipe"]=="Keluar"]["Kategori"].unique()
+    else:
+        kategori_list = df_cashflow["Kategori"].unique()
+    
+    kategori_filter = colf2.selectbox("Kategori", ["Semua"] + list(kategori_list))
+    
+    if tipe_filter != "Semua":
+        df_filtered = df_filtered[df_filtered["Tipe"] == tipe_filter]
+    if kategori_filter != "Semua":
+        df_filtered = df_filtered[df_filtered["Kategori"] == kategori_filter]
+    
+    # -----------------------------
+    # 4️⃣ Filter Nama Pemesan (otomatis deteksi kolom)
+    # -----------------------------
+    possible_name_cols = ["Pemesan", "Nama Pemesan", "Nama", "Customer", "Pemesanan", "Atas Nama"]
+    col_pemesan = next((c for c in possible_name_cols if c in df_cashflow.columns), None)
+    
+    if col_pemesan:
+        pemesan_list = df_cashflow[col_pemesan].dropna().unique()
+        pemesan_filter = st.selectbox("Nama Pemesan", ["Semua"] + list(pemesan_list))
+        if pemesan_filter != "Semua":
+            df_filtered = df_filtered[df_filtered[col_pemesan] == pemesan_filter]
+    
+    # -----------------------------
+    # 5️⃣ Total Masuk & Keluar hasil filter
+    # -----------------------------
+    col_total1, col_total2 = st.columns(2)
+    total_masuk_filtered = df_filtered[df_filtered["Tipe"]=="Masuk"]["Jumlah"].sum()
+    total_keluar_filtered = df_filtered[df_filtered["Tipe"]=="Keluar"]["Jumlah"].sum()
+    
+    with col_total1:
+        metric_card("💰 Total Masuk (Filtered)", format_rp(total_masuk_filtered))
+    
+    with col_total2:
+        metric_card("📤 Total Keluar (Filtered)", format_rp(total_keluar_filtered))
+    
+    
+    # -----------------------------
+    # 6️⃣ Tabel Detail Transaksi
+    # -----------------------------
+    st.markdown("## 📋 Detail Transaksi Cashflow (Sudah Difilter)")
+    
+    df_show = df_filtered.copy()
+    df_show["Jumlah"] = df_show["Jumlah"].apply(format_rp)
+    
+    st.dataframe(
+        df_show.sort_values("Tanggal", ascending=False),
+        use_container_width=True,
+        height=500
+    )
     # =====================================================
     # 📘 LAPORAN LABA RUGI (INCOME STATEMENT)
     # =====================================================

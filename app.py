@@ -2389,36 +2389,6 @@ import streamlit as st
 import pandas as pd
 import io
 
-# Contoh membaca file upload
-uploaded_file = st.file_uploader("Upload file data", type=["csv", "xlsx"])
-if uploaded_file is not None:
-    try:
-        if uploaded_file.name.endswith(".csv"):
-            df_data = pd.read_csv(uploaded_file)
-        else:
-            df_data = pd.read_excel(uploaded_file)
-
-        # --- Debug df_data ---
-        st.subheader("Debug: Struktur Data df_data")
-
-        buffer = io.StringIO()
-        df_data.info(buf=buffer)
-        s = buffer.getvalue()
-        st.text(s)
-
-        st.write(df_data.head())
-
-        # Baris tanpa No Invoice
-        st.subheader("Baris df_data tanpa No Invoice")
-        no_invoice_missing = df_data[df_data.get("No Invoice", "").isna() | (df_data["No Invoice"] == "")]
-        st.write(f"Jumlah baris tanpa No Invoice: {len(no_invoice_missing)}")
-        st.write(no_invoice_missing.head())
-
-    except Exception as e:
-        st.error(f"Terjadi error saat membaca file: {e}")
-else:
-    st.info("Silakan upload file data terlebih dahulu.")
-
 
 # --- Debug df_data ---
 st.subheader("Debug: Struktur Data df_data")

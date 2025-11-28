@@ -2583,10 +2583,6 @@ with st.expander("📘 Jurnal Akuntansi"):
             df_journal_combined[c] = None
     df_journal_combined["Tanggal"] = pd.to_datetime(df_journal_combined["Tanggal"], errors="coerce")
     df_journal_combined = df_journal_combined.dropna(subset=["Tanggal"]).drop_duplicates(subset=journal_cols, keep="last")
-    
-    st.write("DEBUG df_hutang_cc_auto:", df_hutang_cc_auto)
-    st.write("DEBUG df_hutang_cc_combined:", df_hutang_cc_combined)
-    st.write("DEBUG summary_hutang:", summary_hutang)
 
     
     if summary_hutang.empty:

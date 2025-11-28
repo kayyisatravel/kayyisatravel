@@ -2386,23 +2386,34 @@ def parse_financial_data(df_data, df_cashflow_existing):
     return df_cf_auto, df_piutang_auto, df_hutang_cc_auto, df_journal_auto
 import streamlit as st
 import pandas as pd
+import io
 
+# --- Debug df_data ---
 st.subheader("Debug: Struktur Data df_data")
-st.write(df_data.info())  # info di Streamlit masih akan print ke console, tapi tetap bisa pakai st.write untuk head
-st.write(df_data.head(5))
+
+# Info ke string
+buffer = io.StringIO()
+df_data.info(buf=buffer)
+s = buffer.getvalue()
+st.text(s)  # pakai st.text agar multiline rapi
+
+# Tampilkan 5 baris pertama
+st.write(df_data.head())
 
 # Cek baris tanpa No Invoice
 st.subheader("Baris df_data tanpa No Invoice")
 no_invoice_missing = df_data[df_data.get("No Invoice", "").isna() | (df_data["No Invoice"] == "")]
 st.write(f"Jumlah baris tanpa No Invoice: {len(no_invoice_missing)}")
-st.write(no_invoice_missing.head(5))
+st.write(no_invoice_missing.head())
 
+# --- Debug df_cashflow_existing ---
 st.subheader("Debug: Struktur Data df_cashflow_existing")
-st.write(df_cashflow_existing.info())
-st.write(df_cashflow_existing.head(5))
+buffer2 = io.StringIO()
+df_cashflow_existing.info(buf=buffer2)
+st.text(buffer2.getvalue())
+st.write(df_cashflow_existing.head())
 
-# Cek kolom penting di df_cashflow_existing
-st.subheader("Cek Kolom Penting di df_cashflow_existing")
+# Pastikan kolom penting ada
 required_cols = ["Nama Pemesan", "No Invoice", "Jumlah", "Tanggal", "Tipe", "Keterangan"]
 for col in required_cols:
     if col not in df_cashflow_existing.columns:
@@ -2416,6 +2427,7 @@ df_cashflow_existing["Invoice_Key"] = df_cashflow_existing.apply(
     axis=1
 )
 st.write(df_cashflow_existing[["Nama Pemesan","No Invoice","Invoice_Key"]].head(10))
+
 
 
 # ---------------------------

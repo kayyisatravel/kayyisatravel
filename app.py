@@ -2390,10 +2390,6 @@ import pandas as pd
 import io
 
 
-# --- Debug df_data ---
-# Tampilkan 5 baris pertama
-st.write(df_data.head())
-
 # Cek baris tanpa No Invoice
 st.subheader("Baris df_data tanpa No Invoice")
 no_invoice_missing = df_data[df_data.get("No Invoice", "").isna() | (df_data["No Invoice"] == "")]

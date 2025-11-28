@@ -2073,7 +2073,7 @@ card_style = """
     }
     </style>
     """
-    st.markdown(card_style, unsafe_allow_html=True)
+st.markdown(card_style, unsafe_allow_html=True)
     
 def metric_card(title, value):
     st.markdown(

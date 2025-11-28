@@ -2385,11 +2385,11 @@ def parse_financial_data(df_data, df_cashflow_existing):
 
     return df_cf_auto, df_piutang_auto, df_hutang_cc_auto, df_journal_auto
 
-# Debug DataFrame langsung
-st.write("DEBUG df_data:", df_data)            # seluruh dataframe
-st.write("DEBUG df_data head:", df_data.head())  # 5 baris pertama saja
-st.write("DEBUG baris tanpa No Invoice:", df_data[df_data.get("No Invoice", "") == ""])
-st.write("DEBUG kolom df_data:", df_data.columns.tolist())
+st.write("DEBUG df_cashflow_existing head:", df_cashflow_existing.head())
+st.write("DEBUG df_cashflow_existing columns:", df_cashflow_existing.columns)
+st.write("DEBUG df_cashflow_existing info:")
+st.write(df_cashflow_existing.info())
+
 
 
 

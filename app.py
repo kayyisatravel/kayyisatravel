@@ -2598,10 +2598,26 @@ with st.expander("📘 Jurnal Akuntansi"):
     with col4:
         metric_card("🧾 Piutang Belum Lunas", format_rp(piutang_total))
 
-
-    st.subheader("💳 Ringkasan Hutang Kartu Kredit")
     if summary_hutang.empty:
-        st.info("Belum ada hutang kartu tercatat.")
+        st.markdown(
+                f"""
+                <div style="
+                    background-color:#d9edf7;
+                    padding: 15px;
+                    border-radius: 5px;
+                    border-left: 5px solid #31708f;
+                    border-right: 5px solid #31708f;
+                    text-align: center;
+                    font-weight: bold;
+                    color: #31708f;
+                    font-size: 24px;
+                ">
+                    💳 Belum ada hutang kartu tercatat.
+                </div>
+                """,
+                unsafe_allow_html=True
+        )
+
     else:
         for _, r in summary_hutang.iterrows():
             st.markdown(

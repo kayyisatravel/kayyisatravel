@@ -2630,7 +2630,7 @@ with st.expander("📘 Jurnal Akuntansi"):
     with col1:
         metric_card("💰 Total Pemasukan", format_rp(total_masuk))
     with col2:
-        metric_card("📤 Total Pengeluaran", format_rp(total_keluar))
+        metric_card("📤 Total Pengeluaran (non Credit Card)", format_rp(total_keluar))
     
     # ROW 2
     col3, col4 = st.columns(2)

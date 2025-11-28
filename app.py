@@ -2384,6 +2384,38 @@ def parse_financial_data(df_data, df_cashflow_existing):
     df_journal_auto = pd.DataFrame(jurnal_rows)
 
     return df_cf_auto, df_piutang_auto, df_hutang_cc_auto, df_journal_auto
+import streamlit as st
+import pandas as pd
+
+st.subheader("Debug: Struktur Data df_data")
+st.write(df_data.info())  # info di Streamlit masih akan print ke console, tapi tetap bisa pakai st.write untuk head
+st.write(df_data.head(5))
+
+# Cek baris tanpa No Invoice
+st.subheader("Baris df_data tanpa No Invoice")
+no_invoice_missing = df_data[df_data.get("No Invoice", "").isna() | (df_data["No Invoice"] == "")]
+st.write(f"Jumlah baris tanpa No Invoice: {len(no_invoice_missing)}")
+st.write(no_invoice_missing.head(5))
+
+st.subheader("Debug: Struktur Data df_cashflow_existing")
+st.write(df_cashflow_existing.info())
+st.write(df_cashflow_existing.head(5))
+
+# Cek kolom penting di df_cashflow_existing
+st.subheader("Cek Kolom Penting di df_cashflow_existing")
+required_cols = ["Nama Pemesan", "No Invoice", "Jumlah", "Tanggal", "Tipe", "Keterangan"]
+for col in required_cols:
+    if col not in df_cashflow_existing.columns:
+        st.warning(f"Kolom '{col}' tidak ada di df_cashflow_existing")
+
+# Buat Invoice_Key dengan aman
+st.subheader("Membuat Invoice_Key dengan aman")
+df_cashflow_existing["Invoice_Key"] = df_cashflow_existing.apply(
+    lambda x: f"{x.get('Nama Pemesan','')}_{x.get('No Invoice','')}" 
+              if x.get("No Invoice","") else f"{x.get('Nama Pemesan','')}_MANUAL_{x.name}",
+    axis=1
+)
+st.write(df_cashflow_existing[["Nama Pemesan","No Invoice","Invoice_Key"]].head(10))
 
 
 # ---------------------------

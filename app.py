@@ -2170,88 +2170,124 @@ def _ensure_columns(df, cols):
 def parse_financial_data(df_data, df_cashflow_existing):
     import pandas as pd
 
-    # --- SAFETY HANDLING ---
+    # ===============================================
+    # SAFETY HANDLING
+    # ===============================================
     if df_data.empty and df_cashflow_existing.empty:
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
-    # --- CLEANING DATA ---
+    # ===============================================
+    # CLEANING INPUT DATA
+    # ===============================================
     def clean_price(x):
         if pd.isna(x):
-            return 0
+            return 0.0
         if isinstance(x, str):
             return float(x.replace("Rp", "").replace(",", "").strip())
         return float(x)
 
     for col in ["Harga Beli", "Harga Jual"]:
-        if col in df_data.columns:
-            df_data[col] = df_data[col].apply(clean_price)
-        else:
-            df_data[col] = 0.0
+        df_data[col] = df_data.get(col, 0).apply(clean_price)
 
     df_data["No Invoice"] = df_data.get("No Invoice", "").fillna("").astype(str)
-    df_data["Nama Pemesan"] = df_data.get("Nama Pemesan", "").astype(str)
-    df_data["Keterangan"] = df_data.get("Keterangan", "").astype(str)
+    df_data["Nama Pemesan"] = df_data.get("Nama Pemesan", "").fillna("").astype(str)
+    df_data["Keterangan"] = df_data.get("Keterangan", "").fillna("").astype(str)
+    df_data["Sumber Dana"] = df_data.get("Sumber Dana", "").fillna("").astype(str)
+    df_data["Detail Dana"] = df_data.get("Detail Dana", "").fillna("").astype(str)
+    df_data["Platform"] = df_data.get("Platform", "").fillna("").astype(str)
+
     df_data["Tgl Pemesanan"] = pd.to_datetime(
-        df_data.get("Tgl Pemesanan", pd.NaT), dayfirst=True, errors="coerce"
+        df_data.get("Tgl Pemesanan", pd.NaT),
+        dayfirst=True,
+        errors="coerce"
     )
 
-    for col in ["Sumber Dana", "Detail Dana", "Platform"]:
-        if col not in df_data.columns:
-            df_data[col] = ""
-
-    # --- GENERATE INVOICE_KEY ---
+    # ===============================================
+    # BUILD Invoice_Key
+    # ===============================================
     df_data["Invoice_Key"] = df_data.apply(
-        lambda x: f"{x['Nama Pemesan']}_{x['No Invoice']}" if x["No Invoice"] else f"{x['Nama Pemesan']}_MANUAL_{x.name}",
+        lambda x: (
+            f"{x['Nama Pemesan']}_{x['No Invoice']}"
+            if x["No Invoice"]
+            else f"{x['Nama Pemesan']}_MANUAL_{x.name}"
+        ),
         axis=1
     )
 
-    # --- EXISTING KEYS ---
-    existing_keys = set(df_cashflow_existing.get("Invoice_Key", []))
+    # ===============================================
+    # EXISTING CASHFLOW: BACA PEMBAYARAN MASUK
+    # ===============================================
+    pembayaran_masuk = {}
+    if not df_cashflow_existing.empty:
 
+        # pastikan kolom Jumlah numeric
+        df_cashflow_existing["Jumlah"] = (
+            df_cashflow_existing["Jumlah"]
+            .replace('[Rp,]', '', regex=True)
+            .astype(float)
+        )
+
+        df_cashflow_existing["Tanggal"] = pd.to_datetime(
+            df_cashflow_existing["Tanggal"], errors="coerce"
+        )
+
+        df_masuk = df_cashflow_existing[df_cashflow_existing["Tipe"] == "Masuk"]
+
+        pembayaran_masuk = (
+            df_masuk.groupby("Invoice_Key")["Jumlah"].sum().to_dict()
+        )
+
+    # ===============================================
+    # PREPARE OUTPUT CONTAINERS
+    # ===============================================
     cashflow_rows = []
     piutang_rows = []
     hutang_cc_rows = []
     jurnal_rows = []
 
-    # --- 1. LOOP PER INVOICE BARU ---
+    processed_keys = set()
+
+    # ===============================================
+    # 1. PARSE DATA PER INVOICE BARU (df_data)
+    # ===============================================
     for key, group in df_data.groupby("Invoice_Key"):
 
-        # Skip jika invoice sudah ada di cashflow, tapi tetap buat jurnal nanti
-        if key in existing_keys:
+        if key in processed_keys:
             continue
+        processed_keys.add(key)
 
         nama = group["Nama Pemesan"].iloc[0]
         invoice_no = group["No Invoice"].iloc[0]
-        tgl = group["Tgl Pemesanan"].min()
-
-        sumber_dana = group["Sumber Dana"].iloc[0].strip().lower()
+        sumber_dana = group["Sumber Dana"].iloc[0].lower()
         detail = group["Detail Dana"].iloc[0]
         platform = group["Platform"].iloc[0]
+        keterangan_all = "; ".join(group["Keterangan"].unique())
+
+        tgl_transaksi = group["Tgl Pemesanan"].min()
 
         total_modal = group["Harga Beli"].sum()
         total_jual = group["Harga Jual"].sum()
 
-        # --- STATUS ---
-        status = "Lunas"
-        if invoice_no == "" or any("Belum Lunas" in x for x in group["Keterangan"]):
-            status = "Belum Lunas"
+        # ===========================================
+        # Pembayaran aktual dari cashflow existing
+        # ===========================================
+        terbayar = pembayaran_masuk.get(key, 0.0)
+        sisa = max(0.0, total_jual - terbayar)
 
-        # --- MODAL ---
-        if "credit" in sumber_dana or "kartu" in sumber_dana or "cc" in sumber_dana:
-            kategori_modal = "Penjualan (Credit Card)"
-        elif "redeem" in sumber_dana or "point" in sumber_dana:
-            kategori_modal = "Penjualan (Redeem Points)"
-            total_modal = 0
-        else:
-            kategori_modal = "Penjualan (Cash/Tunai)"
+        # ===========================================
+        # CASHFLOW AUTO – hanya modal keluar
+        # ===========================================
+        kategori_modal = (
+            "Modal (Credit Card)" if "credit" in sumber_dana or "cc" in sumber_dana or "kartu" in sumber_dana
+            else "Modal (Cash/Tunai)"
+        )
 
-        # --- CASHFLOW KELUAR ---
         cashflow_rows.append({
-            "Tanggal": tgl,
+            "Tanggal": tgl_transaksi,
             "Tipe": "Keluar",
             "Kategori": kategori_modal,
             "No Invoice": invoice_no,
-            "Keterangan": "; ".join(group["Keterangan"].unique()),
+            "Keterangan": keterangan_all,
             "Jumlah": total_modal,
             "Sumber": "Data Otomatis",
             "Invoice_Key": key,
@@ -2261,121 +2297,153 @@ def parse_financial_data(df_data, df_cashflow_existing):
             "Platform": platform,
         })
 
-        # --- CASHFLOW MASUK (Pelunasan Customer) ---
-        total_bayar = total_jual if status == "Lunas" else 0
-        if total_bayar > 0:
-            cashflow_rows.append({
-                "Tanggal": tgl,
-                "Tipe": "Masuk",
-                "Kategori": "Pembayaran Customer",
-                "No Invoice": invoice_no,
-                "Keterangan": "; ".join(group["Keterangan"].unique()),
-                "Jumlah": total_bayar,
-                "Sumber": "Data Otomatis",
-                "Invoice_Key": key,
-                "Nama Pemesan": nama,
-                "Sumber Dana": "Customer",
-                "Detail Dana": "-",
-                "Platform": platform,
-            })
-
-        # --- PIUTANG ---
-        sisa = total_jual - total_bayar
-        if sisa > 0:
+        # ===========================================
+        # PIUTANG
+        # ===========================================
+        if sisa > 1:  # tolerance agar tidak error rounding
             piutang_rows.append({
                 "Invoice_Key": key,
                 "No Invoice": invoice_no,
                 "Nama Pemesan": nama,
                 "Total": total_jual,
-                "Terbayar": total_bayar,
+                "Terbayar": terbayar,
                 "Sisa": sisa,
                 "Status": "Belum Lunas",
             })
 
-        # --- HUTANG CC ---
-        if kategori_modal == "Penjualan (Credit Card)":
+        # ===========================================
+        # HUTANG CC: modal dibayar dari kartu
+        # ===========================================
+        if "credit" in sumber_dana or "cc" in sumber_dana or "kartu" in sumber_dana:
             hutang_cc_rows.append({
                 "Invoice_Key": key,
-                "Tanggal": tgl,
+                "Tanggal": tgl_transaksi,
                 "Nama Pemesan": nama,
                 "Jumlah": total_modal,
                 "Bank": sumber_dana,
                 "Status": "Belum Dibayar CC"
             })
 
-        # --- JURNAL BARU ---
-        # 1. HPP
+        # ===========================================
+        # JURNAL: HPP
+        # ===========================================
         jurnal_rows.append({
             "Invoice_Key": key,
-            "Tanggal": tgl,
+            "Tanggal": tgl_transaksi,
             "Keterangan": f"HPP invoice {invoice_no}",
             "Debit": "HPP",
             "Kredit": "Persediaan",
-            "Jumlah": total_modal,  # pastikan nominal modal masuk
+            "Jumlah": total_modal,
         })
-        # 2. Penjualan
+
+        # ===========================================
+        # JURNAL: PENJUALAN
+        # ===========================================
+        akun_debit = "Kas" if terbayar > 0 else "Piutang"
+
         jurnal_rows.append({
             "Invoice_Key": key,
-            "Tanggal": tgl,
+            "Tanggal": tgl_transaksi,
             "Keterangan": f"Penjualan invoice {invoice_no}",
-            "Debit": "Kas" if total_bayar > 0 else "Piutang",
+            "Debit": akun_debit,
             "Kredit": "Penjualan",
-            "Jumlah": total_jual,  # pastikan nominal penjualan masuk
+            "Jumlah": total_jual,
         })
-        # 3. Hutang CC
-        if kategori_modal == "Penjualan (Credit Card)":
+
+        # ===========================================
+        # JURNAL: HUTANG CC (modal)
+        # ===========================================
+        if "credit" in sumber_dana or "cc" in sumber_dana or "kartu" in sumber_dana:
             jurnal_rows.append({
                 "Invoice_Key": key,
-                "Tanggal": tgl,
-                "Keterangan": f"Modal CC invoice {invoice_no}",
+                "Tanggal": tgl_transaksi,
+                "Keterangan": f"Modal via CC invoice {invoice_no}",
                 "Debit": "Persediaan",
                 "Kredit": "Hutang Kartu Kredit",
-                "Jumlah": total_modal,  # nominal modal via CC
+                "Jumlah": total_modal,
             })
-    # --- 2. LOOP CASHFLOW EXISTING UNTUK JURNAL PELUNASAN ---
-    if not df_cashflow_existing.empty:
-        # Pastikan jumlah numeric
-        df_cashflow_existing["Jumlah"] = df_cashflow_existing["Jumlah"].replace('[Rp,]', '', regex=True).astype(float)
 
-        for idx, row in df_cashflow_existing.iterrows():
+    # ===============================================
+    # 2. PARSE CASHFLOW EXISTING UNTUK JURNAL PELUNASAN
+    # ===============================================
+    if not df_cashflow_existing.empty:
+
+        for _, row in df_cashflow_existing.iterrows():
             key = row.get("Invoice_Key", "")
             if not key:
                 continue
-            tipe = row.get("Tipe", "")
-            no_invoice = row.get("No Invoice", "")
+
             tgl = row.get("Tanggal")
-            jumlah = row.get("Jumlah", 0)
-            keterangan = row.get("Keterangan", "")
+            jumlah = float(row.get("Jumlah", 0) or 0)
+            tipe = row.get("Tipe", "")
+            sumber_dana = str(row.get("Sumber Dana", "")).lower()
+            ket = row.get("Keterangan", "")
+            no_invoice = row.get("No Invoice", "")
 
             if jumlah <= 0:
                 continue
 
+            # -----------------------------
+            # PELUNASAN PIUTANG
+            # -----------------------------
             if tipe == "Masuk":
                 jurnal_rows.append({
                     "Invoice_Key": key,
                     "Tanggal": tgl,
-                    "Keterangan": f"Pelunasan invoice {no_invoice} - {keterangan}",
+                    "Keterangan": f"Pelunasan invoice {no_invoice} - {ket}",
                     "Debit": "Kas",
                     "Kredit": "Piutang",
-                    "Jumlah": jumlah,
-                })
-            elif tipe == "Keluar":
-                jurnal_rows.append({
-                    "Invoice_Key": key,
-                    "Tanggal": tgl,
-                    "Keterangan": f"Pengeluaran invoice {no_invoice} - {keterangan}",
-                    "Debit": "HPP",
-                    "Kredit": "Persediaan",
-                    "Jumlah": jumlah,
+                    "Jumlah": jumlah
                 })
 
-    # --- RETURN 4 DATAFRAME ---
+            # -----------------------------
+            # KAS KELUAR
+            # -----------------------------
+            elif tipe == "Keluar":
+
+                # Pelunasan Hutang CC
+                if "credit" in sumber_dana or "cc" in sumber_dana or "kartu" in sumber_dana:
+                    jurnal_rows.append({
+                        "Invoice_Key": key,
+                        "Tanggal": tgl,
+                        "Keterangan": f"Pelunasan Hutang CC invoice {no_invoice}",
+                        "Debit": "Hutang Kartu Kredit",
+                        "Kredit": "Kas",
+                        "Jumlah": jumlah
+                    })
+
+                # Pembelian modal (fallback)
+                elif "modal" in ket.lower():
+                    jurnal_rows.append({
+                        "Invoice_Key": key,
+                        "Tanggal": tgl,
+                        "Keterangan": f"Pembelian modal invoice {no_invoice}",
+                        "Debit": "Persediaan",
+                        "Kredit": "Kas",
+                        "Jumlah": jumlah
+                    })
+
+                # Operasional (fallback akhir)
+                else:
+                    jurnal_rows.append({
+                        "Invoice_Key": key,
+                        "Tanggal": tgl,
+                        "Keterangan": f"Pengeluaran Operasional {no_invoice}",
+                        "Debit": "Beban Operasional",
+                        "Kredit": "Kas",
+                        "Jumlah": jumlah
+                    })
+
+    # ===============================================
+    # RETURN
+    # ===============================================
     return (
         pd.DataFrame(cashflow_rows),
         pd.DataFrame(piutang_rows),
         pd.DataFrame(hutang_cc_rows),
-        pd.DataFrame(jurnal_rows)
+        pd.DataFrame(jurnal_rows),
     )
+
 
 
 

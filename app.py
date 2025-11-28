@@ -2050,16 +2050,42 @@ def format_rp(x):
 # ---------------------------
 # Small metric card helper (simple HTML card)
 # ---------------------------
+card_style = """
+    <style>
+    .metric-card {
+        background: #ffffff;
+        padding: 18px;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        text-align: center;
+        border: 1px solid #e6e6e6;
+    }
+    .metric-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #555;
+    }
+    .metric-value {
+        font-size: 28px;
+        font-weight: bold;
+        color: #000;
+        margin-top: 6px;
+    }
+    </style>
+    """
+    st.markdown(card_style, unsafe_allow_html=True)
+    
 def metric_card(title, value):
     st.markdown(
         f"""
-        <div style="background:#ffffff;padding:12px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-            <div style="font-size:12px;color:#6b7280;">{title}</div>
-            <div style="font-weight:700;font-size:20px;margin-top:6px;">{value}</div>
+        <div class="metric-card">
+            <div class="metric-title">{title}</div>
+            <div class="metric-value">{value}</div>
         </div>
         """,
         unsafe_allow_html=True
     )
+
 
 # ---------------------------
 # Clean price column

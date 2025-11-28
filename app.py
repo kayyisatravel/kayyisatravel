@@ -2356,8 +2356,8 @@ def parse_financial_data(df_data, df_cashflow_existing):
 # ---------------------------
 # Streamlit UI
 # ---------------------------
-st.set_page_config(page_title="Cashflow & Liabilities - UMKM", layout="wide")
-st.title("Cashflow & Liability Tracker (Refactor)")
+#st.set_page_config(page_title="Cashflow & Liabilities - UMKM", layout="wide")
+#st.title("Cashflow & Liability Tracker (Refactor)")
 
 # Manual input expander
 with st.expander("✏️ Input Data Cashflow Manual"):

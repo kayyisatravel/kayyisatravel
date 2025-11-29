@@ -759,12 +759,13 @@ with st.expander('⌨️ Upload Data Text'):
 
                             if sumber_dana == "Dana Tunai/Cash":
                                 detail_options = [
-                                    "Debit BCA", "Debit Mandiri", "Debit BRI", "Debit BNI", "Debit BSI", "Debit Mega", "Debit Seabank",
+                                    "BCA", "Mandiri", "BRI", "BNI", "BSI",
+                                    "Mega", "SeaBank",
                                     "VA BCA", "VA Mandiri", "VA BRI", "VA BNI",
                                     "Ovo", "Dana", "Gopay", "ShopeePay", "Sakuku", "Blu Instant", "Bibli Pay"
                                 ]
                             elif sumber_dana == "Credit Card":
-                                detail_options = ["BCA", "Mandiri", "BRI", "BNI", "BSI", "UOB", "Mega", "Allo"]
+                                detail_options = ["BCA", "Mandiri", "BRI", "BNI", "BSI", "UOB", "Mega", "Allo", "CIMB"]
                             elif sumber_dana == "Reedem Point":
                                 detail_options = ["Tikom", "Traveloka", "Garuda"]
                             else:
@@ -882,13 +883,13 @@ with st.expander("✏️ Input Manual Data"):
     # === DETAIL DANA ===
     detail_mapping = {
         "Dana Tunai/Cash": [
-            "Debit BCA", "Debit Mandiri", "Debit BRI", "Debit BNI", "Debit BSI",
-            "Debit Mega", "Debit SeaBank",
+            "BCA", "Mandiri", "BRI", "BNI", "BSI",
+            "Mega", "SeaBank",
             "VA BCA", "VA Mandiri", "VA BRI", "VA BNI",
             "OVO", "DANA", "GOPAY", "ShopeePay", "Sakuku", "Blu Instant", "Biblipay"
         ],
         "Credit Card": [
-            "BCA", "Mandiri", "BRI", "BNI", "BSI", "UOB", "Mega", "Allo"
+            "BCA", "Mandiri", "BRI", "BNI", "BSI", "UOB", "Mega", "Allo", "CIMB"
         ],
         "Redeem Point": [
             "Tiket.com Points", "Traveloka Points", "Garuda Miles"
@@ -991,13 +992,13 @@ with st.expander("✏️ Input Manual Data"):
                 # === Mapping Detail Dana ===
                 detail_mapping = {
                     "Dana Tunai/Cash": [
-                        "Debit BCA", "Debit Mandiri", "Debit BRI", "Debit BNI", "Debit BSI",
-                        "Debit Mega", "Debit SeaBank",
+                        "BCA", "Mandiri", "BRI", "BNI", "BSI",
+                        "Mega", "SeaBank",
                         "VA BCA", "VA Mandiri", "VA BRI", "VA BNI",
                         "OVO", "DANA", "GOPAY", "ShopeePay", "Sakuku", "Blu Instant", "Biblipay"
                     ],
                     "Credit Card": [
-                        "BCA", "Mandiri", "BRI", "BNI", "BSI", "UOB", "Mega", "Allo"
+                        "BCA", "Mandiri", "BRI", "BNI", "BSI", "UOB", "Mega", "Allo", "CIMB"
                     ],
                     "Redeem Point": [
                         "Tiket.com Points", "Traveloka Points", "Garuda Miles"
@@ -1377,13 +1378,13 @@ with st.expander("💾 Database Pemesan", expanded=False):
                 # Mapping detail dana
                 detail_mapping = {
                     "Dana Tunai/Cash": [
-                        "Debit BCA", "Debit Mandiri", "Debit BRI", "Debit BNI", "Debit BSI",
-                        "Debit Mega", "Debit SeaBank",
+                        "BCA", "Mandiri", "BRI", "BNI", "BSI",
+                        "Mega", "SeaBank",
                         "VA BCA", "VA Mandiri", "VA BRI", "VA BNI",
                         "OVO", "DANA", "GOPAY", "ShopeePay", "Sakuku", "Blu Instant", "Biblipay"
                     ],
                     "Credit Card": [
-                        "BCA", "Mandiri", "BRI", "BNI", "BSI", "UOB", "Mega", "Allo"
+                        "BCA", "Mandiri", "BRI", "BNI", "BSI", "UOB", "Mega", "Allo", "CIMB"
                     ],
                     "Redeem Point": [
                         "Tiket.com Points", "Traveloka Points", "Garuda Miles"
@@ -1636,7 +1637,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
         st.markdown(f"**Total Laba yang dipilih: Rp {total_laba:,.0f}**")
         if total_harga_jual >= MAX_TOTAL:
             st.success(f"✅ Total penjualan mencapai Rp {total_harga_jual:,.0f} (batas 25 juta tercapai)")
-        elif total_harga_jual >= MAX_TOTAL * 0.95:
+        elif total_harga_jual >= MAX_TOTAL * 0.99:
             st.warning(f"⚠️ Total penjualan mendekati batas: Rp {total_harga_jual:,.0f}")
         
         # === Hitung total harga jual data yang belum punya invoice ===

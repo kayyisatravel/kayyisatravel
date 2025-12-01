@@ -1710,9 +1710,9 @@ with st.expander("💾 Database Pemesan", expanded=False):
             if opsi_nama == "Gunakan Nama Customer":
                 # Ambil nama dari baris pertama data
                 try:
-                    nama_pemesan = selected_data["Nama Customer"].iloc[0]
+                    nama_customer_awal = selected_data["Nama Customer"].iloc[0]
                 except:
-                    nama_pemesan = "Pelanggan"
+                    nama_customer_awal = "Pelanggan"
                 nama_pemesan = f"Bapak/Ibu {nama_customer_awal}"
             else:
                 # Admin mengetik sendiri

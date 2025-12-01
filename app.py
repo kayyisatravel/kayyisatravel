@@ -1713,6 +1713,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
                     nama_pemesan = selected_data["Nama Customer"].iloc[0]
                 except:
                     nama_pemesan = "Pelanggan"
+                nama_pemesan = f"Bapak/Ibu {nama_customer_awal}"
             else:
                 # Admin mengetik sendiri
                 nama_pemesan = st.text_input("Masukkan Nama Pemesan:", "")

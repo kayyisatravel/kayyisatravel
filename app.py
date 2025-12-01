@@ -109,7 +109,7 @@ from fpdf import FPDF
 import pandas as pd
 from datetime import datetime
 
-def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filename, logo_path, ttd_path=None, status_lunas="BELUM LUNAS"):
+def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filename, logo_path, ttd_path=None, status_lunas="BELUM LUNAS", nama_pemesan="Pelanggan"):
     # =============================
     # Inisialisasi PDF
     # =============================
@@ -156,14 +156,14 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.ln(5)
 
     # Nama Customer pertama
-    try:
-        nama_customer_pertama = data[0].get("Nama Customer", "Pelanggan")
-    except:
-        nama_customer_pertama = "Pelanggan"
+    #try:
+        #nama_customer_pertama = data[0].get("Nama Customer", "Pelanggan")
+    #except:
+        #nama_customer_pertama = "Pelanggan"
 
     tanggal_invoice = datetime.now()  # Tanggal cetak sebagai tanggal invoice
     pdf.set_font("Arial", "", 9)
-    pdf.cell(0, 6, f"Nama Pemesan: {nama_customer_pertama}", ln=True)
+    pdf.cell(0, 6, f"Nama Pemesan: {nama_pemesan}", ln=True)
     pdf.cell(0, 6, f"Tanggal Invoice: {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
     pdf.cell(0, 6, f"No. Invoice: {unique_invoice_no}", ln=True)
     pdf.ln(5)
@@ -1709,7 +1709,25 @@ with st.expander("💾 Database Pemesan", expanded=False):
                     # Buat nomor invoice unik
                     st.session_state.current_unique_invoice_no = now.strftime("%y%m%d%H%M%S")
                     current_pdf_filename = f"INV_{st.session_state.current_unique_invoice_no}.pdf"
-        
+                    # ============================
+                    # OPSI PEMILIHAN NAMA PEMESAN
+                    # ============================
+                    
+                    opsi_nama = st.radio(
+                        "Pilih sumber Nama Pemesan:",
+                        ("Gunakan Nama Customer", "Input Manual")
+                    )
+                    
+                    if opsi_nama == "Gunakan Nama Customer":
+                        # Ambil nama dari baris pertama data
+                        try:
+                            nama_pemesan = selected_data["Nama Customer"].iloc[0]
+                        except:
+                            nama_pemesan = "Pelanggan"
+                    else:
+                        # Admin mengetik sendiri
+                        nama_pemesan = st.text_input("Masukkan Nama Pemesan:", "")
+
                     # === PEMANGGILAN FUNGSI YANG BARU ===
                     pdf_path_generated = buat_invoice_pdf(
                         records,
@@ -1719,6 +1737,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
                         logo_path="assets/Logo Perusahaan.jpeg",
                         ttd_path="ttd.png",
                         status_lunas=status_lunas
+                        nama_pemesan=nama_pemesan
                     )
 
         

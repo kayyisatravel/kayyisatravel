@@ -1736,7 +1736,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
                         current_pdf_filename,
                         logo_path="assets/Logo Perusahaan.jpeg",
                         ttd_path="ttd.png",
-                        status_lunas=status_lunas
+                        status_lunas=status_lunas,
                         nama_pemesan=nama_pemesan
                     )
 

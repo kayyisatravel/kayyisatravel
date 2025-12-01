@@ -1697,7 +1697,25 @@ with st.expander("💾 Database Pemesan", expanded=False):
             st.session_state.last_generated_pdf_path = None
     
         with col_pdf:
-            status_lunas = st.radio("Status Pembayaran:", ("Belum Lunas", "Lunas"))    
+            status_lunas = st.radio("Status Pembayaran:", ("Belum Lunas", "Lunas"))  
+            # ============================
+            # OPSI PEMILIHAN NAMA PEMESAN
+            # ============================
+            
+            opsi_nama = st.radio(
+                "Pilih sumber Nama Pemesan:",
+                ("Gunakan Nama Customer", "Input Manual")
+            )
+            
+            if opsi_nama == "Gunakan Nama Customer":
+                # Ambil nama dari baris pertama data
+                try:
+                    nama_pemesan = selected_data["Nama Customer"].iloc[0]
+                except:
+                    nama_pemesan = "Pelanggan"
+            else:
+                # Admin mengetik sendiri
+                nama_pemesan = st.text_input("Masukkan Nama Pemesan:", "")
             if st.button("📄 Buat Invoice PDF"):
                 if not selected_data.empty:
         
@@ -1709,24 +1727,6 @@ with st.expander("💾 Database Pemesan", expanded=False):
                     # Buat nomor invoice unik
                     st.session_state.current_unique_invoice_no = now.strftime("%y%m%d%H%M%S")
                     current_pdf_filename = f"INV_{st.session_state.current_unique_invoice_no}.pdf"
-                    # ============================
-                    # OPSI PEMILIHAN NAMA PEMESAN
-                    # ============================
-                    
-                    opsi_nama = st.radio(
-                        "Pilih sumber Nama Pemesan:",
-                        ("Gunakan Nama Customer", "Input Manual")
-                    )
-                    
-                    if opsi_nama == "Gunakan Nama Customer":
-                        # Ambil nama dari baris pertama data
-                        try:
-                            nama_pemesan = selected_data["Nama Customer"].iloc[0]
-                        except:
-                            nama_pemesan = "Pelanggan"
-                    else:
-                        # Admin mengetik sendiri
-                        nama_pemesan = st.text_input("Masukkan Nama Pemesan:", "")
 
                     # === PEMANGGILAN FUNGSI YANG BARU ===
                     pdf_path_generated = buat_invoice_pdf(

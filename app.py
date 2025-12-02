@@ -1232,7 +1232,14 @@ with st.expander("💾 Database Pemesan", expanded=False):
     
     # Tambahan input baru untuk Nama Customer
     nama_customer_filter = st.text_input("Cari Nama Customer")
-    
+    df_filtered["Nama Pemesan"] = (
+        df_filtered["Nama Pemesan"]
+            .astype(str)
+            .str.replace("\u00A0", " ", regex=False)   # NBSP → spasi biasa
+            .str.replace(r"\s+", " ", regex=True)      # gabungkan spasi/tab/linebreak
+            .str.strip()
+    )
+
     # Input lainnya (sudah ada sebelumnya)
     nama_filter = st.text_input("Cari Nama Pemesan")
     kode_booking_filter = st.text_input("Cari Kode Booking")

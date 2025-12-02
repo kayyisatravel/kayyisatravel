@@ -390,7 +390,8 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # TEKS OTOMATIS DI ATAS FOOTER
     # =============================
     pdf.set_x(left_x)
-    pdf.set_y(-50)  # 2-3 baris di atas footer
+    #pdf.set_y(-50)  # 2-3 baris di atas footer
+    pdf.ln(10)
     pdf.set_font("Arial", "I", 6)
     pdf.multi_cell(0, 5, "Invoice ini dicetak secara otomatis oleh komputer dan tidak memerlukan tanda tangan", align="C")
 

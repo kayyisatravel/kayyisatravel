@@ -246,7 +246,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
             # Format tanggal
             if col in ["Tgl Pemesanan", "Tgl Berangkat"]:
                 try:
-                    val = pd.to_datetime(val).strftime("%d-%m-%Y")
+                    val = pd.to_datetime(val, dayfirst=True).strftime("%d-%m-%Y")
                 except:
                     val = str(val)
             pdf.cell(col_widths[col], row_h, str(val), 1, 0, 'C')

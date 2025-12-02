@@ -3205,72 +3205,80 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
 
     
 with st.expander("⏳ Aging Report / Invoice Belum Lunas"):
-    st.markdown("### ⏳ Aging Report / Invoice Belum Lunas")
-
-    # =============================
-    # Buat DataFrame Aging dari Cashflow Realtime
-    # =============================
     if not df_cashflow_combined.empty and not df_data.empty:
-        # Pastikan kolom penting ada
-        for col in ["Tanggal","Status","No Invoice","Nama Pemesan","Jumlah"]:
-            if col not in df_cashflow_combined.columns:
-                df_cashflow_combined[col] = None
 
-        # Gunakan Invoice_Key untuk matching
-        df_data["Invoice_Key"] = df_data.get("Invoice_Key", df_data.apply(
-            lambda x: f"{x['Nama Pemesan']}_MANUAL_{x.name}" if x.get("No Invoice","")=="" else f"{x['Nama Pemesan']}_{x['No Invoice']}", axis=1
-        ))
+        # =============================
+        # 1. Normalisasi Invoice_Key
+        # =============================
+        df_data["Invoice_Key"] = df_data["Invoice_Key"].astype(str)
+        df_cashflow_combined["Invoice_Key"] = df_cashflow_combined["Invoice_Key"].astype(str)
 
-        df_cashflow_combined["Invoice_Key"] = df_cashflow_combined.get("Invoice_Key", df_cashflow_combined.apply(
-            lambda x: f"{x.get('Nama Pemesan','UNKNOWN')}_MANUAL_{x.name}" if x.get("No Invoice","")=="" else f"{x.get('Nama Pemesan','UNKNOWN')}_{x.get('No Invoice','')}", axis=1
-        ))
+        # =============================
+        # 2. Ambil total pembayaran (MASUK)
+        # =============================
+        df_cashflow_combined["Jumlah"] = pd.to_numeric(df_cashflow_combined["Jumlah"], errors="coerce").fillna(0)
 
-        # Filter transaksi belum lunas
-        df_unpaid = df_cashflow_combined[df_cashflow_combined["Status"]=="Belum Lunas"].copy()
-        st.write(df_cashflow_combined["Status"].unique())
-        st.write("Kolom status unik di cashflow:", df_cashflow_combined["Status"].unique())
-        st.write("Jumlah baris Belum Lunas:", (df_cashflow_combined["Status"]=="Belum Lunas").sum())
-        st.write(df_cashflow_combined.head())
+        df_payments = (
+            df_cashflow_combined[df_cashflow_combined["Tipe"] == "Masuk"]
+            .groupby("Invoice_Key")["Jumlah"]
+            .sum()
+            .reset_index()
+            .rename(columns={"Jumlah": "Jumlah Masuk"})
+        )
+
+        # =============================
+        # 3. Gabungkan dengan Master Penjualan
+        # =============================
+        df_invoice = df_data[["Invoice_Key", "Nama Pemesan", "No Invoice", "Harga Jual", "Tgl Pemesanan"]].copy()
+
+        df_invoice = df_invoice.merge(df_payments, on="Invoice_Key", how="left")
+        df_invoice["Jumlah Masuk"] = df_invoice["Jumlah Masuk"].fillna(0)
+
+        # =============================
+        # 4. Hitung Piutang Sesungguhnya
+        # =============================
+        df_invoice["Piutang"] = df_invoice["Harga Jual"] - df_invoice["Jumlah Masuk"]
+
+        # Filter invoice yang benar-benar belum lunas
+        df_unpaid = df_invoice[df_invoice["Piutang"] > 1000].copy()   # tolerance Rp 1.000
 
         if not df_unpaid.empty:
-            # Merge dengan df_data untuk ambil Harga Jual
-            df_merged = df_unpaid.merge(
-                df_data[["Invoice_Key","Harga Jual","Tgl Pemesanan"]],
-                on="Invoice_Key",
-                how="left"
-            )
 
-            # Hitung sisa piutang
-            df_merged["Harga Jual"] = df_merged["Harga Jual"].fillna(0)
-            df_merged["Jumlah Masuk"] = df_cashflow_combined[
-                (df_cashflow_combined["Tipe"]=="Masuk")
-            ].groupby("Invoice_Key")["Jumlah"].transform("sum").fillna(0)
+            # =============================
+            # 5. Hitung Aging
+            # =============================
+            df_unpaid["Tanggal Pemesanan"] = df_unpaid["Tgl Pemesanan"].fillna(pd.Timestamp.today())
+            df_unpaid["Aging (hari)"] = (
+                pd.Timestamp.today().normalize()
+                - pd.to_datetime(df_unpaid["Tanggal Pemesanan"]).dt.normalize()
+            ).dt.days
 
-            df_merged["Piutang"] = df_merged["Harga Jual"] - df_merged["Jumlah Masuk"]
+            df_unpaid["Overdue"] = df_unpaid["Aging (hari)"] > 30
 
-            # Hitung aging
-            df_merged["Tanggal Pemesanan"] = df_merged["Tgl Pemesanan"].fillna(df_merged["Tanggal"])
-            df_merged["Aging (hari)"] = (pd.Timestamp.today().normalize() - pd.to_datetime(df_merged["Tanggal Pemesanan"]).dt.normalize()).dt.days
-            df_merged["Overdue"] = df_merged["Aging (hari)"] > 30
+            # =============================
+            # 6. Format tampilan
+            # =============================
+            df_unpaid["Piutang"] = df_unpaid["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
 
-            # Ambil kolom penting
-            df_aging = df_merged[[
-                "Nama Pemesan","No Invoice","Tanggal Pemesanan","Piutang","Aging (hari)","Overdue"
-            ]].drop_duplicates()
+            df_display = df_unpaid[[
+                "Nama Pemesan",
+                "No Invoice",
+                "Tanggal Pemesanan",
+                "Piutang",
+                "Aging (hari)",
+                "Overdue"
+            ]]
 
-            # Format Rupiah
-            df_aging["Piutang"] = df_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
-
-            # Highlight overdue
             def highlight_overdue(row):
                 return ["background-color: #FF9999" if row.Overdue else "" for _ in row]
 
-            st.dataframe(df_aging.style.apply(highlight_overdue, axis=1), use_container_width=True)
+            st.dataframe(df_display.style.apply(highlight_overdue, axis=1), use_container_width=True)
 
         else:
-            st.info("Belum ada transaksi belum lunas untuk ditampilkan.")
+            st.info("🎉 Semua invoice sudah lunas!")
     else:
         st.info("Belum ada data cashflow atau data penjualan untuk Aging Report.")
+
 
 
 #=================================================================================================================================================================

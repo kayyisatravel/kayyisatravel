@@ -3207,66 +3207,52 @@ with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):
 with st.expander("⏳ Aging Report / Invoice Belum Lunas"):
     if not df_cashflow_combined.empty and not df_data.empty:
 
-        # =============================
-        # 1. Normalisasi Invoice_Key
-        # =============================
+        # --- Normalisasi Invoice_Key
         df_data["Invoice_Key"] = df_data["Invoice_Key"].astype(str)
         df_cashflow_combined["Invoice_Key"] = df_cashflow_combined["Invoice_Key"].astype(str)
 
-        # =============================
-        # 2. Ambil total pembayaran (MASUK)
-        # =============================
+        # --- Total pembayaran per invoice
         df_cashflow_combined["Jumlah"] = pd.to_numeric(df_cashflow_combined["Jumlah"], errors="coerce").fillna(0)
-
         df_payments = (
-            df_cashflow_combined[df_cashflow_combined["Tipe"] == "Masuk"]
+            df_cashflow_combined[df_cashflow_combined["Tipe"]=="Masuk"]
             .groupby("Invoice_Key")["Jumlah"]
             .sum()
             .reset_index()
-            .rename(columns={"Jumlah": "Jumlah Masuk"})
+            .rename(columns={"Jumlah":"Jumlah Masuk"})
         )
 
-        # =============================
-        # 3. Gabungkan dengan Master Penjualan
-        # =============================
-        df_invoice = df_data[["Invoice_Key", "Nama Pemesan", "No Invoice", "Harga Jual", "Tgl Pemesanan"]].copy()
-
+        # --- Gabungkan dengan data penjualan
+        df_invoice = df_data[["Invoice_Key","Nama Pemesan","No Invoice","Harga Jual","Tgl Pemesanan"]].copy()
         df_invoice = df_invoice.merge(df_payments, on="Invoice_Key", how="left")
         df_invoice["Jumlah Masuk"] = df_invoice["Jumlah Masuk"].fillna(0)
 
-        # =============================
-        # 4. Hitung Piutang Sesungguhnya
-        # =============================
+        # --- Hitung Piutang
         df_invoice["Piutang"] = df_invoice["Harga Jual"] - df_invoice["Jumlah Masuk"]
 
-        # Filter invoice yang benar-benar belum lunas
-        df_unpaid = df_invoice[df_invoice["Piutang"] > 1000].copy()   # tolerance Rp 1.000
+        # --- Filter yang belum lunas
+        df_unpaid = df_invoice[df_invoice["Piutang"] > 1000].copy()
 
         if not df_unpaid.empty:
 
-            # =============================
-            # 5. Hitung Aging
-            # =============================
-            df_unpaid["Tanggal Pemesanan"] = df_unpaid["Tgl Pemesanan"].fillna(pd.Timestamp.today())
-            df_unpaid["Aging (hari)"] = (
-                pd.Timestamp.today().normalize()
-                - pd.to_datetime(df_unpaid["Tanggal Pemesanan"]).dt.normalize()
-            ).dt.days
+            # --- AGGREGATE PER INVOICE ---
+            df_agg = df_unpaid.groupby(
+                ["Invoice_Key","Nama Pemesan","No Invoice"], as_index=False
+            ).agg({
+                "Piutang":"sum",
+                "Tgl Pemesanan":"min"
+            })
 
-            df_unpaid["Overdue"] = df_unpaid["Aging (hari)"] > 30
+            # --- Hitung Aging ---
+            df_agg["Tanggal Pemesanan"] = df_agg["Tgl Pemesanan"].fillna(pd.Timestamp.today())
+            df_agg["Aging (hari)"] = (pd.Timestamp.today().normalize() - pd.to_datetime(df_agg["Tanggal Pemesanan"]).dt.normalize()).dt.days
+            df_agg["Overdue"] = df_agg["Aging (hari)"] > 30
 
-            # =============================
-            # 6. Format tampilan
-            # =============================
-            df_unpaid["Piutang"] = df_unpaid["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
+            # --- Format Rupiah ---
+            df_agg["Piutang"] = df_agg["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
 
-            df_display = df_unpaid[[
-                "Nama Pemesan",
-                "No Invoice",
-                "Tanggal Pemesanan",
-                "Piutang",
-                "Aging (hari)",
-                "Overdue"
+            # --- Tampilkan ---
+            df_display = df_agg[[
+                "Nama Pemesan","No Invoice","Tanggal Pemesanan","Piutang","Aging (hari)","Overdue"
             ]]
 
             def highlight_overdue(row):
@@ -3278,6 +3264,7 @@ with st.expander("⏳ Aging Report / Invoice Belum Lunas"):
             st.info("🎉 Semua invoice sudah lunas!")
     else:
         st.info("Belum ada data cashflow atau data penjualan untuk Aging Report.")
+
 
 
 

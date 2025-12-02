@@ -3227,6 +3227,10 @@ with st.expander("⏳ Aging Report / Invoice Belum Lunas"):
 
         # Filter transaksi belum lunas
         df_unpaid = df_cashflow_combined[df_cashflow_combined["Status"]=="Belum Lunas"].copy()
+        st.write(df_cashflow_combined["Status"].unique())
+        st.write("Kolom status unik di cashflow:", df_cashflow_combined["Status"].unique())
+        st.write("Jumlah baris Belum Lunas:", (df_cashflow_combined["Status"]=="Belum Lunas").sum())
+        st.write(df_cashflow_combined.head())
 
         if not df_unpaid.empty:
             # Merge dengan df_data untuk ambil Harga Jual

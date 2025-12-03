@@ -1539,7 +1539,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
                 
                         # --- Normalisasi string agar pencocokan lebih akurat ---
                         for df in [df_all, selected_norm]:
-                            for col in ["Nama Pemesan", "Kode Booking", "Tgl Berangkat", "Nama Customer"]:
+                            for col in ["Nama Pemesan", "Kode Booking", "Tgl Berangkat", "Nama Customer", "No Penerbangan / Hotel / Kereta"]:
                                 col_str = f"{col}_str"
                                 df[col_str] = df[col].astype(str).str.strip().str.lower()
                 
@@ -1555,8 +1555,10 @@ with st.expander("💾 Database Pemesan", expanded=False):
                                 (df_all["Nama Pemesan_str"] == row["Nama Pemesan_str"]) &
                                 (df_all["Kode Booking_str"] == row["Kode Booking_str"]) &
                                 (df_all["Tgl Berangkat_str"] == row["Tgl Berangkat_str"]) &
-                                (df_all["Nama Customer_str"] == row["Nama Customer_str"])
+                                (df_all["Nama Customer_str"] == row["Nama Customer_str"]) &
+                                (df_all["No Penerbangan / Hotel / Kereta_str"] == row["No Penerbangan / Hotel / Kereta_str"])
                             )
+
                 
                             match_count = mask.sum()
                 

@@ -234,6 +234,17 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         pdf.cell(col_widths[col], 7, header_mapping.get(col, col), 1, 0, 'C', 1)
     pdf.ln()
 
+    def to_number(val):
+        if isinstance(val, (int, float)):
+            return val
+        
+        if isinstance(val, str):
+            digits = re.findall(r"\d+", val)
+            if digits:
+                return float("".join(digits))
+        
+        return 0
+
     # =============================
     # ISI TABEL
     # =============================

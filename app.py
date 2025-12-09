@@ -251,6 +251,20 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
                     val = str(val)
             pdf.cell(col_widths[col], row_h, str(val), 1, 0, 'C')
         pdf.ln()
+    total_harga = sum(to_number(row.get("Harga Jual", 0)) for row in data)
+    pdf.set_font("Arial", "B", 7)
+    
+    # Kolom No dikosongkan
+    pdf.cell(col_widths["No"], row_h, "", 1, 0, 'C')
+    
+    # Cetak tiap kolom, hanya isi Harga Jual dengan total
+    for col in kolom_pdf:
+        if col == "Harga Jual":
+            pdf.cell(col_widths[col], row_h, f"TOTAL: Rp {total_harga:,.0f}", 1, 0, 'R')
+        else:
+            pdf.cell(col_widths[col], row_h, "", 1, 0, 'C')
+    
+    pdf.ln()
     pdf.ln(5)
 
     # =============================

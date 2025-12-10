@@ -1207,14 +1207,21 @@ with st.expander("💾 Database Pemesan", expanded=False):
     )
     
     if filter_mode == "📆 Rentang Tanggal":
-        tgl_awal = st.date_input("Tanggal Awal", date.today().replace(day=1))
-        tgl_akhir = st.date_input("Tanggal Akhir", date.today())
+        today = date.today()
+        default_start = today - timedelta(days=30)
+    
+        tgl_awal = st.date_input("Tanggal Awal", default_start)
+        tgl_akhir = st.date_input("Tanggal Akhir", today)
+    
+        # Swap jika user memasukkan terbalik
         if tgl_awal > tgl_akhir:
             tgl_awal, tgl_akhir = tgl_akhir, tgl_awal
+    
         df_filtered = df[
             (df["Tgl Pemesanan"] >= pd.to_datetime(tgl_awal)) &
             (df["Tgl Pemesanan"] <= pd.to_datetime(tgl_akhir))
         ]
+
 
     elif filter_mode == "🗓️ Bulanan":
         bulan_nama = {

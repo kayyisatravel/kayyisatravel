@@ -1236,7 +1236,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
 
     # Tambahan filter untuk "Belum Lunas"
     if "Keterangan" in df.columns:
-        filter_belum_lunas = st.checkbox("Tampilkan hanya yang Belum Lunas")
+        filter_belum_lunas = st.checkbox("Tampilkan hanya yang Belum Lunas", value=True)
         if filter_belum_lunas:
             df_filtered = df_filtered[df_filtered["Keterangan"].str.contains("Belum Lunas", case=False, na=False)]
 

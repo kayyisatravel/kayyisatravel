@@ -1236,7 +1236,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
 
     # Tambahan filter untuk "Belum Lunas"
     if "Keterangan" in df.columns:
-        filter_belum_lunas = st.checkbox("Tampilkan hanya yang Belum Lunas", value=True)
+        filter_belum_lunas = st.checkbox("Tampilkan hanya yang Belum Lunas")
         if filter_belum_lunas:
             df_filtered = df_filtered[df_filtered["Keterangan"].str.contains("Belum Lunas", case=False, na=False)]
 
@@ -1244,7 +1244,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
     # === Filter Tambahan ===
     st.markdown("### 🧍 Filter Tambahan")
     
-    tampilkan_uninvoice_saja = st.checkbox("🔍 Tampilkan hanya yang belum ada Invoice")
+    tampilkan_uninvoice_saja = st.checkbox("🔍 Tampilkan hanya yang belum ada Invoice", value=True)
     auto_select_25jt = st.checkbox("⚙️ Auto-pilih total penjualan hingga Rp 25 juta")
     
     # Tambahan input baru untuk Nama Customer

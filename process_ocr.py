@@ -153,11 +153,12 @@ def extract_price_info(text: str, jumlah_penumpang: int = 1) -> (int, int):
                 harga_jual = normalize_price(m.group(1))
                 break
 
-    # Fallback: markup 6% jika hanya harga beli diketahui
+    # warning = None
     if harga_beli and not harga_jual:
-        harga_jual = int(round(harga_beli * 1.06))
+        warning = "Harga jual belum diisi."
+    
+    return harga_beli, harga_jual, warning
 
-    return harga_beli, harga_jual
 
 import re
 

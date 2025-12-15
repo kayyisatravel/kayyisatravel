@@ -276,7 +276,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         terbayar = 0
         sisa_tagihan = total_harga - terbayar
     
-    label_w = total_table_width * 0.79
+    label_w = total_table_width * 0.795
     value_w = total_table_width - label_w
     
     def row_summary(label, value, bold=False, red=False):

@@ -356,29 +356,28 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     
     # --- KIRI (DAFTAR BANK) ---
    # --- TOTAL + TERBILANG ---
+    
     pdf.set_x(left_x)
-    pdf.set_font("Arial", "B", 8)
-    pdf.set_text_color(0, 0, 0)
-    
-    # Total nominal
     pdf.set_font("Arial", "I", 8)
-    terbilang_text = (
-        "Nol rupiah"
-        if sisa_tagihan == 0
-        else terbilang(sisa_tagihan).capitalize() + " rupiah"
-    )
-    pdf.multi_cell(0, 6, f"Terbilang: ({terbilang_text})")
-
     
-    # Terbilang
-    if total_harga == 0:
+    nilai_terbilang = sisa_tagihan  # yang dibaca adalah sisa yang harus dibayar
+    
+    if nilai_terbilang <= 0:
         terbilang_text = "Nol rupiah"
     else:
-        terbilang_text = terbilang(total_harga).strip().capitalize() + " rupiah"
-
-    pdf.set_font("Arial", "I", 8)
-    pdf.multi_cell(0, 6, f"({terbilang_text})", align="L")
+        terbilang_text = terbilang(nilai_terbilang).capitalize() + " rupiah"
+    
+    lebar_terbilang = pdf.w - pdf.l_margin - pdf.r_margin
+    
+    pdf.multi_cell(
+        lebar_terbilang,
+        6,
+        f"Terbilang: ({terbilang_text})",
+        align="L"
+    )
+    
     pdf.ln(2)
+
     
     # Simpan posisi Y terakhir untuk TTD kanan
     y_setelah_terbilang = pdf.get_y()

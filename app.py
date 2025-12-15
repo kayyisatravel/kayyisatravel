@@ -282,13 +282,13 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     def row_summary(label, value, bold=False, red=False):
         pdf.set_font("Arial", "B" if bold else "", 8)
         pdf.set_text_color(200, 0, 0) if red else pdf.set_text_color(0, 0, 0)
-        pdf.cell(label_w, row_h, label, 1, 0, 'R')
-        pdf.cell(value_w, row_h, f"Rp {value:,.0f}", 1, 1, 'R')
+        pdf.cell(label_w, row_h, label, 0, 0, 'R')
+        pdf.cell(value_w, row_h, f"Rp {value:,.0f}", 0, 1, 'R')
         pdf.set_text_color(0, 0, 0)
     
     row_summary("TOTAL HARGA", total_harga, bold=True)
     row_summary("TERBAYAR", terbayar)
-    row_summary("SISA TAGIHAN", sisa_tagihan, bold=True, red=(sisa_tagihan > 0))
+    row_summary("SISA TAGIHAN", sisa_tagihan, bold=True)
     
     pdf.ln(4)
 

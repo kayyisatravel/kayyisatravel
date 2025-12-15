@@ -286,9 +286,9 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         pdf.cell(value_w, row_h, f"Rp {value:,.0f}", 0, 1, 'R')
         pdf.set_text_color(0, 0, 0)
     
-    row_summary("TOTAL HARGA", total_harga, bold=True)
-    row_summary("TERBAYAR", terbayar)
-    row_summary("SISA TAGIHAN", sisa_tagihan, bold=True)
+    row_summary("Total Harga", total_harga, bold=True)
+    row_summary("Terbayar", terbayar)
+    row_summary("Sisa Tagihan", sisa_tagihan, bold=True)
     
     pdf.ln(4)
 

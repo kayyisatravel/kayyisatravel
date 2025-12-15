@@ -297,7 +297,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         pdf.set_text_color(200, 0, 0) if red else pdf.set_text_color(0, 0, 0)
     
         # Kolom kosong (sebelah kiri)
-        pdf.cell(left_blank_width, row_h, "", 1, 0)
+        pdf.cell(left_blank_width, row_h, "", 0, 0)
     
         # Label di bawah Nama Customer
         pdf.cell(label_width, row_h, label, 1, 0, 'C')

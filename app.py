@@ -293,7 +293,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
 
 
     def summary_row_custom(label, value, bold=False, red=False):
-        pdf.set_font("Arial", "B" if bold else "", 7)
+        pdf.set_font("Arial", "B" if bold else "", 8)
         pdf.set_text_color(200, 0, 0) if red else pdf.set_text_color(0, 0, 0)
     
         # Kolom kosong (sebelah kiri)

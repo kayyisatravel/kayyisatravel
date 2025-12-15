@@ -439,7 +439,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     #pdf.set_y(-50)  # 2-3 baris di atas footer
     pdf.ln(10)
     pdf.set_font("Arial", "I", 8)
-    pdf.multi_cell(0, 5, "Invoice ini diterbitkan oleh sistem dan sah tanpa tanda tangan sesuai praktik transaksi elektronik.", align="C")
+    pdf.multi_cell(0, 5, "Invoice ini diterbitkan oleh sistem dan sah tanpa tanda tangan, sesuai praktik transaksi elektronik.", align="C")
 
     # =============================
     # OUTPUT FILE

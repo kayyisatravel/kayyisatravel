@@ -276,15 +276,34 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         terbayar = 0
         sisa_tagihan = total_harga - terbayar
     
-    label_w = total_table_width * 0.794
-    value_w = total_table_width - label_w
+    # Lebar kolom sebelum Harga Jual
+    summary_label_width = (
+        col_widths["No"] +
+        sum(col_widths[col] for col in kolom_pdf if col != "Harga Jual")
+    )
     
-    def row_summary(label, value, bold=False, red=False):
+    # Lebar kolom Harga Jual
+    summary_value_width = col_widths["Harga Jual"]
+
+    def summary_row(label, value, bold=False, red=False):
         pdf.set_font("Arial", "B" if bold else "", 7)
         pdf.set_text_color(200, 0, 0) if red else pdf.set_text_color(0, 0, 0)
-        pdf.cell(label_w, row_h, label, 0, 0, 'R')
-        pdf.cell(value_w, row_h, f"Rp {value:,.0f}", 1, 1, 'R')
+    
+        # Gabungan kolom kiri
+        pdf.cell(summary_label_width, row_h, label, 1, 0, 'R')
+    
+        # Kolom Harga Jual
+        pdf.cell(
+            summary_value_width,
+            row_h,
+            f"Rp {value:,.0f}",
+            1,
+            1,
+            'R'
+        )
+    
         pdf.set_text_color(0, 0, 0)
+
     
     row_summary("Total Harga", total_harga, bold=True)
     row_summary("Terbayar", terbayar)

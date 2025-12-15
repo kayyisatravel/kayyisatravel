@@ -276,25 +276,35 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         terbayar = 0
         sisa_tagihan = total_harga - terbayar
     
-    # Lebar kolom sebelum Harga Jual
-    summary_label_width = (
+    # ====== LEBAR KOLOM UNTUK SUMMARY ======
+
+    # Kolom sebelum Nama Customer
+    left_blank_width = (
         col_widths["No"] +
-        sum(col_widths[col] for col in kolom_pdf if col != "Harga Jual")
+        sum(col_widths[col] for col in kolom_pdf
+            if col not in ["Nama Customer", "Rute", "Harga Jual"])
     )
     
-    # Lebar kolom Harga Jual
-    summary_value_width = col_widths["Harga Jual"]
+    # Lebar kolom Nama Customer (label)
+    label_width = col_widths["Nama Customer"]
+    
+    # Lebar kolom Rute + Harga
+    value_width = col_widths["Rute"] + col_widths["Harga Jual"]
 
-    def summary_row(label, value, bold=False, red=False):
+
+    def summary_row_custom(label, value, bold=False, red=False):
         pdf.set_font("Arial", "B" if bold else "", 7)
         pdf.set_text_color(200, 0, 0) if red else pdf.set_text_color(0, 0, 0)
     
-        # Gabungan kolom kiri
-        pdf.cell(summary_label_width, row_h, label, 1, 0, 'R')
+        # Kolom kosong (sebelah kiri)
+        pdf.cell(left_blank_width, row_h, "", 1, 0)
     
-        # Kolom Harga Jual
+        # Label di bawah Nama Customer
+        pdf.cell(label_width, row_h, label, 1, 0, 'C')
+    
+        # Nominal (Rute + Harga)
         pdf.cell(
-            summary_value_width,
+            value_width,
             row_h,
             f"Rp {value:,.0f}",
             1,
@@ -304,10 +314,12 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     
         pdf.set_text_color(0, 0, 0)
 
+
     
-    summary_row("Total Harga", total_harga, bold=True)
-    summary_row("Terbayar", terbayar)
-    summary_row("Sisa Tagihan", sisa_tagihan, bold=True)
+    summary_row_custom("Total Harga", total_harga, bold=True)
+    summary_row_custom("Terbayar", terbayar)
+    summary_row_custom("Sisa Tagihan", sisa_tagihan, bold=True)
+
     
     pdf.ln(4)
 

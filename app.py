@@ -1235,13 +1235,22 @@ with st.expander("💾 Database Pemesan", expanded=False):
     def load_data():
         ws = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
         df = pd.DataFrame(ws.get_all_records())
-        if "Tgl Pemesanan" in df.columns:
-            df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], dayfirst=True, errors="coerce")
-            df = df.dropna(subset=["Tgl Pemesanan"])
-        else:
+    
+        # Wajib ada
+        if "Tgl Pemesanan" not in df.columns:
             st.error("❌ Kolom 'Tgl Pemesanan' tidak ditemukan.")
             st.stop()
+    
+        # Normalisasi tanggal (logika sama)
+        for col in ["Tgl Pemesanan", "Tgl Berangkat"]:
+            if col in df.columns:
+                df[col] = pd.to_datetime(df[col], dayfirst=True, errors="coerce")
+    
+        # Hanya Tgl Pemesanan yang wajib
+        df = df.dropna(subset=["Tgl Pemesanan"])
+    
         return df
+
 
     if st.button("🔄 Refresh Data"):
         st.cache_data.clear()
@@ -1427,24 +1436,17 @@ with st.expander("💾 Database Pemesan", expanded=False):
         
                 # ===== Fungsi bantu amankan tanggal =====
                 def safe_date(val):
-                    if isinstance(val, date):
-                        return val
-                    if isinstance(val, str):
-                        try:
-                            return datetime.strptime(val, "%Y-%m-%d").date()
-                        except ValueError:
-                            pass
-                    if isinstance(val, pd.Timestamp):
-                        return val.date()
-                    return date.today()
+                    return None if pd.isna(val) else val.date()
+
         
                 # ============================
                 # === INPUT FIELD EDIT MODE ===
                 # ============================
-        
+                tgl_pemesanan_val = safe_date(row_to_edit["Tgl Pemesanan"])
+                tgl_berangkat_val = safe_date(row_to_edit["Tgl Berangkat"])
                 nama_pemesan_form = st.text_input("Nama Pemesan", row_to_edit.get("Nama Pemesan", ""), key="edit_nama_pemesan")
-                tgl_pemesanan_form = st.date_input("Tgl Pemesanan", safe_date(row_to_edit.get("Tgl Pemesanan")), key="edit_tgl_pemesanan")
-                tgl_berangkat_form = st.date_input("Tgl Berangkat", safe_date(row_to_edit.get("Tgl Berangkat")), key="edit_tgl_berangkat")
+                tgl_pemesanan_form = st.date_input("Tgl Pemesanan", value=tgl_pemesanan_val if tgl_pemesanan_val else date.today(), key="edit_tgl_pemesanan")
+                tgl_berangkat_form = st.date_input("Tgl Berangkat", value=tgl_berangkat_val if tgl_berangkat_val else date.today(), key="edit_tgl_berangkat")
                 kode_booking_form = st.text_input("Kode Booking", row_to_edit.get("Kode Booking", ""), key="edit_kode_booking")
                 no_penerbangan_form = st.text_input("No Penerbangan / Hotel / Kereta", row_to_edit.get("No Penerbangan / Hotel / Kereta", ""), key="edit_no_penerbangan")
                 nama_customer_form = st.text_input("Nama Customer", row_to_edit.get("Nama Customer", ""), key="edit_nama_customer")

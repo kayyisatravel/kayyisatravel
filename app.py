@@ -3906,7 +3906,7 @@ if jenis == "Pengeluaran":
             st.error("Saldo tidak mencukupi. Silakan transfer dari rekening lain.")
         else:
             tx_ws.append_row([
-                len(transactions)+1, tanggal, "Pengeluaran",
+                len(transactions)+1, tanggal.strftime("%Y-%m-%d"), "Pengeluaran",
                 rekening, "", jumlah, kategori, sub, catatan
             ])
             st.success("Pengeluaran tersimpan")
@@ -3920,7 +3920,7 @@ elif jenis == "Pemasukan":
 
     if st.button("Simpan"):
         tx_ws.append_row([
-            len(transactions)+1, tanggal, "Pemasukan",
+            len(transactions)+1, tanggal.strftime("%Y-%m-%d"), "Pemasukan",
             "", rekening, jumlah, kategori, sub, catatan
         ])
         st.success("Pemasukan tersimpan")
@@ -3939,7 +3939,7 @@ else:
             st.error("Saldo tidak mencukupi.")
         else:
             tx_ws.append_row([
-                len(transactions)+1, tanggal, "Transfer",
+                len(transactions)+1, tanggal.strftime("%Y-%m-%d"), "Transfer",
                 asal, tujuan, jumlah, "Transfer Antar Rekening", "", catatan
             ])
             st.success("Transfer tersimpan")

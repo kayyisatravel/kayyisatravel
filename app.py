@@ -3894,104 +3894,106 @@ saldo_map = hitung_saldo(accounts, transactions)
 # UI
 # ======================
 with st.expander("💰 Pencatatan Keuangan Profesional"):
+    with st.expander("Input Transaksi"):
 
-    jenis = st.selectbox(
-        "Jenis Transaksi",
-        ["Pengeluaran", "Pemasukan", "Transfer Antar Rekening"]
-    )
-    
-    tanggal = st.date_input("Tanggal", datetime.today())
-    
-    # ----------------------
-    # Pengeluaran
-    # ----------------------
-    if jenis == "Pengeluaran":
-        rekening = st.selectbox("Rekening Sumber", accounts['account_name'])
-        kategori = st.selectbox("Kategori", ["Rumah Tangga", "Supplier Bisnis"])
-        sub = st.text_input("Sub Kategori")
-        jumlah = st.number_input("Jumlah (Rp)", min_value=1, step=1000)
-        catatan = st.text_input("Catatan")
-    
-        if st.button("Simpan Pengeluaran"):
-            if saldo_map.get(rekening,0) < jumlah:
-                st.error("Saldo tidak mencukupi. Silakan pilih rekening lain atau lakukan transfer.")
-            else:
+        jenis = st.selectbox(
+            "Jenis Transaksi",
+            ["Pengeluaran", "Pemasukan", "Transfer Antar Rekening"]
+        )
+        
+        tanggal = st.date_input("Tanggal", datetime.today())
+        
+        # ----------------------
+        # Pengeluaran
+        # ----------------------
+        if jenis == "Pengeluaran":
+            rekening = st.selectbox("Rekening Sumber", accounts['account_name'])
+            kategori = st.selectbox("Kategori", ["Rumah Tangga", "Supplier Bisnis"])
+            sub = st.text_input("Sub Kategori")
+            jumlah = st.number_input("Jumlah (Rp)", min_value=1, step=1000)
+            catatan = st.text_input("Catatan")
+        
+            if st.button("Simpan Pengeluaran"):
+                if saldo_map.get(rekening,0) < jumlah:
+                    st.error("Saldo tidak mencukupi. Silakan pilih rekening lain atau lakukan transfer.")
+                else:
+                    tx_id = generate_tx_id(transactions)
+                    tx_ws.append_row([
+                        tx_id, tanggal.strftime("%Y-%m-%d"), "Pengeluaran",
+                        rekening, "", jumlah, kategori, sub, catatan
+                    ])
+                    st.success("Pengeluaran tersimpan ✅")
+                    # Update saldo di UI
+                    saldo_map[rekening] -= jumlah
+        
+        # ----------------------
+        # Pemasukan
+        # ----------------------
+        elif jenis == "Pemasukan":
+            rekening = st.selectbox("Rekening Tujuan", accounts['account_name'])
+            kategori = st.selectbox("Kategori", ["Gaji", "Penjualan"])
+            sub = st.text_input("Sub Kategori")
+            jumlah = st.number_input("Jumlah (Rp)", min_value=1, step=1000)
+            catatan = st.text_input("Catatan")
+        
+            if st.button("Simpan Pemasukan"):
                 tx_id = generate_tx_id(transactions)
                 tx_ws.append_row([
-                    tx_id, tanggal.strftime("%Y-%m-%d"), "Pengeluaran",
-                    rekening, "", jumlah, kategori, sub, catatan
+                    tx_id, tanggal.strftime("%Y-%m-%d"), "Pemasukan",
+                    "", rekening, jumlah, kategori, sub, catatan
                 ])
-                st.success("Pengeluaran tersimpan ✅")
-                # Update saldo di UI
-                saldo_map[rekening] -= jumlah
-    
-    # ----------------------
-    # Pemasukan
-    # ----------------------
-    elif jenis == "Pemasukan":
-        rekening = st.selectbox("Rekening Tujuan", accounts['account_name'])
-        kategori = st.selectbox("Kategori", ["Gaji", "Penjualan"])
-        sub = st.text_input("Sub Kategori")
-        jumlah = st.number_input("Jumlah (Rp)", min_value=1, step=1000)
-        catatan = st.text_input("Catatan")
-    
-        if st.button("Simpan Pemasukan"):
-            tx_id = generate_tx_id(transactions)
-            tx_ws.append_row([
-                tx_id, tanggal.strftime("%Y-%m-%d"), "Pemasukan",
-                "", rekening, jumlah, kategori, sub, catatan
-            ])
-            st.success("Pemasukan tersimpan ✅")
-            saldo_map[rekening] += jumlah
-    
-    # ----------------------
-    # Transfer Antar Rekening
-    # ----------------------
-    else:
-        asal = st.selectbox("Rekening Asal", accounts['account_name'])
-        tujuan = st.selectbox("Rekening Tujuan", [a for a in accounts['account_name'] if a != asal])
-        jumlah = st.number_input("Jumlah (Rp)", min_value=1, step=1000)
-        catatan = st.text_input("Catatan")
-    
-        if st.button("Simpan Transfer"):
-            if saldo_map.get(asal,0) < jumlah:
-                st.error("Saldo tidak mencukupi.")
-            else:
-                tx_id = generate_tx_id(transactions)
-                tx_ws.append_row([
-                    tx_id, tanggal.strftime("%Y-%m-%d"), "Transfer",
-                    asal, tujuan, jumlah, "Transfer Antar Rekening", "", catatan
-                ])
-                st.success("Transfer tersimpan ✅")
-                saldo_map[asal] -= jumlah
-                saldo_map[tujuan] += jumlah
+                st.success("Pemasukan tersimpan ✅")
+                saldo_map[rekening] += jumlah
+        
+        # ----------------------
+        # Transfer Antar Rekening
+        # ----------------------
+        else:
+            asal = st.selectbox("Rekening Asal", accounts['account_name'])
+            tujuan = st.selectbox("Rekening Tujuan", [a for a in accounts['account_name'] if a != asal])
+            jumlah = st.number_input("Jumlah (Rp)", min_value=1, step=1000)
+            catatan = st.text_input("Catatan")
+        
+            if st.button("Simpan Transfer"):
+                if saldo_map.get(asal,0) < jumlah:
+                    st.error("Saldo tidak mencukupi.")
+                else:
+                    tx_id = generate_tx_id(transactions)
+                    tx_ws.append_row([
+                        tx_id, tanggal.strftime("%Y-%m-%d"), "Transfer",
+                        asal, tujuan, jumlah, "Transfer Antar Rekening", "", catatan
+                    ])
+                    st.success("Transfer tersimpan ✅")
+                    saldo_map[asal] -= jumlah
+                    saldo_map[tujuan] += jumlah
     
     # ======================
     # LAPORAN SALDO
     # ======================
-    st.subheader("📊 Saldo Rekening Terkini")
-
-
-    icons = {
-        "Kas Pribadi": "🏦",
-        "BCA Bisnis Operasional": "🏢",
-        "Rekening Investasi": "💰",
-        "Rekening Tabungan": "💳",
-    }
+    with st.expander("Jumlah Saldo Rekening"):
+        st.subheader("📊 Saldo Rekening Terkini")
     
-    # Ambil saldo_map yang sudah dihitung dari hitung_saldo()
-    saldo_items = list(saldo_map.items())
     
-    # Buat kolom 2 kartu per baris
-    for i in range(0, len(saldo_items), 2):
-        cols = st.columns(2)
-        for j, col in enumerate(cols):
-            idx = i + j
-            if idx < len(saldo_items):
-                rekening, saldo = saldo_items[idx]
-                icon = icons.get(rekening, "")
-                with col:
-                    metric_card(f"{icon} {rekening}", f"Rp {saldo:,.0f}")
+        icons = {
+            "Kas Pribadi": "🏦",
+            "BCA Bisnis Operasional": "🏢",
+            "Rekening Investasi": "💰",
+            "Rekening Tabungan": "💳",
+        }
+        
+        # Ambil saldo_map yang sudah dihitung dari hitung_saldo()
+        saldo_items = list(saldo_map.items())
+        
+        # Buat kolom 2 kartu per baris
+        for i in range(0, len(saldo_items), 2):
+            cols = st.columns(2)
+            for j, col in enumerate(cols):
+                idx = i + j
+                if idx < len(saldo_items):
+                    rekening, saldo = saldo_items[idx]
+                    icon = icons.get(rekening, "")
+                    with col:
+                        metric_card(f"{icon} {rekening}", f"Rp {saldo:,.0f}")
 
 
 

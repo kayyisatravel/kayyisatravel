@@ -3851,61 +3851,83 @@ SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 ACCOUNTS_WS_NAME = "ACCOUNTS"
 TRANSACTIONS_WS_NAME = "TRANSACTIONS"
 
-# --- Load worksheets ---
+# =========================
+# LOAD DATA DARI GOOGLE SHEETS
+# =========================
 accounts_ws = connect_to_gsheet(SHEET_ID, ACCOUNTS_WS_NAME)
 transactions_ws = connect_to_gsheet(SHEET_ID, TRANSACTIONS_WS_NAME)
 
-# --- Load data dari sheet ---
+# --- Load Accounts ---
 accounts_data = accounts_ws.get_all_records()
-transactions_data = transactions_ws.get_all_records()
-
 accounts = pd.DataFrame(accounts_data)
+
+# --- Load Transactions ---
+transactions_data = transactions_ws.get_all_records()
 transactions = pd.DataFrame(transactions_data)
 
-# --- Debug awal (hapus kalau sudah yakin) ---
-st.write("Kolom Accounts:", accounts.columns)
-st.write("Kolom Transactions:", transactions.columns)
+# =========================
+# KONVERSI DATA NUMERIC
+# =========================
+if not accounts.empty:
+    accounts['balance'] = pd.to_numeric(accounts['balance'], errors='coerce').fillna(0)
 
-# --- Pencatatan transaksi harian ---
+if not transactions.empty:
+    transactions['amount'] = pd.to_numeric(transactions['amount'], errors='coerce').fillna(0)
+
+# =========================
+# CEK DATA
+# =========================
+if accounts.empty:
+    st.warning("Sheet ACCOUNTS kosong. Silakan isi minimal satu rekening di GSheets.")
+    st.stop()
+
+if 'source' not in transactions.columns or 'destination' not in transactions.columns or 'amount' not in transactions.columns:
+    st.warning("Sheet TRANSACTIONS kosong atau header salah. Pastikan ada 'source','destination','amount'.")
+    transactions = pd.DataFrame(columns=['id','date','description','source','destination','amount'])
+
+# =========================
+# FORM INPUT TRANSAKSI
+# =========================
 with st.expander("📒 Pencatatan Rekening Harian"):
-
     st.subheader("Input Transaksi")
+    
     with st.form("input_transaksi"):
         date = st.date_input("Tanggal")
-        description = st.text_input("Deskripsi (misal: Pembayaran [Kode Booking])")
-        
-        # ✅ Pastikan kolom 'account_name' ada
+        description = st.text_input("Deskripsi (misal: Pembayaran supplier / Beli Sepatu)")
         source = st.selectbox("Rekening Sumber", accounts['account_name'])
         destination = st.selectbox("Rekening Tujuan", accounts['account_name'])
-        amount = st.number_input("Jumlah (Rp)", min_value=0)
-        
-        # Submit button HARUS di dalam form
+        amount = st.number_input("Jumlah (Rp)", min_value=0, step=1000)
         submitted = st.form_submit_button("Simpan Transaksi")
         
         if submitted:
-            new_tx = pd.DataFrame([{
+            new_tx = {
                 'id': len(transactions)+1,
-                'date': date,
+                'date': pd.to_datetime(date).strftime("%Y-%m-%d"),
                 'description': description,
                 'source': source,
                 'destination': destination,
                 'amount': amount
-            }])
-
-            # --- Append ke GSheets ---
-            append_dataframe_to_sheet(new_tx, transactions_ws)
+            }
             
-            # --- Update memory lokal ---
-            transactions = pd.concat([transactions, new_tx], ignore_index=True)
-            st.success("Transaksi tersimpan!")
+            # Tambahkan ke DataFrame lokal
+            transactions = transactions.append(new_tx, ignore_index=True)
+            
+            # Kirim ke Google Sheets
+            append_dataframe_to_sheet(pd.DataFrame([new_tx]), transactions_ws)
+            
+            st.success("✅ Transaksi tersimpan!")
 
-    # --- Saldo realtime ---
-    st.subheader("Saldo Rekening Real-time")
-    saldo_df = accounts.copy()
-    for i, row in saldo_df.iterrows():
-        debit = transactions.loc[transactions['source']==row['account_name'], 'amount'].sum()
-        credit = transactions.loc[transactions['destination']==row['account_name'], 'amount'].sum()
-        saldo_df.loc[i, 'saldo_akhir'] = row['balance'] - debit + credit
+# =========================
+# HITUNG SALDO REAL-TIME
+# =========================
+st.subheader("💰 Saldo Rekening Real-time")
+saldo_df = accounts.copy()
+saldo_df['saldo_akhir'] = saldo_df['balance']  # Initialize
 
-    st.dataframe(saldo_df[['account_name','balance','saldo_akhir']])
+for i, row in saldo_df.iterrows():
+    debit = transactions.loc[transactions['source']==row['account_name'], 'amount'].sum()
+    credit = transactions.loc[transactions['destination']==row['account_name'], 'amount'].sum()
+    saldo_df.loc[i, 'saldo_akhir'] = row['balance'] - debit + credit
+
+st.dataframe(saldo_df[['account_name','balance','saldo_akhir','note']], use_container_width=True)
 

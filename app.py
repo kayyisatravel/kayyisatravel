@@ -3970,24 +3970,28 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
     # LAPORAN SALDO
     # ======================
     st.subheader("📊 Saldo Rekening Terkini")
+
+
     icons = {
-        "Rekening Rumah Tangga": "🏦",
-        "Rekening Bisnis": "🏢",
+        "Kas Pribadi": "🏦",
+        "BCA Bisnis Operasional": "🏢",
         "Rekening Investasi": "💰",
         "Rekening Tabungan": "💳",
     }
     
-    cols = st.columns(len(saldo_map))
-
-    for col, (acc, saldo) in zip(cols, saldo_map.items()):
-        icon = icons.get(acc, "")
-        col.metric_card(
-            label=f"{icon} {acc}",
-            value=f"Rp {saldo:,.0f}",
-            delta=None,
-            delta_color="normal",
-            help=f"Saldo rekening {acc}"
-        )
+    # Ambil saldo_map yang sudah dihitung dari hitung_saldo()
+    saldo_items = list(saldo_map.items())
+    
+    # Buat kolom 2 kartu per baris
+    for i in range(0, len(saldo_items), 2):
+        cols = st.columns(2)
+        for j, col in enumerate(cols):
+            idx = i + j
+            if idx < len(saldo_items):
+                rekening, saldo = saldo_items[idx]
+                icon = icons.get(rekening, "")
+                with col:
+                    metric_card(f"{icon} {rekening}", f"Rp {saldo:,.0f}")
 
 
 

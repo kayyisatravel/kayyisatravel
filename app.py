@@ -3970,9 +3970,19 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
     # LAPORAN SALDO
     # ======================
     st.subheader("📊 Saldo Rekening Terkini")
+    icons = {
+        "Rekening Rumah Tangga": "🏦",
+        "Rekening Bisnis": "🏢",
+        "Rekening Investasi": "💰",
+        "Rekening Tabungan": "💳",
+    }
     
-    for acc, saldo in saldo_map.items():
-        st.metric(acc, f"Rp {saldo:,.0f}")
+    cols = st.columns(len(saldo_map))  # buat kolom sesuai jumlah rekening
+    
+    for col, (acc, saldo) in zip(cols, saldo_map.items()):
+        icon = icons.get(acc, "")
+        col.metric(label=f"{icon} {acc}", value=f"Rp {saldo:,.0f}")
+
 
 
 

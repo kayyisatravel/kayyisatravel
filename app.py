@@ -3848,19 +3848,6 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
 # ------------------------------
-# Fungsi koneksi ke Google Sheets
-# ------------------------------
-def connect_gsheet(sheet_id, worksheet_name):
-    scope = ["https://spreadsheets.google.com/feeds",
-             "https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_name("service_account.json", scope)
-    client = gspread.authorize(creds)
-    sheet = client.open_by_key(sheet_id)
-    worksheet = sheet.worksheet(worksheet_name)
-    data = worksheet.get_all_records()
-    return pd.DataFrame(data), worksheet
-
-# ------------------------------
 # Konversi Rp... ke numeric
 # ------------------------------
 def parse_rp_to_float(x):

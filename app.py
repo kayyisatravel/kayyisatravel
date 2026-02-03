@@ -3917,17 +3917,17 @@ with st.expander("📒 Pencatatan Rekening Harian"):
             
             st.success("✅ Transaksi tersimpan!")
 
-# =========================
-# HITUNG SALDO REAL-TIME
-# =========================
-st.subheader("💰 Saldo Rekening Real-time")
-saldo_df = accounts.copy()
-saldo_df['saldo_akhir'] = saldo_df['balance']  # Initialize
-
-for i, row in saldo_df.iterrows():
-    debit = transactions.loc[transactions['source']==row['account_name'], 'amount'].sum()
-    credit = transactions.loc[transactions['destination']==row['account_name'], 'amount'].sum()
-    saldo_df.loc[i, 'saldo_akhir'] = row['balance'] - debit + credit
-
-st.dataframe(saldo_df[['account_name','balance','saldo_akhir','note']], use_container_width=True)
+    # =========================
+    # HITUNG SALDO REAL-TIME
+    # =========================
+    st.subheader("💰 Saldo Rekening Real-time")
+    saldo_df = accounts.copy()
+    saldo_df['saldo_akhir'] = saldo_df['balance']  # Initialize
+    
+    for i, row in saldo_df.iterrows():
+        debit = transactions.loc[transactions['source']==row['account_name'], 'amount'].sum()
+        credit = transactions.loc[transactions['destination']==row['account_name'], 'amount'].sum()
+        saldo_df.loc[i, 'saldo_akhir'] = row['balance'] - debit + credit
+    
+    st.dataframe(saldo_df[['account_name','balance','saldo_akhir','note']], use_container_width=True)
 

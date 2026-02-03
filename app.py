@@ -2786,1028 +2786,1028 @@ with st.expander("📘 Jurnal Akuntansi"):
 # Footer notes
     st.markdown("---")
     st.markdown("**Catatan:**\n- Pembelian via kartu kredit dicatat sebagai `Hutang Kartu - <Nama>` (liability) dan tidak mengurangi kas sampai pembayaran tagihan tercatat.\n- Pembayaran tagihan kartu dicatat sebagai pengurangan kas dan mengurangi liability.\n- Untuk otomasi pendapatan (cash-basis), sertakan kolom `Paid_Amount` atau catatan `Masuk` pada sheet 'Arus Kas'.")
-
-with st.expander("💸 Laporan Cashflow Realtime"): 
-    st.markdown("### 🔧 Filter Cashflow")
-    
-    # Pastikan kolom Bulan/Tahun tersedia
-    df_cashflow_combined["Tanggal"] = pd.to_datetime(df_cashflow_combined["Tanggal"], errors='coerce')
-    df_cashflow_combined["Bulan"] = df_cashflow_combined["Tanggal"].dt.month
-    df_cashflow_combined["Tahun"] = df_cashflow_combined["Tanggal"].dt.year
-    df_cashflow = df_cashflow_combined
-    
-    # -----------------------------
-    # 1️⃣ Pilih Jenis Filter Waktu
-    # -----------------------------
-    filter_mode = st.radio(
-        "Pilih Jenis Filter Waktu",
-        ["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"],
-        horizontal=True,
-        key="filter_mode_radio_v2"
-    )
-    
-    
-    # -----------------------------
-    # 2️⃣ Filter Waktu Dinamis
-    # -----------------------------
-    if filter_mode == "📆 Rentang Tanggal":
-        cold1, cold2 = st.columns(2)
-        tanggal_mulai = cold1.date_input("Dari tanggal", df_cashflow["Tanggal"].min())
-        tanggal_akhir = cold2.date_input("Sampai tanggal", df_cashflow["Tanggal"].max())
-        df_filtered = df_cashflow[
-            (df_cashflow["Tanggal"] >= pd.to_datetime(tanggal_mulai)) &
-            (df_cashflow["Tanggal"] <= pd.to_datetime(tanggal_akhir))
-        ]
-    
-    elif filter_mode == "🗓️ Bulanan":
-        tahun_filter = st.selectbox("Tahun", sorted(df_cashflow["Tahun"].unique()))
-        bulan_map = {
-            "Januari":1,"Februari":2,"Maret":3,"April":4,"Mei":5,"Juni":6,
-            "Juli":7,"Agustus":8,"September":9,"Oktober":10,"November":11,"Desember":12
-        }
-        bulan_filter = st.selectbox("Bulan", list(bulan_map.keys()))
-        df_filtered = df_cashflow[
-            (df_cashflow["Tahun"] == tahun_filter) &
-            (df_cashflow["Bulan"] == bulan_map[bulan_filter])
-        ]
-    
-    elif filter_mode == "📅 Tahunan":
-        tahun_filter = st.selectbox("Tahun", sorted(df_cashflow["Tahun"].unique()))
-        df_filtered = df_cashflow[df_cashflow["Tahun"] == tahun_filter]
-    
-    # -----------------------------
-    # 3️⃣ Filter Tipe Transaksi & Kategori
-    # -----------------------------
-    colf1, colf2 = st.columns(2)
-    
-    # Tipe transaksi
-    tipe_filter = colf1.selectbox(
-        "Jenis Transaksi",
-        ["Semua", "Masuk", "Keluar"]
-    )
-    
-    # Kategori (otomatis menyesuaikan tipe)
-    if tipe_filter == "Masuk":
-        kategori_list = df_cashflow[df_cashflow["Tipe"]=="Masuk"]["Kategori"].unique()
-    elif tipe_filter == "Keluar":
-        kategori_list = df_cashflow[df_cashflow["Tipe"]=="Keluar"]["Kategori"].unique()
-    else:
-        kategori_list = df_cashflow["Kategori"].unique()
-    
-    kategori_filter = colf2.selectbox("Kategori", ["Semua"] + list(kategori_list))
-    
-    if tipe_filter != "Semua":
-        df_filtered = df_filtered[df_filtered["Tipe"] == tipe_filter]
-    if kategori_filter != "Semua":
-        df_filtered = df_filtered[df_filtered["Kategori"] == kategori_filter]
-    
-    # -----------------------------
-    # 4️⃣ Filter Nama Pemesan (otomatis deteksi kolom)
-    # -----------------------------
-    possible_name_cols = ["Pemesan", "Nama Pemesan", "Nama", "Customer", "Pemesanan", "Atas Nama"]
-    col_pemesan = next((c for c in possible_name_cols if c in df_cashflow.columns), None)
-    
-    if col_pemesan:
-        pemesan_list = df_cashflow[col_pemesan].dropna().unique()
-        pemesan_filter = st.selectbox("Nama Pemesan", ["Semua"] + list(pemesan_list))
-        if pemesan_filter != "Semua":
-            df_filtered = df_filtered[df_filtered[col_pemesan] == pemesan_filter]
-    
-    # -----------------------------
-    # 5️⃣ Total Masuk & Keluar hasil filter
-    # -----------------------------
-    col_total1, col_total2 = st.columns(2)
-    total_masuk_filtered = df_filtered[df_filtered["Tipe"]=="Masuk"]["Jumlah"].sum()
-    total_keluar_filtered = df_filtered[df_filtered["Tipe"]=="Keluar"]["Jumlah"].sum()
-    
-    with col_total1:
-        metric_card("💰 Total Masuk (Filtered)", format_rp(total_masuk_filtered))
-    
-    with col_total2:
-        metric_card("📤 Total Keluar (Filtered)", format_rp(total_keluar_filtered))
-    
-    
-    # -----------------------------
-    # 6️⃣ Tabel Detail Transaksi
-    # -----------------------------
-    st.markdown("## 📋 Detail Transaksi Cashflow (Sudah Difilter)")
-    
-    df_show = df_filtered.copy()
-    df_show["Jumlah"] = df_show["Jumlah"].apply(format_rp)
-    
-    st.dataframe(
-        df_show.sort_values("Tanggal", ascending=False),
-        use_container_width=True,
-        height=500
-    )
-    # =====================================================
-    # 📘 LAPORAN LABA RUGI (INCOME STATEMENT)
-    # =====================================================
-with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):    
-
-    # ===========================
-    # 1️⃣ Laporan Laba/Rugi
-    # ===========================
-    required_cols = ["Tipe", "Jumlah", "Kategori"]
-    df_ok = ('df_filtered' in locals() or 'df_filtered' in globals()) and all(col in df_filtered.columns for col in required_cols)
-
-    if df_ok:
-        st.markdown("## 📘 Laporan Laba Rugi")
-
-        # Pendapatan (Masuk)
-        pendapatan_filtered = df_filtered[df_filtered["Tipe"]=="Masuk"]["Jumlah"].sum()
-
-        # HPP / Modal
-        hpp_filtered = df_filtered[df_filtered["Kategori"].str.contains("Penjualan", na=False)]["Jumlah"].sum()
-
-        # Beban Operasional
-        operasional_filtered = df_filtered[
-            (df_filtered["Tipe"]=="Keluar") & (~df_filtered["Kategori"].str.contains("Penjualan", na=False))
-        ]["Jumlah"].sum()
-
-        laba_kotor = pendapatan_filtered - hpp_filtered
-        laba_bersih = laba_kotor - operasional_filtered
-
-        # Tampilkan metric
-        col_laba1, col_laba2 = st.columns(2)
-        with col_laba1: metric_card("📈 Pendapatan", format_rp(pendapatan_filtered))
-        with col_laba2: metric_card("📉 HPP / Modal", format_rp(hpp_filtered))
-        col_laba3, col_laba4 = st.columns(2)
-        with col_laba3: metric_card("💼 Beban Operasional", format_rp(operasional_filtered))
-        with col_laba4: metric_card("💰 Laba Bersih", format_rp(laba_bersih))
-    else:
-        st.warning("Laporan Laba Rugi tidak dapat ditampilkan — data belum lengkap.")
-        laba_bersih = 0
-
-    # Interpretasi otomatis Laba/Rugi
-    total_piutang = piutang_total if 'piutang_total' in locals() else 0.0
-    if laba_bersih > 0:
-        st.success(f"Bisnis **untung**, karena laba bersih = {format_rp(laba_bersih)}.")
-    elif laba_bersih == 0:
-        st.info("Bisnis berada di titik impas (break even). Tidak untung, tidak rugi.")
-    elif laba_bersih < 0 and total_piutang > abs(laba_bersih):
-        st.info(
-            f"Laba bersih periode ini negatif karena sebagian pendapatan masih dalam piutang "
-            f"sebesar {format_rp(total_piutang)}. Setelah dibayar, laba bisa positif."
+with st.expander("📘 Laporan - laporan"):
+    with st.expander("💸 Laporan Cashflow Realtime"): 
+        st.markdown("### 🔧 Filter Cashflow")
+        
+        # Pastikan kolom Bulan/Tahun tersedia
+        df_cashflow_combined["Tanggal"] = pd.to_datetime(df_cashflow_combined["Tanggal"], errors='coerce')
+        df_cashflow_combined["Bulan"] = df_cashflow_combined["Tanggal"].dt.month
+        df_cashflow_combined["Tahun"] = df_cashflow_combined["Tanggal"].dt.year
+        df_cashflow = df_cashflow_combined
+        
+        # -----------------------------
+        # 1️⃣ Pilih Jenis Filter Waktu
+        # -----------------------------
+        filter_mode = st.radio(
+            "Pilih Jenis Filter Waktu",
+            ["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"],
+            horizontal=True,
+            key="filter_mode_radio_v2"
         )
-    else:
-        st.error(f"Bisnis **rugi**, karena laba bersih = {format_rp(laba_bersih)}.")
-
-    # Markdown penjelasan
-    st.markdown("""
-    **Laporan Laba Rugi** menunjukkan apakah bisnis *untung atau rugi* dalam periode tertentu.
-
-    **🔹 Pendapatan** — semua uang masuk dari pelanggan  
-    **🔹 HPP / Modal** — biaya pembelian barang/jasa yang dijual  
-    **🔹 Beban Operasional** — biaya operasional seperti gaji, marketing, pajak, kerugian order  
-    **🔹 Laba Bersih = Pendapatan – HPP – Operasional**
-    """)
-
-    # ===========================
-    # 2️⃣ Neraca Sederhana
-    # ===========================
-    st.markdown("## 📗 Neraca Sederhana")
-
-    aset_kas = saldo if 'saldo' in locals() else 0.0
-    aset_piutang = piutang_total if 'piutang_total' in locals() else 0.0
-    aset_total = aset_kas + aset_piutang
-
-    # Hutang
-    if 'df_cashflow' in locals() and not df_cashflow.empty:
-        hutang_kategori = ["Pembayaran Pinjaman (Hutang/Credit Card)", "Penjualan (Credit Card)"]
-        hutang_total = df_cashflow[df_cashflow["Kategori"].isin(hutang_kategori)]["Jumlah"].sum()
-    else:
-        hutang_total = 0.0
-
-    modal = aset_total - hutang_total
-
-    # Styling
-    balance_style = """
-    <style>
-    .bs-card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); margin-bottom: 15px; border:1px solid #e6e6e6; }
-    .bs-title { font-size:20px; font-weight:700; margin-bottom:12px; color:#333; }
-    .bs-item { font-size:16px; margin:6px 0; color:#444; }
-    .bs-total { margin-top:12px; font-size:18px; font-weight:700; color:#111; }
-    </style>
-    """
-    st.markdown(balance_style, unsafe_allow_html=True)
-
-    col_n1, col_n2 = st.columns(2)
-    with col_n1:
-        st.markdown(
-            f"<div class='bs-card'><div class='bs-title'>📦 Aset</div>"
-            f"<div class='bs-item'>Kas: {format_rp(aset_kas)}</div>"
-            f"<div class='bs-item'>Piutang: {format_rp(aset_piutang)}</div>"
-            f"<div class='bs-total'>Total Aset: {format_rp(aset_total)}</div></div>",
-            unsafe_allow_html=True
+        
+        
+        # -----------------------------
+        # 2️⃣ Filter Waktu Dinamis
+        # -----------------------------
+        if filter_mode == "📆 Rentang Tanggal":
+            cold1, cold2 = st.columns(2)
+            tanggal_mulai = cold1.date_input("Dari tanggal", df_cashflow["Tanggal"].min())
+            tanggal_akhir = cold2.date_input("Sampai tanggal", df_cashflow["Tanggal"].max())
+            df_filtered = df_cashflow[
+                (df_cashflow["Tanggal"] >= pd.to_datetime(tanggal_mulai)) &
+                (df_cashflow["Tanggal"] <= pd.to_datetime(tanggal_akhir))
+            ]
+        
+        elif filter_mode == "🗓️ Bulanan":
+            tahun_filter = st.selectbox("Tahun", sorted(df_cashflow["Tahun"].unique()))
+            bulan_map = {
+                "Januari":1,"Februari":2,"Maret":3,"April":4,"Mei":5,"Juni":6,
+                "Juli":7,"Agustus":8,"September":9,"Oktober":10,"November":11,"Desember":12
+            }
+            bulan_filter = st.selectbox("Bulan", list(bulan_map.keys()))
+            df_filtered = df_cashflow[
+                (df_cashflow["Tahun"] == tahun_filter) &
+                (df_cashflow["Bulan"] == bulan_map[bulan_filter])
+            ]
+        
+        elif filter_mode == "📅 Tahunan":
+            tahun_filter = st.selectbox("Tahun", sorted(df_cashflow["Tahun"].unique()))
+            df_filtered = df_cashflow[df_cashflow["Tahun"] == tahun_filter]
+        
+        # -----------------------------
+        # 3️⃣ Filter Tipe Transaksi & Kategori
+        # -----------------------------
+        colf1, colf2 = st.columns(2)
+        
+        # Tipe transaksi
+        tipe_filter = colf1.selectbox(
+            "Jenis Transaksi",
+            ["Semua", "Masuk", "Keluar"]
         )
-    with col_n2:
-        st.markdown(
-            f"<div class='bs-card'><div class='bs-title'>🏛️ Kewajiban & Modal</div>"
-            f"<div class='bs-item'>Total Hutang: {format_rp(hutang_total)}</div>"
-            f"<div class='bs-item'>Modal: {format_rp(modal)}</div>"
-            f"<div class='bs-total'>Total Pasiva: {format_rp(hutang_total + modal)}</div></div>",
-            unsafe_allow_html=True
-        )
-
-    # Interpretasi Neraca
-    if hutang_total > aset_kas:
-        if total_piutang > (hutang_total - aset_kas):
-            st.info(f"Kas kurang dari hutang, tapi piutang {format_rp(total_piutang)} akan menutupi.")
+        
+        # Kategori (otomatis menyesuaikan tipe)
+        if tipe_filter == "Masuk":
+            kategori_list = df_cashflow[df_cashflow["Tipe"]=="Masuk"]["Kategori"].unique()
+        elif tipe_filter == "Keluar":
+            kategori_list = df_cashflow[df_cashflow["Tipe"]=="Keluar"]["Kategori"].unique()
         else:
-            st.error("Kas < hutang & piutang tidak cukup. Hati-hati dalam manajemen kas.")
-    else:
-        st.success("Kas cukup untuk menutup hutang jangka pendek.")
-
-    # ===========================
-    # 3️⃣ Cashflow Statement
-    # ===========================
-    st.markdown("## 📙 Cashflow Statement")
-
-    # Kategori
-    operasional_kat = ["Pembayaran Customer","Penjualan (Cash/Tunai)","Penjualan (Credit Card)",
-                       "Penjualan (Redeem Points)","Gaji Karyawan","Operasional Kantor",
-                       "Marketing & Promosi","Pajak dan Biaya Lainnya","Kerugian Salah Order",
-                       "Kerugian Pembatalan","Kerugian Kerusakan / Rusak","Kerugian Lainnya"]
-    investasi_kat = ["Pembelian Aset","Peralatan","Inventaris"]
-    pendanaan_kat = ["Pembayaran Pinjaman (Hutang/Credit Card)","Penambahan Modal","Pinjaman Masuk"]
-
-    def cf_sum(df, tipe, categories):
-        if 'df_filtered' not in locals() or df_filtered.empty: return 0
-        return df_filtered[(df_filtered["Kategori"].isin(categories)) & (df_filtered["Tipe"] == tipe)]["Jumlah"].sum()
-
-    cf_operasional = cf_sum(df_filtered, "Masuk", operasional_kat) - cf_sum(df_filtered, "Keluar", operasional_kat)
-    cf_investasi = cf_sum(df_filtered, "Masuk", investasi_kat) - cf_sum(df_filtered, "Keluar", investasi_kat)
-    cf_pendanaan = cf_sum(df_filtered, "Masuk", pendanaan_kat) - cf_sum(df_filtered, "Keluar", pendanaan_kat)
-    cf_total = cf_operasional + cf_investasi + cf_pendanaan
-
-    col_cf1, col_cf2 = st.columns(2)
-    with col_cf1: metric_card("💼 Cashflow Operasional", format_rp(cf_operasional))
-    with col_cf2: metric_card("🏗️ Cashflow Investasi", format_rp(cf_investasi))
-    col_cf3, col_cf4 = st.columns(2)
-    with col_cf3: metric_card("🏦 Cashflow Pendanaan", format_rp(cf_pendanaan))
-    with col_cf4: metric_card("📊 Total Cashflow", format_rp(cf_total))
-
-    # Interpretasi Cashflow
-    if cf_operasional < 0:
-        if total_piutang > abs(cf_operasional):
-            st.info(f"Cashflow operasional negatif karena pembayaran belum diterima, piutang {format_rp(total_piutang)} akan memperbaiki.")
+            kategori_list = df_cashflow["Kategori"].unique()
+        
+        kategori_filter = colf2.selectbox("Kategori", ["Semua"] + list(kategori_list))
+        
+        if tipe_filter != "Semua":
+            df_filtered = df_filtered[df_filtered["Tipe"] == tipe_filter]
+        if kategori_filter != "Semua":
+            df_filtered = df_filtered[df_filtered["Kategori"] == kategori_filter]
+        
+        # -----------------------------
+        # 4️⃣ Filter Nama Pemesan (otomatis deteksi kolom)
+        # -----------------------------
+        possible_name_cols = ["Pemesan", "Nama Pemesan", "Nama", "Customer", "Pemesanan", "Atas Nama"]
+        col_pemesan = next((c for c in possible_name_cols if c in df_cashflow.columns), None)
+        
+        if col_pemesan:
+            pemesan_list = df_cashflow[col_pemesan].dropna().unique()
+            pemesan_filter = st.selectbox("Nama Pemesan", ["Semua"] + list(pemesan_list))
+            if pemesan_filter != "Semua":
+                df_filtered = df_filtered[df_filtered[col_pemesan] == pemesan_filter]
+        
+        # -----------------------------
+        # 5️⃣ Total Masuk & Keluar hasil filter
+        # -----------------------------
+        col_total1, col_total2 = st.columns(2)
+        total_masuk_filtered = df_filtered[df_filtered["Tipe"]=="Masuk"]["Jumlah"].sum()
+        total_keluar_filtered = df_filtered[df_filtered["Tipe"]=="Keluar"]["Jumlah"].sum()
+        
+        with col_total1:
+            metric_card("💰 Total Masuk (Filtered)", format_rp(total_masuk_filtered))
+        
+        with col_total2:
+            metric_card("📤 Total Keluar (Filtered)", format_rp(total_keluar_filtered))
+        
+        
+        # -----------------------------
+        # 6️⃣ Tabel Detail Transaksi
+        # -----------------------------
+        st.markdown("## 📋 Detail Transaksi Cashflow (Sudah Difilter)")
+        
+        df_show = df_filtered.copy()
+        df_show["Jumlah"] = df_show["Jumlah"].apply(format_rp)
+        
+        st.dataframe(
+            df_show.sort_values("Tanggal", ascending=False),
+            use_container_width=True,
+            height=500
+        )
+        # =====================================================
+        # 📘 LAPORAN LABA RUGI (INCOME STATEMENT)
+        # =====================================================
+    with st.expander("📘 Laporan Laba/Rugi - Neraca - Aging Report"):    
+    
+        # ===========================
+        # 1️⃣ Laporan Laba/Rugi
+        # ===========================
+        required_cols = ["Tipe", "Jumlah", "Kategori"]
+        df_ok = ('df_filtered' in locals() or 'df_filtered' in globals()) and all(col in df_filtered.columns for col in required_cols)
+    
+        if df_ok:
+            st.markdown("## 📘 Laporan Laba Rugi")
+    
+            # Pendapatan (Masuk)
+            pendapatan_filtered = df_filtered[df_filtered["Tipe"]=="Masuk"]["Jumlah"].sum()
+    
+            # HPP / Modal
+            hpp_filtered = df_filtered[df_filtered["Kategori"].str.contains("Penjualan", na=False)]["Jumlah"].sum()
+    
+            # Beban Operasional
+            operasional_filtered = df_filtered[
+                (df_filtered["Tipe"]=="Keluar") & (~df_filtered["Kategori"].str.contains("Penjualan", na=False))
+            ]["Jumlah"].sum()
+    
+            laba_kotor = pendapatan_filtered - hpp_filtered
+            laba_bersih = laba_kotor - operasional_filtered
+    
+            # Tampilkan metric
+            col_laba1, col_laba2 = st.columns(2)
+            with col_laba1: metric_card("📈 Pendapatan", format_rp(pendapatan_filtered))
+            with col_laba2: metric_card("📉 HPP / Modal", format_rp(hpp_filtered))
+            col_laba3, col_laba4 = st.columns(2)
+            with col_laba3: metric_card("💼 Beban Operasional", format_rp(operasional_filtered))
+            with col_laba4: metric_card("💰 Laba Bersih", format_rp(laba_bersih))
         else:
-            st.error("Cashflow operasional negatif & piutang tidak cukup. Evaluasi pengeluaran & pemasukan.")
-    else:
-        st.success("Cashflow operasional positif — aktivitas bisnis menghasilkan kas bersih.")
-
-
-
-    st.markdown("""
-    **Cashflow Statement** menjelaskan dari mana uang datang dan ke mana uang pergi.
-
-    **Cashflow Operasional**
-    Uang dari aktivitas utama bisnis:  
-    - Penjualan  
-    - Pembayaran customer  
-    - Pengeluaran operasional  
-
-    Jika angkanya **positif**, bisnis menghasilkan uang dari aktivitas rutin.  
-    Jika **negatif**, operasional menyedot kas.
-
-    **Cashflow Investasi**
-    Terkait pembelian aset (inventaris, peralatan).  
-    Biasanya NEGATIF (karena beli aset).
-
-    **Cashflow Pendanaan**  
-    Terkait hutang & tambahan modal.  
-    Contoh: bayar cicilan kartu kredit.
-
-    **Total Cashflow**  
-    Perubahan kas dalam periode tersebut.
-    """)
-
+            st.warning("Laporan Laba Rugi tidak dapat ditampilkan — data belum lengkap.")
+            laba_bersih = 0
     
-    # =============================
-    # 🔍 Insight Keuangan Tambahan
-    # =============================
-    st.markdown("## Kesimpulan")
-    
-    # 1️⃣ Laba Bersih
-    if laba_bersih < 0:
-        if total_piutang > abs(laba_bersih):
+        # Interpretasi otomatis Laba/Rugi
+        total_piutang = piutang_total if 'piutang_total' in locals() else 0.0
+        if laba_bersih > 0:
+            st.success(f"Bisnis **untung**, karena laba bersih = {format_rp(laba_bersih)}.")
+        elif laba_bersih == 0:
+            st.info("Bisnis berada di titik impas (break even). Tidak untung, tidak rugi.")
+        elif laba_bersih < 0 and total_piutang > abs(laba_bersih):
             st.info(
-                f"Laba bersih periode ini terlihat negatif karena sebagian besar pendapatan "
-                f"masih dalam bentuk piutang sebesar {format_rp(total_piutang)}. "
-                "Jika piutang diterima, laba akan berbalik positif."
+                f"Laba bersih periode ini negatif karena sebagian pendapatan masih dalam piutang "
+                f"sebesar {format_rp(total_piutang)}. Setelah dibayar, laba bisa positif."
             )
         else:
-            st.warning(
-                "⚠️ Laba bersih negatif. Perlu mengevaluasi harga jual, biaya modal, atau biaya operasional."
-            )
+            st.error(f"Bisnis **rugi**, karena laba bersih = {format_rp(laba_bersih)}.")
     
-    # 2️⃣ Cashflow Operasional
-    if cf_operasional < 0:
-        if total_piutang > abs(cf_operasional):
-            st.info(
-                f"Cashflow operasional saat ini negatif sebesar {format_rp(cf_operasional)}, "
-                f"namun sebagian besar pendapatan masih piutang ({format_rp(total_piutang)}). "
-                "Setelah piutang diterima, cashflow bisa menjadi positif."
-            )
+        # Markdown penjelasan
+        st.markdown("""
+        **Laporan Laba Rugi** menunjukkan apakah bisnis *untung atau rugi* dalam periode tertentu.
+    
+        **🔹 Pendapatan** — semua uang masuk dari pelanggan  
+        **🔹 HPP / Modal** — biaya pembelian barang/jasa yang dijual  
+        **🔹 Beban Operasional** — biaya operasional seperti gaji, marketing, pajak, kerugian order  
+        **🔹 Laba Bersih = Pendapatan – HPP – Operasional**
+        """)
+    
+        # ===========================
+        # 2️⃣ Neraca Sederhana
+        # ===========================
+        st.markdown("## 📗 Neraca Sederhana")
+    
+        aset_kas = saldo if 'saldo' in locals() else 0.0
+        aset_piutang = piutang_total if 'piutang_total' in locals() else 0.0
+        aset_total = aset_kas + aset_piutang
+    
+        # Hutang
+        if 'df_cashflow' in locals() and not df_cashflow.empty:
+            hutang_kategori = ["Pembayaran Pinjaman (Hutang/Credit Card)", "Penjualan (Credit Card)"]
+            hutang_total = df_cashflow[df_cashflow["Kategori"].isin(hutang_kategori)]["Jumlah"].sum()
         else:
-            st.error(
-                f"🔥 Cashflow operasional negatif ({format_rp(cf_operasional)}). "
-                "Bisnis tidak menghasilkan uang dari kegiatan utama saat ini."
-            )
-    else:
-        st.success(f"💰 Cashflow operasional positif ({format_rp(cf_operasional)}). Arus kas sehat.")
+            hutang_total = 0.0
     
-    # 3️⃣ Piutang vs Kas
-    if aset_piutang > aset_kas:
-        st.info(
-            f"🟡 Piutang ({format_rp(aset_piutang)}) lebih besar dari kas ({format_rp(aset_kas)}). "
-            "Perlu perencanaan penerimaan pembayaran agar kas tetap lancar."
-        )
+        modal = aset_total - hutang_total
     
-    # 4️⃣ Hutang vs Kas
-    if hutang_total > aset_kas:
-        if total_piutang > (hutang_total - aset_kas):
-            st.info(
-                f"Kas saat ini ({format_rp(aset_kas)}) lebih kecil dari total hutang ({format_rp(hutang_total)}), "
-                f"namun sebagian pendapatan masih piutang ({format_rp(total_piutang)}). "
-                "Setelah piutang diterima, kas akan cukup untuk menutupi kewajiban."
-            )
-        else:
-            st.error(
-                f"⚠️ Kas ({format_rp(aset_kas)}) lebih kecil dari hutang ({format_rp(hutang_total)}). "
-                "Perlu strategi pembayaran hutang untuk menghindari masalah arus kas."
-            )
-    else:
-        st.success(
-            f"✅ Struktur keuangan aman: kas ({format_rp(aset_kas)}) cukup untuk menutup hutang jangka pendek ({format_rp(hutang_total)})."
-        )
-    
-    # 5️⃣ Efisiensi Operasional
-    if operasional_filtered > pendapatan_filtered * 0.7:
-        st.warning(
-            f"📉 Beban operasional ({format_rp(operasional_filtered)}) >70% dari pendapatan ({format_rp(pendapatan_filtered)}). "
-            "Perlu evaluasi efisiensi biaya."
-        )
-
-
-
-    
-    #st.markdown("### 🔍 Data Cashflow Realtime")
-    #if "Tanggal" in df_cashflow.columns:
-     #   df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors='coerce')
-      #  df_cashflow["Tanggal"].fillna(pd.Timestamp.today(), inplace=True)
-    
-    #st.dataframe(df_cashflow.sort_values(by="Tanggal", ascending=False), use_container_width=True)
-
-    # ---------------------------
-    # Fungsi Aging Report
-    # ---------------------------
-    
-    # =========================
-    # Fungsi Aging Report Aman
-    # =========================
-    def generate_aging_report(df_cashflow, df_data, overdue_days=30):
+        # Styling
+        balance_style = """
+        <style>
+        .bs-card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); margin-bottom: 15px; border:1px solid #e6e6e6; }
+        .bs-title { font-size:20px; font-weight:700; margin-bottom:12px; color:#333; }
+        .bs-item { font-size:16px; margin:6px 0; color:#444; }
+        .bs-total { margin-top:12px; font-size:18px; font-weight:700; color:#111; }
+        </style>
         """
-        Generate Aging Report dari cashflow dan data penjualan.
-        
-        Args:
-            df_cashflow (pd.DataFrame): Data cashflow gabungan (existing + otomatis + manual)
-            df_data (pd.DataFrame): Data master penjualan
-            overdue_days (int): batas hari untuk dianggap overdue
-        
-        Returns:
-            pd.DataFrame: Data Aging Report
-        """
+        st.markdown(balance_style, unsafe_allow_html=True)
     
-        # ---------------------------
-        # Pastikan kolom penting ada
-        # ---------------------------
-        for col in ["Harga Jual"]:
-            if col not in df_data.columns:
-                df_data[col] = 0
-        for col in ["Status", "Tanggal", "Jumlah", "Tipe", "No Invoice", "Nama Pemesan"]:
-            if col not in df_cashflow.columns:
-                df_cashflow[col] = None
-    
-        df_data["Harga Jual"] = df_data["Harga Jual"].fillna(0).astype(float)
-    
-        # ---------------------------
-        # Buat key unik per transaksi di df_data
-        # ---------------------------
-        def generate_data_key(row):
-            no_inv = str(row.get("No Invoice", "")).strip()
-            nama = str(row.get("Nama Pemesan", "UNKNOWN")).strip()
-            if no_inv != "":
-                return f"{no_inv}_{nama}"
-            else:
-                tgl = pd.to_datetime(row.get("Tgl Pemesanan", pd.Timestamp.today()))
-                tgl_str = tgl.strftime("%Y%m%d%H%M%S")
-                return f"NOINV_{nama}_{tgl_str}_{row.name}"
-        
-        df_data["_Data_Key"] = df_data.apply(generate_data_key, axis=1)
-    
-        # ---------------------------
-        # Buat key unik per transaksi di df_cashflow
-        # ---------------------------
-        def generate_cf_key(row):
-            no_inv = str(row.get("No Invoice", "")).strip()
-            nama = str(row.get("Nama Pemesan", "UNKNOWN")).strip()
-            if no_inv != "":
-                return f"{no_inv}_{nama}"
-            else:
-                try:
-                    tgl = pd.to_datetime(row.get("Tanggal", pd.Timestamp.today()))
-                except:
-                    tgl = pd.Timestamp.today()
-                tgl_str = tgl.strftime("%Y%m%d%H%M%S")
-                return f"NOINV_{nama}_{tgl_str}_{row.name}"
-        
-        df_cashflow["_Data_Key"] = df_cashflow.apply(generate_cf_key, axis=1)
-    
-        # ---------------------------
-        # Filter transaksi belum lunas
-        # ---------------------------
-        df_unpaid = df_cashflow[df_cashflow["Status"] == "Belum Lunas"].copy()
-    
-        # ---------------------------
-        # Hitung Aging
-        # ---------------------------
-        aging_rows = []
-        for idx, row_cf in df_unpaid.iterrows():
-            key = row_cf["_Data_Key"]
-            nama_pemesan = row_cf.get("Nama Pemesan", "UNKNOWN")
-            no_invoice = row_cf.get("No Invoice", "")
-            tgl = row_cf.get("Tanggal", pd.Timestamp.today())
-            try:
-                tgl = pd.to_datetime(tgl)
-            except:
-                tgl = pd.Timestamp.today()
-    
-            # Cari data penjualan
-            df_match = df_data[df_data["_Data_Key"] == key]
-            if not df_match.empty:
-                total_harga_jual = df_match["Harga Jual"].sum()
-            else:
-                total_harga_jual = row_cf.get("Harga Jual", 0) or 0
-    
-            total_masuk = df_cashflow[
-                (df_cashflow["_Data_Key"] == key) & 
-                (df_cashflow["Tipe"] == "Masuk")
-            ]["Jumlah"].sum() or 0
-    
-            piutang = total_harga_jual - total_masuk
-            aging = (pd.Timestamp.today().normalize() - tgl.normalize()).days
-    
-            aging_rows.append({
-                "Nama Pemesan/Keterangan": nama_pemesan,
-                "No Invoice": no_invoice if no_invoice != "" else "(Belum ada)",
-                "Tanggal Pemesanan": tgl,
-                "Piutang": piutang,
-                "Aging (hari)": aging,
-                "Overdue": aging > overdue_days
-            })
-    
-        df_aging = pd.DataFrame(aging_rows)
-    
-        if not df_aging.empty and "Piutang" in df_aging.columns:
-            df_aging["Piutang"] = df_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
-    
-        return df_aging
-    
-    
-    # =========================
-    # Tampilkan Aging Report
-    # =========================
-    df_aging = generate_aging_report(df_cashflow, df_data)
-    
-    if not df_aging.empty and "Aging (hari)" in df_aging.columns:
-        df_aging = df_aging.sort_values(by="Aging (hari)", ascending=False)
-    
-        def highlight_overdue(row):
-            return ["background-color: #FF9999" if row.Overdue else "" for _ in row]
-    
-        st.dataframe(df_aging.style.apply(highlight_overdue, axis=1), use_container_width=True)
-    else:
-        st.info("Data Aging Report kosong atau belum ada transaksi yang belum lunas.")
-
-    
-with st.expander("⏳ Aging Report / Invoice Belum Lunas"):
-    if not df_cashflow_combined.empty and not df_data.empty:
-
-        # --- Normalisasi Invoice_Key
-        df_data["Invoice_Key"] = df_data["Invoice_Key"].astype(str)
-        df_cashflow_combined["Invoice_Key"] = df_cashflow_combined["Invoice_Key"].astype(str)
-
-        # --- Total pembayaran per invoice
-        df_cashflow_combined["Jumlah"] = pd.to_numeric(df_cashflow_combined["Jumlah"], errors="coerce").fillna(0)
-        df_payments = (
-            df_cashflow_combined[df_cashflow_combined["Tipe"]=="Masuk"]
-            .groupby("Invoice_Key")["Jumlah"]
-            .sum()
-            .reset_index()
-            .rename(columns={"Jumlah":"Jumlah Masuk"})
-        )
-
-        # --- Gabungkan dengan data penjualan
-        df_invoice = df_data[["Invoice_Key","Nama Pemesan","No Invoice","Harga Jual","Tgl Pemesanan"]].copy()
-        df_invoice = df_invoice.merge(df_payments, on="Invoice_Key", how="left")
-        df_invoice["Jumlah Masuk"] = df_invoice["Jumlah Masuk"].fillna(0)
-
-        # --- Hitung Piutang
-        df_invoice["Piutang"] = df_invoice["Harga Jual"] - df_invoice["Jumlah Masuk"]
-
-        # --- Filter yang belum lunas
-        df_unpaid = df_invoice[df_invoice["Piutang"] > 1000].copy()
-
-        if not df_unpaid.empty:
-
-            # --- AGGREGATE PER INVOICE ---
-            df_agg = df_unpaid.groupby(
-                ["Invoice_Key","Nama Pemesan","No Invoice"], as_index=False
-            ).agg({
-                "Piutang":"sum",
-                "Tgl Pemesanan":"min"
-            })
-
-            # --- Hitung Aging ---
-            df_agg["Tanggal Pemesanan"] = df_agg["Tgl Pemesanan"].fillna(pd.Timestamp.today())
-            df_agg["Aging (hari)"] = (pd.Timestamp.today().normalize() - pd.to_datetime(df_agg["Tanggal Pemesanan"]).dt.normalize()).dt.days
-            df_agg["Overdue"] = df_agg["Aging (hari)"] > 30
-
-            # --- Format Rupiah ---
-            df_agg["Piutang"] = df_agg["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
-
-            # --- Tampilkan ---
-            df_display = df_agg[[
-                "Nama Pemesan","No Invoice","Tanggal Pemesanan","Piutang","Aging (hari)","Overdue"
-            ]]
-
-            def highlight_overdue(row):
-                return ["background-color: #FF9999" if row.Overdue else "" for _ in row]
-
-            st.dataframe(df_display.style.apply(highlight_overdue, axis=1), use_container_width=True)
-
-        else:
-            st.info("🎉 Semua invoice sudah lunas!")
-    else:
-        st.info("Belum ada data cashflow atau data penjualan untuk Aging Report.")
-
-
-
-
-#=================================================================================================================================================================
-from prophet import Prophet
-from prophet.plot import plot_plotly
-import plotly.graph_objects as go
-
-with st.expander("📘 Laporan Transaksi Penjualan"):
-    st.markdown("### 📊 Filter Laporan")
-
-    df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce")
-
-    filter_mode = st.radio(
-        "Pilih Jenis Filter Tanggal", 
-        ["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"], 
-        horizontal=True,
-        key="filter_tanggal_mode"
-    )
-
-    df_filtered = df.copy()
-
-    if filter_mode == "📆 Rentang Tanggal":
-        tgl_awal = st.date_input("Tanggal Awal", date.today().replace(day=1), key="tgl_awal_input")
-        tgl_akhir = st.date_input("Tanggal Akhir", date.today(), key="tgl_akhir_input")
-        if tgl_awal > tgl_akhir:
-            tgl_awal, tgl_akhir = tgl_akhir, tgl_awal
-        df_filtered = df[
-            (df["Tgl Pemesanan"] >= pd.to_datetime(tgl_awal)) &
-            (df["Tgl Pemesanan"] <= pd.to_datetime(tgl_akhir))
-        ]
-
-    elif filter_mode == "🗓️ Bulanan":
-        bulan_nama = {
-            "Januari": 1, "Februari": 2, "Maret": 3, "April": 4,
-            "Mei": 5, "Juni": 6, "Juli": 7, "Agustus": 8,
-            "September": 9, "Oktober": 10, "November": 11, "Desember": 12
-        }
-        bulan_label = list(bulan_nama.keys())
-        bulan_pilihan = st.selectbox("Pilih Bulan", bulan_label, index=date.today().month - 1, key="filter_bulan_input")
-        tahun_bulan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True), key="filter_tahun_bulanan")
-        df_filtered = df[
-            (df["Tgl Pemesanan"].dt.month == bulan_nama[bulan_pilihan]) &
-            (df["Tgl Pemesanan"].dt.year == tahun_bulan)
-        ]
-
-    elif filter_mode == "📅 Tahunan":
-        tahun_pilihan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True), key="filter_tahun_tahunan")
-        df_filtered = df[df["Tgl Pemesanan"].dt.year == tahun_pilihan]
-
-
-    # Tambahan filter Pemesan dan Admin
-    st.markdown("### 🧍 Filter Tambahan")
-    pemesan_list = ["(Semua)"] + sorted(df["Nama Pemesan"].dropna().unique())
-    admin_list = ["(Semua)"] + sorted(df["Admin"].dropna().unique())
-
-    selected_pemesan = st.selectbox("Nama Pemesan", pemesan_list)
-    selected_admin = st.selectbox("Admin", admin_list)
-
-    if selected_pemesan != "(Semua)":
-        df_filtered = df_filtered[df_filtered["Nama Pemesan"] == selected_pemesan]
-    if selected_admin != "(Semua)":
-        df_filtered = df_filtered[df_filtered["Admin"] == selected_admin]
-
-    if df_filtered.empty:
-        st.warning("❌ Tidak ada data sesuai filter.")
-    else:
-        # Parse harga jika masih string
-        def parse_harga(h):
-            if pd.isna(h): return 0
-            s = str(h).replace("Rp", "").replace(".", "").replace(",", "").strip()
-            try: return float(s)
-            except: return 0
-
-        df_filtered["Harga Jual (Num)"] = df_filtered["Harga Jual"].apply(parse_harga)
-        df_filtered["Harga Beli (Num)"] = df_filtered["Harga Beli"].apply(parse_harga)
-
-        total_jual = df_filtered["Harga Jual (Num)"].sum()
-        total_beli = df_filtered["Harga Beli (Num)"].sum()
-        total_profit = total_jual - total_beli
-
-        def metric_card(title, value):
+        col_n1, col_n2 = st.columns(2)
+        with col_n1:
             st.markdown(
-                f"""
-                <div class="metric-card">
-                    <div class="metric-title">{title}</div>
-                    <div class="metric-value">{value}</div>
-                </div>
-                """,
+                f"<div class='bs-card'><div class='bs-title'>📦 Aset</div>"
+                f"<div class='bs-item'>Kas: {format_rp(aset_kas)}</div>"
+                f"<div class='bs-item'>Piutang: {format_rp(aset_piutang)}</div>"
+                f"<div class='bs-total'>Total Aset: {format_rp(aset_total)}</div></div>",
                 unsafe_allow_html=True
             )
-        # Baris 1
-        col1, col2 = st.columns(2)
-        with col1:
-            metric_card("💰 Total Penjualan", f"Rp {int(total_jual):,}".replace(",", "."))
-        with col2:
-            metric_card("💸 Total Pembelian", f"Rp {int(total_beli):,}".replace(",", "."))
-        
-        # Baris 2 (full width)
-        metric_card("📈 Profit", f"Rp {int(total_profit):,}".replace(",", "."))
-
-
-            
-        # Grafik Tren Penjualan
-        st.markdown("### 📈 Grafik Tren Penjualan")
-        df_chart = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().reset_index()
-        st.line_chart(df_chart.rename(columns={"Tgl Pemesanan": "index"}).set_index("index"))
-
-        # Rekap tambahan bulanan per tanggal
-        if filter_mode == "🗓️ Bulanan":
-            df_filtered["Tanggal"] = df_filtered["Tgl Pemesanan"].dt.day
-            summary_bulanan = pd.DataFrame(index=["Total Penjualan", "Total Pembelian", "Laba"])
-            for day in range(1, 32):
-                day_data = df_filtered[df_filtered["Tanggal"] == day]
-                jual = day_data["Harga Jual (Num)"].sum()
-                beli = day_data["Harga Beli (Num)"].sum()
-                laba = jual - beli
-                summary_bulanan[day] = [jual, beli, laba]
-
-            st.markdown("### 📅 Rekap Bulanan per Tanggal")
-            st.dataframe(summary_bulanan.style.format("Rp {:,.0f}"), use_container_width=True)
-
-        # Rekap tambahan tahunan per bulan
-        if filter_mode == "📅 Tahunan":
-            df_filtered["Bulan"] = df_filtered["Tgl Pemesanan"].dt.month
-            nama_bulan = {
-                1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "Mei", 6: "Jun",
-                7: "Jul", 8: "Agu", 9: "Sep", 10: "Okt", 11: "Nov", 12: "Des"
-            }
-
-            summary_tahunan = pd.DataFrame(index=["Total Penjualan", "Total Pembelian", "Laba"])
-            for month in range(1, 13):
-                month_data = df_filtered[df_filtered["Bulan"] == month]
-                jual = month_data["Harga Jual (Num)"].sum()
-                beli = month_data["Harga Beli (Num)"].sum()
-                laba = jual - beli
-                summary_tahunan[nama_bulan[month]] = [jual, beli, laba]
-
-            st.markdown("### 📆 Rekap Tahunan per Bulan")
-            st.dataframe(summary_tahunan.style.format("Rp {:,.0f}"), use_container_width=True)
-            
-        # Ringkasan per Admin
-        st.markdown("### 🧑‍💼 Ringkasan per Admin")
-        st.dataframe(
-            df_filtered.groupby("Admin")["Harga Jual (Num)"].sum().reset_index(name="Total Penjualan"),
-            use_container_width=True
-        )
-
-        # Ringkasan per Pemesan
-        st.markdown("### 👥 Ringkasan per Pemesan")
-        st.dataframe(
-            df_filtered.groupby("Nama Pemesan")["Harga Jual (Num)"].sum().reset_index(name="Total Penjualan"),
-            use_container_width=True
-        )
-        
-        # Tabel detail
-        with st.expander("📄 Lihat Tabel Detail"):
-            st.dataframe(df_filtered, use_container_width=True)
-        st.markdown("### 🤖 Analisa Keuangan Otomatis")
-
-        avg_profit = df_filtered["Harga Jual (Num)"].sum() - df_filtered["Harga Beli (Num)"].sum()
-        num_days = df_filtered["Tgl Pemesanan"].dt.date.nunique()
-        avg_profit_per_day = avg_profit / num_days if num_days else 0
-        
-        top_admin = df_filtered.groupby("Admin")["Harga Jual (Num)"].sum().idxmax()
-        top_pemesan = df_filtered.groupby("Nama Pemesan")["Harga Jual (Num)"].sum().idxmax()
-        
-        max_day = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().idxmax()
-        max_day_val = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().max()
-        
-        st.markdown(f"""
-        - 💼 **Rata-rata laba harian**: Rp {int(avg_profit_per_day):,}.  
-        - 🏆 **Admin dengan penjualan tertinggi**: {top_admin}  
-        - 🙋 **Pemesan paling aktif**: {top_pemesan}  
-        - 📅 **Hari dengan omset tertinggi**: {max_day.date()} sebesar Rp {int(max_day_val):,}  
-        """)
-        
-        with st.expander("🔮 Prediksi Omzet / Laba per Bulan (Dinamis)"):
-            df_prophet = df_filtered.copy()
-            df_prophet = df_prophet.groupby("Tgl Pemesanan")[["Harga Jual (Num)", "Harga Beli (Num)"]].sum().reset_index()
-            df_prophet["ds"] = df_prophet["Tgl Pemesanan"]
-            df_prophet["y"] = df_prophet["Harga Jual (Num)"] - df_prophet["Harga Beli (Num)"]
-        
-            # Gunakan hanya data 3 bulan terakhir untuk pelatihan (opsional)
-            if len(df_prophet) >= 90:
-                df_prophet = df_prophet[df_prophet["ds"] >= df_prophet["ds"].max() - pd.DateOffset(months=3)]
-        
-            model = Prophet()
-            model.fit(df_prophet[["ds", "y"]])
-        
-            future = model.make_future_dataframe(periods=90)  # 3 bulan ke depan
-            forecast = model.predict(future)
-        
-            # 🎛️ Input UI: Pilih bulan dan tahun target
-            all_months = [f"{i:02d}" for i in range(1, 13)]
-            month_map = {
-                "01": "Januari", "02": "Februari", "03": "Maret", "04": "April", "05": "Mei", "06": "Juni",
-                "07": "Juli", "08": "Agustus", "09": "September", "10": "Oktober", "11": "November", "12": "Desember"
-            }
-            month_select = st.selectbox("📅 Pilih Bulan", options=all_months, format_func=lambda x: month_map[x])
-            year_select = st.selectbox("🗓️ Pilih Tahun", options=sorted(forecast["ds"].dt.year.unique()))
-        
-            # 🧠 Filter forecast ke bulan & tahun yang dipilih
-            forecast_selected = forecast[
-                (forecast["ds"].dt.month == int(month_select)) &
-                (forecast["ds"].dt.year == year_select)
-            ]
-        
-            if forecast_selected.empty:
-                st.warning("📭 Tidak ada prediksi tersedia untuk bulan & tahun yang dipilih.")
+        with col_n2:
+            st.markdown(
+                f"<div class='bs-card'><div class='bs-title'>🏛️ Kewajiban & Modal</div>"
+                f"<div class='bs-item'>Total Hutang: {format_rp(hutang_total)}</div>"
+                f"<div class='bs-item'>Modal: {format_rp(modal)}</div>"
+                f"<div class='bs-total'>Total Pasiva: {format_rp(hutang_total + modal)}</div></div>",
+                unsafe_allow_html=True
+            )
+    
+        # Interpretasi Neraca
+        if hutang_total > aset_kas:
+            if total_piutang > (hutang_total - aset_kas):
+                st.info(f"Kas kurang dari hutang, tapi piutang {format_rp(total_piutang)} akan menutupi.")
             else:
-                total_yhat = forecast_selected["yhat"].sum()
-                min_yhat = forecast_selected["yhat"].min()
-                max_yhat = forecast_selected["yhat"].max()
-                delta_trend = forecast_selected["trend"].iloc[-1] - forecast_selected["trend"].iloc[0]
-        
-                # Tampilkan grafik prediksi bulan tersebut
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(x=forecast_selected["ds"], y=forecast_selected["yhat"], name="Prediksi Laba"))
-                fig.update_layout(title=f"📈 Prediksi Laba - {month_map[month_select]} {year_select}")
-                st.plotly_chart(fig, use_container_width=True)
-        
-                # 🧾 Ringkasan
-                st.markdown("### 📊 Ringkasan Prediksi Bulanan:")
-                st.markdown(f"""
-                - 🗓️ Bulan dipilih: **{month_map[month_select]} {year_select}**
-                - 📈 **Total laba diprediksi**: Rp {int(total_yhat):,}
-                - 🔼 **Hari terbaik (estimasi)**: Rp {int(max_yhat):,}
-                - 🔽 **Hari terendah (estimasi)**: Rp {int(min_yhat):,}
-                - 📊 **Tren bulan ini**: {'meningkat' if delta_trend > 0 else 'menurun' if delta_trend < 0 else 'stabil'} (Δ Rp {int(delta_trend):,})
-                """)
-        
-                # Perbandingan dengan bulan sebelumnya
-                prev_month = int(month_select) - 1 if int(month_select) > 1 else 12
-                prev_year = year_select if int(month_select) > 1 else year_select - 1
-                forecast_prev = forecast[
-                    (forecast["ds"].dt.month == prev_month) &
-                    (forecast["ds"].dt.year == prev_year)
-                ]
-                if not forecast_prev.empty:
-                    total_prev = forecast_prev["yhat"].sum()
-                    delta = total_yhat - total_prev
-                    st.markdown(f"📉 **Perbandingan dengan bulan sebelumnya ({month_map[str(prev_month).zfill(2)]} {prev_year})**: Rp {int(total_prev):,} → Rp {int(total_yhat):,} (Δ Rp {int(delta):,})")
-
-
-        with st.expander("📊 Perbandingan Kinerja Bulanan / YTD"):
-            df_filtered["Bulan"] = df_filtered["Tgl Pemesanan"].dt.to_period("M")
-            df_monthly = df_filtered.groupby("Bulan")[["Harga Jual (Num)", "Harga Beli (Num)"]].sum().reset_index()
-            df_monthly["Laba"] = df_monthly["Harga Jual (Num)"] - df_monthly["Harga Beli (Num)"]
-            df_monthly["Bulan"] = df_monthly["Bulan"].astype(str)
-        
-            fig = go.Figure()
-            fig.add_trace(go.Bar(x=df_monthly["Bulan"], y=df_monthly["Harga Jual (Num)"], name="Penjualan"))
-            fig.add_trace(go.Bar(x=df_monthly["Bulan"], y=df_monthly["Harga Beli (Num)"], name="Pembelian"))
-            fig.add_trace(go.Scatter(x=df_monthly["Bulan"], y=df_monthly["Laba"], mode="lines+markers", name="Laba"))
-        
-            fig.update_layout(barmode='group', title="Kinerja Bulanan", xaxis_title="Bulan", yaxis_title="Rp")
-            st.plotly_chart(fig, use_container_width=True)
-
-        with st.expander("🚨 Deteksi Anomali Penjualan"):
-            df_anomali = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().reset_index()
-            q1 = df_anomali["Harga Jual (Num)"].quantile(0.25)
-            q3 = df_anomali["Harga Jual (Num)"].quantile(0.75)
-            iqr = q3 - q1
-            lower_bound = q1 - 1.5 * iqr
-            upper_bound = q3 + 1.5 * iqr
-        
-            anomalies = df_anomali[
-                (df_anomali["Harga Jual (Num)"] < lower_bound) |
-                (df_anomali["Harga Jual (Num)"] > upper_bound)
-            ]
-        
-            st.dataframe(anomalies, use_container_width=True)
-            st.markdown(f"🔍 Ditemukan **{len(anomalies)}** hari dengan penjualan di luar batas normal (IQR).")
-
-        with st.expander("💼 Segmentasi Produk berdasarkan Profitabilitas"):
-            if "Tipe" in df_filtered.columns:
-                df_segment = df_filtered.copy()
-                df_segment["Profit"] = df_segment["Harga Jual (Num)"] - df_segment["Harga Beli (Num)"]
-                segment = df_segment.groupby("Tipe")[["Harga Jual (Num)", "Harga Beli (Num)", "Profit"]].sum().reset_index()
-                segment["Profit Margin (%)"] = 100 * segment["Profit"] / segment["Harga Jual (Num)"]
-        
-                st.dataframe(segment.sort_values("Profit", ascending=False), use_container_width=True)
-        
-                fig = go.Figure()
-                fig.add_trace(go.Bar(
-                    x=segment["Tipe"],
-                    y=segment["Profit Margin (%)"],
-                    name="Margin (%)"
-                ))
-                fig.update_layout(title="Segmentasi Produk: Profit Margin", xaxis_title="Produk", yaxis_title="Margin %")
-                st.plotly_chart(fig, use_container_width=True)
+                st.error("Kas < hutang & piutang tidak cukup. Hati-hati dalam manajemen kas.")
+        else:
+            st.success("Kas cukup untuk menutup hutang jangka pendek.")
+    
+        # ===========================
+        # 3️⃣ Cashflow Statement
+        # ===========================
+        st.markdown("## 📙 Cashflow Statement")
+    
+        # Kategori
+        operasional_kat = ["Pembayaran Customer","Penjualan (Cash/Tunai)","Penjualan (Credit Card)",
+                           "Penjualan (Redeem Points)","Gaji Karyawan","Operasional Kantor",
+                           "Marketing & Promosi","Pajak dan Biaya Lainnya","Kerugian Salah Order",
+                           "Kerugian Pembatalan","Kerugian Kerusakan / Rusak","Kerugian Lainnya"]
+        investasi_kat = ["Pembelian Aset","Peralatan","Inventaris"]
+        pendanaan_kat = ["Pembayaran Pinjaman (Hutang/Credit Card)","Penambahan Modal","Pinjaman Masuk"]
+    
+        def cf_sum(df, tipe, categories):
+            if 'df_filtered' not in locals() or df_filtered.empty: return 0
+            return df_filtered[(df_filtered["Kategori"].isin(categories)) & (df_filtered["Tipe"] == tipe)]["Jumlah"].sum()
+    
+        cf_operasional = cf_sum(df_filtered, "Masuk", operasional_kat) - cf_sum(df_filtered, "Keluar", operasional_kat)
+        cf_investasi = cf_sum(df_filtered, "Masuk", investasi_kat) - cf_sum(df_filtered, "Keluar", investasi_kat)
+        cf_pendanaan = cf_sum(df_filtered, "Masuk", pendanaan_kat) - cf_sum(df_filtered, "Keluar", pendanaan_kat)
+        cf_total = cf_operasional + cf_investasi + cf_pendanaan
+    
+        col_cf1, col_cf2 = st.columns(2)
+        with col_cf1: metric_card("💼 Cashflow Operasional", format_rp(cf_operasional))
+        with col_cf2: metric_card("🏗️ Cashflow Investasi", format_rp(cf_investasi))
+        col_cf3, col_cf4 = st.columns(2)
+        with col_cf3: metric_card("🏦 Cashflow Pendanaan", format_rp(cf_pendanaan))
+        with col_cf4: metric_card("📊 Total Cashflow", format_rp(cf_total))
+    
+        # Interpretasi Cashflow
+        if cf_operasional < 0:
+            if total_piutang > abs(cf_operasional):
+                st.info(f"Cashflow operasional negatif karena pembayaran belum diterima, piutang {format_rp(total_piutang)} akan memperbaiki.")
             else:
-                st.info("Kolom 'Tipe' tidak tersedia.")
-
-
-#=================================================================================================================================================================
-import streamlit as st
-import pandas as pd
-import holidays
-import matplotlib.pyplot as plt
-
-with st.expander("📊 Analisa Laporan Keuangan"):
-
-    # Pastikan kolom datetime sudah benar
-    df_filtered["Tgl Pemesanan"] = pd.to_datetime(df_filtered["Tgl Pemesanan"], errors="coerce")
+                st.error("Cashflow operasional negatif & piutang tidak cukup. Evaluasi pengeluaran & pemasukan.")
+        else:
+            st.success("Cashflow operasional positif — aktivitas bisnis menghasilkan kas bersih.")
     
-    if "Harga Jual" in df_filtered.columns:
-        df_filtered["Harga Jual (Num)"] = (
-            df_filtered["Harga Jual"]
-            .astype(str)
-            .replace("[Rp.,\s]", "", regex=True)
-            .astype(float)
-        )
-    else:
-        st.error("❌ Kolom 'Harga Jual' tidak ditemukan. Tidak bisa melanjutkan analisa.")
-
-    years = df_filtered["Tgl Pemesanan"].dt.year.dropna().unique()
-    id_holidays = holidays.Indonesia(years=years)
-
-    # ----- HARiAN -----
-    df_daily = (
-        df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"]
-        .sum()
-        .reset_index()
-        .sort_values("Tgl Pemesanan")
-    )
-    df_daily["Pct_Change"] = df_daily["Harga Jual (Num)"].pct_change() * 100
-    df_daily["Is_Holiday"] = df_daily["Tgl Pemesanan"].isin(id_holidays)
-    df_daily["Is_Weekend"] = df_daily["Tgl Pemesanan"].dt.dayofweek >= 5  # Sabtu=5, Minggu=6
-    df_daily["Near_Holiday"] = df_daily["Is_Holiday"] | df_daily["Is_Weekend"]
-
-    threshold_drop_daily = -20
-    penurunan_signifikan_harian = df_daily[df_daily["Pct_Change"] <= threshold_drop_daily]
-
-    # ----- BULANAN -----
-    df_filtered["YearMonth"] = df_filtered["Tgl Pemesanan"].dt.to_period("M")
-    df_monthly = (
-        df_filtered.groupby("YearMonth")["Harga Jual (Num)"]
-        .sum()
-        .reset_index()
-        .sort_values("YearMonth")
-    )
-    df_monthly["Pct_Change"] = df_monthly["Harga Jual (Num)"].pct_change() * 100
-    df_monthly["MonthStart"] = df_monthly["YearMonth"].dt.to_timestamp()
     
-    def check_month_holiday(ts):
-        return any([(ts + pd.Timedelta(days=i)) in id_holidays for i in range(31)])
     
-    df_monthly["Is_Holiday_Month"] = df_monthly["MonthStart"].apply(check_month_holiday).astype(bool)
-    df_monthly["Is_Weekend_Month"] = (df_monthly["MonthStart"].dt.weekday >= 5).astype(bool)
-    df_monthly["Near_Holiday"] = df_monthly["Is_Holiday_Month"] | df_monthly["Is_Weekend_Month"]
-    
-    threshold_drop_monthly = -15
-    penurunan_signifikan_bulanan = df_monthly[df_monthly["Pct_Change"] <= threshold_drop_monthly]
-
-    # ----- TAHUNAN -----
-    df_filtered["Year"] = df_filtered["Tgl Pemesanan"].dt.year
-    df_yearly = (
-        df_filtered.groupby("Year")["Harga Jual (Num)"]
-        .sum()
-        .reset_index()
-        .sort_values("Year")
-    )
-    df_yearly["Pct_Change"] = df_yearly["Harga Jual (Num)"].pct_change() * 100
-
-    def check_year_holiday(y):
-        # Cek apakah ada hari libur di tahun tersebut
-        # Diasumsikan selalu ada, tapi bisa dioptimasi sesuai kebutuhan
-        return any([date.year == y for date in id_holidays])
-
-    df_yearly["Is_Holiday_Year"] = df_yearly["Year"].apply(check_year_holiday)
-    df_yearly["Near_Holiday"] = df_yearly["Is_Holiday_Year"]  # Tahun lebih longgar, cuma cek ada libur
-
-    threshold_drop_yearly = -10
-    penurunan_signifikan_tahunan = df_yearly[df_yearly["Pct_Change"] <= threshold_drop_yearly]
-
-    # --- Output Analisa ---
-    st.markdown("### 📉 Penurunan Signifikan Harian ( > 20% drop )")
-    if not penurunan_signifikan_harian.empty:
-        for _, row in penurunan_signifikan_harian.iterrows():
-            date_str = row["Tgl Pemesanan"].strftime("%Y-%m-%d")
-            drop = row["Pct_Change"]
-            near_holiday = "Ya" if row["Near_Holiday"] else "Tidak"
-            st.write(f"- 📅 {date_str} : Penurunan {drop:.2f}% dari hari sebelumnya.")
-            st.write(f"  - Dekat Hari Libur / Weekend? **{near_holiday}**")
-    else:
-        st.write("✅ Tidak ada penurunan signifikan harian terdeteksi.")
-
-    st.markdown("### 📉 Penurunan Signifikan Bulanan ( > 15% drop )")
-    if not penurunan_signifikan_bulanan.empty:
-        for _, row in penurunan_signifikan_bulanan.iterrows():
-            month_str = row["YearMonth"].strftime("%Y-%m")
-            drop = row["Pct_Change"]
-            near_holiday = "Ya" if row["Near_Holiday"] else "Tidak"
-            st.write(f"- 🗓️ {month_str} : Penurunan {drop:.2f}% dari bulan sebelumnya.")
-            st.write(f"  - Bulan ada hari libur / weekend panjang? **{near_holiday}**")
-    else:
-        st.write("✅ Tidak ada penurunan signifikan bulanan terdeteksi.")
-
-    st.markdown("### 📉 Penurunan Signifikan Tahunan ( > 10% drop )")
-    if not penurunan_signifikan_tahunan.empty:
-        for _, row in penurunan_signifikan_tahunan.iterrows():
-            year_str = str(int(row["Year"]))
-            drop = row["Pct_Change"]
-            near_holiday = "Ya" if row["Near_Holiday"] else "Tidak"
-            st.write(f"- 📆 {year_str} : Penurunan {drop:.2f}% dari tahun sebelumnya.")
-            st.write(f"  - Tahun dengan libur nasional? **{near_holiday}**")
-    else:
-        st.write("✅ Tidak ada penurunan signifikan tahunan terdeteksi.")
-
-    # --- Rekomendasi ---
-    st.markdown("### 💡 Rekomendasi:")
-    if not penurunan_signifikan_harian.empty or not penurunan_signifikan_bulanan.empty or not penurunan_signifikan_tahunan.empty:
         st.markdown("""
-        - Tinjau aktivitas pemasaran dan operasional di tanggal/bulan/tahun yang mengalami penurunan.
-        - Periksa apakah penurunan terkait dengan hari libur panjang, weekend, atau faktor eksternal lain.
-        - Buat strategi promosi yang menyasar periode rentan tersebut.
-        - Analisa faktor internal seperti stok, harga, layanan untuk menemukan penyebab penurunan.
+        **Cashflow Statement** menjelaskan dari mana uang datang dan ke mana uang pergi.
+    
+        **Cashflow Operasional**
+        Uang dari aktivitas utama bisnis:  
+        - Penjualan  
+        - Pembayaran customer  
+        - Pengeluaran operasional  
+    
+        Jika angkanya **positif**, bisnis menghasilkan uang dari aktivitas rutin.  
+        Jika **negatif**, operasional menyedot kas.
+    
+        **Cashflow Investasi**
+        Terkait pembelian aset (inventaris, peralatan).  
+        Biasanya NEGATIF (karena beli aset).
+    
+        **Cashflow Pendanaan**  
+        Terkait hutang & tambahan modal.  
+        Contoh: bayar cicilan kartu kredit.
+    
+        **Total Cashflow**  
+        Perubahan kas dalam periode tersebut.
         """)
-    else:
-        st.markdown("Tidak ada penurunan signifikan, pertahankan strategi yang berjalan.")
-
-    # --- Visualisasi ---
-    st.markdown("### 📈 Grafik Penjualan Harian dengan Penurunan & Hari Libur")
-    fig, ax = plt.subplots(figsize=(10, 4))
-    ax.plot(df_daily["Tgl Pemesanan"], df_daily["Harga Jual (Num)"], label="Penjualan Harian", marker='o')
-    ax.scatter(penurunan_signifikan_harian["Tgl Pemesanan"], penurunan_signifikan_harian["Harga Jual (Num)"], color='red', label="Penurunan Signifikan")
-    holidays_weekends = df_daily[df_daily["Near_Holiday"]]
-    ax.scatter(holidays_weekends["Tgl Pemesanan"], holidays_weekends["Harga Jual (Num)"], color='green', alpha=0.3, label="Hari Libur / Weekend")
-    ax.set_xlabel("Tanggal")
-    ax.set_ylabel("Total Penjualan")
-    ax.legend()
-    ax.grid(True)
-    st.pyplot(fig)
-
-    st.markdown("### 📈 Grafik Penjualan Bulanan")
-    fig2, ax2 = plt.subplots(figsize=(10, 4))
-    ax2.plot(df_monthly["YearMonth"].dt.to_timestamp(), df_monthly["Harga Jual (Num)"], label="Penjualan Bulanan", marker='o')
-    ax2.scatter(penurunan_signifikan_bulanan["MonthStart"], penurunan_signifikan_bulanan["Harga Jual (Num)"], color='red', label="Penurunan Signifikan")
-    ax2.set_xlabel("Bulan")
-    ax2.set_ylabel("Total Penjualan")
-    ax2.legend()
-    ax2.grid(True)
-    st.pyplot(fig2)
-
-    st.markdown("### 📈 Grafik Penjualan Tahunan")
-    fig3, ax3 = plt.subplots(figsize=(10, 4))
-    ax3.plot(df_yearly["Year"], df_yearly["Harga Jual (Num)"], label="Penjualan Tahunan", marker='o')
-    ax3.scatter(penurunan_signifikan_tahunan["Year"], penurunan_signifikan_tahunan["Harga Jual (Num)"], color='red', label="Penurunan Signifikan")
-    ax3.set_xlabel("Tahun")
-    ax3.set_ylabel("Total Penjualan")
-    ax3.legend()
-    ax3.grid(True)
-    st.pyplot(fig3)
+    
+        
+        # =============================
+        # 🔍 Insight Keuangan Tambahan
+        # =============================
+        st.markdown("## Kesimpulan")
+        
+        # 1️⃣ Laba Bersih
+        if laba_bersih < 0:
+            if total_piutang > abs(laba_bersih):
+                st.info(
+                    f"Laba bersih periode ini terlihat negatif karena sebagian besar pendapatan "
+                    f"masih dalam bentuk piutang sebesar {format_rp(total_piutang)}. "
+                    "Jika piutang diterima, laba akan berbalik positif."
+                )
+            else:
+                st.warning(
+                    "⚠️ Laba bersih negatif. Perlu mengevaluasi harga jual, biaya modal, atau biaya operasional."
+                )
+        
+        # 2️⃣ Cashflow Operasional
+        if cf_operasional < 0:
+            if total_piutang > abs(cf_operasional):
+                st.info(
+                    f"Cashflow operasional saat ini negatif sebesar {format_rp(cf_operasional)}, "
+                    f"namun sebagian besar pendapatan masih piutang ({format_rp(total_piutang)}). "
+                    "Setelah piutang diterima, cashflow bisa menjadi positif."
+                )
+            else:
+                st.error(
+                    f"🔥 Cashflow operasional negatif ({format_rp(cf_operasional)}). "
+                    "Bisnis tidak menghasilkan uang dari kegiatan utama saat ini."
+                )
+        else:
+            st.success(f"💰 Cashflow operasional positif ({format_rp(cf_operasional)}). Arus kas sehat.")
+        
+        # 3️⃣ Piutang vs Kas
+        if aset_piutang > aset_kas:
+            st.info(
+                f"🟡 Piutang ({format_rp(aset_piutang)}) lebih besar dari kas ({format_rp(aset_kas)}). "
+                "Perlu perencanaan penerimaan pembayaran agar kas tetap lancar."
+            )
+        
+        # 4️⃣ Hutang vs Kas
+        if hutang_total > aset_kas:
+            if total_piutang > (hutang_total - aset_kas):
+                st.info(
+                    f"Kas saat ini ({format_rp(aset_kas)}) lebih kecil dari total hutang ({format_rp(hutang_total)}), "
+                    f"namun sebagian pendapatan masih piutang ({format_rp(total_piutang)}). "
+                    "Setelah piutang diterima, kas akan cukup untuk menutupi kewajiban."
+                )
+            else:
+                st.error(
+                    f"⚠️ Kas ({format_rp(aset_kas)}) lebih kecil dari hutang ({format_rp(hutang_total)}). "
+                    "Perlu strategi pembayaran hutang untuk menghindari masalah arus kas."
+                )
+        else:
+            st.success(
+                f"✅ Struktur keuangan aman: kas ({format_rp(aset_kas)}) cukup untuk menutup hutang jangka pendek ({format_rp(hutang_total)})."
+            )
+        
+        # 5️⃣ Efisiensi Operasional
+        if operasional_filtered > pendapatan_filtered * 0.7:
+            st.warning(
+                f"📉 Beban operasional ({format_rp(operasional_filtered)}) >70% dari pendapatan ({format_rp(pendapatan_filtered)}). "
+                "Perlu evaluasi efisiensi biaya."
+            )
+    
+    
+    
+        
+        #st.markdown("### 🔍 Data Cashflow Realtime")
+        #if "Tanggal" in df_cashflow.columns:
+         #   df_cashflow["Tanggal"] = pd.to_datetime(df_cashflow["Tanggal"], errors='coerce')
+          #  df_cashflow["Tanggal"].fillna(pd.Timestamp.today(), inplace=True)
+        
+        #st.dataframe(df_cashflow.sort_values(by="Tanggal", ascending=False), use_container_width=True)
+    
+        # ---------------------------
+        # Fungsi Aging Report
+        # ---------------------------
+        
+        # =========================
+        # Fungsi Aging Report Aman
+        # =========================
+        def generate_aging_report(df_cashflow, df_data, overdue_days=30):
+            """
+            Generate Aging Report dari cashflow dan data penjualan.
+            
+            Args:
+                df_cashflow (pd.DataFrame): Data cashflow gabungan (existing + otomatis + manual)
+                df_data (pd.DataFrame): Data master penjualan
+                overdue_days (int): batas hari untuk dianggap overdue
+            
+            Returns:
+                pd.DataFrame: Data Aging Report
+            """
+        
+            # ---------------------------
+            # Pastikan kolom penting ada
+            # ---------------------------
+            for col in ["Harga Jual"]:
+                if col not in df_data.columns:
+                    df_data[col] = 0
+            for col in ["Status", "Tanggal", "Jumlah", "Tipe", "No Invoice", "Nama Pemesan"]:
+                if col not in df_cashflow.columns:
+                    df_cashflow[col] = None
+        
+            df_data["Harga Jual"] = df_data["Harga Jual"].fillna(0).astype(float)
+        
+            # ---------------------------
+            # Buat key unik per transaksi di df_data
+            # ---------------------------
+            def generate_data_key(row):
+                no_inv = str(row.get("No Invoice", "")).strip()
+                nama = str(row.get("Nama Pemesan", "UNKNOWN")).strip()
+                if no_inv != "":
+                    return f"{no_inv}_{nama}"
+                else:
+                    tgl = pd.to_datetime(row.get("Tgl Pemesanan", pd.Timestamp.today()))
+                    tgl_str = tgl.strftime("%Y%m%d%H%M%S")
+                    return f"NOINV_{nama}_{tgl_str}_{row.name}"
+            
+            df_data["_Data_Key"] = df_data.apply(generate_data_key, axis=1)
+        
+            # ---------------------------
+            # Buat key unik per transaksi di df_cashflow
+            # ---------------------------
+            def generate_cf_key(row):
+                no_inv = str(row.get("No Invoice", "")).strip()
+                nama = str(row.get("Nama Pemesan", "UNKNOWN")).strip()
+                if no_inv != "":
+                    return f"{no_inv}_{nama}"
+                else:
+                    try:
+                        tgl = pd.to_datetime(row.get("Tanggal", pd.Timestamp.today()))
+                    except:
+                        tgl = pd.Timestamp.today()
+                    tgl_str = tgl.strftime("%Y%m%d%H%M%S")
+                    return f"NOINV_{nama}_{tgl_str}_{row.name}"
+            
+            df_cashflow["_Data_Key"] = df_cashflow.apply(generate_cf_key, axis=1)
+        
+            # ---------------------------
+            # Filter transaksi belum lunas
+            # ---------------------------
+            df_unpaid = df_cashflow[df_cashflow["Status"] == "Belum Lunas"].copy()
+        
+            # ---------------------------
+            # Hitung Aging
+            # ---------------------------
+            aging_rows = []
+            for idx, row_cf in df_unpaid.iterrows():
+                key = row_cf["_Data_Key"]
+                nama_pemesan = row_cf.get("Nama Pemesan", "UNKNOWN")
+                no_invoice = row_cf.get("No Invoice", "")
+                tgl = row_cf.get("Tanggal", pd.Timestamp.today())
+                try:
+                    tgl = pd.to_datetime(tgl)
+                except:
+                    tgl = pd.Timestamp.today()
+        
+                # Cari data penjualan
+                df_match = df_data[df_data["_Data_Key"] == key]
+                if not df_match.empty:
+                    total_harga_jual = df_match["Harga Jual"].sum()
+                else:
+                    total_harga_jual = row_cf.get("Harga Jual", 0) or 0
+        
+                total_masuk = df_cashflow[
+                    (df_cashflow["_Data_Key"] == key) & 
+                    (df_cashflow["Tipe"] == "Masuk")
+                ]["Jumlah"].sum() or 0
+        
+                piutang = total_harga_jual - total_masuk
+                aging = (pd.Timestamp.today().normalize() - tgl.normalize()).days
+        
+                aging_rows.append({
+                    "Nama Pemesan/Keterangan": nama_pemesan,
+                    "No Invoice": no_invoice if no_invoice != "" else "(Belum ada)",
+                    "Tanggal Pemesanan": tgl,
+                    "Piutang": piutang,
+                    "Aging (hari)": aging,
+                    "Overdue": aging > overdue_days
+                })
+        
+            df_aging = pd.DataFrame(aging_rows)
+        
+            if not df_aging.empty and "Piutang" in df_aging.columns:
+                df_aging["Piutang"] = df_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
+        
+            return df_aging
+        
+        
+        # =========================
+        # Tampilkan Aging Report
+        # =========================
+        df_aging = generate_aging_report(df_cashflow, df_data)
+        
+        if not df_aging.empty and "Aging (hari)" in df_aging.columns:
+            df_aging = df_aging.sort_values(by="Aging (hari)", ascending=False)
+        
+            def highlight_overdue(row):
+                return ["background-color: #FF9999" if row.Overdue else "" for _ in row]
+        
+            st.dataframe(df_aging.style.apply(highlight_overdue, axis=1), use_container_width=True)
+        else:
+            st.info("Data Aging Report kosong atau belum ada transaksi yang belum lunas.")
+    
+        
+    with st.expander("⏳ Aging Report / Invoice Belum Lunas"):
+        if not df_cashflow_combined.empty and not df_data.empty:
+    
+            # --- Normalisasi Invoice_Key
+            df_data["Invoice_Key"] = df_data["Invoice_Key"].astype(str)
+            df_cashflow_combined["Invoice_Key"] = df_cashflow_combined["Invoice_Key"].astype(str)
+    
+            # --- Total pembayaran per invoice
+            df_cashflow_combined["Jumlah"] = pd.to_numeric(df_cashflow_combined["Jumlah"], errors="coerce").fillna(0)
+            df_payments = (
+                df_cashflow_combined[df_cashflow_combined["Tipe"]=="Masuk"]
+                .groupby("Invoice_Key")["Jumlah"]
+                .sum()
+                .reset_index()
+                .rename(columns={"Jumlah":"Jumlah Masuk"})
+            )
+    
+            # --- Gabungkan dengan data penjualan
+            df_invoice = df_data[["Invoice_Key","Nama Pemesan","No Invoice","Harga Jual","Tgl Pemesanan"]].copy()
+            df_invoice = df_invoice.merge(df_payments, on="Invoice_Key", how="left")
+            df_invoice["Jumlah Masuk"] = df_invoice["Jumlah Masuk"].fillna(0)
+    
+            # --- Hitung Piutang
+            df_invoice["Piutang"] = df_invoice["Harga Jual"] - df_invoice["Jumlah Masuk"]
+    
+            # --- Filter yang belum lunas
+            df_unpaid = df_invoice[df_invoice["Piutang"] > 1000].copy()
+    
+            if not df_unpaid.empty:
+    
+                # --- AGGREGATE PER INVOICE ---
+                df_agg = df_unpaid.groupby(
+                    ["Invoice_Key","Nama Pemesan","No Invoice"], as_index=False
+                ).agg({
+                    "Piutang":"sum",
+                    "Tgl Pemesanan":"min"
+                })
+    
+                # --- Hitung Aging ---
+                df_agg["Tanggal Pemesanan"] = df_agg["Tgl Pemesanan"].fillna(pd.Timestamp.today())
+                df_agg["Aging (hari)"] = (pd.Timestamp.today().normalize() - pd.to_datetime(df_agg["Tanggal Pemesanan"]).dt.normalize()).dt.days
+                df_agg["Overdue"] = df_agg["Aging (hari)"] > 30
+    
+                # --- Format Rupiah ---
+                df_agg["Piutang"] = df_agg["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
+    
+                # --- Tampilkan ---
+                df_display = df_agg[[
+                    "Nama Pemesan","No Invoice","Tanggal Pemesanan","Piutang","Aging (hari)","Overdue"
+                ]]
+    
+                def highlight_overdue(row):
+                    return ["background-color: #FF9999" if row.Overdue else "" for _ in row]
+    
+                st.dataframe(df_display.style.apply(highlight_overdue, axis=1), use_container_width=True)
+    
+            else:
+                st.info("🎉 Semua invoice sudah lunas!")
+        else:
+            st.info("Belum ada data cashflow atau data penjualan untuk Aging Report.")
+    
+    
+    
+    
+    #=================================================================================================================================================================
+    from prophet import Prophet
+    from prophet.plot import plot_plotly
+    import plotly.graph_objects as go
+    
+    with st.expander("📘 Laporan Transaksi Penjualan"):
+        st.markdown("### 📊 Filter Laporan")
+    
+        df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors="coerce")
+    
+        filter_mode = st.radio(
+            "Pilih Jenis Filter Tanggal", 
+            ["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"], 
+            horizontal=True,
+            key="filter_tanggal_mode"
+        )
+    
+        df_filtered = df.copy()
+    
+        if filter_mode == "📆 Rentang Tanggal":
+            tgl_awal = st.date_input("Tanggal Awal", date.today().replace(day=1), key="tgl_awal_input")
+            tgl_akhir = st.date_input("Tanggal Akhir", date.today(), key="tgl_akhir_input")
+            if tgl_awal > tgl_akhir:
+                tgl_awal, tgl_akhir = tgl_akhir, tgl_awal
+            df_filtered = df[
+                (df["Tgl Pemesanan"] >= pd.to_datetime(tgl_awal)) &
+                (df["Tgl Pemesanan"] <= pd.to_datetime(tgl_akhir))
+            ]
+    
+        elif filter_mode == "🗓️ Bulanan":
+            bulan_nama = {
+                "Januari": 1, "Februari": 2, "Maret": 3, "April": 4,
+                "Mei": 5, "Juni": 6, "Juli": 7, "Agustus": 8,
+                "September": 9, "Oktober": 10, "November": 11, "Desember": 12
+            }
+            bulan_label = list(bulan_nama.keys())
+            bulan_pilihan = st.selectbox("Pilih Bulan", bulan_label, index=date.today().month - 1, key="filter_bulan_input")
+            tahun_bulan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True), key="filter_tahun_bulanan")
+            df_filtered = df[
+                (df["Tgl Pemesanan"].dt.month == bulan_nama[bulan_pilihan]) &
+                (df["Tgl Pemesanan"].dt.year == tahun_bulan)
+            ]
+    
+        elif filter_mode == "📅 Tahunan":
+            tahun_pilihan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True), key="filter_tahun_tahunan")
+            df_filtered = df[df["Tgl Pemesanan"].dt.year == tahun_pilihan]
+    
+    
+        # Tambahan filter Pemesan dan Admin
+        st.markdown("### 🧍 Filter Tambahan")
+        pemesan_list = ["(Semua)"] + sorted(df["Nama Pemesan"].dropna().unique())
+        admin_list = ["(Semua)"] + sorted(df["Admin"].dropna().unique())
+    
+        selected_pemesan = st.selectbox("Nama Pemesan", pemesan_list)
+        selected_admin = st.selectbox("Admin", admin_list)
+    
+        if selected_pemesan != "(Semua)":
+            df_filtered = df_filtered[df_filtered["Nama Pemesan"] == selected_pemesan]
+        if selected_admin != "(Semua)":
+            df_filtered = df_filtered[df_filtered["Admin"] == selected_admin]
+    
+        if df_filtered.empty:
+            st.warning("❌ Tidak ada data sesuai filter.")
+        else:
+            # Parse harga jika masih string
+            def parse_harga(h):
+                if pd.isna(h): return 0
+                s = str(h).replace("Rp", "").replace(".", "").replace(",", "").strip()
+                try: return float(s)
+                except: return 0
+    
+            df_filtered["Harga Jual (Num)"] = df_filtered["Harga Jual"].apply(parse_harga)
+            df_filtered["Harga Beli (Num)"] = df_filtered["Harga Beli"].apply(parse_harga)
+    
+            total_jual = df_filtered["Harga Jual (Num)"].sum()
+            total_beli = df_filtered["Harga Beli (Num)"].sum()
+            total_profit = total_jual - total_beli
+    
+            def metric_card(title, value):
+                st.markdown(
+                    f"""
+                    <div class="metric-card">
+                        <div class="metric-title">{title}</div>
+                        <div class="metric-value">{value}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+            # Baris 1
+            col1, col2 = st.columns(2)
+            with col1:
+                metric_card("💰 Total Penjualan", f"Rp {int(total_jual):,}".replace(",", "."))
+            with col2:
+                metric_card("💸 Total Pembelian", f"Rp {int(total_beli):,}".replace(",", "."))
+            
+            # Baris 2 (full width)
+            metric_card("📈 Profit", f"Rp {int(total_profit):,}".replace(",", "."))
+    
+    
+                
+            # Grafik Tren Penjualan
+            st.markdown("### 📈 Grafik Tren Penjualan")
+            df_chart = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().reset_index()
+            st.line_chart(df_chart.rename(columns={"Tgl Pemesanan": "index"}).set_index("index"))
+    
+            # Rekap tambahan bulanan per tanggal
+            if filter_mode == "🗓️ Bulanan":
+                df_filtered["Tanggal"] = df_filtered["Tgl Pemesanan"].dt.day
+                summary_bulanan = pd.DataFrame(index=["Total Penjualan", "Total Pembelian", "Laba"])
+                for day in range(1, 32):
+                    day_data = df_filtered[df_filtered["Tanggal"] == day]
+                    jual = day_data["Harga Jual (Num)"].sum()
+                    beli = day_data["Harga Beli (Num)"].sum()
+                    laba = jual - beli
+                    summary_bulanan[day] = [jual, beli, laba]
+    
+                st.markdown("### 📅 Rekap Bulanan per Tanggal")
+                st.dataframe(summary_bulanan.style.format("Rp {:,.0f}"), use_container_width=True)
+    
+            # Rekap tambahan tahunan per bulan
+            if filter_mode == "📅 Tahunan":
+                df_filtered["Bulan"] = df_filtered["Tgl Pemesanan"].dt.month
+                nama_bulan = {
+                    1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "Mei", 6: "Jun",
+                    7: "Jul", 8: "Agu", 9: "Sep", 10: "Okt", 11: "Nov", 12: "Des"
+                }
+    
+                summary_tahunan = pd.DataFrame(index=["Total Penjualan", "Total Pembelian", "Laba"])
+                for month in range(1, 13):
+                    month_data = df_filtered[df_filtered["Bulan"] == month]
+                    jual = month_data["Harga Jual (Num)"].sum()
+                    beli = month_data["Harga Beli (Num)"].sum()
+                    laba = jual - beli
+                    summary_tahunan[nama_bulan[month]] = [jual, beli, laba]
+    
+                st.markdown("### 📆 Rekap Tahunan per Bulan")
+                st.dataframe(summary_tahunan.style.format("Rp {:,.0f}"), use_container_width=True)
+                
+            # Ringkasan per Admin
+            st.markdown("### 🧑‍💼 Ringkasan per Admin")
+            st.dataframe(
+                df_filtered.groupby("Admin")["Harga Jual (Num)"].sum().reset_index(name="Total Penjualan"),
+                use_container_width=True
+            )
+    
+            # Ringkasan per Pemesan
+            st.markdown("### 👥 Ringkasan per Pemesan")
+            st.dataframe(
+                df_filtered.groupby("Nama Pemesan")["Harga Jual (Num)"].sum().reset_index(name="Total Penjualan"),
+                use_container_width=True
+            )
+            
+            # Tabel detail
+            with st.expander("📄 Lihat Tabel Detail"):
+                st.dataframe(df_filtered, use_container_width=True)
+            st.markdown("### 🤖 Analisa Keuangan Otomatis")
+    
+            avg_profit = df_filtered["Harga Jual (Num)"].sum() - df_filtered["Harga Beli (Num)"].sum()
+            num_days = df_filtered["Tgl Pemesanan"].dt.date.nunique()
+            avg_profit_per_day = avg_profit / num_days if num_days else 0
+            
+            top_admin = df_filtered.groupby("Admin")["Harga Jual (Num)"].sum().idxmax()
+            top_pemesan = df_filtered.groupby("Nama Pemesan")["Harga Jual (Num)"].sum().idxmax()
+            
+            max_day = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().idxmax()
+            max_day_val = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().max()
+            
+            st.markdown(f"""
+            - 💼 **Rata-rata laba harian**: Rp {int(avg_profit_per_day):,}.  
+            - 🏆 **Admin dengan penjualan tertinggi**: {top_admin}  
+            - 🙋 **Pemesan paling aktif**: {top_pemesan}  
+            - 📅 **Hari dengan omset tertinggi**: {max_day.date()} sebesar Rp {int(max_day_val):,}  
+            """)
+            
+            with st.expander("🔮 Prediksi Omzet / Laba per Bulan (Dinamis)"):
+                df_prophet = df_filtered.copy()
+                df_prophet = df_prophet.groupby("Tgl Pemesanan")[["Harga Jual (Num)", "Harga Beli (Num)"]].sum().reset_index()
+                df_prophet["ds"] = df_prophet["Tgl Pemesanan"]
+                df_prophet["y"] = df_prophet["Harga Jual (Num)"] - df_prophet["Harga Beli (Num)"]
+            
+                # Gunakan hanya data 3 bulan terakhir untuk pelatihan (opsional)
+                if len(df_prophet) >= 90:
+                    df_prophet = df_prophet[df_prophet["ds"] >= df_prophet["ds"].max() - pd.DateOffset(months=3)]
+            
+                model = Prophet()
+                model.fit(df_prophet[["ds", "y"]])
+            
+                future = model.make_future_dataframe(periods=90)  # 3 bulan ke depan
+                forecast = model.predict(future)
+            
+                # 🎛️ Input UI: Pilih bulan dan tahun target
+                all_months = [f"{i:02d}" for i in range(1, 13)]
+                month_map = {
+                    "01": "Januari", "02": "Februari", "03": "Maret", "04": "April", "05": "Mei", "06": "Juni",
+                    "07": "Juli", "08": "Agustus", "09": "September", "10": "Oktober", "11": "November", "12": "Desember"
+                }
+                month_select = st.selectbox("📅 Pilih Bulan", options=all_months, format_func=lambda x: month_map[x])
+                year_select = st.selectbox("🗓️ Pilih Tahun", options=sorted(forecast["ds"].dt.year.unique()))
+            
+                # 🧠 Filter forecast ke bulan & tahun yang dipilih
+                forecast_selected = forecast[
+                    (forecast["ds"].dt.month == int(month_select)) &
+                    (forecast["ds"].dt.year == year_select)
+                ]
+            
+                if forecast_selected.empty:
+                    st.warning("📭 Tidak ada prediksi tersedia untuk bulan & tahun yang dipilih.")
+                else:
+                    total_yhat = forecast_selected["yhat"].sum()
+                    min_yhat = forecast_selected["yhat"].min()
+                    max_yhat = forecast_selected["yhat"].max()
+                    delta_trend = forecast_selected["trend"].iloc[-1] - forecast_selected["trend"].iloc[0]
+            
+                    # Tampilkan grafik prediksi bulan tersebut
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(x=forecast_selected["ds"], y=forecast_selected["yhat"], name="Prediksi Laba"))
+                    fig.update_layout(title=f"📈 Prediksi Laba - {month_map[month_select]} {year_select}")
+                    st.plotly_chart(fig, use_container_width=True)
+            
+                    # 🧾 Ringkasan
+                    st.markdown("### 📊 Ringkasan Prediksi Bulanan:")
+                    st.markdown(f"""
+                    - 🗓️ Bulan dipilih: **{month_map[month_select]} {year_select}**
+                    - 📈 **Total laba diprediksi**: Rp {int(total_yhat):,}
+                    - 🔼 **Hari terbaik (estimasi)**: Rp {int(max_yhat):,}
+                    - 🔽 **Hari terendah (estimasi)**: Rp {int(min_yhat):,}
+                    - 📊 **Tren bulan ini**: {'meningkat' if delta_trend > 0 else 'menurun' if delta_trend < 0 else 'stabil'} (Δ Rp {int(delta_trend):,})
+                    """)
+            
+                    # Perbandingan dengan bulan sebelumnya
+                    prev_month = int(month_select) - 1 if int(month_select) > 1 else 12
+                    prev_year = year_select if int(month_select) > 1 else year_select - 1
+                    forecast_prev = forecast[
+                        (forecast["ds"].dt.month == prev_month) &
+                        (forecast["ds"].dt.year == prev_year)
+                    ]
+                    if not forecast_prev.empty:
+                        total_prev = forecast_prev["yhat"].sum()
+                        delta = total_yhat - total_prev
+                        st.markdown(f"📉 **Perbandingan dengan bulan sebelumnya ({month_map[str(prev_month).zfill(2)]} {prev_year})**: Rp {int(total_prev):,} → Rp {int(total_yhat):,} (Δ Rp {int(delta):,})")
+    
+    
+            with st.expander("📊 Perbandingan Kinerja Bulanan / YTD"):
+                df_filtered["Bulan"] = df_filtered["Tgl Pemesanan"].dt.to_period("M")
+                df_monthly = df_filtered.groupby("Bulan")[["Harga Jual (Num)", "Harga Beli (Num)"]].sum().reset_index()
+                df_monthly["Laba"] = df_monthly["Harga Jual (Num)"] - df_monthly["Harga Beli (Num)"]
+                df_monthly["Bulan"] = df_monthly["Bulan"].astype(str)
+            
+                fig = go.Figure()
+                fig.add_trace(go.Bar(x=df_monthly["Bulan"], y=df_monthly["Harga Jual (Num)"], name="Penjualan"))
+                fig.add_trace(go.Bar(x=df_monthly["Bulan"], y=df_monthly["Harga Beli (Num)"], name="Pembelian"))
+                fig.add_trace(go.Scatter(x=df_monthly["Bulan"], y=df_monthly["Laba"], mode="lines+markers", name="Laba"))
+            
+                fig.update_layout(barmode='group', title="Kinerja Bulanan", xaxis_title="Bulan", yaxis_title="Rp")
+                st.plotly_chart(fig, use_container_width=True)
+    
+            with st.expander("🚨 Deteksi Anomali Penjualan"):
+                df_anomali = df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"].sum().reset_index()
+                q1 = df_anomali["Harga Jual (Num)"].quantile(0.25)
+                q3 = df_anomali["Harga Jual (Num)"].quantile(0.75)
+                iqr = q3 - q1
+                lower_bound = q1 - 1.5 * iqr
+                upper_bound = q3 + 1.5 * iqr
+            
+                anomalies = df_anomali[
+                    (df_anomali["Harga Jual (Num)"] < lower_bound) |
+                    (df_anomali["Harga Jual (Num)"] > upper_bound)
+                ]
+            
+                st.dataframe(anomalies, use_container_width=True)
+                st.markdown(f"🔍 Ditemukan **{len(anomalies)}** hari dengan penjualan di luar batas normal (IQR).")
+    
+            with st.expander("💼 Segmentasi Produk berdasarkan Profitabilitas"):
+                if "Tipe" in df_filtered.columns:
+                    df_segment = df_filtered.copy()
+                    df_segment["Profit"] = df_segment["Harga Jual (Num)"] - df_segment["Harga Beli (Num)"]
+                    segment = df_segment.groupby("Tipe")[["Harga Jual (Num)", "Harga Beli (Num)", "Profit"]].sum().reset_index()
+                    segment["Profit Margin (%)"] = 100 * segment["Profit"] / segment["Harga Jual (Num)"]
+            
+                    st.dataframe(segment.sort_values("Profit", ascending=False), use_container_width=True)
+            
+                    fig = go.Figure()
+                    fig.add_trace(go.Bar(
+                        x=segment["Tipe"],
+                        y=segment["Profit Margin (%)"],
+                        name="Margin (%)"
+                    ))
+                    fig.update_layout(title="Segmentasi Produk: Profit Margin", xaxis_title="Produk", yaxis_title="Margin %")
+                    st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.info("Kolom 'Tipe' tidak tersedia.")
+    
+    
+    #=================================================================================================================================================================
+    import streamlit as st
+    import pandas as pd
+    import holidays
+    import matplotlib.pyplot as plt
+    
+    with st.expander("📊 Analisa Laporan Keuangan"):
+    
+        # Pastikan kolom datetime sudah benar
+        df_filtered["Tgl Pemesanan"] = pd.to_datetime(df_filtered["Tgl Pemesanan"], errors="coerce")
+        
+        if "Harga Jual" in df_filtered.columns:
+            df_filtered["Harga Jual (Num)"] = (
+                df_filtered["Harga Jual"]
+                .astype(str)
+                .replace("[Rp.,\s]", "", regex=True)
+                .astype(float)
+            )
+        else:
+            st.error("❌ Kolom 'Harga Jual' tidak ditemukan. Tidak bisa melanjutkan analisa.")
+    
+        years = df_filtered["Tgl Pemesanan"].dt.year.dropna().unique()
+        id_holidays = holidays.Indonesia(years=years)
+    
+        # ----- HARiAN -----
+        df_daily = (
+            df_filtered.groupby("Tgl Pemesanan")["Harga Jual (Num)"]
+            .sum()
+            .reset_index()
+            .sort_values("Tgl Pemesanan")
+        )
+        df_daily["Pct_Change"] = df_daily["Harga Jual (Num)"].pct_change() * 100
+        df_daily["Is_Holiday"] = df_daily["Tgl Pemesanan"].isin(id_holidays)
+        df_daily["Is_Weekend"] = df_daily["Tgl Pemesanan"].dt.dayofweek >= 5  # Sabtu=5, Minggu=6
+        df_daily["Near_Holiday"] = df_daily["Is_Holiday"] | df_daily["Is_Weekend"]
+    
+        threshold_drop_daily = -20
+        penurunan_signifikan_harian = df_daily[df_daily["Pct_Change"] <= threshold_drop_daily]
+    
+        # ----- BULANAN -----
+        df_filtered["YearMonth"] = df_filtered["Tgl Pemesanan"].dt.to_period("M")
+        df_monthly = (
+            df_filtered.groupby("YearMonth")["Harga Jual (Num)"]
+            .sum()
+            .reset_index()
+            .sort_values("YearMonth")
+        )
+        df_monthly["Pct_Change"] = df_monthly["Harga Jual (Num)"].pct_change() * 100
+        df_monthly["MonthStart"] = df_monthly["YearMonth"].dt.to_timestamp()
+        
+        def check_month_holiday(ts):
+            return any([(ts + pd.Timedelta(days=i)) in id_holidays for i in range(31)])
+        
+        df_monthly["Is_Holiday_Month"] = df_monthly["MonthStart"].apply(check_month_holiday).astype(bool)
+        df_monthly["Is_Weekend_Month"] = (df_monthly["MonthStart"].dt.weekday >= 5).astype(bool)
+        df_monthly["Near_Holiday"] = df_monthly["Is_Holiday_Month"] | df_monthly["Is_Weekend_Month"]
+        
+        threshold_drop_monthly = -15
+        penurunan_signifikan_bulanan = df_monthly[df_monthly["Pct_Change"] <= threshold_drop_monthly]
+    
+        # ----- TAHUNAN -----
+        df_filtered["Year"] = df_filtered["Tgl Pemesanan"].dt.year
+        df_yearly = (
+            df_filtered.groupby("Year")["Harga Jual (Num)"]
+            .sum()
+            .reset_index()
+            .sort_values("Year")
+        )
+        df_yearly["Pct_Change"] = df_yearly["Harga Jual (Num)"].pct_change() * 100
+    
+        def check_year_holiday(y):
+            # Cek apakah ada hari libur di tahun tersebut
+            # Diasumsikan selalu ada, tapi bisa dioptimasi sesuai kebutuhan
+            return any([date.year == y for date in id_holidays])
+    
+        df_yearly["Is_Holiday_Year"] = df_yearly["Year"].apply(check_year_holiday)
+        df_yearly["Near_Holiday"] = df_yearly["Is_Holiday_Year"]  # Tahun lebih longgar, cuma cek ada libur
+    
+        threshold_drop_yearly = -10
+        penurunan_signifikan_tahunan = df_yearly[df_yearly["Pct_Change"] <= threshold_drop_yearly]
+    
+        # --- Output Analisa ---
+        st.markdown("### 📉 Penurunan Signifikan Harian ( > 20% drop )")
+        if not penurunan_signifikan_harian.empty:
+            for _, row in penurunan_signifikan_harian.iterrows():
+                date_str = row["Tgl Pemesanan"].strftime("%Y-%m-%d")
+                drop = row["Pct_Change"]
+                near_holiday = "Ya" if row["Near_Holiday"] else "Tidak"
+                st.write(f"- 📅 {date_str} : Penurunan {drop:.2f}% dari hari sebelumnya.")
+                st.write(f"  - Dekat Hari Libur / Weekend? **{near_holiday}**")
+        else:
+            st.write("✅ Tidak ada penurunan signifikan harian terdeteksi.")
+    
+        st.markdown("### 📉 Penurunan Signifikan Bulanan ( > 15% drop )")
+        if not penurunan_signifikan_bulanan.empty:
+            for _, row in penurunan_signifikan_bulanan.iterrows():
+                month_str = row["YearMonth"].strftime("%Y-%m")
+                drop = row["Pct_Change"]
+                near_holiday = "Ya" if row["Near_Holiday"] else "Tidak"
+                st.write(f"- 🗓️ {month_str} : Penurunan {drop:.2f}% dari bulan sebelumnya.")
+                st.write(f"  - Bulan ada hari libur / weekend panjang? **{near_holiday}**")
+        else:
+            st.write("✅ Tidak ada penurunan signifikan bulanan terdeteksi.")
+    
+        st.markdown("### 📉 Penurunan Signifikan Tahunan ( > 10% drop )")
+        if not penurunan_signifikan_tahunan.empty:
+            for _, row in penurunan_signifikan_tahunan.iterrows():
+                year_str = str(int(row["Year"]))
+                drop = row["Pct_Change"]
+                near_holiday = "Ya" if row["Near_Holiday"] else "Tidak"
+                st.write(f"- 📆 {year_str} : Penurunan {drop:.2f}% dari tahun sebelumnya.")
+                st.write(f"  - Tahun dengan libur nasional? **{near_holiday}**")
+        else:
+            st.write("✅ Tidak ada penurunan signifikan tahunan terdeteksi.")
+    
+        # --- Rekomendasi ---
+        st.markdown("### 💡 Rekomendasi:")
+        if not penurunan_signifikan_harian.empty or not penurunan_signifikan_bulanan.empty or not penurunan_signifikan_tahunan.empty:
+            st.markdown("""
+            - Tinjau aktivitas pemasaran dan operasional di tanggal/bulan/tahun yang mengalami penurunan.
+            - Periksa apakah penurunan terkait dengan hari libur panjang, weekend, atau faktor eksternal lain.
+            - Buat strategi promosi yang menyasar periode rentan tersebut.
+            - Analisa faktor internal seperti stok, harga, layanan untuk menemukan penyebab penurunan.
+            """)
+        else:
+            st.markdown("Tidak ada penurunan signifikan, pertahankan strategi yang berjalan.")
+    
+        # --- Visualisasi ---
+        st.markdown("### 📈 Grafik Penjualan Harian dengan Penurunan & Hari Libur")
+        fig, ax = plt.subplots(figsize=(10, 4))
+        ax.plot(df_daily["Tgl Pemesanan"], df_daily["Harga Jual (Num)"], label="Penjualan Harian", marker='o')
+        ax.scatter(penurunan_signifikan_harian["Tgl Pemesanan"], penurunan_signifikan_harian["Harga Jual (Num)"], color='red', label="Penurunan Signifikan")
+        holidays_weekends = df_daily[df_daily["Near_Holiday"]]
+        ax.scatter(holidays_weekends["Tgl Pemesanan"], holidays_weekends["Harga Jual (Num)"], color='green', alpha=0.3, label="Hari Libur / Weekend")
+        ax.set_xlabel("Tanggal")
+        ax.set_ylabel("Total Penjualan")
+        ax.legend()
+        ax.grid(True)
+        st.pyplot(fig)
+    
+        st.markdown("### 📈 Grafik Penjualan Bulanan")
+        fig2, ax2 = plt.subplots(figsize=(10, 4))
+        ax2.plot(df_monthly["YearMonth"].dt.to_timestamp(), df_monthly["Harga Jual (Num)"], label="Penjualan Bulanan", marker='o')
+        ax2.scatter(penurunan_signifikan_bulanan["MonthStart"], penurunan_signifikan_bulanan["Harga Jual (Num)"], color='red', label="Penurunan Signifikan")
+        ax2.set_xlabel("Bulan")
+        ax2.set_ylabel("Total Penjualan")
+        ax2.legend()
+        ax2.grid(True)
+        st.pyplot(fig2)
+    
+        st.markdown("### 📈 Grafik Penjualan Tahunan")
+        fig3, ax3 = plt.subplots(figsize=(10, 4))
+        ax3.plot(df_yearly["Year"], df_yearly["Harga Jual (Num)"], label="Penjualan Tahunan", marker='o')
+        ax3.scatter(penurunan_signifikan_tahunan["Year"], penurunan_signifikan_tahunan["Harga Jual (Num)"], color='red', label="Penurunan Signifikan")
+        ax3.set_xlabel("Tahun")
+        ax3.set_ylabel("Total Penjualan")
+        ax3.legend()
+        ax3.grid(True)
+        st.pyplot(fig3)
 #======================================================================================================================================
 #from streamlit_option_menu import option_menu
 #import streamlit as st

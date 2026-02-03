@@ -3852,6 +3852,23 @@ ACCOUNTS_WS_NAME = "ACCOUNTS"
 TRANSACTIONS_WS_NAME = "TRANSACTIONS"
 
 # =========================
+# FUNGSIONALITAS UTAMA
+# =========================
+def clean_rp_to_numeric(val):
+    """
+    Bersihkan format Rp... menjadi numeric.
+    Contoh: 'Rp200.000' -> 200000
+    """
+    if pd.isna(val):
+        return 0
+    if isinstance(val, str):
+        val = val.replace("Rp","").replace(".","").replace(",","").strip()
+    try:
+        return float(val)
+    except:
+        return 0
+
+# =========================
 # LOAD DATA DARI GOOGLE SHEETS
 # =========================
 accounts_ws = connect_to_gsheet(SHEET_ID, ACCOUNTS_WS_NAME)
@@ -3866,13 +3883,13 @@ transactions_data = transactions_ws.get_all_records()
 transactions = pd.DataFrame(transactions_data)
 
 # =========================
-# KONVERSI DATA NUMERIC
+# KONVERSI NUMERIC
 # =========================
 if not accounts.empty:
-    accounts['balance'] = pd.to_numeric(accounts['balance'], errors='coerce').fillna(0)
+    accounts['balance'] = accounts['balance'].apply(clean_rp_to_numeric)
 
 if not transactions.empty:
-    transactions['amount'] = pd.to_numeric(transactions['amount'], errors='coerce').fillna(0)
+    transactions['amount'] = transactions['amount'].apply(clean_rp_to_numeric)
 
 # =========================
 # CEK DATA
@@ -3881,9 +3898,11 @@ if accounts.empty:
     st.warning("Sheet ACCOUNTS kosong. Silakan isi minimal satu rekening di GSheets.")
     st.stop()
 
-if 'source' not in transactions.columns or 'destination' not in transactions.columns or 'amount' not in transactions.columns:
-    st.warning("Sheet TRANSACTIONS kosong atau header salah. Pastikan ada 'source','destination','amount'.")
-    transactions = pd.DataFrame(columns=['id','date','description','source','destination','amount'])
+# Pastikan kolom transaksi lengkap
+required_tx_cols = ['id','date','description','source','destination','amount']
+for col in required_tx_cols:
+    if col not in transactions.columns:
+        transactions[col] = 0 if col=='amount' else ""
 
 # =========================
 # FORM INPUT TRANSAKSI
@@ -3908,13 +3927,13 @@ with st.expander("📒 Pencatatan Rekening Harian"):
                 'destination': destination,
                 'amount': amount
             }
-            
+
             # Tambahkan ke DataFrame lokal
             transactions = pd.concat([transactions, pd.DataFrame([new_tx])], ignore_index=True)
-            
+
             # Kirim ke Google Sheets
             append_dataframe_to_sheet(pd.DataFrame([new_tx]), transactions_ws)
-            
+
             st.success("✅ Transaksi tersimpan!")
 
     # =========================

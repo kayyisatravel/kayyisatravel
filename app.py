@@ -3910,7 +3910,7 @@ with st.expander("📒 Pencatatan Rekening Harian"):
             }
             
             # Tambahkan ke DataFrame lokal
-            transactions = transactions.append(new_tx, ignore_index=True)
+            transactions = pd.concat([transactions, pd.DataFrame([new_tx])], ignore_index=True)
             
             # Kirim ke Google Sheets
             append_dataframe_to_sheet(pd.DataFrame([new_tx]), transactions_ws)

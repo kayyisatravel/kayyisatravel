@@ -3842,18 +3842,22 @@ with st.expander("📊 Analisa Laporan Keuangan"):
  #   st.title("⚙️ Pengaturan Sistem")
     # form setting admin, kategori, dll
 
+# app.py
 import streamlit as st
 import pandas as pd
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from sheets_utils import connect_to_gsheet
 
 # ------------------------------
-# Konversi Rp... ke numeric
+# Fungsi konversi Rp → numeric
 # ------------------------------
 def parse_rp_to_float(x):
+    import re
+    if pd.isna(x):
+        return 0.0
+    if isinstance(x, str):
+        # Hapus semua karakter non-digit kecuali titik
+        x = re.sub(r"[^\d.]", "", x)
     try:
-        if isinstance(x, str):
-            x = x.replace("Rp", "").replace(".", "").replace(",", "")
         return float(x)
     except:
         return 0.0
@@ -3865,28 +3869,32 @@ def calculate_saldo(accounts, transactions):
     saldo_list = []
     for _, acc in accounts.iterrows():
         acc_name = acc['account_name']
-        balance_awal = float(acc.get('balance_awal', 0))
-        credit = transactions[(transactions['account_name']==acc_name) & (transactions['type'].str.lower()=='credit')]['amount'].sum()
-        debit = transactions[(transactions['account_name']==acc_name) & (transactions['type'].str.lower()=='debit')]['amount'].sum()
-        saldo_akhir = balance_awal + credit - debit
+        balance_awal = float(acc.get('balance', 0))
+        debit = transactions[transactions['source']==acc_name]['amount'].sum()
+        credit = transactions[transactions['destination']==acc_name]['amount'].sum()
+        saldo_akhir = balance_awal - debit + credit
         saldo_list.append({
             'account_name': acc_name,
             'balance_awal': balance_awal,
             'saldo_akhir': saldo_akhir,
-            'note': acc.get('note', '')
+            'note': acc.get('note','')
         })
     return pd.DataFrame(saldo_list)
 
 # ------------------------------
 # Load data GSheets
 # ------------------------------
-SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"  # <-- ganti dengan Sheet ID Anda
-accounts_df, accounts_ws = connect_gsheet(SHEET_ID, "ACCOUNTS")
-transactions_df, transactions_ws = connect_gsheet(SHEET_ID, "TRANSACTIONS")
+SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
+accounts_ws = connect_to_gsheet(SHEET_ID, "ACCOUNTS")
+transactions_ws = connect_to_gsheet(SHEET_ID, "TRANSACTIONS")
+
+accounts_df = pd.DataFrame(accounts_ws.get_all_records())
+transactions_df = pd.DataFrame(transactions_ws.get_all_records())
 
 # Bersihkan kolom amount
-transactions_df['amount'] = transactions_df['amount'].apply(parse_rp_to_float)
-transactions_df['date'] = pd.to_datetime(transactions_df['date'])
+if not transactions_df.empty:
+    transactions_df['amount'] = transactions_df['amount'].apply(parse_rp_to_float)
+    transactions_df['date'] = pd.to_datetime(transactions_df['date'])
 
 # ------------------------------
 # Streamlit Interface
@@ -3914,12 +3922,11 @@ with st.expander("➕ Input Transaksi Baru"):
                 'id': len(transactions_df)+1,
                 'date': date.strftime("%Y-%m-%d"),
                 'description': description,
-                'account_name': rekening,
+                'source': "",
+                'destination': rekening,
+                'amount': float(amount),
                 'category': category,
                 'sub_category': sub_category,
-                'amount': float(amount),
-                'type': 'Credit',
-                'related_account': '',
                 'note': ''
             })
         elif jenis_tx == "Expense":
@@ -3927,12 +3934,11 @@ with st.expander("➕ Input Transaksi Baru"):
                 'id': len(transactions_df)+1,
                 'date': date.strftime("%Y-%m-%d"),
                 'description': description,
-                'account_name': rekening,
+                'source': rekening,
+                'destination': "",
+                'amount': float(amount),
                 'category': category,
                 'sub_category': sub_category,
-                'amount': float(amount),
-                'type': 'Debit',
-                'related_account': '',
                 'note': ''
             })
         else:  # Transfer
@@ -3940,29 +3946,17 @@ with st.expander("➕ Input Transaksi Baru"):
                 'id': len(transactions_df)+1,
                 'date': date.strftime("%Y-%m-%d"),
                 'description': description,
-                'account_name': rekening_asal,
-                'category': 'Transfer',
-                'sub_category': 'Transfer Out',
+                'source': rekening_asal,
+                'destination': rekening_tujuan,
                 'amount': float(amount),
-                'type': 'Debit',
-                'related_account': rekening_tujuan,
-                'note': ''
-            })
-            new_entries.append({
-                'id': len(transactions_df)+2,
-                'date': date.strftime("%Y-%m-%d"),
-                'description': description,
-                'account_name': rekening_tujuan,
                 'category': 'Transfer',
-                'sub_category': 'Transfer In',
-                'amount': float(amount),
-                'type': 'Credit',
-                'related_account': rekening_asal,
+                'sub_category': '',
                 'note': ''
             })
 
-        # Append ke GSheets
-        rows_to_append = [[entry[col] for col in transactions_df.columns] for entry in new_entries]
+        # Kirim ke GSheets
+        cols = ['id','date','description','source','destination','amount','category','sub_category','note']
+        rows_to_append = [[entry.get(c,"") for c in cols] for entry in new_entries]
         transactions_ws.append_rows(rows_to_append, value_input_option="USER_ENTERED")
         st.success("Transaksi berhasil disimpan! Silakan reload untuk melihat update.")
 
@@ -3977,5 +3971,6 @@ def highlight_saldo(val):
     return f'color: {color}'
 
 st.dataframe(saldo_df.style.applymap(highlight_saldo, subset=['saldo_akhir']))
+
 
     

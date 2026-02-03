@@ -3970,7 +3970,7 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
     # ======================
     # LAPORAN SALDO
     # ======================
-    with st.expander("Jumlah Saldo Rekening", , expanded=True):
+    with st.expander("Jumlah Saldo Rekening", expanded=True):
         st.subheader("📊 Saldo Rekening Terkini")
     
     

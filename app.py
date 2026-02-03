@@ -3846,12 +3846,12 @@ import streamlit as st
 import pandas as pd
 from sheets_utils import connect_to_gsheet, append_dataframe_to_sheet
 
-# --- Konfigurasi GSheets ---
-SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"  # Ganti dengan Sheet ID kamu
+# --- Config GSheets ---
+SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 ACCOUNTS_WS_NAME = "ACCOUNTS"
 TRANSACTIONS_WS_NAME = "TRANSACTIONS"
 
-# --- Load worksheet ---
+# --- Load worksheets ---
 accounts_ws = connect_to_gsheet(SHEET_ID, ACCOUNTS_WS_NAME)
 transactions_ws = connect_to_gsheet(SHEET_ID, TRANSACTIONS_WS_NAME)
 
@@ -3862,16 +3862,24 @@ transactions_data = transactions_ws.get_all_records()
 accounts = pd.DataFrame(accounts_data)
 transactions = pd.DataFrame(transactions_data)
 
-# --- Streamlit UI ---
+# --- Debug awal (hapus kalau sudah yakin) ---
+st.write("Kolom Accounts:", accounts.columns)
+st.write("Kolom Transactions:", transactions.columns)
+
+# --- Pencatatan transaksi harian ---
 with st.expander("📒 Pencatatan Rekening Harian"):
 
     st.subheader("Input Transaksi")
     with st.form("input_transaksi"):
         date = st.date_input("Tanggal")
         description = st.text_input("Deskripsi (misal: Pembayaran [Kode Booking])")
+        
+        # ✅ Pastikan kolom 'account_name' ada
         source = st.selectbox("Rekening Sumber", accounts['account_name'])
         destination = st.selectbox("Rekening Tujuan", accounts['account_name'])
         amount = st.number_input("Jumlah (Rp)", min_value=0)
+        
+        # Submit button HARUS di dalam form
         submitted = st.form_submit_button("Simpan Transaksi")
         
         if submitted:
@@ -3884,14 +3892,14 @@ with st.expander("📒 Pencatatan Rekening Harian"):
                 'amount': amount
             }])
 
-            # --- Append ke GSheets via sheets_utils ---
+            # --- Append ke GSheets ---
             append_dataframe_to_sheet(new_tx, transactions_ws)
             
-            # --- Update memory lokal juga ---
+            # --- Update memory lokal ---
             transactions = pd.concat([transactions, new_tx], ignore_index=True)
             st.success("Transaksi tersimpan!")
 
-    # --- Hitung saldo realtime ---
+    # --- Saldo realtime ---
     st.subheader("Saldo Rekening Real-time")
     saldo_df = accounts.copy()
     for i, row in saldo_df.iterrows():
@@ -3900,3 +3908,4 @@ with st.expander("📒 Pencatatan Rekening Harian"):
         saldo_df.loc[i, 'saldo_akhir'] = row['balance'] - debit + credit
 
     st.dataframe(saldo_df[['account_name','balance','saldo_akhir']])
+

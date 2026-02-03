@@ -3893,7 +3893,7 @@ saldo_map = hitung_saldo(accounts, transactions)
 # ======================
 # UI
 # ======================
-with st.expander("💰 Pencatatan Keuangan Profesional")
+with st.expander("💰 Pencatatan Keuangan Profesional"):
 
     jenis = st.selectbox(
         "Jenis Transaksi",

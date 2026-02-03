@@ -3977,11 +3977,17 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
         "Rekening Tabungan": "💳",
     }
     
-    cols = st.columns(len(saldo_map))  # buat kolom sesuai jumlah rekening
-    
+    cols = st.columns(len(saldo_map))
+
     for col, (acc, saldo) in zip(cols, saldo_map.items()):
         icon = icons.get(acc, "")
-        col.metric(label=f"{icon} {acc}", value=f"Rp {saldo:,.0f}")
+        col.metric_card(
+            label=f"{icon} {acc}",
+            value=f"Rp {saldo:,.0f}",
+            delta=None,
+            delta_color="normal",
+            help=f"Saldo rekening {acc}"
+        )
 
 
 

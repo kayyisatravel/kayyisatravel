@@ -3908,10 +3908,10 @@ subcategories = {
     "Hewan Peliharaan": ["Pakan Kucing", "Pasir Kucing", "Grooming", "Dokter"]
     "Supplier Bisnis": ["Order Tiket", "Gaji Pegawai"],
     "Gaji Karyawan": ["Gaji Bulanan", "Bonus"],
-    "Operasional": ["Internet", "Alat Tulis", Listrik],
+    "Operasional": ["Internet", "Alat Tulis", "Listrik"],
     "Investasi Bisnis": ["Saham", "Reksa Dana", "Alokasi Lainnya"],
     "Deviden": ["Dividen Bulanan", "Dividen Tahunan"],
-    "Ekspansi Bisnis: ["Modal Usaha Baru"]
+    "Ekspansi Bisnis: ["Modal Usaha Baru"],
     "Investasi Keluarga": ["Tabungan", "Deposito", "Emas"],
     "Darurat": ["Dana Darurat"]
 }

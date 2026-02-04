@@ -1974,66 +1974,6 @@ with st.expander("🎫 Generator E-Tiket"):
         except Exception as e:
             st.warning("⚠️ Gagal membuat tampilan tiket. Periksa apakah semua data penting sudah terisi, seperti 'Harga'.")
 
-with st.expander("⏳ Aging Report / Invoice Belum Lunas"):
-        if not df_cashflow_combined.empty and not df_data.empty:
-    
-            # --- Normalisasi Invoice_Key
-            df_data["Invoice_Key"] = df_data["Invoice_Key"].astype(str)
-            df_cashflow_combined["Invoice_Key"] = df_cashflow_combined["Invoice_Key"].astype(str)
-    
-            # --- Total pembayaran per invoice
-            df_cashflow_combined["Jumlah"] = pd.to_numeric(df_cashflow_combined["Jumlah"], errors="coerce").fillna(0)
-            df_payments = (
-                df_cashflow_combined[df_cashflow_combined["Tipe"]=="Masuk"]
-                .groupby("Invoice_Key")["Jumlah"]
-                .sum()
-                .reset_index()
-                .rename(columns={"Jumlah":"Jumlah Masuk"})
-            )
-    
-            # --- Gabungkan dengan data penjualan
-            df_invoice = df_data[["Invoice_Key","Nama Pemesan","No Invoice","Harga Jual","Tgl Pemesanan"]].copy()
-            df_invoice = df_invoice.merge(df_payments, on="Invoice_Key", how="left")
-            df_invoice["Jumlah Masuk"] = df_invoice["Jumlah Masuk"].fillna(0)
-    
-            # --- Hitung Piutang
-            df_invoice["Piutang"] = df_invoice["Harga Jual"] - df_invoice["Jumlah Masuk"]
-    
-            # --- Filter yang belum lunas
-            df_unpaid = df_invoice[df_invoice["Piutang"] > 1000].copy()
-    
-            if not df_unpaid.empty:
-    
-                # --- AGGREGATE PER INVOICE ---
-                df_agg = df_unpaid.groupby(
-                    ["Invoice_Key","Nama Pemesan","No Invoice"], as_index=False
-                ).agg({
-                    "Piutang":"sum",
-                    "Tgl Pemesanan":"min"
-                })
-    
-                # --- Hitung Aging ---
-                df_agg["Tanggal Pemesanan"] = df_agg["Tgl Pemesanan"].fillna(pd.Timestamp.today())
-                df_agg["Aging (hari)"] = (pd.Timestamp.today().normalize() - pd.to_datetime(df_agg["Tanggal Pemesanan"]).dt.normalize()).dt.days
-                df_agg["Overdue"] = df_agg["Aging (hari)"] > 30
-    
-                # --- Format Rupiah ---
-                df_agg["Piutang"] = df_agg["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
-    
-                # --- Tampilkan ---
-                df_display = df_agg[[
-                    "Nama Pemesan","No Invoice","Tanggal Pemesanan","Piutang","Aging (hari)","Overdue"
-                ]]
-    
-                def highlight_overdue(row):
-                    return ["background-color: #FF9999" if row.Overdue else "" for _ in row]
-    
-                st.dataframe(df_display.style.apply(highlight_overdue, axis=1), use_container_width=True)
-    
-            else:
-                st.info("🎉 Semua invoice sudah lunas!")
-        else:
-            st.info("Belum ada data cashflow atau data penjualan untuk Aging Report.")
 
 with st.expander("🎫 Generator E-Tiket + Simpan Data"):
     tipe_tiket = st.radio("Pilih tipe tiket:", ["Kereta", "Hotel", "Pesawat"], key="tipe_tiket_simpan")

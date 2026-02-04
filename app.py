@@ -3890,30 +3890,199 @@ if not transactions.empty:
 
 saldo_map = hitung_saldo(accounts, transactions)
 
+
 # ======================
-# Master Kategori & Subkategori Berdasarkan Rekening
+# Mapping Rekening → Kategori
 # ======================
 rekening_to_categories = {
-    "Rumah Tangga": ["Rumah Tangga", "Kesehatan", "Hiburan", "Cicilan", "Hewan Peliharaan",],
-    "Bisnis Operasional": ["Supplier Bisnis", "Gaji Karyawan", "Operasional", "Deviden"],
-    "Cadangan Bisnis": ["Investasi Bisnis", "Ekspansi Bisnis", "Dana Investor"],
-    "Tabungan / Investasi": ["Investasi Keluarga", "Darurat"]
+    "Rumah Tangga": [
+        "Pendapatan / Pemasukan",
+        "Makanan & Minuman",
+        "Perumahan",
+        "Transportasi",
+        "Kesehatan",
+        "Pendidikan",
+        "Komunikasi & Internet",
+        "Pakaian & Perlengkapan",
+        "Hiburan & Rekreasi",
+        "Cicilan",
+        "Lain-lain",
+        "Tabungan & Investasi",
+        "Dana Cadangan / Darurat"
+    ],
+    "Bisnis Operasional": [
+        "Pendapatan / Revenue",
+        "Operasional",
+        "Finansial",
+        "Dana Cadangan / Investasi Bisnis",
+        "Lain-lain"
+    ],
+    "Cadangan Bisnis": [
+        "Dana Cadangan / Investasi"
+    ],
+    "Tabungan / Investasi": [
+        "Pendapatan / Return",
+        "Tabungan & Investasi",
+        "Dana Cadangan / Darurat"
+    ]
 }
 
+# ======================
+# Mapping Kategori → Subkategori
+# ======================
 subcategories = {
-    "Rumah Tangga": ["Belanja Rumah Tangga", "PDAM", "Listrik", "Internet"],
-    "Kesehatan": ["Periksa Dokter", "Obat-obatan", "Laboratorium"],
-    "Hiburan": ["Liburan", "Makanan & Minuman"],
-    "Cicilan": ["KPR BSI", "Mobil", "KLK"],
-    "Hewan Peliharaan": ["Pakan Kucing", "Pasir Kucing", "Grooming", "Dokter"],
-    "Supplier Bisnis": ["Order Tiket", "Gaji Pegawai"],
-    "Gaji Karyawan": ["Gaji Bulanan", "Bonus"],
-    "Operasional": ["Internet", "Alat Tulis", "Listrik"],
-    "Investasi Bisnis": ["Saham", "Reksa Dana", "Alokasi Lainnya"],
-    "Deviden": ["Dividen Bulanan", "Dividen Tahunan"],
-    "Ekspansi Bisnis": ["Modal Usaha Baru"],
-    "Investasi Keluarga": ["Tabungan", "Deposito", "Emas"],
-    "Darurat": ["Dana Darurat"]
+    # ==== Rumah Tangga ====
+    "Pendapatan / Pemasukan": [
+        "Gaji / Upah",
+        "Bonus / Insentif",
+        "Usaha / Bisnis sampingan",
+        "Investasi / Dividen",
+        "Hadiah / Lain-lain"
+    ],
+    "Makanan & Minuman": [
+        "Belanja bahan makanan",
+        "Makan di luar / restoran",
+        "Minuman & cemilan"
+    ],
+    "Perumahan": [
+        "Sewa rumah",
+        "Listrik, air, gas",
+        "Perawatan rumah & kebun",
+        "PDAM",
+        "Internet rumah"
+    ],
+    "Transportasi": [
+        "BBM / listrik kendaraan listrik",
+        "Transportasi umum / ojek online",
+        "Servis kendaraan & asuransi"
+    ],
+    "Kesehatan": [
+        "Periksa Dokter",
+        "Obat-obatan",
+        "Asuransi kesehatan",
+        "Dokter / klinik"
+    ],
+    "Pendidikan": [
+        "Sekolah / kuliah",
+        "Buku & alat tulis",
+        "Kursus / les tambahan"
+    ],
+    "Komunikasi & Internet": [
+        "Pulsa & paket data",
+        "TV kabel / streaming"
+    ],
+    "Pakaian & Perlengkapan": [
+        "Pakaian & sepatu",
+        "Perawatan diri / kosmetik"
+    ],
+    "Hiburan & Rekreasi": [
+        "Liburan / jalan-jalan",
+        "Hobi & olahraga",
+        "Bioskop / konser"
+    ],
+    "Cicilan": [
+        "KPR",
+        "KLK",
+        "Mobil"
+    ],
+    "Lain-lain": [
+        "Hadiah",
+        "Donasi / sedekah",
+        "Keperluan mendadak"
+    ],
+    "Tabungan & Investasi": [
+        "Tabungan darurat",
+        "Dana pendidikan anak",
+        "Dana pensiun",
+        "Investasi saham / obligasi / reksa dana",
+        "Properti / emas"
+    ],
+    "Dana Cadangan / Darurat": [
+        "Perbaikan rumah / kendaraan mendadak",
+        "Kesehatan mendadak",
+        "Kehilangan pekerjaan atau penghasilan"
+    ],
+
+    # ==== Bisnis Operasional ====
+    "Pendapatan / Revenue": [
+        "Penjualan tiket pesawat",
+        "Penjualan tiket kereta api",
+        "Pemesanan hotel / akomodasi",
+        "Biaya layanan / service fee",
+        "Komisi dari pihak ketiga (maskapai, hotel, OTA)",
+        "Promo / cashback / insentif dari partner"
+    ],
+    "Operasional": [
+        "Gaji & Tunjangan",
+        "Gaji karyawan front office / customer service",
+        "Gaji marketing / sales",
+        "Bonus dan tunjangan karyawan",
+        "Sewa & Utilitas",
+        "Sewa kantor / ruang kerja",
+        "Listrik, air, internet, telepon",
+        "Maintenance kantor",
+        "Teknologi & Sistem",
+        "Biaya software booking / sistem reservasi",
+        "Hosting website / domain",
+        "Aplikasi / API maskapai, kereta, hotel",
+        "Maintenance & upgrade sistem",
+        "Pemasaran & Promosi",
+        "Iklan online (Google, Facebook, Instagram)",
+        "Promo / diskon untuk pelanggan",
+        "Sponsorship / kerjasama dengan partner",
+        "Transportasi & Perjalanan",
+        "Transportasi karyawan",
+        "Perjalanan dinas / meeting partner",
+        "Administrasi & Kantor",
+        "Alat tulis & perlengkapan kantor",
+        "Perlengkapan kebersihan",
+        "Biaya pos & courier"
+    ],
+    "Finansial": [
+        "Pajak penghasilan / PPN",
+        "Biaya bank (transfer, administrasi)",
+        "Biaya kartu kredit / pinjaman modal",
+        "Asuransi bisnis / aset"
+    ],
+    "Dana Cadangan / Investasi Bisnis": [
+        "Dana darurat untuk operasional",
+        "Investasi sistem / teknologi baru",
+        "Upgrade kantor / ruang kerja",
+        "Pelatihan & pengembangan SDM"
+    ],
+    "Lain-lain": [
+        "Denda atau penalti tiket",
+        "Refund / komplain pelanggan",
+        "Hadiah / apresiasi pelanggan",
+        "Biaya legal / konsultasi hukum"
+    ],
+
+    # ==== Cadangan Bisnis ====
+    "Dana Cadangan / Investasi": [
+        "Investasi jangka panjang",
+        "Modal ekspansi bisnis",
+        "Dana keamanan / likuiditas"
+    ],
+
+    # ==== Tabungan / Investasi ====
+    "Pendapatan / Return": [
+        "Dividen saham",
+        "Bunga deposito",
+        "Keuntungan reksa dana",
+        "Keuntungan properti / emas"
+    ],
+    "Tabungan & Investasi": [
+        "Tabungan darurat",
+        "Dana pendidikan",
+        "Dana pensiun",
+        "Investasi saham / obligasi / reksa dana",
+        "Properti / emas"
+    ],
+    "Dana Cadangan / Darurat": [
+        "Dana tak terduga",
+        "Perbaikan aset mendadak",
+        "Kehilangan penghasilan"
+    ]
 }
 
 # ======================

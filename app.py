@@ -3902,10 +3902,10 @@ rekening_to_categories = {
 
 subcategories = {
     "Rumah Tangga": ["Belanja Rumah Tangga", "PDAM", "Listrik", "Internet"],
-    "Kesehatan": ["Periksa Dokter", "Obat-obatan", "Laboratorium"]
+    "Kesehatan": ["Periksa Dokter", "Obat-obatan", "Laboratorium"],
     "Hiburan": ["Liburan", "Makanan & Minuman"],
-    "Cicilan": ["KPR BSI", "Mobil", "KLK"]
-    "Hewan Peliharaan": ["Pakan Kucing", "Pasir Kucing", "Grooming", "Dokter"]
+    "Cicilan": ["KPR BSI", "Mobil", "KLK"],
+    "Hewan Peliharaan": ["Pakan Kucing", "Pasir Kucing", "Grooming", "Dokter"],
     "Supplier Bisnis": ["Order Tiket", "Gaji Pegawai"],
     "Gaji Karyawan": ["Gaji Bulanan", "Bonus"],
     "Operasional": ["Internet", "Alat Tulis", "Listrik"],

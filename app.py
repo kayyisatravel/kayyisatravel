@@ -3911,7 +3911,7 @@ subcategories = {
     "Operasional": ["Internet", "Alat Tulis", "Listrik"],
     "Investasi Bisnis": ["Saham", "Reksa Dana", "Alokasi Lainnya"],
     "Deviden": ["Dividen Bulanan", "Dividen Tahunan"],
-    "Ekspansi Bisnis: ["Modal Usaha Baru"],
+    "Ekspansi Bisnis": ["Modal Usaha Baru"],
     "Investasi Keluarga": ["Tabungan", "Deposito", "Emas"],
     "Darurat": ["Dana Darurat"]
 }

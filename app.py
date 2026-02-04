@@ -3882,7 +3882,7 @@ acc_ws = connect_to_gsheet(SHEET_ID, "ACCOUNTS")
 tx_ws  = connect_to_gsheet(SHEET_ID, "TRANSACTIONS")
 
 accounts = pd.DataFrame(acc_ws.get_all_records())
-accounts['account_name'] = accounts['account_name'].str.strip()  # Bersihkan spasi
+accounts['account_name'] = accounts['account_name'].str.strip()
 transactions = pd.DataFrame(tx_ws.get_all_records())
 
 if not transactions.empty:
@@ -3890,41 +3890,41 @@ if not transactions.empty:
 
 saldo_map = hitung_saldo(accounts, transactions)
 
-
 # ======================
-# Mapping Rekening → Kategori
+# Mapping Rekening → Kategori Berdasarkan Jenis Transaksi
 # ======================
 rekening_to_categories = {
-    "Rumah Tangga": [
-        "Pendapatan / Pemasukan",
-        "Makanan & Minuman",
-        "Perumahan",
-        "Transportasi",
-        "Kesehatan",
-        "Pendidikan",
-        "Komunikasi & Internet",
-        "Pakaian & Perlengkapan",
-        "Hiburan & Rekreasi",
-        "Cicilan",
-        "Lain-lain",
-        "Tabungan & Investasi",
-        "Dana Cadangan / Darurat"
-    ],
-    "Bisnis Operasional": [
-        "Pendapatan / Revenue",
-        "Operasional",
-        "Finansial",
-        "Dana Cadangan / Investasi Bisnis",
-        "Lain-lain"
-    ],
-    "Cadangan Bisnis": [
-        "Dana Cadangan / Investasi"
-    ],
-    "Tabungan / Investasi": [
-        "Pendapatan / Return",
-        "Tabungan & Investasi",
-        "Dana Cadangan / Darurat"
-    ]
+    "Rumah Tangga": {
+        "Pemasukan": [
+            "Pendapatan / Pemasukan"
+        ],
+        "Pengeluaran": [
+            "Makanan & Minuman",
+            "Perumahan",
+            "Transportasi",
+            "Kesehatan",
+            "Pendidikan",
+            "Komunikasi & Internet",
+            "Pakaian & Perlengkapan",
+            "Hiburan & Rekreasi",
+            "Cicilan",
+            "Lain-lain",
+            "Tabungan & Investasi",
+            "Dana Cadangan / Darurat"
+        ]
+    },
+    "Bisnis Operasional": {
+        "Pemasukan": ["Pendapatan / Revenue"],
+        "Pengeluaran": ["Operasional", "Finansial", "Dana Cadangan / Investasi Bisnis", "Lain-lain"]
+    },
+    "Cadangan Bisnis": {
+        "Pemasukan": [],
+        "Pengeluaran": ["Dana Cadangan / Investasi"]
+    },
+    "Tabungan / Investasi": {
+        "Pemasukan": ["Pendapatan / Return"],
+        "Pengeluaran": ["Tabungan & Investasi", "Dana Cadangan / Darurat"]
+    }
 }
 
 # ======================
@@ -3939,69 +3939,18 @@ subcategories = {
         "Investasi / Dividen",
         "Hadiah / Lain-lain"
     ],
-    "Makanan & Minuman": [
-        "Belanja bahan makanan",
-        "Makan di luar / restoran",
-        "Minuman & cemilan"
-    ],
-    "Perumahan": [
-        "Sewa rumah",
-        "Listrik, air, gas",
-        "Perawatan rumah & kebun",
-        "PDAM",
-        "Internet rumah"
-    ],
-    "Transportasi": [
-        "BBM / listrik kendaraan listrik",
-        "Transportasi umum / ojek online",
-        "Servis kendaraan & asuransi"
-    ],
-    "Kesehatan": [
-        "Periksa Dokter",
-        "Obat-obatan",
-        "Asuransi kesehatan",
-        "Dokter / klinik"
-    ],
-    "Pendidikan": [
-        "Sekolah / kuliah",
-        "Buku & alat tulis",
-        "Kursus / les tambahan"
-    ],
-    "Komunikasi & Internet": [
-        "Pulsa & paket data",
-        "TV kabel / streaming"
-    ],
-    "Pakaian & Perlengkapan": [
-        "Pakaian & sepatu",
-        "Perawatan diri / kosmetik"
-    ],
-    "Hiburan & Rekreasi": [
-        "Liburan / jalan-jalan",
-        "Hobi & olahraga",
-        "Bioskop / konser"
-    ],
-    "Cicilan": [
-        "KPR",
-        "KLK",
-        "Mobil"
-    ],
-    "Lain-lain": [
-        "Hadiah",
-        "Donasi / sedekah",
-        "Keperluan mendadak"
-    ],
-    "Tabungan & Investasi": [
-        "Tabungan darurat",
-        "Dana pendidikan anak",
-        "Dana pensiun",
-        "Investasi saham / obligasi / reksa dana",
-        "Properti / emas"
-    ],
-    "Dana Cadangan / Darurat": [
-        "Perbaikan rumah / kendaraan mendadak",
-        "Kesehatan mendadak",
-        "Kehilangan pekerjaan atau penghasilan"
-    ],
+    "Makanan & Minuman": ["Belanja bahan makanan", "Makan di luar / restoran", "Minuman & cemilan"],
+    "Perumahan": ["Sewa rumah", "Listrik, air, gas", "Perawatan rumah & kebun", "PDAM", "Internet rumah"],
+    "Transportasi": ["BBM / listrik kendaraan listrik", "Transportasi umum / ojek online", "Servis kendaraan & asuransi"],
+    "Kesehatan": ["Periksa Dokter", "Obat-obatan", "Asuransi kesehatan", "Dokter / klinik"],
+    "Pendidikan": ["Sekolah / kuliah", "Buku & alat tulis", "Kursus / les tambahan"],
+    "Komunikasi & Internet": ["Pulsa & paket data", "TV kabel / streaming"],
+    "Pakaian & Perlengkapan": ["Pakaian & sepatu", "Perawatan diri / kosmetik"],
+    "Hiburan & Rekreasi": ["Liburan / jalan-jalan", "Hobi & olahraga", "Bioskop / konser"],
+    "Cicilan": ["KPR", "KLK", "Mobil"],
+    "Lain-lain": ["Hadiah", "Donasi / sedekah", "Keperluan mendadak"],
+    "Tabungan & Investasi": ["Tabungan darurat", "Dana pendidikan anak", "Dana pensiun", "Investasi saham / obligasi / reksa dana", "Properti / emas"],
+    "Dana Cadangan / Darurat": ["Perbaikan rumah / kendaraan mendadak", "Kesehatan mendadak", "Kehilangan pekerjaan atau penghasilan"],
 
     # ==== Bisnis Operasional ====
     "Pendapatan / Revenue": [
@@ -4038,55 +3987,21 @@ subcategories = {
         "Perlengkapan kebersihan",
         "Biaya pos & courier"
     ],
-    "Finansial": [
-        "Pajak penghasilan / PPN",
-        "Biaya bank (transfer, administrasi)",
-        "Biaya kartu kredit / pinjaman modal",
-        "Asuransi bisnis / aset"
-    ],
-    "Dana Cadangan / Investasi Bisnis": [
-        "Dana darurat untuk operasional",
-        "Investasi sistem / teknologi baru",
-        "Upgrade kantor / ruang kerja",
-        "Pelatihan & pengembangan SDM"
-    ],
-    "Lain-lain": [
-        "Denda atau penalti tiket",
-        "Refund / komplain pelanggan",
-        "Hadiah / apresiasi pelanggan",
-        "Biaya legal / konsultasi hukum"
-    ],
+    "Finansial": ["Pajak penghasilan / PPN", "Biaya bank (transfer, administrasi)", "Biaya kartu kredit / pinjaman modal", "Asuransi bisnis / aset"],
+    "Dana Cadangan / Investasi Bisnis": ["Dana darurat untuk operasional", "Investasi sistem / teknologi baru", "Upgrade kantor / ruang kerja", "Pelatihan & pengembangan SDM"],
+    "Lain-lain": ["Denda atau penalti tiket", "Refund / komplain pelanggan", "Hadiah / apresiasi pelanggan", "Biaya legal / konsultasi hukum"],
 
     # ==== Cadangan Bisnis ====
-    "Dana Cadangan / Investasi": [
-        "Investasi jangka panjang",
-        "Modal ekspansi bisnis",
-        "Dana keamanan / likuiditas"
-    ],
+    "Dana Cadangan / Investasi": ["Investasi jangka panjang", "Modal ekspansi bisnis", "Dana keamanan / likuiditas"],
 
     # ==== Tabungan / Investasi ====
-    "Pendapatan / Return": [
-        "Dividen saham",
-        "Bunga deposito",
-        "Keuntungan reksa dana",
-        "Keuntungan properti / emas"
-    ],
-    "Tabungan & Investasi": [
-        "Tabungan darurat",
-        "Dana pendidikan",
-        "Dana pensiun",
-        "Investasi saham / obligasi / reksa dana",
-        "Properti / emas"
-    ],
-    "Dana Cadangan / Darurat": [
-        "Dana tak terduga",
-        "Perbaikan aset mendadak",
-        "Kehilangan penghasilan"
-    ]
+    "Pendapatan / Return": ["Dividen saham", "Bunga deposito", "Keuntungan reksa dana", "Keuntungan properti / emas"],
+    "Tabungan & Investasi": ["Tabungan darurat", "Dana pendidikan", "Dana pensiun", "Investasi saham / obligasi / reksa dana", "Properti / emas"],
+    "Dana Cadangan / Darurat": ["Dana tak terduga", "Perbaikan aset mendadak", "Kehilangan penghasilan"]
 }
 
 # ======================
-# UI
+# UI Streamlit
 # ======================
 with st.expander("💰 Pencatatan Keuangan Profesional"):
     with st.expander("Input Transaksi"):
@@ -4095,62 +4010,51 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
             "Jenis Transaksi",
             ["Pengeluaran", "Pemasukan", "Transfer Antar Rekening"]
         )
-        
         tanggal = st.date_input("Tanggal", datetime.today())
-        
+
         # ----------------------
         # Pengeluaran
         # ----------------------
         if jenis == "Pengeluaran":
             rekening = st.selectbox("Rekening Sumber", accounts['account_name'])
-            
-            # Kategori dinamis berdasarkan rekening
-            kategori_list = rekening_to_categories.get(rekening, ["Pilih Kategori"])
+            kategori_list = rekening_to_categories.get(rekening, {}).get("Pengeluaran", ["Pilih Kategori"])
             kategori = st.selectbox("Kategori", kategori_list)
-            
-            # Subkategori dinamis berdasarkan kategori
             sub_list = subcategories.get(kategori, ["Pilih Subkategori"])
             sub = st.selectbox("Sub Kategori", sub_list)
-            
+
             jumlah = st.number_input("Jumlah (Rp)", min_value=1, step=1000)
             catatan = st.text_input("Catatan")
-        
+
             if st.button("Simpan Pengeluaran"):
-                if saldo_map.get(rekening,0) < jumlah:
+                if saldo_map.get(rekening, 0) < jumlah:
                     st.error("Saldo tidak mencukupi. Silakan pilih rekening lain atau lakukan transfer.")
                 else:
                     tx_id = generate_tx_id(transactions)
-                    tx_ws.append_row([
-                        tx_id, tanggal.strftime("%Y-%m-%d"), "Pengeluaran",
-                        rekening, "", jumlah, kategori, sub, catatan
-                    ])
+                    tx_ws.append_row([tx_id, tanggal.strftime("%Y-%m-%d"), "Pengeluaran",
+                                      rekening, "", jumlah, kategori, sub, catatan])
                     st.success("Pengeluaran tersimpan ✅")
                     saldo_map[rekening] -= jumlah
-        
+
         # ----------------------
         # Pemasukan
         # ----------------------
         elif jenis == "Pemasukan":
             rekening = st.selectbox("Rekening Tujuan", accounts['account_name'])
-            
-            kategori_list = rekening_to_categories.get(rekening, ["Pilih Kategori"])
+            kategori_list = rekening_to_categories.get(rekening, {}).get("Pemasukan", ["Pilih Kategori"])
             kategori = st.selectbox("Kategori", kategori_list)
-            
             sub_list = subcategories.get(kategori, ["Pilih Subkategori"])
             sub = st.selectbox("Sub Kategori", sub_list)
-            
+
             jumlah = st.number_input("Jumlah (Rp)", min_value=1, step=1000)
             catatan = st.text_input("Catatan")
-        
+
             if st.button("Simpan Pemasukan"):
                 tx_id = generate_tx_id(transactions)
-                tx_ws.append_row([
-                    tx_id, tanggal.strftime("%Y-%m-%d"), "Pemasukan",
-                    "", rekening, jumlah, kategori, sub, catatan
-                ])
+                tx_ws.append_row([tx_id, tanggal.strftime("%Y-%m-%d"), "Pemasukan",
+                                  "", rekening, jumlah, kategori, sub, catatan])
                 st.success("Pemasukan tersimpan ✅")
                 saldo_map[rekening] += jumlah
-        
+
         # ----------------------
         # Transfer Antar Rekening
         # ----------------------
@@ -4159,19 +4063,18 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
             tujuan = st.selectbox("Rekening Tujuan", [a for a in accounts['account_name'] if a != asal])
             jumlah = st.number_input("Jumlah (Rp)", min_value=1, step=1000)
             catatan = st.text_input("Catatan")
-        
+
             if st.button("Simpan Transfer"):
-                if saldo_map.get(asal,0) < jumlah:
+                if saldo_map.get(asal, 0) < jumlah:
                     st.error("Saldo tidak mencukupi.")
                 else:
                     tx_id = generate_tx_id(transactions)
-                    tx_ws.append_row([
-                        tx_id, tanggal.strftime("%Y-%m-%d"), "Transfer",
-                        asal, tujuan, jumlah, "Transfer Antar Rekening", "", catatan
-                    ])
+                    tx_ws.append_row([tx_id, tanggal.strftime("%Y-%m-%d"), "Transfer",
+                                      asal, tujuan, jumlah, "Transfer Antar Rekening", "", catatan])
                     st.success("Transfer tersimpan ✅")
                     saldo_map[asal] -= jumlah
                     saldo_map[tujuan] += jumlah
+
     
     # ======================
     # LAPORAN SALDO

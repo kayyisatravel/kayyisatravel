@@ -3840,131 +3840,7 @@ with st.expander("📘 Laporan - laporan"):
 #elif selected == "Settings":
  #   st.title("⚙️ Pengaturan Sistem")
     # form setting admin, kategori, dll
-
-import streamlit as st
-import pandas as pd
-from sheets_utils import connect_to_gsheet
-from datetime import datetime
-
-# ======================
-# Helper Functions
-# ======================
-def parse_currency(x):
-    """Convert string like 'Rp 1.500.000,75' to float"""
-    if pd.isna(x) or x == "":
-        return 0.0
-    x = str(x).replace("Rp", "").replace(".", "").replace(",", ".")
-    try:
-        return float(x)
-    except ValueError:
-        return 0.0
-
-def hitung_saldo(accounts, tx):
-    """Hitung saldo terkini per rekening"""
-    saldo = {row['account_name']: parse_currency(row['balance']) for _, row in accounts.iterrows()}
-    for _, row in tx.iterrows():
-        jumlah = row['jumlah']
-        if row['rekening_sumber']:
-            saldo[row['rekening_sumber']] -= jumlah
-        if row['rekening_tujuan']:
-            saldo[row['rekening_tujuan']] += jumlah
-    return saldo
-
-def generate_tx_id(tx):
-    """Buat ID unik berbasis timestamp"""
-    return datetime.now().strftime("%Y%m%d%H%M%S")
-
-# ======================
-# Load Data
-# ======================
-SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
-acc_ws = connect_to_gsheet(SHEET_ID, "ACCOUNTS")
-tx_ws  = connect_to_gsheet(SHEET_ID, "TRANSACTIONS")
-
-accounts = pd.DataFrame(acc_ws.get_all_records())
-transactions = pd.DataFrame(tx_ws.get_all_records())
-
-if not transactions.empty:
-    transactions['jumlah'] = transactions['jumlah'].apply(parse_currency)
-
-saldo_map = hitung_saldo(accounts, transactions)
-
-# ======================
-# Master Kategori & Subkategori Berdasarkan Rekening
-# ======================
-rekening_to_categories = {
-    "Kas Pribadi": ["Rumah Tangga", "Hiburan"],
-    "BCA Bisnis Operasional": ["Supplier Bisnis", "Gaji Karyawan", "Operasional"],
-    "Rekening Investasi": ["Investasi", "Dividen"],
-    "Rekening Tabungan": ["Tabungan Pribadi", "Darurat"]
-}
-
-subcategories = {
-    "Rumah Tangga": ["Listrik", "Air", "Belanja"],
-    "Hiburan": ["Liburan", "Makanan & Minuman"],
-    "Supplier Bisnis": ["Bahan Baku", "Gaji Pegawai"],
-    "Gaji Karyawan": ["Karyawan Fulltime", "Karyawan Parttime"],
-    "Operasional": ["Sewa Kantor", "Internet", "Alat Tulis"],
-    "Investasi": ["Saham", "Reksa Dana"],
-    "Dividen": ["Dividen Bulanan", "Dividen Tahunan"],
-    "Tabungan Pribadi": ["Tabungan Rutin", "Tabungan Darurat"],
-    "Darurat": ["Dana Darurat"]
-}
-
-# ======================
-# UI
-# ======================
-import streamlit as st
-import pandas as pd
-from sheets_utils import connect_to_gsheet
-from datetime import datetime
-
-# ======================
-# Helper Functions
-# ======================
-def parse_currency(x):
-    """Convert string like 'Rp 1.500.000,75' to float"""
-    if pd.isna(x) or x == "":
-        return 0.0
-    x = str(x).replace("Rp", "").replace(".", "").replace(",", ".")
-    try:
-        return float(x)
-    except ValueError:
-        return 0.0
-
-def hitung_saldo(accounts, tx):
-    """Hitung saldo terkini per rekening"""
-    saldo = {row['account_name']: parse_currency(row['balance']) for _, row in accounts.iterrows()}
-    for _, row in tx.iterrows():
-        jumlah = row['jumlah']
-        if row['rekening_sumber']:
-            saldo[row['rekening_sumber']] -= jumlah
-        if row['rekening_tujuan']:
-            saldo[row['rekening_tujuan']] += jumlah
-    return saldo
-
-def generate_tx_id(tx):
-    """Buat ID unik berbasis timestamp"""
-    return datetime.now().strftime("%Y%m%d%H%M%S")
-
-# ======================
-# Load Data
-# ======================
-SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
-acc_ws = connect_to_gsheet(SHEET_ID, "ACCOUNTS")
-tx_ws  = connect_to_gsheet(SHEET_ID, "TRANSACTIONS")
-
-accounts = pd.DataFrame(acc_ws.get_all_records())
-transactions = pd.DataFrame(tx_ws.get_all_records())
-
-if not transactions.empty:
-    transactions['jumlah'] = transactions['jumlah'].apply(parse_currency)
-
-saldo_map = hitung_saldo(accounts, transactions)
-
-# ======================
-# UI
-# ======================
+=============================================================================================================================================================
 import streamlit as st
 import pandas as pd
 from sheets_utils import connect_to_gsheet
@@ -4148,6 +4024,7 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                     icon = icons.get(rekening, "")
                     with col:
                         st.metric(f"{icon} {rekening}", f"Rp {saldo:,.0f}")
+
 
 
 

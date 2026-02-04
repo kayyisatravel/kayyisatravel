@@ -3894,21 +3894,25 @@ saldo_map = hitung_saldo(accounts, transactions)
 # Master Kategori & Subkategori Berdasarkan Rekening
 # ======================
 rekening_to_categories = {
-    "Kas Pribadi": ["Rumah Tangga", "Hiburan"],
-    "BCA Bisnis Operasional": ["Supplier Bisnis", "Gaji Karyawan", "Operasional"],
-    "Rekening Investasi": ["Investasi", "Dividen"],
-    "Rekening Tabungan": ["Tabungan Pribadi", "Darurat"]
+    "Rumah Tangga": ["Rumah Tangga", "Kesehatan", "Hiburan", "Cicilan", "Hewan Peliharaan",],
+    "Bisnis Operasional": ["Supplier Bisnis", "Gaji Karyawan", "Operasional", "Deviden"],
+    "Cadangan Bisnis": ["Investasi Bisnis", "Ekspansi Bisnis", "Dana Investor"],
+    "Tabungan / Investasi": ["Investasi Keluarga", "Darurat"]
 }
 
 subcategories = {
-    "Rumah Tangga": ["Listrik", "Air", "Belanja"],
+    "Rumah Tangga": ["Belanja Rumah Tangga", "PDAM", "Listrik", "Internet"],
+    "Kesehatan": ["Periksa Dokter", "Obat-obatan", "Laboratorium"]
     "Hiburan": ["Liburan", "Makanan & Minuman"],
-    "Supplier Bisnis": ["Bahan Baku", "Gaji Pegawai"],
-    "Gaji Karyawan": ["Karyawan Fulltime", "Karyawan Parttime"],
-    "Operasional": ["Sewa Kantor", "Internet", "Alat Tulis"],
-    "Investasi": ["Saham", "Reksa Dana"],
-    "Dividen": ["Dividen Bulanan", "Dividen Tahunan"],
-    "Tabungan Pribadi": ["Tabungan Rutin", "Tabungan Darurat"],
+    "Cicilan": ["KPR BSI", "Mobil", "KLK"]
+    "Hewan Peliharaan": ["Pakan Kucing", "Pasir Kucing", "Grooming", "Dokter"]
+    "Supplier Bisnis": ["Order Tiket", "Gaji Pegawai"],
+    "Gaji Karyawan": ["Gaji Bulanan", "Bonus"],
+    "Operasional": ["Internet", "Alat Tulis", Listrik],
+    "Investasi Bisnis": ["Saham", "Reksa Dana", "Alokasi Lainnya"],
+    "Deviden": ["Dividen Bulanan", "Dividen Tahunan"],
+    "Ekspansi Bisnis: ["Modal Usaha Baru"]
+    "Investasi Keluarga": ["Tabungan", "Deposito", "Emas"],
     "Darurat": ["Dana Darurat"]
 }
 
@@ -4006,6 +4010,7 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
     with st.expander("Jumlah Saldo Rekening", expanded=True):
         st.subheader("📊 Saldo Rekening Terkini")
     
+    
         icons = {
             "Kas Pribadi": "🏦",
             "BCA Bisnis Operasional": "🏢",
@@ -4013,8 +4018,10 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
             "Rekening Tabungan": "💳",
         }
         
+        # Ambil saldo_map yang sudah dihitung dari hitung_saldo()
         saldo_items = list(saldo_map.items())
         
+        # Buat kolom 2 kartu per baris
         for i in range(0, len(saldo_items), 2):
             cols = st.columns(2)
             for j, col in enumerate(cols):
@@ -4023,7 +4030,7 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                     rekening, saldo = saldo_items[idx]
                     icon = icons.get(rekening, "")
                     with col:
-                        st.metric(f"{icon} {rekening}", f"Rp {saldo:,.0f}")
+                        metric_card(f"{icon} {rekening}", f"Rp {saldo:,.0f}")
 
 
 

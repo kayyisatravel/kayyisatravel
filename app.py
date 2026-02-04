@@ -3965,6 +3965,80 @@ saldo_map = hitung_saldo(accounts, transactions)
 # ======================
 # UI
 # ======================
+import streamlit as st
+import pandas as pd
+from sheets_utils import connect_to_gsheet
+from datetime import datetime
+
+# ======================
+# Helper Functions
+# ======================
+def parse_currency(x):
+    """Convert string like 'Rp 1.500.000,75' to float"""
+    if pd.isna(x) or x == "":
+        return 0.0
+    x = str(x).replace("Rp", "").replace(".", "").replace(",", ".")
+    try:
+        return float(x)
+    except ValueError:
+        return 0.0
+
+def hitung_saldo(accounts, tx):
+    """Hitung saldo terkini per rekening"""
+    saldo = {row['account_name'].strip(): parse_currency(row['balance']) for _, row in accounts.iterrows()}
+    for _, row in tx.iterrows():
+        jumlah = row['jumlah']
+        if row['rekening_sumber']:
+            saldo[row['rekening_sumber']] -= jumlah
+        if row['rekening_tujuan']:
+            saldo[row['rekening_tujuan']] += jumlah
+    return saldo
+
+def generate_tx_id(tx):
+    """Buat ID unik berbasis timestamp"""
+    return datetime.now().strftime("%Y%m%d%H%M%S")
+
+# ======================
+# Load Data
+# ======================
+SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
+acc_ws = connect_to_gsheet(SHEET_ID, "ACCOUNTS")
+tx_ws  = connect_to_gsheet(SHEET_ID, "TRANSACTIONS")
+
+accounts = pd.DataFrame(acc_ws.get_all_records())
+accounts['account_name'] = accounts['account_name'].str.strip()  # Bersihkan spasi
+transactions = pd.DataFrame(tx_ws.get_all_records())
+
+if not transactions.empty:
+    transactions['jumlah'] = transactions['jumlah'].apply(parse_currency)
+
+saldo_map = hitung_saldo(accounts, transactions)
+
+# ======================
+# Master Kategori & Subkategori Berdasarkan Rekening
+# ======================
+rekening_to_categories = {
+    "Kas Pribadi": ["Rumah Tangga", "Hiburan"],
+    "BCA Bisnis Operasional": ["Supplier Bisnis", "Gaji Karyawan", "Operasional"],
+    "Rekening Investasi": ["Investasi", "Dividen"],
+    "Rekening Tabungan": ["Tabungan Pribadi", "Darurat"]
+}
+
+subcategories = {
+    "Rumah Tangga": ["Listrik", "Air", "Belanja"],
+    "Hiburan": ["Liburan", "Makanan & Minuman"],
+    "Supplier Bisnis": ["Bahan Baku", "Gaji Pegawai"],
+    "Gaji Karyawan": ["Karyawan Fulltime", "Karyawan Parttime"],
+    "Operasional": ["Sewa Kantor", "Internet", "Alat Tulis"],
+    "Investasi": ["Saham", "Reksa Dana"],
+    "Dividen": ["Dividen Bulanan", "Dividen Tahunan"],
+    "Tabungan Pribadi": ["Tabungan Rutin", "Tabungan Darurat"],
+    "Darurat": ["Dana Darurat"]
+}
+
+# ======================
+# UI
+# ======================
 with st.expander("💰 Pencatatan Keuangan Profesional"):
     with st.expander("Input Transaksi"):
 
@@ -3980,8 +4054,15 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
         # ----------------------
         if jenis == "Pengeluaran":
             rekening = st.selectbox("Rekening Sumber", accounts['account_name'])
-            kategori = st.selectbox("Kategori", ["Rumah Tangga", "Supplier Bisnis"])
-            sub = st.text_input("Sub Kategori")
+            
+            # Kategori dinamis berdasarkan rekening
+            kategori_list = rekening_to_categories.get(rekening, ["Pilih Kategori"])
+            kategori = st.selectbox("Kategori", kategori_list)
+            
+            # Subkategori dinamis berdasarkan kategori
+            sub_list = subcategories.get(kategori, ["Pilih Subkategori"])
+            sub = st.selectbox("Sub Kategori", sub_list)
+            
             jumlah = st.number_input("Jumlah (Rp)", min_value=1, step=1000)
             catatan = st.text_input("Catatan")
         
@@ -3995,7 +4076,6 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                         rekening, "", jumlah, kategori, sub, catatan
                     ])
                     st.success("Pengeluaran tersimpan ✅")
-                    # Update saldo di UI
                     saldo_map[rekening] -= jumlah
         
         # ----------------------
@@ -4003,8 +4083,13 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
         # ----------------------
         elif jenis == "Pemasukan":
             rekening = st.selectbox("Rekening Tujuan", accounts['account_name'])
-            kategori = st.selectbox("Kategori", ["Gaji", "Penjualan"])
-            sub = st.text_input("Sub Kategori")
+            
+            kategori_list = rekening_to_categories.get(rekening, ["Pilih Kategori"])
+            kategori = st.selectbox("Kategori", kategori_list)
+            
+            sub_list = subcategories.get(kategori, ["Pilih Subkategori"])
+            sub = st.selectbox("Sub Kategori", sub_list)
+            
             jumlah = st.number_input("Jumlah (Rp)", min_value=1, step=1000)
             catatan = st.text_input("Catatan")
         
@@ -4045,7 +4130,6 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
     with st.expander("Jumlah Saldo Rekening", expanded=True):
         st.subheader("📊 Saldo Rekening Terkini")
     
-    
         icons = {
             "Kas Pribadi": "🏦",
             "BCA Bisnis Operasional": "🏢",
@@ -4053,10 +4137,8 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
             "Rekening Tabungan": "💳",
         }
         
-        # Ambil saldo_map yang sudah dihitung dari hitung_saldo()
         saldo_items = list(saldo_map.items())
         
-        # Buat kolom 2 kartu per baris
         for i in range(0, len(saldo_items), 2):
             cols = st.columns(2)
             for j, col in enumerate(cols):
@@ -4065,7 +4147,8 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                     rekening, saldo = saldo_items[idx]
                     icon = icons.get(rekening, "")
                     with col:
-                        metric_card(f"{icon} {rekening}", f"Rp {saldo:,.0f}")
+                        st.metric(f"{icon} {rekening}", f"Rp {saldo:,.0f}")
+
 
 
 

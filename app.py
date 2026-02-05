@@ -4212,28 +4212,39 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
     with st.expander("📄 Detail Transaksi"):
         # Filter Rekening
         rekening_filter = st.selectbox(
-            "Pilih Rekening untuk melihat transaksi",
-            ["Semua"] + list(accounts['account_name'])
+            "Pilih Rekening",
+            ["Semua"] + list(accounts['account_name']),
+            key="filter_rekening"
         )
         
         # Filter rentang tanggal
         col1, col2 = st.columns(2)
         with col1:
-            tanggal_awal = st.date_input("Tanggal Awal", value=datetime.today())
+            tanggal_awal = st.date_input(
+                "Tanggal Awal",
+                value=datetime.today(),
+                key="tanggal_awal_filter"
+            )
         with col2:
-            tanggal_akhir = st.date_input("Tanggal Akhir", value=datetime.today())
+            tanggal_akhir = st.date_input(
+                "Tanggal Akhir",
+                value=datetime.today(),
+                key="tanggal_akhir_filter"
+            )
         
         # Filter Bulan dan Tahun
         col3, col4 = st.columns(2)
         with col3:
             bulan_filter = st.selectbox(
                 "Bulan",
-                ["Semua"] + [f"{i:02d}" for i in range(1, 13)]
+                ["Semua"] + [f"{i:02d}" for i in range(1, 13)],
+                key="filter_bulan"
             )
         with col4:
             tahun_filter = st.selectbox(
                 "Tahun",
-                ["Semua"] + sorted(transactions['tanggal'].apply(lambda x: pd.to_datetime(x).year).unique(), reverse=True)
+                ["Semua"] + sorted(transactions['tanggal'].apply(lambda x: pd.to_datetime(x).year).unique(), reverse=True),
+                key="filter_tahun"
             )
 
 

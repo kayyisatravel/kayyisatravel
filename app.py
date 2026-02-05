@@ -4046,7 +4046,7 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
             )
 
             # UX: Preview
-            st.markdown("#### 🧾 Ringkasan Transaksi")
+            st.markdown("#### 🧾 Preview Transaksi (cek dulu sebelum simpan")
             st.info(f"""
 **Jenis**     : Pengeluaran  
 **Tanggal**  : {tanggal.strftime('%d %B %Y')}  
@@ -4101,7 +4101,7 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                 key=f"catatan_{st.session_state.reset_counter}"
             )
 
-            st.markdown("#### 🧾 Ringkasan Transaksi")
+            st.markdown("#### 🧾 Preview Transaksi (cek dulu sebelum simpan")
             st.info(f"""
 **Jenis**     : Pemasukan  
 **Tanggal**  : {tanggal.strftime('%d %B %Y')}  
@@ -4150,6 +4150,15 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                 "karena tidak memengaruhi laporan pemasukan atau pengeluaran."
             )
 
+            st.markdown("#### 🧾 Preview Transaksi (cek dulu sebelum transfer")
+            st.info(f"""
+**Jenis**        : Transfer Antar Rekening  
+**Tanggal**     : {tanggal.strftime('%d %B %Y')}  
+**Dari Rekening** : {asal}  
+**Ke Rekening**   : {tujuan}  
+**Jumlah**      : Rp {jumlah:,.0f}  
+""")
+            
             if st.button("Simpan Transfer"):
                 if saldo_map.get(asal, 0) < jumlah:
                     st.error("Saldo tidak mencukupi.")

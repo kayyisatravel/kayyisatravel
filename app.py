@@ -4028,11 +4028,11 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
 
             kategori_list = rekening_to_categories.get(rekening, {}).get("Pengeluaran", ["Pilih Kategori"])
             kategori = st.selectbox("Kategori", kategori_list)
-            kategori_clean = clean_label(kategori)
+            #kategori_clean = clean_label(kategori)
 
             sub_list = subcategories.get(kategori, ["Pilih Subkategori"])
             sub = st.selectbox("Sub Kategori", sub_list)
-            sub_clean = clean_label(sub)
+            #sub_clean = clean_label(sub)
 
             jumlah = st.number_input(
                 "Jumlah (Rp)",
@@ -4067,8 +4067,8 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                         rekening,
                         "",
                         jumlah,
-                        kategori_clean,
-                        sub_clean,
+                        #kategori_clean,
+                        #sub_clean,
                         catatan
                     ])
                     saldo_map[rekening] -= jumlah
@@ -4084,11 +4084,11 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
 
             kategori_list = rekening_to_categories.get(rekening, {}).get("Pemasukan", ["Pilih Kategori"])
             kategori = st.selectbox("Kategori", kategori_list)
-            kategori_clean = clean_label(kategori)
+            #kategori_clean = clean_label(kategori)
 
             sub_list = subcategories.get(kategori, ["Pilih Subkategori"])
             sub = st.selectbox("Sub Kategori", sub_list)
-            sub_clean = clean_label(sub)
+            #sub_clean = clean_label(sub)
 
             jumlah = st.number_input(
                 "Jumlah (Rp)",
@@ -4119,8 +4119,8 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                     "",
                     rekening,
                     jumlah,
-                    kategori_clean,
-                    sub_clean,
+                    #kategori_clean,
+                    #sub_clean,
                     catatan
                 ])
                 saldo_map[rekening] += jumlah

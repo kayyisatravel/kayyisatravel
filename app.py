@@ -4051,8 +4051,8 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
 **Jenis**     : Pengeluaran  
 **Tanggal**  : {tanggal.strftime('%d %B %Y')}  
 **Rekening** : {rekening}  
-**Kategori** : {kategori_clean}  
-**Sub**      : {sub_clean}  
+**Kategori** : {kategori}  
+**Sub**      : {sub}  
 **Jumlah**   : Rp {jumlah:,.0f}
 """)
 
@@ -4106,8 +4106,8 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
 **Jenis**     : Pemasukan  
 **Tanggal**  : {tanggal.strftime('%d %B %Y')}  
 **Rekening** : {rekening}  
-**Kategori** : {kategori_clean}  
-**Sub**      : {sub_clean}  
+**Kategori** : {kategori}  
+**Sub**      : {sub}  
 **Jumlah**   : Rp {jumlah:,.0f}
 """)
 

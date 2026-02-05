@@ -4018,12 +4018,12 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
         if jenis == "Pengeluaran":
             rekening = st.selectbox("Rekening Sumber", accounts['account_name'])
 
-            kategori_raw = rekening_to_categories.get(rekening, {}).get("Pengeluaran", [])
-            kategori = st.selectbox("Kategori", pretty_list(kategori_raw))
+            kategori_list = rekening_to_categories.get(rekening, {}).get("Pengeluaran", ["Pilih Kategori"])
+            kategori = st.selectbox("Kategori", kategori_list)
             kategori_clean = clean_label(kategori)
 
-            sub_raw = subcategories.get(kategori_clean, [])
-            sub = st.selectbox("Sub Kategori", pretty_list(sub_raw))
+            sub_list = subcategories.get(kategori, ["Pilih Subkategori"])
+            sub = st.selectbox("Sub Kategori", sub_list)
             sub_clean = clean_label(sub)
 
             jumlah = st.number_input(
@@ -4074,12 +4074,12 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
         elif jenis == "Pemasukan":
             rekening = st.selectbox("Rekening Tujuan", accounts['account_name'])
 
-            kategori_raw = rekening_to_categories.get(rekening, {}).get("Pemasukan", [])
-            kategori = st.selectbox("Kategori", pretty_list(kategori_raw))
+            kategori_list = rekening_to_categories.get(rekening, {}).get("Pemasukan", ["Pilih Kategori"])
+            kategori = st.selectbox("Kategori", kategori_list)
             kategori_clean = clean_label(kategori)
 
-            sub_raw = subcategories.get(kategori_clean, [])
-            sub = st.selectbox("Sub Kategori", pretty_list(sub_raw))
+            sub_list = subcategories.get(kategori, ["Pilih Subkategori"])
+            sub = st.selectbox("Sub Kategori", sub_list)
             sub_clean = clean_label(sub)
 
             jumlah = st.number_input(

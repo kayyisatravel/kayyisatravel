@@ -3894,6 +3894,10 @@ if not transactions.empty:
 
 saldo_map = hitung_saldo(accounts, transactions)
 
+if "reset_counter" not in st.session_state:
+    st.session_state.reset_counter = 0
+
+
 # ======================
 # Mapping Rekening → Kategori Berdasarkan Jenis Transaksi
 # ======================

@@ -4210,42 +4210,83 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                         metric_card(f"{icon} {rekening}", f"Rp {saldo:,.0f}")
 
     with st.expander("📄 Detail Transaksi"):
-        # Filter Rekening
+        # Pilih jenis filter
+        filter_type = st.radio(
+            "Filter Transaksi Berdasarkan",
+            ["Semua", "Rentang Tanggal", "Bulan", "Tahun"],
+            key="filter_type"
+        )
+    
+        # Pilih rekening (opsional)
         rekening_filter = st.selectbox(
             "Pilih Rekening",
             ["Semua"] + list(accounts['account_name']),
             key="filter_rekening"
         )
-        
-        # Filter rentang tanggal
-        col1, col2 = st.columns(2)
-        with col1:
-            tanggal_awal = st.date_input(
-                "Tanggal Awal",
-                value=datetime.today(),
-                key="tanggal_awal_filter"
-            )
-        with col2:
-            tanggal_akhir = st.date_input(
-                "Tanggal Akhir",
-                value=datetime.today(),
-                key="tanggal_akhir_filter"
-            )
-        
-        # Filter Bulan dan Tahun
-        col3, col4 = st.columns(2)
-        with col3:
+    
+        # Inisialisasi filter tanggal / bulan / tahun
+        tanggal_awal, tanggal_akhir, bulan_filter, tahun_filter = None, None, None, None
+    
+        if filter_type == "Rentang Tanggal":
+            col1, col2 = st.columns(2)
+            with col1:
+                tanggal_awal = st.date_input(
+                    "Tanggal Awal",
+                    value=datetime.today(),
+                    key="tanggal_awal_filter"
+                )
+            with col2:
+                tanggal_akhir = st.date_input(
+                    "Tanggal Akhir",
+                    value=datetime.today(),
+                    key="tanggal_akhir_filter"
+                )
+    
+        elif filter_type == "Bulan":
             bulan_filter = st.selectbox(
                 "Bulan",
-                ["Semua"] + [f"{i:02d}" for i in range(1, 13)],
+                [f"{i:02d}" for i in range(1, 13)],
                 key="filter_bulan"
             )
-        with col4:
+    
+        elif filter_type == "Tahun":
             tahun_filter = st.selectbox(
                 "Tahun",
-                ["Semua"] + sorted(transactions['tanggal'].apply(lambda x: pd.to_datetime(x).year).unique(), reverse=True),
+                sorted(transactions['tanggal'].apply(lambda x: pd.to_datetime(x).year).unique(), reverse=True),
                 key="filter_tahun"
             )
+    
+        # =========================
+        # Terapkan Filter ke Dataframe
+        # =========================
+        df_display = transactions.copy()
+    
+        # Filter rekening
+        if rekening_filter != "Semua":
+            df_display = df_display[
+                (df_display['rekening_sumber'] == rekening_filter) |
+                (df_display['rekening_tujuan'] == rekening_filter)
+            ]
+    
+        # Filter berdasarkan jenis filter
+        if filter_type == "Rentang Tanggal" and tanggal_awal and tanggal_akhir:
+            df_display = df_display[
+                (pd.to_datetime(df_display['tanggal']) >= pd.to_datetime(tanggal_awal)) &
+                (pd.to_datetime(df_display['tanggal']) <= pd.to_datetime(tanggal_akhir))
+            ]
+        elif filter_type == "Bulan" and bulan_filter:
+            df_display = df_display[
+                pd.to_datetime(df_display['tanggal']).dt.month == int(bulan_filter)
+            ]
+        elif filter_type == "Tahun" and tahun_filter:
+            df_display = df_display[
+                pd.to_datetime(df_display['tanggal']).dt.year == int(tahun_filter)
+            ]
+    
+        # Tampilkan dataframe hasil filter
+        st.markdown(f"#### Hasil Transaksi ({len(df_display)} baris)")
+        st.dataframe(df_display.reset_index(drop=True))
+
 
 
 

@@ -4046,7 +4046,7 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
             )
 
             # UX: Preview
-            st.markdown("#### 🧾 Preview Transaksi (cek dulu sebelum simpan")
+            st.markdown("#### 🧾 Preview Transaksi (cek dulu sebelum simpan)")
             st.info(f"""
 **Jenis**     : Pengeluaran  
 **Tanggal**  : {tanggal.strftime('%d %B %Y')}  
@@ -4101,7 +4101,7 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                 key=f"catatan_{st.session_state.reset_counter}"
             )
 
-            st.markdown("#### 🧾 Preview Transaksi (cek dulu sebelum simpan")
+            st.markdown("#### 🧾 Preview Transaksi (cek dulu sebelum simpan)")
             st.info(f"""
 **Jenis**     : Pemasukan  
 **Tanggal**  : {tanggal.strftime('%d %B %Y')}  
@@ -4150,7 +4150,7 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                 "karena tidak memengaruhi laporan pemasukan atau pengeluaran."
             )
 
-            st.markdown("#### 🧾 Preview Transaksi (cek dulu sebelum transfer")
+            st.markdown("#### 🧾 Preview Transaksi (cek dulu sebelum transfer)")
             st.info(f"""
 **Jenis**        : Transfer Antar Rekening  
 **Tanggal**     : {tanggal.strftime('%d %B %Y')}  

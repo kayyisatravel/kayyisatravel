@@ -3874,6 +3874,10 @@ def generate_tx_id(tx):
     """Buat ID unik berbasis timestamp"""
     return datetime.now().strftime("%Y%m%d%H%M%S")
 
+def clean_label(label):
+    """Return label tanpa emoji (kalau ada)"""
+    return label.split(" ", 1)[-1]
+
 # ======================
 # Load Data
 # ======================

@@ -4098,9 +4098,27 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
             st.dataframe(df_new_tx)
     
             if st.button("Simpan ke TRANSACTIONS"):
+                # Pastikan semua float ke Python float
+                new_tx_rows_clean = []
                 for row in new_tx_rows:
-                    tx_ws.append_row(row)
-                st.success(f"{len(new_tx_rows)} transaksi berhasil ditambahkan ✅")
+                    row_clean = [
+                        row[0],
+                        row[1],
+                        row[2],
+                        row[3],
+                        row[4],
+                        float(row[5]),  # pastikan tipe float
+                        row[6],
+                        row[7],
+                        row[8]
+                    ]
+                    new_tx_rows_clean.append(row_clean)
+                
+                # Append semua sekaligus (lebih stabil)
+                tx_ws.append_rows(new_tx_rows_clean, value_input_option="USER_ENTERED")
+                
+                st.success(f"{len(new_tx_rows_clean)} transaksi berhasil ditambahkan ✅")
+
                 # Update saldo
                 saldo_map = hitung_saldo(accounts, pd.concat([transactions, df_new_tx], ignore_index=True))
         else:

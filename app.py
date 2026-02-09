@@ -3871,6 +3871,9 @@ import pandas as pd
 from sheets_utils import connect_to_gsheet
 from datetime import datetime
 
+if 'reset_counter' not in st.session_state:
+    st.session_state.reset_counter = 0
+
 # ======================
 # Helper Functions
 # ======================

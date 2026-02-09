@@ -4078,7 +4078,7 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
     
     if st.session_state["generate_triggered"]:
         new_tx_rows = []
-    
+        existing_tx_ids = set(st.session_state['transactions_df']['tx_id'].astype(str))
         for idx, row in data_filtered.iterrows():
             tipe = row['Tipe']                    
             harga_beli = parse_currency(row['Harga Beli'])
@@ -4155,6 +4155,11 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                     str(row[7]),
                     str(row[8])
                 ]
+                try:
+                    tx_ws.append_row(row_to_save, value_input_option="USER_ENTERED")
+                except Exception as e:
+                    st.error(f"Gagal menyimpan: {e}")
+
                 tx_ws.append_row(row_to_save, value_input_option="USER_ENTERED")
                 st.session_state['transactions_df'] = pd.concat([
                     st.session_state['transactions_df'],

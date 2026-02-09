@@ -3937,66 +3937,6 @@ data = pd.DataFrame(data_ws.get_all_records())
 data['Tgl Pemesanan'] = pd.to_datetime(data['Tgl Pemesanan'], dayfirst=True)
 data_filtered = data[data['Tgl Pemesanan'] >= pd.to_datetime("2026-02-01")]
 
-#st.title("📊 Generate TRANSACTIONS Otomatis dari Data")
-
-# ======================
-# Generate Otomatis
-# ======================
-if st.button("Generate Transaksi Otomatis"):
-    new_tx_rows = []
-
-    for idx, row in data_filtered.iterrows():
-        tipe = row['Tipe']                    # PESAWAT, KERETA, HOTEL, dll
-        harga_beli = parse_currency(row['Harga Beli'])
-        harga_jual = parse_currency(row['Harga Jual'])
-        no_invoice = row['No Invoice'] if pd.notna(row['No Invoice']) else f"MANUAL_{idx}"
-
-        # 1️⃣ Pengeluaran
-        tgl_pengeluaran = row['Tgl Pemesanan'].date()
-        tx_id_out = generate_tx_id(transactions, tgl_pengeluaran)
-        new_tx_rows.append([
-            tx_id_out,
-            tgl_pengeluaran.strftime("%Y-%m-%d"),
-            "Pengeluaran",
-            "BCA Bisnis Operasional",
-            "Supplier / Pembelian",
-            harga_beli,
-            "Pembelian",
-            tipe,
-            f"Generated from Sales System / No Invoice {no_invoice}"
-        ])
-
-        # 2️⃣ Pemasukan (status Lunas)
-        lunas_date = parse_lunas_date(row['Keterangan'])
-        if lunas_date:
-            tx_id_in = generate_tx_id(transactions, lunas_date)
-            new_tx_rows.append([
-                tx_id_in,
-                lunas_date.strftime("%Y-%m-%d"),
-                "Pemasukan",
-                "",
-                "BCA Bisnis Operasional",
-                harga_jual,
-                "Penjualan",
-                tipe,
-                f"Generated from Sales System / No Invoice {no_invoice}"
-            ])
-
-    if new_tx_rows:
-        df_new_tx = pd.DataFrame(new_tx_rows, columns=transactions.columns)
-        st.markdown(f"#### Preview {len(df_new_tx)} Transaksi Baru")
-        st.dataframe(df_new_tx)
-
-        if st.button("Simpan ke TRANSACTIONS"):
-            for row in new_tx_rows:
-                tx_ws.append_row(row)
-            st.success(f"{len(new_tx_rows)} transaksi berhasil ditambahkan ✅")
-            # Update saldo
-            saldo_map = hitung_saldo(accounts, pd.concat([transactions, df_new_tx], ignore_index=True))
-    else:
-        st.info("Tidak ada transaksi baru untuk dicatat.")
-
-
 
 # ======================
 # Mapping Rekening → Kategori Berdasarkan Jenis Transaksi
@@ -4112,6 +4052,59 @@ subcategories = {
 # UI Streamlit
 # ======================
 with st.expander("💰 Pencatatan Keuangan Profesional"):
+    if st.button("Generate Transaksi Otomatis"):
+        new_tx_rows = []
+    
+        for idx, row in data_filtered.iterrows():
+            tipe = row['Tipe']                    # PESAWAT, KERETA, HOTEL, dll
+            harga_beli = parse_currency(row['Harga Beli'])
+            harga_jual = parse_currency(row['Harga Jual'])
+            no_invoice = row['No Invoice'] if pd.notna(row['No Invoice']) else f"MANUAL_{idx}"
+    
+            # 1️⃣ Pengeluaran
+            tgl_pengeluaran = row['Tgl Pemesanan'].date()
+            tx_id_out = generate_tx_id(transactions, tgl_pengeluaran)
+            new_tx_rows.append([
+                tx_id_out,
+                tgl_pengeluaran.strftime("%Y-%m-%d"),
+                "Pengeluaran",
+                "BCA Bisnis Operasional",
+                "Supplier / Pembelian",
+                harga_beli,
+                "Pembelian",
+                tipe,
+                f"Generated from Sales System / No Invoice {no_invoice}"
+            ])
+    
+            # 2️⃣ Pemasukan (status Lunas)
+            lunas_date = parse_lunas_date(row['Keterangan'])
+            if lunas_date:
+                tx_id_in = generate_tx_id(transactions, lunas_date)
+                new_tx_rows.append([
+                    tx_id_in,
+                    lunas_date.strftime("%Y-%m-%d"),
+                    "Pemasukan",
+                    "",
+                    "BCA Bisnis Operasional",
+                    harga_jual,
+                    "Penjualan",
+                    tipe,
+                    f"Generated from Sales System / No Invoice {no_invoice}"
+                ])
+    
+        if new_tx_rows:
+            df_new_tx = pd.DataFrame(new_tx_rows, columns=transactions.columns)
+            st.markdown(f"#### Preview {len(df_new_tx)} Transaksi Baru")
+            st.dataframe(df_new_tx)
+    
+            if st.button("Simpan ke TRANSACTIONS"):
+                for row in new_tx_rows:
+                    tx_ws.append_row(row)
+                st.success(f"{len(new_tx_rows)} transaksi berhasil ditambahkan ✅")
+                # Update saldo
+                saldo_map = hitung_saldo(accounts, pd.concat([transactions, df_new_tx], ignore_index=True))
+        else:
+            st.info("Tidak ada transaksi baru untuk dicatat.")
     with st.expander("Input Transaksi"):
 
         jenis = st.selectbox(

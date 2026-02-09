@@ -4126,40 +4126,47 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                 ])
 
         if new_tx_rows:
+            # Buat DataFrame untuk preview
             df_new_tx = pd.DataFrame(new_tx_rows, columns=transactions.columns)
-
-            # Update DataFrame utama sebelum append ke Sheet
-            transactions = pd.concat([transactions, df_new_tx], ignore_index=True)
-
+        
+            # Preview
             st.markdown(f"#### Preview {len(df_new_tx)} Transaksi Baru")
             st.dataframe(df_new_tx)
-
+        
+            # Simpan di session_state supaya tidak hilang saat klik button
+            st.session_state['new_tx_rows'] = new_tx_rows
+        
             if st.button("Simpan ke TRANSACTIONS"):
-                # Pastikan semua float ke Python float
-                new_tx_rows_clean = []
-                for row in new_tx_rows:
-                    row_clean = [
-                        row[0],
-                        row[1],
-                        row[2],
-                        row[3],
-                        row[4],
-                        float(row[5]),  # pastikan tipe float
-                        row[6],
-                        row[7],
-                        row[8]
-                    ]
-                    new_tx_rows_clean.append(row_clean)
+                rows_to_save = st.session_state.get('new_tx_rows', [])
+                if rows_to_save:
+                    new_tx_rows_clean = []
+                    for row in rows_to_save:
+                        row_clean = [
+                            str(row[0]),                                      # tx_id
+                            row[1].strftime("%Y-%m-%d") if hasattr(row[1], 'strftime') else str(row[1]),  # tanggal
+                            str(row[2]),                                      # jenis
+                            str(row[3]),                                      # rekening_asal
+                            str(row[4]),                                      # rekening_tujuan
+                            float(row[5]),                                    # jumlah
+                            str(row[6]),                                      # kategori
+                            str(row[7]),                                      # sub
+                            str(row[8])                                       # catatan
+                        ]
+                        new_tx_rows_clean.append(row_clean)
+        
+                    # Append ke Google Sheet
+                    tx_ws.append_rows(new_tx_rows_clean, value_input_option="USER_ENTERED")
+        
+                    # Update DataFrame utama
+                    transactions = pd.concat([transactions, pd.DataFrame(new_tx_rows_clean, columns=transactions.columns)], ignore_index=True)
+        
+                    # Bersihkan session_state supaya tombol tidak bisa diklik 2x
+                    st.session_state['new_tx_rows'] = []
+        
+                    st.success(f"{len(new_tx_rows_clean)} transaksi berhasil ditambahkan ✅")
+                else:
+                    st.info("Tidak ada transaksi untuk disimpan.")
 
-                # Append semua sekaligus
-                tx_ws.append_rows(new_tx_rows_clean, value_input_option="USER_ENTERED")
-
-                st.success(f"{len(new_tx_rows_clean)} transaksi berhasil ditambahkan ✅")
-
-                # Update saldo
-                saldo_map = hitung_saldo(accounts, transactions)
-        else:
-            st.info("Tidak ada transaksi baru untuk dicatat.")
 
 
     # =========================

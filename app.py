@@ -4140,38 +4140,41 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
             st.session_state["save_triggered"] = False
     
         if st.button("Simpan ke TRANSACTIONS"):
-            st.session_state["save_triggered"] = True
-    
-        if st.session_state["save_triggered"]:
-            for row in st.session_state['new_tx_rows']:
-                row_to_save = [
-                    str(row[0]),
-                    row[1].strftime("%Y-%m-%d") if hasattr(row[1], 'strftime') else str(row[1]),
-                    str(row[2]),
-                    str(row[3]),
-                    str(row[4]),
-                    float(row[5]),
-                    str(row[6]),
-                    str(row[7]),
-                    str(row[8])
-                ]
-                try:
-                    tx_ws.append_row(row_to_save, value_input_option="USER_ENTERED")
-                except Exception as e:
-                    st.error(f"Gagal menyimpan: {e}")
-
-                tx_ws.append_row(row_to_save, value_input_option="USER_ENTERED")
-                st.session_state['transactions_df'] = pd.concat([
-                    st.session_state['transactions_df'],
-                    pd.DataFrame([row_to_save], columns=df_new_tx.columns)
-                ], ignore_index=True)
-    
-            # Update saldo
-            saldo_map = hitung_saldo(accounts, st.session_state['transactions_df'])
-            st.session_state['new_tx_rows'] = []
-            st.session_state["generate_triggered"] = False
-            st.session_state["save_triggered"] = False
-            st.success("Semua transaksi berhasil disimpan ✅")
+            if 'new_tx_rows' in st.session_state and st.session_state['new_tx_rows']:
+                df_new_tx = pd.DataFrame(
+                    st.session_state['new_tx_rows'],
+                    columns=['tx_id', 'tanggal', 'jenis', 'rekening_sumber', 'rekening_tujuan',
+                             'jumlah', 'kategori', 'subkategori', 'catatan']
+                )
+        
+                for row in st.session_state['new_tx_rows']:
+                    row_to_save = [
+                        str(row[0]),
+                        row[1].strftime("%Y-%m-%d") if hasattr(row[1], 'strftime') else str(row[1]),
+                        str(row[2]),
+                        str(row[3]),
+                        str(row[4]),
+                        float(row[5]),
+                        str(row[6]),
+                        str(row[7]),
+                        str(row[8])
+                    ]
+                    try:
+                        tx_ws.append_row(row_to_save, value_input_option="USER_ENTERED")
+                    except Exception as e:
+                        st.error(f"Gagal menyimpan {row_to_save[0]}: {e}")
+                        continue
+        
+                    # Update local dataframe
+                    st.session_state['transactions_df'] = pd.concat([
+                        st.session_state['transactions_df'],
+                        pd.DataFrame([row_to_save], columns=df_new_tx.columns)
+                    ], ignore_index=True)
+        
+                # Update saldo
+                saldo_map = hitung_saldo(accounts, st.session_state['transactions_df'])
+                st.session_state['new_tx_rows'] = []
+                st.success(f"{len(df_new_tx)} transaksi berhasil disimpan ✅")
 
 
 

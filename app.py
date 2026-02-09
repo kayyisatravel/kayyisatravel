@@ -4078,15 +4078,15 @@ subcategories = {
 # UI Streamlit
 # ======================
 with st.expander("💰 Pencatatan Keuangan Profesional"):
-
-    # =========================
-    # Generate Transaksi Otomatis
-    # =========================
     if st.button("Generate Transaksi Otomatis"):
+        # Pastikan kolom tx_id ada
+        if 'tx_id' not in transactions.columns:
+            transactions['tx_id'] = ""
+
         new_tx_rows = []
 
         for idx, row in data_filtered.iterrows():
-            tipe = row['Tipe']                    # PESAWAT, KERETA, HOTEL, dll
+            tipe = row['Tipe']  # PESAWAT, KERETA, HOTEL, dll
             harga_beli = parse_currency(row['Harga Beli'])
             harga_jual = parse_currency(row['Harga Jual'])
             no_invoice = row['No Invoice'] if pd.notna(row['No Invoice']) else f"MANUAL_{idx}"
@@ -4100,7 +4100,7 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                 "Pengeluaran",
                 "BCA Bisnis Operasional",
                 "Supplier / Pembelian",
-                float(harga_beli),
+                harga_beli,
                 "Pembelian",
                 tipe,
                 f"Generated from Sales System / No Invoice {no_invoice}"
@@ -4116,30 +4116,48 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                     "Pemasukan",
                     "",
                     "BCA Bisnis Operasional",
-                    float(harga_jual),
+                    harga_jual,
                     "Penjualan",
                     tipe,
                     f"Generated from Sales System / No Invoice {no_invoice}"
                 ])
 
         if new_tx_rows:
-            # Gunakan DataFrame untuk preview
             df_new_tx = pd.DataFrame(new_tx_rows, columns=transactions.columns)
+
+            # Update DataFrame utama sebelum append ke Sheet
+            transactions = pd.concat([transactions, df_new_tx], ignore_index=True)
+
             st.markdown(f"#### Preview {len(df_new_tx)} Transaksi Baru")
             st.dataframe(df_new_tx)
 
             if st.button("Simpan ke TRANSACTIONS"):
-                # Append batch sekaligus → lebih stabil & hemat API
-                tx_ws.append_rows(new_tx_rows, value_input_option="USER_ENTERED")
+                # Pastikan semua float ke Python float
+                new_tx_rows_clean = []
+                for row in new_tx_rows:
+                    row_clean = [
+                        row[0],
+                        row[1],
+                        row[2],
+                        row[3],
+                        row[4],
+                        float(row[5]),  # pastikan tipe float
+                        row[6],
+                        row[7],
+                        row[8]
+                    ]
+                    new_tx_rows_clean.append(row_clean)
 
-                st.success(f"{len(new_tx_rows)} transaksi berhasil ditambahkan ✅")
+                # Append semua sekaligus
+                tx_ws.append_rows(new_tx_rows_clean, value_input_option="USER_ENTERED")
 
-                # Update saldo dengan data terbaru
-                all_tx = pd.concat([transactions, df_new_tx], ignore_index=True)
-                saldo_map = hitung_saldo(accounts, all_tx)
+                st.success(f"{len(new_tx_rows_clean)} transaksi berhasil ditambahkan ✅")
 
+                # Update saldo
+                saldo_map = hitung_saldo(accounts, transactions)
         else:
             st.info("Tidak ada transaksi baru untuk dicatat.")
+
 
     # =========================
     # Input Manual

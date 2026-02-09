@@ -3874,6 +3874,9 @@ from datetime import datetime
 if 'reset_counter' not in st.session_state:
     st.session_state.reset_counter = 0
 
+if 'transactions_df' not in st.session_state:
+    st.session_state['transactions_df'] = pd.DataFrame()  # nanti akan di-load dari Sheet
+
 # ======================
 # Helper Functions
 # ======================
@@ -3914,43 +3917,26 @@ def hitung_saldo(accounts, tx):
     return saldo
 
 def generate_tx_id(existing_tx, tanggal, prefix=""):
-    """
-    Buat ID unik YYYYMMDDXXXX sesuai transaksi sebelumnya.
-    prefix = opsional, misal 'OUT', 'IN', 'TRF' agar tidak bentrok saat generate otomatis.
-    
-    Aman dipakai meski existing_tx kosong.
-    """
+    """Buat ID unik YYYYMMDDXXXX sesuai transaksi sebelumnya"""
     date_str = tanggal.strftime("%Y%m%d")
-
     if existing_tx is None or existing_tx.empty:
         counter = 1
     else:
-        # Pastikan kolom yang dibutuhkan ada
         if 'tanggal' not in existing_tx.columns or 'tx_id' not in existing_tx.columns:
             raise ValueError("existing_tx harus memiliki kolom 'tanggal' dan 'tx_id'")
-
         mask = existing_tx['tanggal'] == tanggal.strftime("%Y-%m-%d")
         if prefix:
             mask &= existing_tx['tx_id'].astype(str).str.startswith(prefix + date_str)
         counter = mask.sum() + 1
-
     return f"{prefix}{date_str}{counter:04d}"
 
 # ======================
-# Load Data
+# Load Sheet & Data
 # ======================
 SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
-st.write("Cek Sheet ID:", SHEET_ID)
-st.write("Cek worksheet:", "TRANSACTIONS")
 
-try:
-    tx_ws  = connect_to_gsheet(SHEET_ID, "TRANSACTIONS")
-    st.success("Worksheet TRANSACTIONS berhasil diakses ✅")
-except Exception as e:
-    st.error(f"Gagal akses TRANSACTIONS: {e}")
-
-acc_ws = connect_to_gsheet(SHEET_ID, "ACCOUNTS")
 tx_ws  = connect_to_gsheet(SHEET_ID, "TRANSACTIONS")
+acc_ws = connect_to_gsheet(SHEET_ID, "ACCOUNTS")
 data_ws = connect_to_gsheet(SHEET_ID, "Data")
 
 accounts = pd.DataFrame(acc_ws.get_all_records())
@@ -3960,7 +3946,8 @@ transactions = pd.DataFrame(tx_ws.get_all_records())
 if not transactions.empty:
     transactions['jumlah'] = transactions['jumlah'].apply(parse_currency)
 
-saldo_map = hitung_saldo(accounts, transactions)
+st.session_state['transactions_df'] = transactions.copy()
+saldo_map = hitung_saldo(accounts, st.session_state['transactions_df'])
 
 data = pd.DataFrame(data_ws.get_all_records())
 data['Tgl Pemesanan'] = pd.to_datetime(data['Tgl Pemesanan'], dayfirst=True)
@@ -4082,12 +4069,12 @@ subcategories = {
 # ======================
 with st.expander("💰 Pencatatan Keuangan Profesional"):
 
-    # Load latest transactions dari Sheet
-    if 'transactions_df' not in st.session_state:
-        st.session_state['transactions_df'] = pd.DataFrame(tx_ws.get_all_records())
-    
+    # Build set untuk deteksi duplicate
     existing_tx_ids = set(st.session_state['transactions_df']['tx_id'])
+    if 'new_tx_rows' in st.session_state:
+        existing_tx_ids.update([row[0] for row in st.session_state['new_tx_rows']])
 
+    # Tombol generate
     if st.button("Generate Transaksi Otomatis"):
         new_tx_rows = []
 
@@ -4097,13 +4084,12 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
             harga_jual = parse_currency(row['Harga Jual'])
             no_invoice = row['No Invoice'] if pd.notna(row['No Invoice']) else f"MANUAL_{idx}"
 
-            # Gunakan kombinasi unik untuk cek duplikat
-            unique_key_out = f"OUT_{no_invoice}"
-            unique_key_in = f"IN_{no_invoice}"
+            unique_out = f"OUT_{no_invoice}"
+            unique_in = f"IN_{no_invoice}"
 
             # Pengeluaran
             tgl_pengeluaran = row['Tgl Pemesanan'].date()
-            if unique_key_out not in existing_tx_ids:
+            if unique_out not in existing_tx_ids:
                 tx_id_out = generate_tx_id(st.session_state['transactions_df'], tgl_pengeluaran, prefix="OUT")
                 new_tx_rows.append([
                     tx_id_out,
@@ -4116,11 +4102,11 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                     tipe,
                     f"Generated from Sales System / No Invoice {no_invoice}"
                 ])
-                existing_tx_ids.add(unique_key_out)  # tandai sudah ada
+                existing_tx_ids.add(unique_out)
 
-            # Pemasukan (status Lunas)
+            # Pemasukan
             lunas_date = parse_lunas_date(row['Keterangan'])
-            if lunas_date and unique_key_in not in existing_tx_ids:
+            if lunas_date and unique_in not in existing_tx_ids:
                 tx_id_in = generate_tx_id(st.session_state['transactions_df'], lunas_date, prefix="IN")
                 new_tx_rows.append([
                     tx_id_in,
@@ -4133,15 +4119,18 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                     tipe,
                     f"Generated from Sales System / No Invoice {no_invoice}"
                 ])
-                existing_tx_ids.add(unique_key_in)
+                existing_tx_ids.add(unique_in)
 
         if new_tx_rows:
-            # Simpan ke session_state untuk preview
             st.session_state['new_tx_rows'] = new_tx_rows
 
-    # Preview & tombol simpan
+    # Preview & Simpan
     if 'new_tx_rows' in st.session_state and st.session_state['new_tx_rows']:
-        df_new_tx = pd.DataFrame(st.session_state['new_tx_rows'], columns=st.session_state['transactions_df'].columns)
+        df_new_tx = pd.DataFrame(
+            st.session_state['new_tx_rows'],
+            columns=['tx_id', 'tanggal', 'jenis', 'rekening_sumber', 'rekening_tujuan',
+                     'jumlah', 'kategori', 'subkategori', 'catatan']
+        )
         st.markdown(f"#### Preview {len(df_new_tx)} Transaksi Baru")
         st.dataframe(df_new_tx)
 
@@ -4159,20 +4148,18 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                     str(row[7]),
                     str(row[8])
                 ])
-            
+
             # Append ke Sheet
             tx_ws.append_rows(rows_to_save, value_input_option="USER_ENTERED")
-            
-            # Update DataFrame lokal & session_state
-            st.session_state['transactions_df'] = pd.concat([
-                st.session_state['transactions_df'], 
-                pd.DataFrame(rows_to_save, columns=st.session_state['transactions_df'].columns)
-            ], ignore_index=True)
 
-            # Update saldo
+            # Update DataFrame & saldo lokal
+            st.session_state['transactions_df'] = pd.concat([
+                st.session_state['transactions_df'],
+                pd.DataFrame(rows_to_save, columns=df_new_tx.columns)
+            ], ignore_index=True)
             saldo_map = hitung_saldo(accounts, st.session_state['transactions_df'])
 
-            # Kosongkan preview agar tidak double click
+            # Kosongkan preview
             st.session_state['new_tx_rows'] = []
             st.success(f"{len(rows_to_save)} transaksi berhasil ditambahkan ✅")
 

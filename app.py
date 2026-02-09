@@ -3541,27 +3541,26 @@ with st.expander("📘 Laporan - laporan"):
             
                 df_prophet["ds"] = pd.to_datetime(df_prophet["Tgl Pemesanan"])
                 df_prophet["y"] = df_prophet["Harga Jual (Num)"] - df_prophet["Harga Beli (Num)"]
-            
-                # Ambil hanya kolom yang dibutuhkan & bersihkan
                 df_prophet = df_prophet[["ds", "y"]].dropna()
             
-                # 🚦 VALIDASI DATA (INI KUNCINYA)
+                # 🚦 VALIDASI DATA
                 if len(df_prophet) < 2:
-                    st.info("📭 **Data belum cukup untuk membuat prediksi.**\n\nMinimal diperlukan data dari beberapa hari transaksi.")
-                    st.stop()
+                    st.info("📭 **Data belum cukup untuk membuat prediksi.**")
+                else:
+                    # (opsional) batasi 3 bulan terakhir
+                    if (df_prophet["ds"].max() - df_prophet["ds"].min()).days > 90:
+                        df_prophet = df_prophet[
+                            df_prophet["ds"] >= df_prophet["ds"].max() - pd.DateOffset(months=3)
+                        ]
             
-                # (Opsional) batasi 3 bulan terakhir
-                if (df_prophet["ds"].max() - df_prophet["ds"].min()).days > 90:
-                    df_prophet = df_prophet[
-                        df_prophet["ds"] >= df_prophet["ds"].max() - pd.DateOffset(months=3)
-                    ]
+                    model = Prophet()
+                    model.fit(df_prophet)
             
-                # ✅ AMAN: Prophet baru dipanggil di sini
-                model = Prophet()
-                model.fit(df_prophet)
+                    future = model.make_future_dataframe(periods=90)
+                    forecast = model.predict(future)
             
-                future = model.make_future_dataframe(periods=90)
-                forecast = model.predict(future)
+                    # ⬇️ seluruh UI prediksi kamu taruh di sini
+
 
             
                 # 🎛️ Input UI: Pilih bulan dan tahun target

@@ -3910,11 +3910,21 @@ def hitung_saldo(accounts, tx):
     saldo = {row['account_name'].strip(): parse_currency(row['balance']) for _, row in accounts.iterrows()}
     for _, row in tx.iterrows():
         jumlah = parse_currency(row['jumlah'])
-        if row['rekening_sumber']:
-            saldo[row['rekening_sumber']] -= jumlah
-        if row['rekening_tujuan']:
-            saldo[row['rekening_tujuan']] += jumlah
+        sumber = row['rekening_sumber']
+        tujuan = row['rekening_tujuan']
+
+        if sumber and sumber in saldo:
+            saldo[sumber] -= jumlah
+        elif sumber:
+            st.warning(f"Rekening sumber tidak dikenal: {sumber}")
+
+        if tujuan and tujuan in saldo:
+            saldo[tujuan] += jumlah
+        elif tujuan:
+            st.warning(f"Rekening tujuan tidak dikenal: {tujuan}")
+
     return saldo
+
 
 def generate_tx_id(existing_tx, tanggal, prefix=""):
     """Buat ID unik YYYYMMDDXXXX sesuai transaksi sebelumnya"""

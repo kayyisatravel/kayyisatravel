@@ -4150,7 +4150,9 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                 ])
 
             # Append ke Sheet
-            tx_ws.append_rows(rows_to_save, value_input_option="USER_ENTERED")
+            #tx_ws.append_rows(rows_to_save, value_input_option="USER_ENTERED")
+            tx_ws.append_row(['TEST', '2026-02-09', 'Pengeluaran'], value_input_option='USER_ENTERED')
+
 
             # Update DataFrame & saldo lokal
             st.session_state['transactions_df'] = pd.concat([

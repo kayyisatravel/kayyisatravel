@@ -3920,6 +3920,15 @@ def generate_tx_id(existing_tx, tanggal):
 # Load Data
 # ======================
 SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
+st.write("Cek Sheet ID:", SHEET_ID)
+st.write("Cek worksheet:", "TRANSACTIONS")
+
+try:
+    tx_ws  = connect_to_gsheet(SHEET_ID, "TRANSACTIONS")
+    st.success("Worksheet TRANSACTIONS berhasil diakses ✅")
+except Exception as e:
+    st.error(f"Gagal akses TRANSACTIONS: {e}")
+
 acc_ws = connect_to_gsheet(SHEET_ID, "ACCOUNTS")
 tx_ws  = connect_to_gsheet(SHEET_ID, "TRANSACTIONS")
 data_ws = connect_to_gsheet(SHEET_ID, "Data")

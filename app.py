@@ -4069,35 +4069,26 @@ subcategories = {
 # ======================
 with st.expander("💰 Pencatatan Keuangan Profesional"):
 
-    # -------------------------------
-    # 1️⃣ Load existing transactions
-    # -------------------------------
-    if 'transactions_df' not in st.session_state:
-        st.session_state['transactions_df'] = pd.DataFrame(tx_ws.get_all_records())
-        if not st.session_state['transactions_df'].empty:
-            st.session_state['transactions_df']['jumlah'] = st.session_state['transactions_df']['jumlah'].apply(parse_currency)
-
-    existing_tx_ids = set(st.session_state['transactions_df']['tx_id'])
-
-    # -------------------------------
-    # 2️⃣ Generate transaksi otomatis
-    # -------------------------------
+    # Trigger generate otomatis
+    if "generate_triggered" not in st.session_state:
+        st.session_state["generate_triggered"] = False
+    
     if st.button("Generate Transaksi Otomatis"):
+        st.session_state["generate_triggered"] = True
+    
+    if st.session_state["generate_triggered"]:
         new_tx_rows = []
-
+    
         for idx, row in data_filtered.iterrows():
             tipe = row['Tipe']                    
             harga_beli = parse_currency(row['Harga Beli'])
             harga_jual = parse_currency(row['Harga Jual'])
             no_invoice = row['No Invoice'] if pd.notna(row['No Invoice']) else f"MANUAL_{idx}"
-
-            # Buat ID unik untuk cek duplicate
+    
             unique_out = f"OUT_{no_invoice}"
             unique_in = f"IN_{no_invoice}"
-
-            # -----------------------
+    
             # Pengeluaran
-            # -----------------------
             tgl_pengeluaran = row['Tgl Pemesanan'].date()
             if unique_out not in existing_tx_ids:
                 tx_id_out = generate_tx_id(st.session_state['transactions_df'], tgl_pengeluaran, prefix="OUT")
@@ -4113,10 +4104,8 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                     f"Generated from Sales System / No Invoice {no_invoice}"
                 ])
                 existing_tx_ids.add(unique_out)
-
-            # -----------------------
-            # Pemasukan (status Lunas)
-            # -----------------------
+    
+            # Pemasukan
             lunas_date = parse_lunas_date(row['Keterangan'])
             if lunas_date and unique_in not in existing_tx_ids:
                 tx_id_in = generate_tx_id(st.session_state['transactions_df'], lunas_date, prefix="IN")
@@ -4132,28 +4121,29 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                     f"Generated from Sales System / No Invoice {no_invoice}"
                 ])
                 existing_tx_ids.add(unique_in)
-
+    
         if new_tx_rows:
             st.session_state['new_tx_rows'] = new_tx_rows
-
-    # -------------------------------
-    # 3️⃣ Preview transaksi baru
-    # -------------------------------
+            st.success(f"{len(new_tx_rows)} transaksi siap disimpan ✅")
+    
+    # Preview
     if 'new_tx_rows' in st.session_state and st.session_state['new_tx_rows']:
         df_new_tx = pd.DataFrame(
             st.session_state['new_tx_rows'],
             columns=['tx_id', 'tanggal', 'jenis', 'rekening_sumber', 'rekening_tujuan',
                      'jumlah', 'kategori', 'subkategori', 'catatan']
         )
-        st.markdown(f"#### Preview {len(df_new_tx)} Transaksi Baru")
         st.dataframe(df_new_tx)
-
-        # -------------------------------
-        # 4️⃣ Simpan ke Google Sheet
-        # -------------------------------
+    
+        # Trigger save
+        if "save_triggered" not in st.session_state:
+            st.session_state["save_triggered"] = False
+    
         if st.button("Simpan ke TRANSACTIONS"):
+            st.session_state["save_triggered"] = True
+    
+        if st.session_state["save_triggered"]:
             for row in st.session_state['new_tx_rows']:
-                # Pastikan tipe data sesuai
                 row_to_save = [
                     str(row[0]),
                     row[1].strftime("%Y-%m-%d") if hasattr(row[1], 'strftime') else str(row[1]),
@@ -4165,22 +4155,19 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                     str(row[7]),
                     str(row[8])
                 ]
-                # Append ke Google Sheet satu per satu
                 tx_ws.append_row(row_to_save, value_input_option="USER_ENTERED")
-
-                # Update DataFrame lokal
                 st.session_state['transactions_df'] = pd.concat([
                     st.session_state['transactions_df'],
                     pd.DataFrame([row_to_save], columns=df_new_tx.columns)
                 ], ignore_index=True)
-
-            # Update saldo setelah semua transaksi tersimpan
+    
+            # Update saldo
             saldo_map = hitung_saldo(accounts, st.session_state['transactions_df'])
-
-            # Kosongkan preview
             st.session_state['new_tx_rows'] = []
+            st.session_state["generate_triggered"] = False
+            st.session_state["save_triggered"] = False
+            st.success("Semua transaksi berhasil disimpan ✅")
 
-            st.success(f"{len(df_new_tx)} transaksi berhasil ditambahkan ✅")
 
 
 

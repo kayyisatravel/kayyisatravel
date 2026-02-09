@@ -3910,11 +3910,28 @@ def hitung_saldo(accounts, tx):
             saldo[row['rekening_tujuan']] += jumlah
     return saldo
 
-def generate_tx_id(existing_tx, tanggal):
-    """Buat ID unik YYYYMMDDXXXX sesuai transaksi sebelumnya"""
+def generate_tx_id(existing_tx, tanggal, prefix=""):
+    """
+    Buat ID unik YYYYMMDDXXXX sesuai transaksi sebelumnya.
+    prefix = opsional, misal 'OUT', 'IN', 'TRF' agar tidak bentrok saat generate otomatis.
+    
+    Aman dipakai meski existing_tx kosong.
+    """
     date_str = tanggal.strftime("%Y%m%d")
-    counter = existing_tx[existing_tx['tanggal'] == tanggal.strftime("%Y-%m-%d")].shape[0] + 1
-    return f"{date_str}{counter:04d}"
+
+    if existing_tx is None or existing_tx.empty:
+        counter = 1
+    else:
+        # Pastikan kolom yang dibutuhkan ada
+        if 'tanggal' not in existing_tx.columns or 'tx_id' not in existing_tx.columns:
+            raise ValueError("existing_tx harus memiliki kolom 'tanggal' dan 'tx_id'")
+
+        mask = existing_tx['tanggal'] == tanggal.strftime("%Y-%m-%d")
+        if prefix:
+            mask &= existing_tx['tx_id'].astype(str).str.startswith(prefix + date_str)
+        counter = mask.sum() + 1
+
+    return f"{prefix}{date_str}{counter:04d}"
 
 # ======================
 # Load Data
@@ -4061,77 +4078,72 @@ subcategories = {
 # UI Streamlit
 # ======================
 with st.expander("💰 Pencatatan Keuangan Profesional"):
+
+    # =========================
+    # Generate Transaksi Otomatis
+    # =========================
     if st.button("Generate Transaksi Otomatis"):
         new_tx_rows = []
-    
+
         for idx, row in data_filtered.iterrows():
             tipe = row['Tipe']                    # PESAWAT, KERETA, HOTEL, dll
             harga_beli = parse_currency(row['Harga Beli'])
             harga_jual = parse_currency(row['Harga Jual'])
             no_invoice = row['No Invoice'] if pd.notna(row['No Invoice']) else f"MANUAL_{idx}"
-    
+
             # 1️⃣ Pengeluaran
             tgl_pengeluaran = row['Tgl Pemesanan'].date()
-            tx_id_out = generate_tx_id(transactions, tgl_pengeluaran)
+            tx_id_out = generate_tx_id(transactions, tgl_pengeluaran, prefix="OUT")
             new_tx_rows.append([
                 tx_id_out,
                 tgl_pengeluaran.strftime("%Y-%m-%d"),
                 "Pengeluaran",
                 "BCA Bisnis Operasional",
                 "Supplier / Pembelian",
-                harga_beli,
+                float(harga_beli),
                 "Pembelian",
                 tipe,
                 f"Generated from Sales System / No Invoice {no_invoice}"
             ])
-    
+
             # 2️⃣ Pemasukan (status Lunas)
             lunas_date = parse_lunas_date(row['Keterangan'])
             if lunas_date:
-                tx_id_in = generate_tx_id(transactions, lunas_date)
+                tx_id_in = generate_tx_id(transactions, lunas_date, prefix="IN")
                 new_tx_rows.append([
                     tx_id_in,
                     lunas_date.strftime("%Y-%m-%d"),
                     "Pemasukan",
                     "",
                     "BCA Bisnis Operasional",
-                    harga_jual,
+                    float(harga_jual),
                     "Penjualan",
                     tipe,
                     f"Generated from Sales System / No Invoice {no_invoice}"
                 ])
-    
+
         if new_tx_rows:
+            # Gunakan DataFrame untuk preview
             df_new_tx = pd.DataFrame(new_tx_rows, columns=transactions.columns)
             st.markdown(f"#### Preview {len(df_new_tx)} Transaksi Baru")
             st.dataframe(df_new_tx)
-    
-            if st.button("Simpan ke TRANSACTIONS"):
-                # Pastikan semua float ke Python float
-                new_tx_rows_clean = []
-                for row in new_tx_rows:
-                    row_clean = [
-                        row[0],
-                        row[1],
-                        row[2],
-                        row[3],
-                        row[4],
-                        float(row[5]),  # pastikan tipe float
-                        row[6],
-                        row[7],
-                        row[8]
-                    ]
-                    new_tx_rows_clean.append(row_clean)
-                
-                # Append semua sekaligus (lebih stabil)
-                tx_ws.append_rows(new_tx_rows_clean, value_input_option="USER_ENTERED")
-                
-                st.success(f"{len(new_tx_rows_clean)} transaksi berhasil ditambahkan ✅")
 
-                # Update saldo
-                saldo_map = hitung_saldo(accounts, pd.concat([transactions, df_new_tx], ignore_index=True))
+            if st.button("Simpan ke TRANSACTIONS"):
+                # Append batch sekaligus → lebih stabil & hemat API
+                tx_ws.append_rows(new_tx_rows, value_input_option="USER_ENTERED")
+
+                st.success(f"{len(new_tx_rows)} transaksi berhasil ditambahkan ✅")
+
+                # Update saldo dengan data terbaru
+                all_tx = pd.concat([transactions, df_new_tx], ignore_index=True)
+                saldo_map = hitung_saldo(accounts, all_tx)
+
         else:
             st.info("Tidak ada transaksi baru untuk dicatat.")
+
+    # =========================
+    # Input Manual
+    # =========================
     with st.expander("Input Transaksi"):
 
         jenis = st.selectbox(
@@ -4148,11 +4160,9 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
 
             kategori_list = rekening_to_categories.get(rekening, {}).get("Pengeluaran", ["Pilih Kategori"])
             kategori = st.selectbox("Kategori", kategori_list)
-            #kategori_clean = clean_label(kategori)
 
             sub_list = subcategories.get(kategori, ["Pilih Subkategori"])
             sub = st.selectbox("Sub Kategori", sub_list)
-            #sub_clean = clean_label(sub)
 
             jumlah = st.number_input(
                 "Jumlah (Rp)",
@@ -4165,7 +4175,6 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                 key=f"catatan_{st.session_state.reset_counter}"
             )
 
-            # UX: Preview
             st.markdown("#### 🧾 Preview Transaksi (cek dulu sebelum simpan)")
             st.info(f"""
 **Jenis**     : Pengeluaran  
@@ -4180,17 +4189,19 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                 if saldo_map.get(rekening, 0) < jumlah:
                     st.error("Saldo tidak mencukupi.")
                 else:
+                    tx_id = generate_tx_id(transactions, tanggal, prefix="OUT")
                     tx_ws.append_row([
-                        generate_tx_id(transactions),
+                        tx_id,
                         tanggal.strftime("%Y-%m-%d"),
                         "Pengeluaran",
                         rekening,
                         "",
-                        jumlah,
-                        #kategori_clean,
-                        #sub_clean,
+                        float(jumlah),
+                        kategori,
+                        sub,
                         catatan
-                    ])
+                    ], value_input_option="USER_ENTERED")
+
                     saldo_map[rekening] -= jumlah
                     st.session_state.reset_counter += 1
                     st.success("Pengeluaran tersimpan ✅")
@@ -4204,11 +4215,9 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
 
             kategori_list = rekening_to_categories.get(rekening, {}).get("Pemasukan", ["Pilih Kategori"])
             kategori = st.selectbox("Kategori", kategori_list)
-            #kategori_clean = clean_label(kategori)
 
             sub_list = subcategories.get(kategori, ["Pilih Subkategori"])
             sub = st.selectbox("Sub Kategori", sub_list)
-            #sub_clean = clean_label(sub)
 
             jumlah = st.number_input(
                 "Jumlah (Rp)",
@@ -4232,17 +4241,19 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
 """)
 
             if st.button("Simpan Pemasukan"):
+                tx_id = generate_tx_id(transactions, tanggal, prefix="IN")
                 tx_ws.append_row([
-                    generate_tx_id(transactions),
+                    tx_id,
                     tanggal.strftime("%Y-%m-%d"),
                     "Pemasukan",
                     "",
                     rekening,
-                    jumlah,
-                    #kategori_clean,
-                    #sub_clean,
+                    float(jumlah),
+                    kategori,
+                    sub,
                     catatan
-                ])
+                ], value_input_option="USER_ENTERED")
+
                 saldo_map[rekening] += jumlah
                 st.session_state.reset_counter += 1
                 st.success("Pemasukan tersimpan ✅")
@@ -4278,27 +4289,30 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
 **Ke Rekening**   : {tujuan}  
 **Jumlah**      : Rp {jumlah:,.0f}  
 """)
-            
+
             if st.button("Simpan Transfer"):
                 if saldo_map.get(asal, 0) < jumlah:
                     st.error("Saldo tidak mencukupi.")
                 else:
+                    tx_id = generate_tx_id(transactions, tanggal, prefix="TRF")
                     tx_ws.append_row([
-                        generate_tx_id(transactions),
+                        tx_id,
                         tanggal.strftime("%Y-%m-%d"),
                         "Transfer",
                         asal,
                         tujuan,
-                        jumlah,
+                        float(jumlah),
                         "Transfer Antar Rekening",
                         "",
                         catatan
-                    ])
+                    ], value_input_option="USER_ENTERED")
+
                     saldo_map[asal] -= jumlah
                     saldo_map[tujuan] += jumlah
                     st.session_state.reset_counter += 1
                     st.success("Transfer tersimpan ✅")
                     st.rerun()
+
 
     
     # ======================

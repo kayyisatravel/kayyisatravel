@@ -3530,20 +3530,39 @@ with st.expander("📘 Laporan - laporan"):
             """)
             
             with st.expander("🔮 Prediksi Omzet / Laba per Bulan (Dinamis)"):
+
                 df_prophet = df_filtered.copy()
-                df_prophet = df_prophet.groupby("Tgl Pemesanan")[["Harga Jual (Num)", "Harga Beli (Num)"]].sum().reset_index()
-                df_prophet["ds"] = df_prophet["Tgl Pemesanan"]
+                df_prophet = (
+                    df_prophet
+                    .groupby("Tgl Pemesanan")[["Harga Jual (Num)", "Harga Beli (Num)"]]
+                    .sum()
+                    .reset_index()
+                )
+            
+                df_prophet["ds"] = pd.to_datetime(df_prophet["Tgl Pemesanan"])
                 df_prophet["y"] = df_prophet["Harga Jual (Num)"] - df_prophet["Harga Beli (Num)"]
             
-                # Gunakan hanya data 3 bulan terakhir untuk pelatihan (opsional)
-                if len(df_prophet) >= 90:
-                    df_prophet = df_prophet[df_prophet["ds"] >= df_prophet["ds"].max() - pd.DateOffset(months=3)]
+                # Ambil hanya kolom yang dibutuhkan & bersihkan
+                df_prophet = df_prophet[["ds", "y"]].dropna()
             
+                # 🚦 VALIDASI DATA (INI KUNCINYA)
+                if len(df_prophet) < 2:
+                    st.info("📭 **Data belum cukup untuk membuat prediksi.**\n\nMinimal diperlukan data dari beberapa hari transaksi.")
+                    st.stop()
+            
+                # (Opsional) batasi 3 bulan terakhir
+                if (df_prophet["ds"].max() - df_prophet["ds"].min()).days > 90:
+                    df_prophet = df_prophet[
+                        df_prophet["ds"] >= df_prophet["ds"].max() - pd.DateOffset(months=3)
+                    ]
+            
+                # ✅ AMAN: Prophet baru dipanggil di sini
                 model = Prophet()
-                model.fit(df_prophet[["ds", "y"]])
+                model.fit(df_prophet)
             
-                future = model.make_future_dataframe(periods=90)  # 3 bulan ke depan
+                future = model.make_future_dataframe(periods=90)
                 forecast = model.predict(future)
+
             
                 # 🎛️ Input UI: Pilih bulan dan tahun target
                 all_months = [f"{i:02d}" for i in range(1, 13)]

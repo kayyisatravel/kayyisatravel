@@ -4364,7 +4364,8 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                     st.rerun()
 
 
-    
+    st.write("SALDO_MAP FULL:", saldo_map)
+
     # ======================
     # LAPORAN SALDO
     # ======================
@@ -4381,7 +4382,6 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
         
         # Ambil saldo_map yang sudah dihitung dari hitung_saldo()
         saldo_items = list(saldo_map.items())
-        st.write(f"DEBUG {rekening}: {saldo}")
 
         # Buat kolom 2 kartu per baris
         for i in range(0, len(saldo_items), 2):
@@ -4390,6 +4390,7 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                 idx = i + j
                 if idx < len(saldo_items):
                     rekening, saldo = saldo_items[idx]
+                    st.write(f"DEBUG {rekening}: {saldo}")
                     icon = icons.get(rekening, "")
                     with col:
                         metric_card(f"{icon} {rekening}", f"Rp {saldo:,.0f}")

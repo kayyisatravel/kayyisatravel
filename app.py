@@ -4081,32 +4081,22 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
     # ----------------------
     if "generate_triggered" not in st.session_state:
         st.session_state["generate_triggered"] = False
-
+    
     if st.button("Generate Transaksi Otomatis"):
         st.session_state["generate_triggered"] = True
-
+    
     if st.session_state["generate_triggered"]:
-        # Ambil transaksi baru yang sudah digenerate sebelumnya (jika ada)
-        new_tx_rows = st.session_state.get('new_tx_rows', [])
+        new_tx_rows = []
 
         # ----------------------
-        # Buat set key untuk mencegah double entry
-        # Key = 4 mandatory field: Tgl Berangkat|Kode Booking|No Penerbangan / Hotel / Kereta|Nama Customer
+        # Buat set key unik dari transaksi yang sudah ada
         # ----------------------
         existing_tx_keys = set()
-        # Dari transaksi yang sudah tersimpan
         for _, row_tx in st.session_state['transactions_df'].iterrows():
-            key = (
-                f"{row_tx.get('Tgl Berangkat', '')}|"
-                f"{row_tx.get('Kode Booking', '')}|"
-                f"{row_tx.get('No Penerbangan / Hotel / Kereta', '')}|"
-                f"{row_tx.get('Nama Customer', '')}"
-            )
-            existing_tx_keys.add(key)
-        # Dari baris baru yang sudah digenerate
-        for row in new_tx_rows:
-            if hasattr(row, 'unique_key'):
-                existing_tx_keys.add(row.unique_key)
+            catatan = str(row_tx.get('catatan', ''))
+            if "key:" in catatan:
+                key = catatan.split("key:")[1].strip()
+                existing_tx_keys.add(key)
 
         # ----------------------
         # Loop data referensi
@@ -4114,13 +4104,14 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
         for idx, row in data_filtered.iterrows():
             sumber_dana = str(row.get("Sumber Dana", "")).strip().lower()
             if sumber_dana not in ["cash", "tunai", "dana tunai/cash"]:
-                continue  # Abaikan CC
+                continue  # Abaikan Credit Card
 
-            # Buat key unik dari 4 mandatory field
+            # Buat unique key dari 4 field mandatory
             unique_key = (
                 f"{row['Tgl Berangkat']}|{row['Kode Booking']}|"
                 f"{row['No Penerbangan / Hotel / Kereta']}|{row['Nama Customer']}"
             )
+
             if unique_key in existing_tx_keys:
                 continue  # Sudah tercatat, skip
 
@@ -4132,7 +4123,9 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
             tipe = row['Tipe']
 
             tx_id_out = generate_tx_id(st.session_state['transactions_df'], tgl_pengeluaran, prefix="OUT")
-            new_row = [
+            catatan = f"Generated from Sales System / Cash Transaction | key:{unique_key}"
+
+            new_tx_rows.append([
                 tx_id_out,
                 tgl_pengeluaran,
                 "Pengeluaran",
@@ -4141,22 +4134,17 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                 harga_beli,
                 "Pembelian",
                 tipe,
-                f"Generated from Sales System / Cash Transaction"
-            ]
-            # Tandai key agar tidak double generate
+                catatan
+            ])
+
+            # Tandai key sudah tercatat agar tidak digenerate lagi
             existing_tx_keys.add(unique_key)
-            new_tx_rows.append(new_row)
-
-
-        # ----------------------
-        # Simpan ke session
-        # ----------------------
-        st.session_state['new_tx_rows'] = new_tx_rows
 
         # ----------------------
         # Preview hasil generate
         # ----------------------
         if new_tx_rows:
+            st.session_state['new_tx_rows'] = new_tx_rows
             st.success(f"{len(new_tx_rows)} transaksi cash siap disimpan ✅")
             df_new_tx = pd.DataFrame(
                 new_tx_rows,
@@ -4168,7 +4156,7 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
             st.info("Tidak ada transaksi cash baru yang perlu digenerate.")
 
     # ----------------------
-    # Trigger save
+    # Trigger save ke TRANSACTIONS
     # ----------------------
     if 'new_tx_rows' in st.session_state and st.session_state['new_tx_rows']:
         if st.button("Simpan ke TRANSACTIONS"):
@@ -4200,6 +4188,7 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
             saldo_map = hitung_saldo(accounts, st.session_state['transactions_df'])
             st.session_state['new_tx_rows'] = []
             st.success("Transaksi berhasil disimpan ✅")
+
 
 
 

@@ -4087,6 +4087,10 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
         new_tx_rows = []
         existing_tx_ids = set(st.session_state['transactions_df']['tx_id'].astype(str))
         for idx, row in data_filtered.iterrows():
+            # 🔕 Abaikan pembelian via Credit Card (tidak ada cashflow)
+            if str(row.get("Sumber Dana", "")).strip().lower() == "credit card":
+                continue
+
             tipe = row['Tipe']                    
             harga_beli = parse_currency(row['Harga Beli'])
             harga_jual = parse_currency(row['Harga Jual'])
@@ -4361,7 +4365,7 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                     st.rerun()
 
 
-    st.write("SALDO_MAP FULL:", saldo_map)
+    #st.write("SALDO_MAP FULL:", saldo_map)
 
     # ======================
     # LAPORAN SALDO
@@ -4387,7 +4391,7 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                 idx = i + j
                 if idx < len(saldo_items):
                     rekening, saldo = saldo_items[idx]
-                    st.write(f"DEBUG {rekening}: {saldo}")
+                    #st.write(f"DEBUG {rekening}: {saldo}")
                     icon = icons.get(rekening, "")
                     with col:
                         metric_card(f"{icon} {rekening}", f"Rp {saldo:,.0f}")

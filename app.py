@@ -3881,14 +3881,12 @@ if 'transactions_df' not in st.session_state:
 # Helper Functions
 # ======================
 def parse_currency(x):
-    """Convert string like 'Rp 1.500.000,75' to float"""
     if pd.isna(x) or x == "":
         return 0.0
-    x = str(x).replace("Rp", "").replace(".", "").replace(",", ".").strip()
-    try:
+    if isinstance(x, (int, float)):
         return float(x)
-    except ValueError:
-        return 0.0
+    x = str(x).replace("Rp", "").replace(".", "").replace(",", ".").strip()
+    return float(x)
 
 def parse_lunas_date(keterangan):
     """Extract date from 'Lunas dd/mm/yy' or 'Lunas dd/mm/yyyy'"""
@@ -3906,22 +3904,21 @@ def parse_lunas_date(keterangan):
     return None
 
 def hitung_saldo(accounts, tx):
-    """Hitung saldo terkini per rekening"""
-    saldo = {row['account_name'].strip(): parse_currency(row['balance']) for _, row in accounts.iterrows()}
+    saldo = {
+        row['account_name'].strip(): parse_currency(row['balance'])
+        for _, row in accounts.iterrows()
+    }
+
     for _, row in tx.iterrows():
-        jumlah = parse_currency(row['jumlah'])
+        jumlah = row['jumlah']  # ❗ JANGAN parse lagi
         sumber = row['rekening_sumber']
         tujuan = row['rekening_tujuan']
 
         if sumber and sumber in saldo:
             saldo[sumber] -= jumlah
-        elif sumber:
-            st.warning(f"Rekening sumber tidak dikenal: {sumber}")
 
         if tujuan and tujuan in saldo:
             saldo[tujuan] += jumlah
-        elif tujuan:
-            st.warning(f"Rekening tujuan tidak dikenal: {tujuan}")
 
     return saldo
 

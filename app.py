@@ -4085,111 +4085,102 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
     
     if st.session_state["generate_triggered"]:
         new_tx_rows = []
-        existing_tx_ids = set(st.session_state['transactions_df']['tx_id'].astype(str))
-        for idx, row in data_filtered.iterrows():
-            # 🔕 Abaikan pembelian via Credit Card (tidak ada cashflow)
-            if str(row.get("Sumber Dana", "")).strip().lower() == "credit card":
-                continue
 
-            tipe = row['Tipe']                    
-            harga_beli = parse_currency(row['Harga Beli'])
-            harga_jual = parse_currency(row['Harga Jual'])
-            no_invoice = row['No Invoice'] if pd.notna(row['No Invoice']) else f"MANUAL_{idx}"
-    
-            unique_out = f"OUT_{no_invoice}"
-            unique_in = f"IN_{no_invoice}"
-    
+        # Buat set key untuk mencegah double entry
+        existing_tx_keys = set()
+        for _, row_tx in st.session_state['transactions_df'].iterrows():
+            key = (
+                f"{row_tx.get('Tgl Berangkat', '')}|"
+                f"{row_tx.get('Kode Booking', '')}|"
+                f"{row_tx.get('No Penerbangan / Hotel / Kereta', '')}|"
+                f"{row_tx.get('Nama Customer', '')}"
+            )
+            existing_tx_keys.add(key)
+
+        for idx, row in data_filtered.iterrows():
+            sumber_dana = str(row.get("Sumber Dana", "")).strip().lower()
+            if sumber_dana not in ["cash", "tunai", "dana tunai/cash"]:
+                continue  # Abaikan CC
+
+            # Buat key unik dari 4 mandatory field
+            unique_key = (
+                f"{row['Tgl Berangkat']}|{row['Kode Booking']}|"
+                f"{row['No Penerbangan / Hotel / Kereta']}|{row['Nama Customer']}"
+            )
+            if unique_key in existing_tx_keys:
+                continue  # Sudah tercatat, skip
+
+            # ----------------------
             # Pengeluaran
-            tgl_pengeluaran = row['Tgl Pemesanan'].date()
-            if unique_out not in existing_tx_ids:
-                tx_id_out = generate_tx_id(st.session_state['transactions_df'], tgl_pengeluaran, prefix="OUT")
-                new_tx_rows.append([
-                    tx_id_out,
-                    tgl_pengeluaran,
-                    "Pengeluaran",
-                    "Bisnis Operasional",
-                    "",
-                    harga_beli,
-                    "Pembelian",
-                    tipe,
-                    f"Generated from Sales System / No Invoice {no_invoice}"
-                ])
-                existing_tx_ids.add(unique_out)
-    
-            # Pemasukan
-            lunas_date = parse_lunas_date(row['Keterangan'])
-            if lunas_date and unique_in not in existing_tx_ids:
-                tx_id_in = generate_tx_id(st.session_state['transactions_df'], lunas_date, prefix="IN")
-                new_tx_rows.append([
-                    tx_id_in,
-                    lunas_date,
-                    "Pemasukan",
-                    "",
-                    "Bisnis Operasional",
-                    harga_jual,
-                    "Penjualan",
-                    tipe,
-                    f"Generated from Sales System / No Invoice {no_invoice}"
-                ])
-                existing_tx_ids.add(unique_in)
-    
+            # ----------------------
+            tgl_pengeluaran = pd.to_datetime(row['Tgl Pemesanan']).date()
+            harga_beli = parse_currency(row['Harga Beli'])
+            tipe = row['Tipe']
+
+            tx_id_out = generate_tx_id(st.session_state['transactions_df'], tgl_pengeluaran, prefix="OUT")
+            new_tx_rows.append([
+                tx_id_out,
+                tgl_pengeluaran,
+                "Pengeluaran",
+                "Bisnis Operasional",
+                "",
+                harga_beli,
+                "Pembelian",
+                tipe,
+                f"Generated from Sales System / Cash Transaction"
+            ])
+
+            # Tandai key sudah tercatat agar tidak digenerate lagi
+            existing_tx_keys.add(unique_key)
+
+        # ----------------------
+        # Preview hasil generate
+        # ----------------------
         if new_tx_rows:
             st.session_state['new_tx_rows'] = new_tx_rows
-            st.success(f"{len(new_tx_rows)} transaksi siap disimpan ✅")
-    
-    # Preview
+            st.success(f"{len(new_tx_rows)} transaksi cash siap disimpan ✅")
+            df_new_tx = pd.DataFrame(
+                new_tx_rows,
+                columns=['tx_id', 'tanggal', 'jenis', 'rekening_sumber', 'rekening_tujuan',
+                         'jumlah', 'kategori', 'subkategori', 'catatan']
+            )
+            st.dataframe(df_new_tx)
+        else:
+            st.info("Tidak ada transaksi cash baru yang perlu digenerate.")
+
+    # ----------------------
+    # Trigger save
+    # ----------------------
     if 'new_tx_rows' in st.session_state and st.session_state['new_tx_rows']:
-        df_new_tx = pd.DataFrame(
-            st.session_state['new_tx_rows'],
-            columns=['tx_id', 'tanggal', 'jenis', 'rekening_sumber', 'rekening_tujuan',
-                     'jumlah', 'kategori', 'subkategori', 'catatan']
-        )
-        st.dataframe(df_new_tx)
-    
-        # Trigger save
-        if "save_triggered" not in st.session_state:
-            st.session_state["save_triggered"] = False
-    
         if st.button("Simpan ke TRANSACTIONS"):
-            if 'new_tx_rows' in st.session_state and st.session_state['new_tx_rows']:
-                df_new_tx = pd.DataFrame(
-                    st.session_state['new_tx_rows'],
-                    columns=['tx_id', 'tanggal', 'jenis', 'rekening_sumber', 'rekening_tujuan',
-                             'jumlah', 'kategori', 'subkategori', 'catatan']
-                )
-        
-                for row in st.session_state['new_tx_rows']:
-                    row_to_save = [
-                        str(row[0]),
-                        row[1].strftime("%Y-%m-%d") if hasattr(row[1], 'strftime') else str(row[1]),
-                        str(row[2]),
-                        str(row[3]),
-                        str(row[4]),
-                        float(row[5]),
-                        str(row[6]),
-                        str(row[7]),
-                        str(row[8])
-                    ]
-                    try:
-                        tx_ws.append_row(row_to_save, value_input_option="USER_ENTERED")
-                    except Exception as e:
-                        st.error(f"Gagal menyimpan {row_to_save[0]}: {e}")
-                        continue
-        
-                    # Update local dataframe
-                    st.session_state['transactions_df'] = pd.concat([
-                        st.session_state['transactions_df'],
-                        pd.DataFrame([row_to_save], columns=df_new_tx.columns)
-                    ], ignore_index=True)
-        
-                # Update saldo
-                saldo_map = hitung_saldo(accounts, st.session_state['transactions_df'])
-                st.session_state['new_tx_rows'] = []
-                st.success(f"{len(df_new_tx)} transaksi berhasil disimpan ✅")
+            for row in st.session_state['new_tx_rows']:
+                row_to_save = [
+                    str(row[0]),
+                    row[1].strftime("%Y-%m-%d") if hasattr(row[1], 'strftime') else str(row[1]),
+                    str(row[2]),
+                    str(row[3]),
+                    str(row[4]),
+                    float(row[5]),
+                    str(row[6]),
+                    str(row[7]),
+                    str(row[8])
+                ]
+                try:
+                    tx_ws.append_row(row_to_save, value_input_option="USER_ENTERED")
+                except Exception as e:
+                    st.error(f"Gagal menyimpan {row_to_save[0]}: {e}")
+                    continue
 
+                # Update local dataframe
+                st.session_state['transactions_df'] = pd.concat([
+                    st.session_state['transactions_df'],
+                    pd.DataFrame([row_to_save], columns=st.session_state['transactions_df'].columns)
+                ], ignore_index=True)
 
-
-
+            # Update saldo
+            saldo_map = hitung_saldo(accounts, st.session_state['transactions_df'])
+            st.session_state['new_tx_rows'] = []
+            st.success("Transaksi berhasil disimpan ✅")
 
 
     # =========================

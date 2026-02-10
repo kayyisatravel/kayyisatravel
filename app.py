@@ -4144,9 +4144,9 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                 f"Generated from Sales System / Cash Transaction"
             ]
             # Tandai key agar tidak double generate
-            new_row.unique_key = unique_key
             existing_tx_keys.add(unique_key)
             new_tx_rows.append(new_row)
+
 
         # ----------------------
         # Simpan ke session

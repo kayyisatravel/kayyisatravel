@@ -4381,7 +4381,8 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
         
         # Ambil saldo_map yang sudah dihitung dari hitung_saldo()
         saldo_items = list(saldo_map.items())
-        
+        st.write(f"DEBUG {rekening}: {saldo}")
+
         # Buat kolom 2 kartu per baris
         for i in range(0, len(saldo_items), 2):
             cols = st.columns(2)

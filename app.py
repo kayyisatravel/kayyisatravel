@@ -4107,7 +4107,7 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
                     tgl_pengeluaran,
                     "Pengeluaran",
                     "Bisnis Operasional",
-                    "Supplier / Pembelian",
+                    "",
                     harga_beli,
                     "Pembelian",
                     tipe,

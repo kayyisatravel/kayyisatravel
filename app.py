@@ -1381,16 +1381,74 @@ with st.expander("💾 Database Pemesan", expanded=False):
             except:
                 return 0
 
+        def auto_select_smart(df, max_total):
+
+            temp_df = df.copy()
+        
+            # pastikan tanggal format datetime
+            temp_df["Tgl Pemesanan"] = pd.to_datetime(
+                temp_df["Tgl Pemesanan"],
+                errors="coerce"
+            )
+        
+            # group per booking
+            grouped = temp_df.groupby("Kode Booking").agg({
+                "Harga Jual": lambda x: sum(parse_harga(v) for v in x),
+                "Tgl Pemesanan": "min"
+            }).dropna(subset=["Tgl Pemesanan"])
+        
+            grouped = grouped.reset_index()
+        
+            # prioritas: tanggal paling lama dulu, lalu harga kecil dulu
+            grouped = grouped.sort_values(
+                by=["Tgl Pemesanan", "Harga Jual"],
+                ascending=[True, True]
+            )
+        
+            selected = []
+            total = 0
+        
+            # === GREEDY ===
+            for _, row in grouped.iterrows():
+                harga = row["Harga Jual"]
+                if total + harga <= max_total:
+                    selected.append(row["Kode Booking"])
+                    total += harga
+        
+            # === 1 SWAP IMPROVEMENT ===
+            remaining = grouped[~grouped["Kode Booking"].isin(selected)]
+        
+            for _, out_row in remaining.iterrows():
+                for in_kode in selected.copy():
+        
+                    in_price = grouped.loc[
+                        grouped["Kode Booking"] == in_kode,
+                        "Harga Jual"
+                    ].values[0]
+        
+                    new_total = total - in_price + out_row["Harga Jual"]
+        
+                    if total < new_total <= max_total:
+                        selected.remove(in_kode)
+                        selected.append(out_row["Kode Booking"])
+                        total = new_total
+        
+            return selected
+
         MAX_TOTAL = 25_000_000
         if auto_select_25jt:
-            total = 0
-            for i in editable_df.index:
-                harga = parse_harga(editable_df.loc[i, "Harga Jual"])
-                if total + harga <= MAX_TOTAL:
-                    editable_df.at[i, "Pilih"] = True
-                    total += harga
-                else:
-                    break
+
+            best_bookings = auto_select_smart(
+                editable_df,
+                MAX_TOTAL
+            )
+        
+            editable_df["Pilih"] = False
+        
+            editable_df.loc[
+                editable_df["Kode Booking"].isin(best_bookings),
+                "Pilih"
+            ] = True
 
         if "editable_df" not in st.session_state:
             st.session_state.editable_df = editable_df
@@ -1400,14 +1458,18 @@ with st.expander("💾 Database Pemesan", expanded=False):
             st.session_state.editable_df["Pilih"] = False
 
         if auto_select_25jt:
-            total = 0
-            for i in st.session_state.editable_df.index:
-                harga = parse_harga(st.session_state.editable_df.loc[i, "Harga Jual"])
-                if total + harga <= MAX_TOTAL:
-                    st.session_state.editable_df.at[i, "Pilih"] = True
-                    total += harga
-                else:
-                    break
+
+            best_bookings = auto_select_smart(
+                st.session_state.editable_df,
+                MAX_TOTAL
+            )
+        
+            st.session_state.editable_df["Pilih"] = False
+        
+            st.session_state.editable_df.loc[
+                st.session_state.editable_df["Kode Booking"].isin(best_bookings),
+                "Pilih"
+            ] = True
 
         select_all = st.checkbox("Pilih Semua", value=False, key="select_all_checkbox")
         if select_all:

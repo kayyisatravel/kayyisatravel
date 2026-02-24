@@ -2811,10 +2811,6 @@ with st.expander("📘 Laporan - laporan"):
         # -----------------------------
         if filter_mode == "📆 Rentang Tanggal":
             cold1, cold2 = st.columns(2)
-            st.write("Tipe kolom Tanggal:", df_cashflow["Tanggal"].dtype)
-            st.write("Nilai min tanggal:", df_cashflow["Tanggal"].min())
-            st.write("Jumlah NaT:", df_cashflow["Tanggal"].isna().sum())
-            st.write("Apakah dataframe kosong?", df_cashflow.empty)
             tanggal_mulai = cold1.date_input("Dari tanggal", df_cashflow["Tanggal"].min())
             tanggal_akhir = cold2.date_input("Sampai tanggal", df_cashflow["Tanggal"].max())
             df_filtered = df_cashflow[

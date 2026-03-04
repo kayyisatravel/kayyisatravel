@@ -76,17 +76,23 @@ def parse_input_dynamic(text):
 
     # --- Nama Kereta ---
     nama_kereta = 'Tidak Diketahui'
-    kereta_match = re.search(r'Nama Kereta:\s*(.+)', text)
+    
+    # Format: "Manahan 64B - Eksekutif (AA)"
+    kereta_match = re.search(
+        r'^(.+?)\s*-\s*(Eksekutif|Ekonomi|Premium|Bisnis|Panoramic|Priority|Suite)',
+        text,
+        re.IGNORECASE | re.MULTILINE
+    )
+    
     if kereta_match:
         nama_kereta = kereta_match.group(1).strip()
+    
     else:
-        kereta_match = re.search(r'\n([A-Za-z ]+)\s*-\s*(Eksekutif|Ekonomi|Premium|Bisnis|Panoramic|Priority|Suite)', text, re.MULTILINE)
+        # fallback lama (untuk format lama seperti Blambangan Ekspres)
+        kereta_match = re.search(r'\n([A-Za-z ]+Ekspres)\n', text, re.IGNORECASE)
         if kereta_match:
             nama_kereta = kereta_match.group(1).strip()
-        else:
-            kereta_lines = re.findall(r'\n([A-Za-z ]+Ekspres)\n', text, re.IGNORECASE)
-            if kereta_lines:
-                nama_kereta = kereta_lines[0]
+    
     nama_kereta = string.capwords(nama_kereta.lower())
     
     # --- Kelas Kategori ---

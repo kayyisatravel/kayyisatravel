@@ -1402,7 +1402,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
             # prioritas: tanggal paling lama dulu, lalu harga kecil dulu
             grouped = grouped.sort_values(
                 by=["Tgl Pemesanan", "Harga Jual"],
-                ascending=[True, True]
+                ascending=[True, False]
             )
         
             selected = []

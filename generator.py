@@ -92,7 +92,8 @@ def parse_input_dynamic(text):
         kereta_match = re.search(r'\n([A-Za-z ]+Ekspres)\n', text, re.IGNORECASE)
         if kereta_match:
             nama_kereta = kereta_match.group(1).strip()
-    
+            
+    nama_kereta = re.sub(r'\s+\d+[A-Za-z]*$', '', nama_kereta)
     nama_kereta = string.capwords(nama_kereta.lower())
     
     # --- Kelas Kategori ---
@@ -136,6 +137,12 @@ def parse_input_dynamic(text):
             while i < len(lines):
                 if re.match(r'^\d+\.\s+', lines[i]):
                     nama = re.sub(r'^\d+\.\s+', '', lines[i])
+                    nama = re.sub(
+                        r'^(Tuan|Nyonya|Nona|Tn|Ny|Sdr|Sdri|Mr|Mrs|Ms)\.?\s+',
+                        '',
+                        nama,
+                        flags=re.IGNORECASE
+                    )
                     tipe = 'Dewasa'
                     ktp = 'N/A'
                     kursi = 'N/A'

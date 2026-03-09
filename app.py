@@ -1381,17 +1381,17 @@ with st.expander("💾 Database Pemesan", expanded=False):
             except:
                 return 0
 
-        def auto_select_super_fast(df, max_total):
+        def auto_select_smart(df, max_total):
 
-            SCALE = 10000
-        
             temp_df = df.copy()
         
+            # pastikan tanggal format datetime
             temp_df["Tgl Pemesanan"] = pd.to_datetime(
                 temp_df["Tgl Pemesanan"],
                 errors="coerce"
             )
         
+            # group per booking
             grouped = temp_df.groupby("Kode Booking").agg({
                 "Harga Jual": lambda x: sum(parse_harga(v) for v in x),
                 "Tgl Pemesanan": "min"
@@ -1399,55 +1399,49 @@ with st.expander("💾 Database Pemesan", expanded=False):
         
             grouped = grouped.reset_index()
         
-            grouped["Harga Jual"] = grouped["Harga Jual"].apply(parse_harga)
-            grouped = grouped[grouped["Harga Jual"] > 0]
-            grouped = grouped[grouped["Harga Jual"] <= max_total]
+            # prioritas: tanggal paling lama dulu, lalu harga kecil dulu
+            grouped = grouped.sort_values(
+                by=["Tgl Pemesanan", "Harga Jual"],
+                ascending=[True, False]
+            )
         
-            grouped = grouped.sort_values("Tgl Pemesanan")
+            selected = []
+            total = 0
         
-            prices = (grouped["Harga Jual"] / SCALE).astype(int).tolist()
-            codes = grouped["Kode Booking"].tolist()
+            # === GREEDY ===
+            for _, row in grouped.iterrows():
+                harga = row["Harga Jual"]
+                if total + harga <= max_total:
+                    selected.append(row["Kode Booking"])
+                    total += harga
         
-            max_weight = int(max_total / SCALE)
+            # === 1 SWAP IMPROVEMENT ===
+            remaining = grouped[~grouped["Kode Booking"].isin(selected)]
         
-            dp = [-1] * (max_weight + 1)
-            dp[0] = 0
+            for _, out_row in remaining.iterrows():
+                for in_kode in selected.copy():
         
-            parent = [-1] * (max_weight + 1)
-            item_used = [-1] * (max_weight + 1)
+                    in_price = grouped.loc[
+                        grouped["Kode Booking"] == in_kode,
+                        "Harga Jual"
+                    ].values[0]
         
-            for i in range(len(prices)):
+                    new_total = total - in_price + out_row["Harga Jual"]
         
-                weight = prices[i]
+                    if total < new_total <= max_total:
+                        selected.remove(in_kode)
+                        selected.append(out_row["Kode Booking"])
+                        total = new_total
         
-                for w in range(max_weight, weight - 1, -1):
-        
-                    if dp[w - weight] != -1:
-        
-                        val = dp[w - weight] + weight
-        
-                        if val > dp[w]:
-        
-                            dp[w] = val
-                            parent[w] = w - weight
-                            item_used[w] = i
-        
-            best_w = max(range(max_weight + 1), key=lambda x: dp[x])
-        
-            selected = set()
-        
-            while best_w > 0 and item_used[best_w] != -1:
-        
-                i = item_used[best_w]
-                selected.add(codes[i])
-                best_w = parent[best_w]
-        
-            return list(selected)
+            return selected
+
+
+
 
         MAX_TOTAL = 25_000_000
         if auto_select_25jt:
 
-            best_bookings = auto_select_super_fast(
+            best_bookings = auto_select_smart(
                 editable_df,
                 MAX_TOTAL
             )

@@ -1387,13 +1387,14 @@ with st.expander("💾 Database Pemesan", expanded=False):
         def auto_select_smart(df, max_total):
             """
             Auto-select booking untuk mendekati max_total.
-            - Prioritas: tanggal lama dulu (minor), harga besar dulu
-            - Greedy + single-swap improvement
-            - Efisien untuk dataset besar
+            Strategi:
+            1️⃣ Prioritas tanggal paling lama
+            2️⃣ Pilih subset booking di tiap tanggal untuk mendekati max_total
+            3️⃣ Efisien untuk dataset besar
             """
             temp_df = df.copy()
             
-            # Pastikan tanggal format datetime
+            # Pastikan tanggal datetime
             temp_df["Tgl Pemesanan"] = pd.to_datetime(temp_df["Tgl Pemesanan"], errors="coerce")
             
             # Group per Kode Booking → total Harga Jual dan ambil tanggal paling awal
@@ -1402,32 +1403,30 @@ with st.expander("💾 Database Pemesan", expanded=False):
                 "Tgl Pemesanan": "min"
             }).dropna(subset=["Tgl Pemesanan"]).reset_index()
             
-            # Sort: harga besar dulu, tanggal lama sebagai tie-breaker
-            grouped = grouped.sort_values(by=["Harga Jual", "Tgl Pemesanan"], ascending=[False, True])
+            # Urutkan berdasarkan tanggal paling lama dulu, lalu harga besar
+            grouped = grouped.sort_values(by=["Tgl Pemesanan", "Harga Jual"], ascending=[True, False])
             
             selected = []
             total = 0
             
-            # 1️⃣ Greedy pilih sampai max_total
-            for _, row in grouped.iterrows():
-                harga = row["Harga Jual"]
-                if total + harga <= max_total:
-                    selected.append(row["Kode Booking"])
-                    total += harga
+            # Ambil tanggal unik
+            unique_dates = grouped["Tgl Pemesanan"].sort_values().unique()
             
-            # 2️⃣ Single-swap improvement
-            remaining = grouped[~grouped["Kode Booking"].isin(selected)]
-            for _, out_row in remaining.iterrows():
-                for in_kode in selected.copy():
-                    in_price = grouped.loc[grouped["Kode Booking"] == in_kode, "Harga Jual"].values[0]
-                    new_total = total - in_price + out_row["Harga Jual"]
-                    # Hanya swap jika total lebih dekat ke max_total tapi tetap ≤ max_total
-                    if total < new_total <= max_total:
-                        selected.remove(in_kode)
-                        selected.append(out_row["Kode Booking"])
-                        total = new_total
-                        break  # swap satu per item, langsung next
-                        
+            for date in unique_dates:
+                daily = grouped[grouped["Tgl Pemesanan"] == date].copy()
+                # Sort harga besar dulu di tanggal ini
+                daily = daily.sort_values(by="Harga Jual", ascending=False)
+                
+                for _, row in daily.iterrows():
+                    harga = row["Harga Jual"]
+                    if total + harga <= max_total:
+                        selected.append(row["Kode Booking"])
+                        total += harga
+                
+                # Jika max_total sudah tercapai, hentikan loop
+                if total >= max_total:
+                    break
+            
             return selected
 
 

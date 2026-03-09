@@ -1321,7 +1321,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
     st.markdown("### 🧍 Filter Tambahan")
     
     tampilkan_uninvoice_saja = st.checkbox("🔍 Tampilkan hanya yang belum ada Invoice", value=True)
-    auto_select_25jt = st.checkbox("⚙️ Auto-pilih total penjualan hingga Rp 25 juta")
+    auto_select_25jt = st.checkbox("⚙️ Auto-pilih total penjualan sampai Rp 25 juta")
     
     # Tambahan input baru untuk Nama Customer
     nama_customer_filter = st.text_input("Cari Nama Customer")

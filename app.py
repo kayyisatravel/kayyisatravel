@@ -1381,8 +1381,10 @@ with st.expander("💾 Database Pemesan", expanded=False):
             except:
                 return 0
 
-        def auto_select_optimal(df, max_total):
+        def auto_select_super_fast(df, max_total):
 
+            SCALE = 10000
+        
             temp_df = df.copy()
         
             temp_df["Tgl Pemesanan"] = pd.to_datetime(
@@ -1397,37 +1399,55 @@ with st.expander("💾 Database Pemesan", expanded=False):
         
             grouped = grouped.reset_index()
         
-            prices = grouped["Harga Jual"].astype(int).tolist()
+            grouped["Harga Jual"] = grouped["Harga Jual"].apply(parse_harga)
+            grouped = grouped[grouped["Harga Jual"] > 0]
+            grouped = grouped[grouped["Harga Jual"] <= max_total]
+        
+            grouped = grouped.sort_values("Tgl Pemesanan")
+        
+            prices = (grouped["Harga Jual"] / SCALE).astype(int).tolist()
             codes = grouped["Kode Booking"].tolist()
         
-            n = len(prices)
-            max_total = int(max_total)
+            max_weight = int(max_total / SCALE)
         
-            dp = [0]*(max_total+1)
-            keep = [[False]*n for _ in range(max_total+1)]
+            dp = [-1] * (max_weight + 1)
+            dp[0] = 0
         
-            for i in range(n):
-                price = prices[i]
-                for w in range(max_total, price-1, -1):
-                    if dp[w-price] + price > dp[w]:
-                        dp[w] = dp[w-price] + price
-                        keep[w] = keep[w-price].copy()
-                        keep[w][i] = True
+            parent = [-1] * (max_weight + 1)
+            item_used = [-1] * (max_weight + 1)
         
-            best_weight = dp.index(max(dp))
+            for i in range(len(prices)):
         
-            selected = [
-                codes[i]
-                for i, used in enumerate(keep[best_weight])
-                if used
-            ]
+                weight = prices[i]
         
-            return selected
+                for w in range(max_weight, weight - 1, -1):
+        
+                    if dp[w - weight] != -1:
+        
+                        val = dp[w - weight] + weight
+        
+                        if val > dp[w]:
+        
+                            dp[w] = val
+                            parent[w] = w - weight
+                            item_used[w] = i
+        
+            best_w = max(range(max_weight + 1), key=lambda x: dp[x])
+        
+            selected = set()
+        
+            while best_w > 0 and item_used[best_w] != -1:
+        
+                i = item_used[best_w]
+                selected.add(codes[i])
+                best_w = parent[best_w]
+        
+            return list(selected)
 
         MAX_TOTAL = 25_000_000
         if auto_select_25jt:
 
-            best_bookings = auto_select_optimal(
+            best_bookings = auto_select_super_fast(
                 editable_df,
                 MAX_TOTAL
             )

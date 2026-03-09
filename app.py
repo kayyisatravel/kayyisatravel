@@ -1389,8 +1389,8 @@ with st.expander("💾 Database Pemesan", expanded=False):
             Auto-select booking untuk mendekati max_total.
             Strategi:
             1️⃣ Prioritas tanggal paling lama
-            2️⃣ Pilih subset booking di tiap tanggal untuk mendekati max_total
-            3️⃣ Efisien untuk dataset besar
+            2️⃣ Greedy per tanggal + swap sederhana untuk mendekati max_total
+            3️⃣ Aman untuk dataset besar
             """
             temp_df = df.copy()
             
@@ -1403,7 +1403,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
                 "Tgl Pemesanan": "min"
             }).dropna(subset=["Tgl Pemesanan"]).reset_index()
             
-            # Urutkan berdasarkan tanggal paling lama dulu, lalu harga besar
+            # Urutkan berdasarkan tanggal paling lama, lalu harga besar
             grouped = grouped.sort_values(by=["Tgl Pemesanan", "Harga Jual"], ascending=[True, False])
             
             selected = []
@@ -1422,10 +1422,31 @@ with st.expander("💾 Database Pemesan", expanded=False):
                     if total + harga <= max_total:
                         selected.append(row["Kode Booking"])
                         total += harga
-                
-                # Jika max_total sudah tercapai, hentikan loop
-                if total >= max_total:
-                    break
+            
+            # === Swap improvement sederhana ===
+            remaining = grouped[~grouped["Kode Booking"].isin(selected)]
+            
+            # Swap 1 item
+            for _, out_row in remaining.iterrows():
+                for in_kode in selected.copy():
+                    in_price = grouped.loc[grouped["Kode Booking"] == in_kode, "Harga Jual"].values[0]
+                    new_total = total - in_price + out_row["Harga Jual"]
+                    if total < new_total <= max_total:
+                        selected.remove(in_kode)
+                        selected.append(out_row["Kode Booking"])
+                        total = new_total
+            
+            # Swap 2 item untuk mendekati max_total
+            if len(selected) >= 2:
+                for _, out_row in remaining.iterrows():
+                    for in_comb in itertools.combinations(selected, 2):
+                        in_total = grouped.loc[grouped["Kode Booking"].isin(in_comb), "Harga Jual"].sum()
+                        new_total = total - in_total + out_row["Harga Jual"]
+                        if total < new_total <= max_total:
+                            for k in in_comb:
+                                selected.remove(k)
+                            selected.append(out_row["Kode Booking"])
+                            total = new_total
             
             return selected
 

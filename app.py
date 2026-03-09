@@ -25,6 +25,7 @@ import time
 from generator import parse_input_dynamic, generate_eticket, parse_evoucher_text, generate_evoucher_html, generate_pdf417_barcode, generate_eticket_pdf
 from typing import List
 from tqdm import tqdm  # hanya dipakai untuk progress (bisa dihapus kalau tidak ingin)
+import itertools
 
 now = datetime.now(ZoneInfo("Asia/Jakarta"))
 
@@ -1382,54 +1383,62 @@ with st.expander("💾 Database Pemesan", expanded=False):
                 return 0
 
         def auto_select_smart(df, max_total):
-
+            """
+            Auto-select booking untuk mendekati max_total (25 juta)
+            - Prioritas: tanggal lama dulu
+            - Memaksimalkan total harga tanpa melebihi max_total
+            - Menggunakan greedy + multi-swap
+            """
             temp_df = df.copy()
-        
-            # pastikan tanggal format datetime
-            temp_df["Tgl Pemesanan"] = pd.to_datetime(
-                temp_df["Tgl Pemesanan"],
-                errors="coerce"
-            )
-        
-            # group per booking
+            
+            # Pastikan tanggal format datetime
+            temp_df["Tgl Pemesanan"] = pd.to_datetime(temp_df["Tgl Pemesanan"], errors="coerce")
+            
+            # Group per booking
             grouped = temp_df.groupby("Kode Booking").agg({
                 "Harga Jual": lambda x: sum(parse_harga(v) for v in x),
                 "Tgl Pemesanan": "min"
             }).dropna(subset=["Tgl Pemesanan"])
-        
+            
             grouped = grouped.reset_index()
-        
-            # prioritas: tanggal paling lama dulu, lalu harga kecil dulu
-            #grouped = grouped.sort_values(by=["Tgl Pemesanan", "Harga Jual"], ascending=[True, False])
-            grouped = grouped.sort_values(by="Harga Jual", ascending=False)
-        
+            
+            # 1️⃣ Urut: tanggal lama dulu, harga besar dulu
+            grouped = grouped.sort_values(by=["Tgl Pemesanan", "Harga Jual"], ascending=[True, False])
+            
             selected = []
             total = 0
-        
-            # === GREEDY ===
+            
+            # 2️⃣ Greedy pertama: pilih item sesuai urutan sampai max_total
             for _, row in grouped.iterrows():
                 harga = row["Harga Jual"]
                 if total + harga <= max_total:
                     selected.append(row["Kode Booking"])
                     total += harga
         
-            # === 1 SWAP IMPROVEMENT ===
+            # 3️⃣ Multi-swap improvement: coba swap 1-2 item untuk mendekati max_total
             remaining = grouped[~grouped["Kode Booking"].isin(selected)]
-        
+            
+            # Swap 1 item
             for _, out_row in remaining.iterrows():
                 for in_kode in selected.copy():
-        
-                    in_price = grouped.loc[
-                        grouped["Kode Booking"] == in_kode,
-                        "Harga Jual"
-                    ].values[0]
-        
+                    in_price = grouped.loc[grouped["Kode Booking"] == in_kode, "Harga Jual"].values[0]
                     new_total = total - in_price + out_row["Harga Jual"]
-        
                     if total < new_total <= max_total:
                         selected.remove(in_kode)
                         selected.append(out_row["Kode Booking"])
                         total = new_total
+        
+            # Swap kombinasi 2 item
+            if len(selected) >= 2:
+                for _, out_row in remaining.iterrows():
+                    for in_comb in itertools.combinations(selected, 2):
+                        in_total = grouped.loc[grouped["Kode Booking"].isin(in_comb), "Harga Jual"].sum()
+                        new_total = total - in_total + out_row["Harga Jual"]
+                        if total < new_total <= max_total:
+                            for k in in_comb:
+                                selected.remove(k)
+                            selected.append(out_row["Kode Booking"])
+                            total = new_total
         
             return selected
 

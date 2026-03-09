@@ -1400,10 +1400,8 @@ with st.expander("💾 Database Pemesan", expanded=False):
             grouped = grouped.reset_index()
         
             # prioritas: tanggal paling lama dulu, lalu harga kecil dulu
-            grouped = grouped.sort_values(
-                by=["Tgl Pemesanan", "Harga Jual"],
-                ascending=[True, False]
-            )
+            #grouped = grouped.sort_values(by=["Tgl Pemesanan", "Harga Jual"], ascending=[True, False])
+            grouped = grouped.sort_values(by="Harga Jual", ascending=False)
         
             selected = []
             total = 0

@@ -692,6 +692,12 @@ with col1:
 with col2:
     st.image(logo_path, width=250)  # ganti URL dengan logo lokal
 
+st.write("Login sebagai:", st.session_state.username)
+
+if st.button("Logout"):
+    st.session_state.login_status = False
+    st.rerun()
+
 # Garis horizontal
 st.markdown("""<hr style="border-top: 1px solid #7f8c8d;">""", unsafe_allow_html=True)
 
@@ -4439,11 +4445,7 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
         st.markdown(f"#### Hasil Transaksi ({len(df_display)} baris)")
         st.dataframe(df_display.reset_index(drop=True))
 
-st.write("Login sebagai:", st.session_state.username)
 
-if st.button("Logout"):
-    st.session_state.login_status = False
-    st.rerun()
 
 
 

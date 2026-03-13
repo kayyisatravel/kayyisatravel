@@ -88,7 +88,7 @@ def log_action(action):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     st.session_state.log_activity.append({
         "time": now,
-        "user": username,
+        "user": st.session_state.get("username", "unknown"),
         "action": action
     })
 

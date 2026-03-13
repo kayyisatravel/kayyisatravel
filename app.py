@@ -2,6 +2,7 @@ import streamlit as st
 import streamlit_authenticator as stauth
 import datetime
 import time
+import pandas as pd
 
 # =============================
 # Timeout 10 menit
@@ -9,7 +10,7 @@ import time
 TIMEOUT = 600  # detik
 
 # =============================
-# User credentials (plaintext — akan di‑hash otomatis)
+# User credentials (plaintext, auto-hash)
 # =============================
 names = ["User A", "User B"]
 usernames = ["usera", "userb"]
@@ -46,12 +47,11 @@ def log_action(action):
     })
 
 # =============================
-# Tampilkan form login
+# Render form login (versi terbaru)
 # =============================
-# Ini *tidak* kita unpack karena login() return None di versi terbaru
 authenticator.login(location="main")
 
-# Ambil status dari session_state
+# Ambil status login dari session_state
 auth_status = st.session_state.get("authentication_status")
 username = st.session_state.get("username")
 name     = st.session_state.get("name")
@@ -60,7 +60,7 @@ name     = st.session_state.get("name")
 # Cek status login
 # =============================
 if auth_status:
-    # Auto‑logout jika idle > TIMEOUT
+    # Auto-logout jika idle > TIMEOUT
     elapsed = time.time() - st.session_state["last_active"]
     if elapsed > TIMEOUT:
         st.warning("Session berakhir karena tidak aktif > 10 menit. Silakan login lagi.")
@@ -82,10 +82,26 @@ if auth_status:
     st.success(f"Selamat datang {name}!")
     st.write("Konten aplikasi hanya muncul setelah login.")
 
-    st.subheader("Log aktivitas session:")
-    st.table(st.session_state["log_activity"])
+    # Contoh DataFrame
+    df = pd.DataFrame({
+        "tx_id": ["OUT202602060001", "OUT202602060002", None],
+        "Kode Booking": ["BK001", "BK002", None],
+        "Amount": [1000, 2000, 1500]
+    })
 
-    # Logout di sidebar
+    # Pastikan semua kolom object/string diubah ke str agar pyarrow tidak error
+    for col in df.columns:
+        if df[col].dtype == "object":
+            df[col] = df[col].astype(str)
+
+    st.subheader("Data Transaksi:")
+    st.dataframe(df, width='stretch')
+
+    # Log aktivitas
+    st.subheader("Log aktivitas session:")
+    st.table(pd.DataFrame(st.session_state["log_activity"]))
+
+    # Logout sidebar
     authenticator.logout(location="sidebar")
 
 elif auth_status is False:

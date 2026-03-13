@@ -9,13 +9,13 @@ import time
 TIMEOUT = 600  # detik
 
 # =============================
-# User credentials (password di-hash)
+# User credentials (hash password)
 # =============================
 names = ["User A", "User B"]
 usernames = ["usera", "userb"]
 passwords = ["12345", "67890"]
 
-# Hash password (versi terbaru streamlit-authenticator)
+# Hash password sesuai versi terbaru streamlit-authenticator
 hashed_passwords = stauth.Hasher([]).generate(passwords)
 
 credentials = {

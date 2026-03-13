@@ -10,7 +10,7 @@ names = ["User A", "User B"]
 usernames = ["usera", "userb"]
 passwords = ["12345", "67890"]  # Untuk production sebaiknya pakai hash
 
-hashed_passwords = stauth.Hasher(passwords).generate()
+hashed_passwords = stauth.Hasher().generate(passwords)
 
 authenticator = stauth.Authenticate(
     names,

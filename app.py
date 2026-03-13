@@ -3,10 +3,14 @@ import streamlit_authenticator as stauth
 import datetime
 import time
 
+# =============================
 # Timeout 10 menit
+# =============================
 TIMEOUT = 600
 
+# =============================
 # User credentials (password plaintext sementara)
+# =============================
 names = ["User A", "User B"]
 usernames = ["usera", "userb"]
 passwords = ["12345", "67890"]
@@ -23,7 +27,9 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-# Inisialisasi session_state
+# =============================
+# Session state
+# =============================
 if "last_active" not in st.session_state:
     st.session_state.last_active = time.time()
 if "log_activity" not in st.session_state:
@@ -37,12 +43,17 @@ def log_action(action):
         "action": action
     })
 
-# Render login form
+# =============================
+# Login form
+# =============================
 authenticator.login(location="main")
 
+# =============================
 # Cek status login
-if st.session_state.get("authentication_status"):
-    # Update last active
+# =============================
+auth_status = st.session_state.get("authentication_status")
+if auth_status:  # hanya jika user sudah login
+    # Auto-logout jika idle > 10 menit
     elapsed = time.time() - st.session_state.last_active
     if elapsed > TIMEOUT:
         st.warning("Session berakhir karena tidak aktif > 10 menit. Silakan login lagi.")
@@ -52,24 +63,23 @@ if st.session_state.get("authentication_status"):
         st.session_state["username"] = None
         st.session_state["name"] = None
         st.stop()
-    
+
     st.session_state.last_active = time.time()
 
     # Log login
     log_action("login")
 
-    # Konten aplikasi
+    # ===== Konten dashboard =====
     st.success(f"Selamat datang {st.session_state['name']}!")
     st.write("Konten aplikasi hanya muncul setelah login.")
 
-    # Tampilkan log aktivitas
     st.subheader("Log aktivitas session:")
     st.table(st.session_state.log_activity)
 
-    # Logout sidebar hanya jika user login
+    # Logout sidebar
     authenticator.logout(location="sidebar")
 
-elif st.session_state.get("authentication_status") is False:
+elif auth_status is False:
     st.error("Username atau password salah")
 else:
     st.warning("Silakan login")

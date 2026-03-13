@@ -2,15 +2,14 @@ import streamlit as st
 import streamlit_authenticator as stauth
 import datetime
 import time
-import pandas as pd
 
 # =============================
-# Timeout 10 menit
+# Timeout session
 # =============================
-TIMEOUT = 600  # detik
+TIMEOUT = 600  # 10 menit
 
 # =============================
-# User credentials (plaintext, auto-hash)
+# User credentials (plaintext sementara)
 # =============================
 names = ["User A", "User B"]
 usernames = ["usera", "userb"]
@@ -23,6 +22,9 @@ credentials = {
     }
 }
 
+# =============================
+# Setup Authenticator
+# =============================
 authenticator = stauth.Authenticate(
     credentials,
     "app_cookie",
@@ -35,10 +37,12 @@ authenticator = stauth.Authenticate(
 # =============================
 if "last_active" not in st.session_state:
     st.session_state["last_active"] = time.time()
+
 if "log_activity" not in st.session_state:
     st.session_state["log_activity"] = []
 
 def log_action(action):
+    """Log aktivitas user"""
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     st.session_state["log_activity"].append({
         "time": now,
@@ -47,20 +51,22 @@ def log_action(action):
     })
 
 # =============================
-# Render form login (versi terbaru)
+# Render form login
 # =============================
 authenticator.login(location="main")
 
-# Ambil status login dari session_state
+# Ambil status login
 auth_status = st.session_state.get("authentication_status")
 username = st.session_state.get("username")
-name     = st.session_state.get("name")
+name = st.session_state.get("name")
 
 # =============================
-# Cek status login
+# Akses hanya jika login berhasil
 # =============================
 if auth_status:
-    # Auto-logout jika idle > TIMEOUT
+    # =============================
+    # Auto logout jika idle > TIMEOUT
+    # =============================
     elapsed = time.time() - st.session_state["last_active"]
     if elapsed > TIMEOUT:
         st.warning("Session berakhir karena tidak aktif > 10 menit. Silakan login lagi.")
@@ -73,41 +79,27 @@ if auth_status:
 
     st.session_state["last_active"] = time.time()
 
+    # =============================
     # Log login hanya sekali
+    # =============================
     if not any(log["action"] == "login" and log["user"] == username
                for log in st.session_state["log_activity"]):
         log_action("login")
 
-    # ===== Konten dashboard =====
+    # =============================
+    # Konten aplikasi utama
+    # =============================
     st.success(f"Selamat datang {name}!")
-    st.write("Konten aplikasi hanya muncul setelah login.")
+    st.write("Konten aplikasi hanya bisa diakses setelah login.")
 
-    # Contoh DataFrame
-    df = pd.DataFrame({
-        "tx_id": ["OUT202602060001", "OUT202602060002", None],
-        "Kode Booking": ["BK001", "BK002", None],
-        "Amount": [1000, 2000, 1500]
-    })
-
-    # Pastikan semua kolom object/string diubah ke str agar pyarrow tidak error
-    for col in df.columns:
-        if df[col].dtype == "object":
-            df[col] = df[col].astype(str)
-
-    st.subheader("Data Transaksi:")
-    st.dataframe(df, width='stretch')
-
-    # Log aktivitas
-    st.subheader("Log aktivitas session:")
-    st.table(pd.DataFrame(st.session_state["log_activity"]))
-
-    # Logout sidebar
+    # Logout di sidebar
     authenticator.logout(location="sidebar")
 
 elif auth_status is False:
     st.error("Username atau password salah")
+
 else:
-    st.warning("Silakan login")
+    st.warning("Silakan login dulu untuk mengakses aplikasi.")
 
 import os
 os.environ["STREAMLIT_WATCHER_TYPE"] = "none"

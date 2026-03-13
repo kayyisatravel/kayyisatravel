@@ -4,44 +4,63 @@ import datetime
 import time
 
 # ===============================
-# 1. Daftar user
+# 1. Konfigurasi timeout
 # ===============================
-names = ["User A", "User B"]
-usernames = ["usera", "userb"]
-passwords = ["12345", "67890"]  # Untuk production sebaiknya pakai hash
-
-hashed_passwords = stauth.Hasher().generate(passwords)
-
-authenticator = stauth.Authenticate(
-    names,
-    usernames,
-    hashed_passwords,
-    "app_cookie",       # nama cookie
-    "abcdef",           # key enkripsi cookie
-    cookie_expiry_days=1  # cookie bertahan 1 hari
-)
+TIMEOUT = 600  # 10 menit (dalam detik)
 
 # ===============================
-# 2. Login dengan cookie
+# 2. Inisialisasi last_active
 # ===============================
-name, auth_status, username = authenticator.login("Login", "main")
-
-# ===============================
-# 3. Auto logout jika idle > 10 menit
-# ===============================
-TIMEOUT = 600  # 10 menit
 if "last_active" not in st.session_state:
     st.session_state.last_active = time.time()
 
-if auth_status:
-    # cek timeout
-    if time.time() - st.session_state.last_active > TIMEOUT:
+# ===============================
+# 3. Login
+# ===============================
+names = ["User A", "User B"]
+usernames = ["usera", "userb"]
+passwords = ["12345", "67890"]
+
+authenticator = stauth.Authenticate(
+    {
+        "usernames": {
+            usernames[i]: {"name": names[i], "password": passwords[i]}
+            for i in range(len(usernames))
+        }
+    },
+    "app_cookie",
+    "abcdef",
+    cookie_expiry_days=1,
+)
+
+name, auth_status, username = authenticator.login("Login", "main")
+
+# ===============================
+# 4. Cek status login & timeout
+# ===============================
+def check_timeout():
+    if "last_active" not in st.session_state:
         st.session_state.last_active = time.time()
-        st.warning("Session berakhir, silakan login lagi")
+    elapsed = time.time() - st.session_state.last_active
+    if elapsed > TIMEOUT:
+        st.warning("Session berakhir karena tidak aktif > 10 menit. Silakan login lagi.")
         authenticator.logout("Logout", "main")
-        st.stop()
+        st.session_state.last_active = time.time()  # reset
+        return True
     else:
         st.session_state.last_active = time.time()
+        return False
+
+# ===============================
+# 5. Tindakan berdasarkan auth_status
+# ===============================
+if auth_status:
+    if check_timeout():
+        st.stop()  # hentikan script karena timeout
+    else:
+        st.success(f"Selamat datang, {name}!")
+        # Contoh aksi pengguna
+        st.write("Ini konten aplikasi yang hanya bisa diakses setelah login.")
 elif auth_status is False:
     st.error("Username atau password salah")
     st.stop()
@@ -50,7 +69,7 @@ elif auth_status is None:
     st.stop()
 
 # ===============================
-# 4. Logout button di sidebar
+# 6. Logout di sidebar
 # ===============================
 authenticator.logout("Logout", "sidebar")
 

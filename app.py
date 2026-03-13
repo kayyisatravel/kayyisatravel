@@ -6,29 +6,34 @@ import time
 # =============================
 # Timeout 10 menit
 # =============================
-TIMEOUT = 600
+TIMEOUT = 600  # detik
 
 # =============================
-# User credentials (password plaintext sementara)
+# User credentials (password di-hash)
 # =============================
 names = ["User A", "User B"]
 usernames = ["usera", "userb"]
 passwords = ["12345", "67890"]
 
+# Hash password
+hashed_passwords = stauth.Hasher(passwords).generate()
+
+credentials = {
+    "usernames": {
+        usernames[i]: {"name": names[i], "password": hashed_passwords[i]}
+        for i in range(len(usernames))
+    }
+}
+
 authenticator = stauth.Authenticate(
-    {
-        "usernames": {
-            usernames[i]: {"name": names[i], "password": passwords[i]}
-            for i in range(len(usernames))
-        }
-    },
+    credentials,
     "app_cookie",
     "abcdef",
     cookie_expiry_days=1
 )
 
 # =============================
-# Session state
+# Session state inisialisasi
 # =============================
 if "last_active" not in st.session_state:
     st.session_state.last_active = time.time()
@@ -44,33 +49,36 @@ def log_action(action):
     })
 
 # =============================
-# Login form
+# Form login
 # =============================
-authenticator.login(location="main")
+name, username, auth_status = authenticator.login("Login", "main")
 
 # =============================
 # Cek status login
 # =============================
-auth_status = st.session_state.get("authentication_status")
-if auth_status:  # hanya jika user sudah login
-    # Auto-logout jika idle > 10 menit
+if auth_status:
+    # Set session state user
+    st.session_state["username"] = username
+    st.session_state["name"] = name
+
+    # Auto-logout jika idle > TIMEOUT
     elapsed = time.time() - st.session_state.last_active
     if elapsed > TIMEOUT:
         st.warning("Session berakhir karena tidak aktif > 10 menit. Silakan login lagi.")
         authenticator.logout(location="main")
         st.session_state.last_active = time.time()
-        st.session_state["authentication_status"] = None
         st.session_state["username"] = None
         st.session_state["name"] = None
         st.stop()
 
     st.session_state.last_active = time.time()
 
-    # Log login
-    log_action("login")
+    # Log login hanya sekali
+    if not any(log['action'] == "login" and log['user'] == username for log in st.session_state.log_activity):
+        log_action("login")
 
     # ===== Konten dashboard =====
-    st.success(f"Selamat datang {st.session_state['name']}!")
+    st.success(f"Selamat datang {name}!")
     st.write("Konten aplikasi hanya muncul setelah login.")
 
     st.subheader("Log aktivitas session:")
@@ -83,9 +91,6 @@ elif auth_status is False:
     st.error("Username atau password salah")
 else:
     st.warning("Silakan login")
-
-# Contoh: log user login
-log_action("login")
 
 import os
 os.environ["STREAMLIT_WATCHER_TYPE"] = "none"

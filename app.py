@@ -1,35 +1,75 @@
 import streamlit as st
+import streamlit_authenticator as stauth
+import datetime
+import time
 
-users = {
-    "usera": "12345",
-    "userb": "67890"
-}
+# ===============================
+# 1. Daftar user
+# ===============================
+names = ["User A", "User B"]
+usernames = ["usera", "userb"]
+passwords = ["12345", "67890"]  # Untuk production sebaiknya pakai hash
 
-if "login_status" not in st.session_state:
-    st.session_state.login_status = False
+hashed_passwords = stauth.Hasher(passwords).generate()
 
+authenticator = stauth.Authenticate(
+    names,
+    usernames,
+    hashed_passwords,
+    "app_cookie",       # nama cookie
+    "abcdef",           # key enkripsi cookie
+    cookie_expiry_days=1  # cookie bertahan 1 hari
+)
 
-def login():
+# ===============================
+# 2. Login dengan cookie
+# ===============================
+name, auth_status, username = authenticator.login("Login", "main")
 
-    st.title("Login Aplikasi")
+# ===============================
+# 3. Auto logout jika idle > 10 menit
+# ===============================
+TIMEOUT = 600  # 10 menit
+if "last_active" not in st.session_state:
+    st.session_state.last_active = time.time()
 
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-
-    if st.button("Login"):
-
-        if username in users and users[username] == password:
-
-            st.session_state.login_status = True
-            st.session_state.username = username
-            st.rerun()
-
-        else:
-            st.error("Username atau password salah")
-
-if not st.session_state.login_status:
-    login()
+if auth_status:
+    # cek timeout
+    if time.time() - st.session_state.last_active > TIMEOUT:
+        st.session_state.last_active = time.time()
+        st.warning("Session berakhir, silakan login lagi")
+        authenticator.logout("Logout", "main")
+        st.stop()
+    else:
+        st.session_state.last_active = time.time()
+elif auth_status is False:
+    st.error("Username atau password salah")
     st.stop()
+elif auth_status is None:
+    st.warning("Silakan login")
+    st.stop()
+
+# ===============================
+# 4. Logout button di sidebar
+# ===============================
+authenticator.logout("Logout", "sidebar")
+
+# ===============================
+# 5. Contoh log sementara (session)
+# ===============================
+if "log_activity" not in st.session_state:
+    st.session_state.log_activity = []
+
+def log_action(action):
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    st.session_state.log_activity.append({
+        "time": now,
+        "user": username,
+        "action": action
+    })
+
+# Contoh: log user login
+log_action("login")
 
 import os
 os.environ["STREAMLIT_WATCHER_TYPE"] = "none"
@@ -692,11 +732,6 @@ with col1:
 with col2:
     st.image(logo_path, width=250)  # ganti URL dengan logo lokal
 
-st.write("Login sebagai:", st.session_state.username)
-
-if st.button("Logout"):
-    st.session_state.login_status = False
-    st.rerun()
 
 # Garis horizontal
 st.markdown("""<hr style="border-top: 1px solid #7f8c8d;">""", unsafe_allow_html=True)

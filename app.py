@@ -3,30 +3,24 @@ import streamlit_authenticator as stauth
 import datetime
 import time
 
-# ===============================
-# 1. Konfigurasi timeout
-# ===============================
+# =============================
+# 1. Timeout
+# =============================
 TIMEOUT = 600  # 10 menit dalam detik
 
-# ===============================
-# 2. Inisialisasi session_state
-# ===============================
 if "last_active" not in st.session_state:
     st.session_state.last_active = time.time()
 
 if "log_activity" not in st.session_state:
     st.session_state.log_activity = []
 
-# ===============================
-# 3. Daftar user
-# ===============================
+# =============================
+# 2. User credentials
+# =============================
 names = ["User A", "User B"]
 usernames = ["usera", "userb"]
-passwords = ["12345", "67890"]  # plaintext, akan di-hash otomatis
+passwords = ["12345", "67890"]  # plaintext
 
-# ===============================
-# 4. Setup authenticator
-# ===============================
 authenticator = stauth.Authenticate(
     {
         "usernames": {
@@ -34,14 +28,14 @@ authenticator = stauth.Authenticate(
             for i in range(len(usernames))
         }
     },
-    "app_cookie",     # nama cookie
-    "abcdef",         # key enkripsi cookie
+    "app_cookie",
+    "abcdef",
     cookie_expiry_days=1
 )
 
-# ===============================
-# 5. Fungsi logging aktivitas
-# ===============================
+# =============================
+# 3. Logging function
+# =============================
 def log_action(action):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     st.session_state.log_activity.append({
@@ -50,9 +44,9 @@ def log_action(action):
         "action": action
     })
 
-# ===============================
-# 6. Fungsi cek timeout
-# ===============================
+# =============================
+# 4. Timeout check function
+# =============================
 def check_timeout():
     elapsed = time.time() - st.session_state.last_active
     if elapsed > TIMEOUT:
@@ -60,44 +54,40 @@ def check_timeout():
         authenticator.logout(location="main")
         st.session_state.last_active = time.time()
         return True
-    else:
-        st.session_state.last_active = time.time()
-        return False
+    st.session_state.last_active = time.time()
+    return False
 
-# ===============================
-# 7. Login
-# ===============================
-name, auth_status, username = authenticator.login("Login", location="main")
+# =============================
+# 5. Login
+# =============================
+result = authenticator.login(location="main")
+
+if result:
+    name, auth_status, username = result
+else:
+    name = auth_status = username = None
 
 if auth_status:
-    # simpan username di session_state untuk logging
     st.session_state.username = username
-    
-    # cek timeout
     if check_timeout():
         st.stop()
-    
-    # log login
     log_action("login")
-
-    # tampilkan konten aplikasi
     st.success(f"Selamat datang, {name}!")
-    st.write("Ini konten aplikasi yang hanya bisa diakses setelah login.")
-    
-    # contoh: tampilkan log aktivitas
-    st.subheader("Log aktivitas session ini:")
+    st.write("Konten hanya muncul setelah login.")
+    st.subheader("Log aktivitas saat ini:")
     st.table(st.session_state.log_activity)
-    
+
 elif auth_status is False:
     st.error("Username atau password salah")
     st.stop()
+
 elif auth_status is None:
     st.warning("Silakan login")
     st.stop()
 
-# ===============================
-# 8. Logout di sidebar
-# ===============================
+# =============================
+# 6. Logout di sidebar
+# =============================
 authenticator.logout(location="sidebar")
 
 # ===============================

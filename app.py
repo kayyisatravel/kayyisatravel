@@ -9,18 +9,15 @@ import time
 TIMEOUT = 600  # detik
 
 # =============================
-# User credentials (hash password)
+# User credentials (plaintext — akan di‑hash otomatis)
 # =============================
 names = ["User A", "User B"]
 usernames = ["usera", "userb"]
 passwords = ["12345", "67890"]
 
-# Hash password sesuai versi terbaru streamlit-authenticator
-hashed_passwords = stauth.Hasher([]).generate(passwords)
-
 credentials = {
     "usernames": {
-        usernames[i]: {"name": names[i], "password": hashed_passwords[i]}
+        usernames[i]: {"name": names[i], "password": passwords[i]}
         for i in range(len(usernames))
     }
 }
@@ -61,7 +58,7 @@ if auth_status:
     st.session_state["username"] = username
     st.session_state["name"] = name
 
-    # Auto-logout jika idle > TIMEOUT
+    # Auto‑logout jika idle > TIMEOUT
     elapsed = time.time() - st.session_state.last_active
     if elapsed > TIMEOUT:
         st.warning("Session berakhir karena tidak aktif > 10 menit. Silakan login lagi.")

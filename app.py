@@ -1,3 +1,36 @@
+import streamlit as st
+
+users = {
+    "usera": "12345",
+    "userb": "67890"
+}
+
+if "login_status" not in st.session_state:
+    st.session_state.login_status = False
+
+
+def login():
+
+    st.title("Login Aplikasi")
+
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+
+    if st.button("Login"):
+
+        if username in users and users[username] == password:
+
+            st.session_state.login_status = True
+            st.session_state.username = username
+            st.rerun()
+
+        else:
+            st.error("Username atau password salah")
+
+if not st.session_state.login_status:
+    login()
+    st.stop()
+
 import os
 os.environ["STREAMLIT_WATCHER_TYPE"] = "none"
 import streamlit as st
@@ -4406,7 +4439,11 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
         st.markdown(f"#### Hasil Transaksi ({len(df_display)} baris)")
         st.dataframe(df_display.reset_index(drop=True))
 
+st.write("Login sebagai:", st.session_state.username)
 
+if st.button("Logout"):
+    st.session_state.login_status = False
+    st.rerun()
 
 
 

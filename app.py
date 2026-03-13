@@ -6,7 +6,6 @@ import time
 # =============================
 # 1. Persiapan Data User
 # =============================
-# Kita buat dictionary tanpa hash dulu
 credentials = {
     "usernames": {
         "usera": {"name": "User A", "password": "12345"},
@@ -14,8 +13,7 @@ credentials = {
     }
 }
 
-# Perbaikan Error: Gunakan cara ini untuk hashing seluruh dictionary
-# Ini akan otomatis mencari key 'password' dan mengubahnya menjadi hash
+# Penting: hash_passwords di versi terbaru mengubah dictionary secara in-place
 stauth.Hasher.hash_passwords(credentials) 
 
 # =============================
@@ -43,22 +41,28 @@ def log_action(username, action):
     })
 
 # =============================
-# 4. Render Login
+# 4. Render Login (SOLUSI ERROR)
 # =============================
-# Perhatikan: login() sekarang butuh label untuk tombol
-name, authentication_status, username = authenticator.login(location='main')
+# Jangan di-unpack (jangan pakai name, status, username = ...)
+# Cukup panggil fungsinya saja
+authenticator.login(location='main')
 
 # =============================
-# 5. Logika Utama (Hanya jika Login Berhasil)
+# 5. Logika Utama (Ambil dari Session State)
 # =============================
-if st.session_state["authentication_status"]:
+# Gunakan st.session_state secara langsung untuk mengecek status
+if st.session_state.get("authentication_status"):
     
+    # Ambil data dari session state yang diisi oleh authenticator
+    current_user = st.session_state["username"]
+    current_name = st.session_state["name"]
+
     # --- Auto Logout Logic ---
     TIMEOUT = 600
     elapsed = time.time() - st.session_state["last_active"]
     
     if elapsed > TIMEOUT:
-        log_action(st.session_state["username"], "timeout")
+        log_action(current_user, "timeout logout")
         authenticator.logout(location='main')
         st.warning("Sesi berakhir karena tidak aktif.")
         st.rerun()
@@ -67,21 +71,23 @@ if st.session_state["authentication_status"]:
 
     # --- Sidebar ---
     authenticator.logout('Logout', 'sidebar')
-    st.sidebar.title(f"User: {st.session_state['name']}")
+    st.sidebar.title(f"User: {current_name}")
 
     # --- Konten Utama ---
     st.title("Aplikasi Utama")
     
-    # Log login pertama kali
-    if not any(log['action'] == 'login' for log in st.session_state["log_activity"]):
-        log_action(st.session_state["username"], "login")
+    # Log login pertama kali (mencegah duplikasi log saat refresh)
+    if not any(log['action'] == 'login' and log['user'] == current_user for log in st.session_state["log_activity"]):
+        log_action(current_user, "login")
 
-    st.write("Selamat datang di dashboard.")
-    st.dataframe(st.session_state["log_activity"])
+    st.success(f"Selamat datang {current_name}!")
+    
+    if st.checkbox("Tampilkan Log Aktivitas"):
+        st.table(st.session_state["log_activity"])
 
-elif st.session_state["authentication_status"] is False:
+elif st.session_state.get("authentication_status") is False:
     st.error('Username/password salah')
-elif st.session_state["authentication_status"] is None:
+elif st.session_state.get("authentication_status") is None:
     st.warning('Silakan masukkan username dan password')
 
 import os

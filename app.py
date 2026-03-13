@@ -33,7 +33,7 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1,
 )
 
-name, auth_status, username = authenticator.login("Login", "main")
+name, auth_status, username = authenticator.login("Login", location="main")
 
 # ===============================
 # 4. Cek status login & timeout
@@ -71,7 +71,7 @@ elif auth_status is None:
 # ===============================
 # 6. Logout di sidebar
 # ===============================
-authenticator.logout("Logout", "sidebar")
+authenticator.logout(location="sidebar")
 
 # ===============================
 # 5. Contoh log sementara (session)

@@ -9,7 +9,7 @@ import time
 TIMEOUT = 600  # detik
 
 # =============================
-# User credentials (plaintext — auto-hash)
+# User credentials (plaintext — akan di‑hash otomatis)
 # =============================
 names = ["User A", "User B"]
 usernames = ["usera", "userb"]
@@ -33,45 +33,49 @@ authenticator = stauth.Authenticate(
 # Session state inisialisasi
 # =============================
 if "last_active" not in st.session_state:
-    st.session_state.last_active = time.time()
+    st.session_state["last_active"] = time.time()
 if "log_activity" not in st.session_state:
-    st.session_state.log_activity = []
+    st.session_state["log_activity"] = []
 
 def log_action(action):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    st.session_state.log_activity.append({
+    st.session_state["log_activity"].append({
         "time": now,
         "user": st.session_state.get("username", "unknown"),
         "action": action
     })
 
 # =============================
-# Form login (versi terbaru)
+# Tampilkan form login
 # =============================
-name, username, auth_status = authenticator.login(location="main")
+# Ini *tidak* kita unpack karena login() return None di versi terbaru
+authenticator.login(location="main")
+
+# Ambil status dari session_state
+auth_status = st.session_state.get("authentication_status")
+username = st.session_state.get("username")
+name     = st.session_state.get("name")
 
 # =============================
 # Cek status login
 # =============================
 if auth_status:
-    # Set session state user
-    st.session_state["username"] = username
-    st.session_state["name"] = name
-
     # Auto‑logout jika idle > TIMEOUT
-    elapsed = time.time() - st.session_state.last_active
+    elapsed = time.time() - st.session_state["last_active"]
     if elapsed > TIMEOUT:
         st.warning("Session berakhir karena tidak aktif > 10 menit. Silakan login lagi.")
         authenticator.logout(location="main")
-        st.session_state.last_active = time.time()
+        st.session_state["last_active"] = time.time()
         st.session_state["username"] = None
         st.session_state["name"] = None
-        st.stop()
+        st.session_state["authentication_status"] = None
+        st.experimental_rerun()
 
-    st.session_state.last_active = time.time()
+    st.session_state["last_active"] = time.time()
 
     # Log login hanya sekali
-    if not any(log['action'] == "login" and log['user'] == username for log in st.session_state.log_activity):
+    if not any(log["action"] == "login" and log["user"] == username
+               for log in st.session_state["log_activity"]):
         log_action("login")
 
     # ===== Konten dashboard =====
@@ -79,9 +83,9 @@ if auth_status:
     st.write("Konten aplikasi hanya muncul setelah login.")
 
     st.subheader("Log aktivitas session:")
-    st.table(st.session_state.log_activity)
+    st.table(st.session_state["log_activity"])
 
-    # Logout sidebar
+    # Logout di sidebar
     authenticator.logout(location="sidebar")
 
 elif auth_status is False:

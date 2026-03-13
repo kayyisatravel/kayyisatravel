@@ -3,9 +3,12 @@ import streamlit_authenticator as stauth
 import datetime
 import time
 
-# 1. Gunakan password hashing (Wajib untuk library ini)
-# Untuk testing, kita hash manual dulu:
-hashed_passwords = stauth.Hasher(['12345', '67890']).generate()
+# =============================
+# 1. Konfigurasi & Kredensial
+# =============================
+# Catatan: Di produksi, simpan hash ini di file config.yaml atau database
+passwords_to_hash = ['12345', '67890']
+hashed_passwords = stauth.Hasher.hash_passwords(passwords_to_hash)
 
 credentials = {
     "usernames": {
@@ -14,59 +17,88 @@ credentials = {
     }
 }
 
-# 2. Setup Authenticator
+# =============================
+# 2. Inisialisasi Authenticator
+# =============================
 authenticator = stauth.Authenticate(
     credentials,
-    "app_cookie",
-    "abcdef",
-    cookie_expiry_days=0 # 0 berarti session hilang saat browser tutup
+    "app_cookie",      # Nama cookie
+    "signature_key",   # Kunci tanda tangan cookie
+    cookie_expiry_days=0
 )
 
-# 3. Inisialisasi Session State
+# =============================
+# 3. Pengelolaan Session State
+# =============================
 if "last_active" not in st.session_state:
     st.session_state["last_active"] = time.time()
+
 if "log_activity" not in st.session_state:
     st.session_state["log_activity"] = []
 
-def log_action(user, action):
+def log_action(username, action):
+    """Mencatat aktivitas ke dalam list log"""
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    st.session_state["log_activity"].append({"time": now, "user": user, "action": action})
+    st.session_state["log_activity"].append({
+        "time": now,
+        "user": username,
+        "action": action
+    })
 
-# 4. Render Form Login (Capture return values)
-# Versi terbaru mengembalikan tuple ini:
+# =============================
+# 4. Logika Login Utama
+# =============================
+# Versi terbaru mengembalikan tuple (name, authentication_status, username)
 name, authentication_status, username = authenticator.login(location="main")
 
-# 5. Logika Utama
-if st.session_state["authentication_status"]:
-    
-    # --- LOGIKA TIMEOUT ---
-    TIMEOUT = 600
+if authentication_status:
+    # --- Cek Idle Timeout (10 Menit) ---
+    TIMEOUT = 600 
     elapsed = time.time() - st.session_state["last_active"]
-    
+
     if elapsed > TIMEOUT:
-        log_action(username, "timeout")
-        authenticator.logout(location="main")
-        st.warning("Sesi berakhir karena tidak aktif.")
+        log_action(username, "timeout logout")
+        authenticator.logout(location='main')
+        st.warning("Sesi Anda berakhir karena tidak aktif. Silakan login kembali.")
         st.rerun()
 
-    # Update waktu aktif terakhir SETIAP ada interaksi
+    # Update waktu aktivitas terakhir
     st.session_state["last_active"] = time.time()
 
-    # --- KONTEN APLIKASI ---
-    st.sidebar.title(f"Welcome {name}")
-    authenticator.logout('Logout', 'sidebar')
+    # --- Sidebar & Logout ---
+    st.sidebar.title(f"Welcome, {name}")
+    authenticator.logout("Logout", "sidebar")
 
-    st.success(f"Berhasil Login sebagai {username}")
+    # --- Konten Aplikasi ---
+    st.success(f"Halo {name}, Anda berhasil masuk.")
     
-    # Contoh menampilkan log
-    if st.checkbox("Lihat Log Aktivitas"):
-        st.table(st.session_state["log_activity"])
+    tab1, tab2 = st.tabs(["Dashboard", "Activity Log"])
+    
+    with tab1:
+        st.write("Ini adalah area konten privat aplikasi Anda.")
+        if st.button("Klik Test Aktivitas"):
+            log_action(username, "klik tombol test")
+            st.toast("Aktivitas dicatat!")
 
-elif st.session_state["authentication_status"] is False:
-    st.error('Username/password is incorrect')
+    with tab2:
+        st.subheader("Log Aktivitas Sesi Ini")
+        if st.session_state["log_activity"]:
+            st.table(st.session_state["log_activity"])
+        else:
+            st.info("Belum ada aktivitas tercatat.")
 
-elif st.session_state["authentication_status"] is None:
-    st.warning('Please enter your username and password')
+elif authentication_status is False:
+    st.error("Username atau password salah.")
+
+elif authentication_status is None:
+    st.info("Silakan masukkan username dan password Anda.")
+
+# =============================
+# 5. Logika Pencatatan Login Pertama Kali
+# =============================
+# Kita cek jika user baru saja login tapi belum ada log "login" di list
+if authentication_status and not any(log['action'] == 'login' for log in st.session_state["log_activity"]):
+    log_action(username, "login")
 
 import os
 os.environ["STREAMLIT_WATCHER_TYPE"] = "none"

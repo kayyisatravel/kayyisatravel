@@ -9,7 +9,7 @@ import time
 TIMEOUT = 600  # detik
 
 # =============================
-# User credentials (plaintext — akan di‑hash otomatis)
+# User credentials (plaintext — auto-hash)
 # =============================
 names = ["User A", "User B"]
 usernames = ["usera", "userb"]
@@ -46,9 +46,9 @@ def log_action(action):
     })
 
 # =============================
-# Form login
+# Form login (versi terbaru)
 # =============================
-name, username, auth_status = authenticator.login("Login", "main")
+name, username, auth_status = authenticator.login(location="main")
 
 # =============================
 # Cek status login

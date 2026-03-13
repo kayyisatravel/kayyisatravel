@@ -33,4 +33,4 @@ matplotlib>=3.0.0
 prophet
 plotly
 seaborn
-streamlit-authenticator>=0.3.0
+streamlit-authenticator==0.2.5

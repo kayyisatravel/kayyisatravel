@@ -15,8 +15,8 @@ names = ["User A", "User B"]
 usernames = ["usera", "userb"]
 passwords = ["12345", "67890"]
 
-# Hash password
-hashed_passwords = stauth.Hasher(passwords).generate()
+# Hash password (versi terbaru streamlit-authenticator)
+hashed_passwords = stauth.Hasher([]).generate(passwords)
 
 credentials = {
     "usernames": {

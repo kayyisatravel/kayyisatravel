@@ -3801,6 +3801,7 @@ with st.expander("📘 Laporan - laporan"):
  #   st.title("⚙️ Pengaturan Sistem")
     # form setting admin, kategori, dll
 #=============================================================================================================================================================
+"""
 import streamlit as st
 import pandas as pd
 from sheets_utils import connect_to_gsheet
@@ -4408,7 +4409,7 @@ with st.expander("💰 Pencatatan Keuangan Profesional"):
         # Tampilkan dataframe hasil filter
         st.markdown(f"#### Hasil Transaksi ({len(df_display)} baris)")
         st.dataframe(df_display.reset_index(drop=True))
-
+"""
 
 
 

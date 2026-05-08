@@ -3801,615 +3801,615 @@ with st.expander("📘 Laporan - laporan"):
  #   st.title("⚙️ Pengaturan Sistem")
     # form setting admin, kategori, dll
 #=============================================================================================================================================================
-'''
-import streamlit as st
-import pandas as pd
-from sheets_utils import connect_to_gsheet
-from datetime import datetime
+# '''
+# import streamlit as st
+# import pandas as pd
+# from sheets_utils import connect_to_gsheet
+# from datetime import datetime
 
-if 'reset_counter' not in st.session_state:
-    st.session_state.reset_counter = 0
+# if 'reset_counter' not in st.session_state:
+#     st.session_state.reset_counter = 0
 
-if 'transactions_df' not in st.session_state:
-    st.session_state['transactions_df'] = pd.DataFrame()  # nanti akan di-load dari Sheet
+# if 'transactions_df' not in st.session_state:
+#     st.session_state['transactions_df'] = pd.DataFrame()  # nanti akan di-load dari Sheet
 
-# ======================
-# Helper Functions
-# ======================
-def parse_currency(x):
-    if pd.isna(x) or x == "":
-        return 0.0
-    if isinstance(x, (int, float)):
-        return float(x)
-    x = str(x).replace("Rp", "").replace(".", "").replace(",", ".").strip()
-    return float(x)
+# # ======================
+# # Helper Functions
+# # ======================
+# def parse_currency(x):
+#     if pd.isna(x) or x == "":
+#         return 0.0
+#     if isinstance(x, (int, float)):
+#         return float(x)
+#     x = str(x).replace("Rp", "").replace(".", "").replace(",", ".").strip()
+#     return float(x)
 
-def parse_lunas_date(keterangan):
-    """Extract date from 'Lunas dd/mm/yy' or 'Lunas dd/mm/yyyy'"""
-    import re
-    if pd.isna(keterangan):
-        return None
-    match = re.search(r"Lunas (\d{1,2}/\d{1,2}/\d{2,4})", keterangan)
-    if match:
-        date_str = match.group(1)
-        for fmt in ("%d/%m/%Y", "%d/%m/%y"):
-            try:
-                return datetime.strptime(date_str, fmt).date()
-            except:
-                continue
-    return None
+# def parse_lunas_date(keterangan):
+#     """Extract date from 'Lunas dd/mm/yy' or 'Lunas dd/mm/yyyy'"""
+#     import re
+#     if pd.isna(keterangan):
+#         return None
+#     match = re.search(r"Lunas (\d{1,2}/\d{1,2}/\d{2,4})", keterangan)
+#     if match:
+#         date_str = match.group(1)
+#         for fmt in ("%d/%m/%Y", "%d/%m/%y"):
+#             try:
+#                 return datetime.strptime(date_str, fmt).date()
+#             except:
+#                 continue
+#     return None
 
-def hitung_saldo(accounts, tx):
-    saldo = {
-        row['account_name'].strip(): parse_currency(row['balance'])
-        for _, row in accounts.iterrows()
-    }
+# def hitung_saldo(accounts, tx):
+#     saldo = {
+#         row['account_name'].strip(): parse_currency(row['balance'])
+#         for _, row in accounts.iterrows()
+#     }
 
-    for _, row in tx.iterrows():
-        jumlah = row['jumlah']  # ❗ JANGAN parse lagi
-        sumber = row['rekening_sumber']
-        tujuan = row['rekening_tujuan']
+#     for _, row in tx.iterrows():
+#         jumlah = row['jumlah']  # ❗ JANGAN parse lagi
+#         sumber = row['rekening_sumber']
+#         tujuan = row['rekening_tujuan']
 
-        if sumber and sumber in saldo:
-            saldo[sumber] -= jumlah
+#         if sumber and sumber in saldo:
+#             saldo[sumber] -= jumlah
 
-        if tujuan and tujuan in saldo:
-            saldo[tujuan] += jumlah
+#         if tujuan and tujuan in saldo:
+#             saldo[tujuan] += jumlah
 
-    return saldo
-
-
-def generate_tx_id(existing_tx, tanggal, prefix=""):
-    """Buat ID unik YYYYMMDDXXXX sesuai transaksi sebelumnya"""
-    date_str = tanggal.strftime("%Y%m%d")
-    if existing_tx is None or existing_tx.empty:
-        counter = 1
-    else:
-        if 'tanggal' not in existing_tx.columns or 'tx_id' not in existing_tx.columns:
-            raise ValueError("existing_tx harus memiliki kolom 'tanggal' dan 'tx_id'")
-        mask = existing_tx['tanggal'] == tanggal.strftime("%Y-%m-%d")
-        if prefix:
-            mask &= existing_tx['tx_id'].astype(str).str.startswith(prefix + date_str)
-        counter = mask.sum() + 1
-    return f"{prefix}{date_str}{counter:04d}"
-
-# ======================
-# Load Sheet & Data
-# ======================
-SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
-
-tx_ws  = connect_to_gsheet(SHEET_ID, "TRANSACTIONS")
-acc_ws = connect_to_gsheet(SHEET_ID, "ACCOUNTS")
-data_ws = connect_to_gsheet(SHEET_ID, "Data")
-
-accounts = pd.DataFrame(acc_ws.get_all_records())
-accounts['account_name'] = accounts['account_name'].str.strip()
-
-transactions = pd.DataFrame(tx_ws.get_all_records())
-if not transactions.empty:
-    transactions['jumlah'] = transactions['jumlah'].apply(parse_currency)
-
-st.session_state['transactions_df'] = transactions.copy()
-saldo_map = hitung_saldo(accounts, st.session_state['transactions_df'])
-
-data = pd.DataFrame(data_ws.get_all_records())
-data['Tgl Pemesanan'] = pd.to_datetime(data['Tgl Pemesanan'], dayfirst=True)
-data_filtered = data[data['Tgl Pemesanan'] >= pd.to_datetime("2026-02-01")]
+#     return saldo
 
 
-# ======================
-# Mapping Rekening → Kategori Berdasarkan Jenis Transaksi
-# ======================
-rekening_to_categories = {
-    "Rumah Tangga": {
-        "Pemasukan": [
-            "Pendapatan / Pemasukan"
-        ],
-        "Pengeluaran": [
-            "Makanan & Minuman",
-            "Perumahan",
-            "Transportasi",
-            "Kesehatan",
-            "Pendidikan",
-            "Komunikasi & Internet",
-            "Pakaian & Perlengkapan",
-            "Hiburan & Rekreasi",
-            "Cicilan",
-            "Lain-lain",
-            "Tabungan & Investasi",
-            "Dana Cadangan / Darurat"
-        ]
-    },
-    "Bisnis Operasional": {
-        "Pemasukan": ["Pendapatan / Revenue"],
-        "Pengeluaran": ["Operasional", "Finansial", "Dana Cadangan / Investasi Bisnis", "Lain-lain"]
-    },
-    "Cadangan Bisnis": {
-        "Pemasukan": [],
-        "Pengeluaran": ["Dana Cadangan / Investasi"]
-    },
-    "Tabungan / Investasi": {
-        "Pemasukan": ["Pendapatan / Return"],
-        "Pengeluaran": ["Tabungan & Investasi", "Dana Cadangan / Darurat"]
-    }
-}
+# def generate_tx_id(existing_tx, tanggal, prefix=""):
+#     """Buat ID unik YYYYMMDDXXXX sesuai transaksi sebelumnya"""
+#     date_str = tanggal.strftime("%Y%m%d")
+#     if existing_tx is None or existing_tx.empty:
+#         counter = 1
+#     else:
+#         if 'tanggal' not in existing_tx.columns or 'tx_id' not in existing_tx.columns:
+#             raise ValueError("existing_tx harus memiliki kolom 'tanggal' dan 'tx_id'")
+#         mask = existing_tx['tanggal'] == tanggal.strftime("%Y-%m-%d")
+#         if prefix:
+#             mask &= existing_tx['tx_id'].astype(str).str.startswith(prefix + date_str)
+#         counter = mask.sum() + 1
+#     return f"{prefix}{date_str}{counter:04d}"
 
-# ======================
-# Mapping Kategori → Subkategori
-# ======================
-subcategories = {
-    # ==== Rumah Tangga ====
-    "Pendapatan / Pemasukan": [
-        "Gaji / Upah",
-        "Bonus / Insentif",
-        "Usaha / Bisnis sampingan",
-        "Investasi / Dividen",
-        "Hadiah / Lain-lain"
-    ],
-    "Makanan & Minuman": ["Belanja bahan makanan", "Makan di luar / restoran", "Minuman & cemilan"],
-    "Perumahan": ["Sewa rumah", "Listrik, air, gas", "Perawatan rumah & kebun", "PDAM", "Internet rumah"],
-    "Transportasi": ["BBM / listrik kendaraan listrik", "Transportasi umum / ojek online", "Servis kendaraan & asuransi"],
-    "Kesehatan": ["Periksa Dokter", "Obat-obatan", "Asuransi kesehatan", "Dokter / klinik"],
-    "Pendidikan": ["Sekolah / kuliah", "Buku & alat tulis", "Kursus / les tambahan"],
-    "Komunikasi & Internet": ["Pulsa & paket data", "TV kabel / streaming"],
-    "Pakaian & Perlengkapan": ["Pakaian & sepatu", "Perawatan diri / kosmetik"],
-    "Hiburan & Rekreasi": ["Liburan / jalan-jalan", "Hobi & olahraga", "Bioskop / konser"],
-    "Cicilan": ["KPR", "KLK", "Mobil"],
-    "Lain-lain": ["Hadiah", "Donasi / sedekah", "Keperluan mendadak"],
-    "Tabungan & Investasi": ["Tabungan darurat", "Dana pendidikan anak", "Dana pensiun", "Investasi saham / obligasi / reksa dana", "Properti / emas"],
-    "Dana Cadangan / Darurat": ["Perbaikan rumah / kendaraan mendadak", "Kesehatan mendadak", "Kehilangan pekerjaan atau penghasilan"],
+# # ======================
+# # Load Sheet & Data
+# # ======================
+# SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
 
-    # ==== Bisnis Operasional ====
-    "Pendapatan / Revenue": [
-        "Penjualan tiket pesawat",
-        "Penjualan tiket kereta api",
-        "Pemesanan hotel / akomodasi",
-        "Biaya layanan / service fee",
-        "Komisi dari pihak ketiga (maskapai, hotel, OTA)",
-        "Promo / cashback / insentif dari partner"
-    ],
-    "Operasional": [
-        "Gaji & Tunjangan",
-        "Gaji karyawan front office / customer service",
-        "Gaji marketing / sales",
-        "Bonus dan tunjangan karyawan",
-        "Sewa & Utilitas",
-        "Sewa kantor / ruang kerja",
-        "Listrik, air, internet, telepon",
-        "Maintenance kantor",
-        "Teknologi & Sistem",
-        "Biaya software booking / sistem reservasi",
-        "Hosting website / domain",
-        "Aplikasi / API maskapai, kereta, hotel",
-        "Maintenance & upgrade sistem",
-        "Pemasaran & Promosi",
-        "Iklan online (Google, Facebook, Instagram)",
-        "Promo / diskon untuk pelanggan",
-        "Sponsorship / kerjasama dengan partner",
-        "Transportasi & Perjalanan",
-        "Transportasi karyawan",
-        "Perjalanan dinas / meeting partner",
-        "Administrasi & Kantor",
-        "Alat tulis & perlengkapan kantor",
-        "Perlengkapan kebersihan",
-        "Biaya pos & courier"
-    ],
-    "Finansial": ["Pajak penghasilan / PPN", "Biaya bank (transfer, administrasi)", "Biaya kartu kredit / pinjaman modal", "Asuransi bisnis / aset"],
-    "Dana Cadangan / Investasi Bisnis": ["Dana darurat untuk operasional", "Investasi sistem / teknologi baru", "Upgrade kantor / ruang kerja", "Pelatihan & pengembangan SDM"],
-    "Lain-lain": ["Denda atau penalti tiket", "Refund / komplain pelanggan", "Hadiah / apresiasi pelanggan", "Biaya legal / konsultasi hukum"],
+# tx_ws  = connect_to_gsheet(SHEET_ID, "TRANSACTIONS")
+# acc_ws = connect_to_gsheet(SHEET_ID, "ACCOUNTS")
+# data_ws = connect_to_gsheet(SHEET_ID, "Data")
 
-    # ==== Cadangan Bisnis ====
-    "Dana Cadangan / Investasi": ["Investasi jangka panjang", "Modal ekspansi bisnis", "Dana keamanan / likuiditas"],
+# accounts = pd.DataFrame(acc_ws.get_all_records())
+# accounts['account_name'] = accounts['account_name'].str.strip()
 
-    # ==== Tabungan / Investasi ====
-    "Pendapatan / Return": ["Dividen saham", "Bunga deposito", "Keuntungan reksa dana", "Keuntungan properti / emas"],
-    "Tabungan & Investasi": ["Tabungan darurat", "Dana pendidikan", "Dana pensiun", "Investasi saham / obligasi / reksa dana", "Properti / emas"],
-    "Dana Cadangan / Darurat": ["Dana tak terduga", "Perbaikan aset mendadak", "Kehilangan penghasilan"]
-}
+# transactions = pd.DataFrame(tx_ws.get_all_records())
+# if not transactions.empty:
+#     transactions['jumlah'] = transactions['jumlah'].apply(parse_currency)
 
-# ======================
-# UI Streamlit
-# ======================
-with st.expander("💰 Pencatatan Keuangan Profesional"):
+# st.session_state['transactions_df'] = transactions.copy()
+# saldo_map = hitung_saldo(accounts, st.session_state['transactions_df'])
 
-    # ----------------------
-    # Trigger generate otomatis
-    # ----------------------
-    if "generate_triggered" not in st.session_state:
-        st.session_state["generate_triggered"] = False
+# data = pd.DataFrame(data_ws.get_all_records())
+# data['Tgl Pemesanan'] = pd.to_datetime(data['Tgl Pemesanan'], dayfirst=True)
+# data_filtered = data[data['Tgl Pemesanan'] >= pd.to_datetime("2026-02-01")]
+
+
+# # ======================
+# # Mapping Rekening → Kategori Berdasarkan Jenis Transaksi
+# # ======================
+# rekening_to_categories = {
+#     "Rumah Tangga": {
+#         "Pemasukan": [
+#             "Pendapatan / Pemasukan"
+#         ],
+#         "Pengeluaran": [
+#             "Makanan & Minuman",
+#             "Perumahan",
+#             "Transportasi",
+#             "Kesehatan",
+#             "Pendidikan",
+#             "Komunikasi & Internet",
+#             "Pakaian & Perlengkapan",
+#             "Hiburan & Rekreasi",
+#             "Cicilan",
+#             "Lain-lain",
+#             "Tabungan & Investasi",
+#             "Dana Cadangan / Darurat"
+#         ]
+#     },
+#     "Bisnis Operasional": {
+#         "Pemasukan": ["Pendapatan / Revenue"],
+#         "Pengeluaran": ["Operasional", "Finansial", "Dana Cadangan / Investasi Bisnis", "Lain-lain"]
+#     },
+#     "Cadangan Bisnis": {
+#         "Pemasukan": [],
+#         "Pengeluaran": ["Dana Cadangan / Investasi"]
+#     },
+#     "Tabungan / Investasi": {
+#         "Pemasukan": ["Pendapatan / Return"],
+#         "Pengeluaran": ["Tabungan & Investasi", "Dana Cadangan / Darurat"]
+#     }
+# }
+
+# # ======================
+# # Mapping Kategori → Subkategori
+# # ======================
+# subcategories = {
+#     # ==== Rumah Tangga ====
+#     "Pendapatan / Pemasukan": [
+#         "Gaji / Upah",
+#         "Bonus / Insentif",
+#         "Usaha / Bisnis sampingan",
+#         "Investasi / Dividen",
+#         "Hadiah / Lain-lain"
+#     ],
+#     "Makanan & Minuman": ["Belanja bahan makanan", "Makan di luar / restoran", "Minuman & cemilan"],
+#     "Perumahan": ["Sewa rumah", "Listrik, air, gas", "Perawatan rumah & kebun", "PDAM", "Internet rumah"],
+#     "Transportasi": ["BBM / listrik kendaraan listrik", "Transportasi umum / ojek online", "Servis kendaraan & asuransi"],
+#     "Kesehatan": ["Periksa Dokter", "Obat-obatan", "Asuransi kesehatan", "Dokter / klinik"],
+#     "Pendidikan": ["Sekolah / kuliah", "Buku & alat tulis", "Kursus / les tambahan"],
+#     "Komunikasi & Internet": ["Pulsa & paket data", "TV kabel / streaming"],
+#     "Pakaian & Perlengkapan": ["Pakaian & sepatu", "Perawatan diri / kosmetik"],
+#     "Hiburan & Rekreasi": ["Liburan / jalan-jalan", "Hobi & olahraga", "Bioskop / konser"],
+#     "Cicilan": ["KPR", "KLK", "Mobil"],
+#     "Lain-lain": ["Hadiah", "Donasi / sedekah", "Keperluan mendadak"],
+#     "Tabungan & Investasi": ["Tabungan darurat", "Dana pendidikan anak", "Dana pensiun", "Investasi saham / obligasi / reksa dana", "Properti / emas"],
+#     "Dana Cadangan / Darurat": ["Perbaikan rumah / kendaraan mendadak", "Kesehatan mendadak", "Kehilangan pekerjaan atau penghasilan"],
+
+#     # ==== Bisnis Operasional ====
+#     "Pendapatan / Revenue": [
+#         "Penjualan tiket pesawat",
+#         "Penjualan tiket kereta api",
+#         "Pemesanan hotel / akomodasi",
+#         "Biaya layanan / service fee",
+#         "Komisi dari pihak ketiga (maskapai, hotel, OTA)",
+#         "Promo / cashback / insentif dari partner"
+#     ],
+#     "Operasional": [
+#         "Gaji & Tunjangan",
+#         "Gaji karyawan front office / customer service",
+#         "Gaji marketing / sales",
+#         "Bonus dan tunjangan karyawan",
+#         "Sewa & Utilitas",
+#         "Sewa kantor / ruang kerja",
+#         "Listrik, air, internet, telepon",
+#         "Maintenance kantor",
+#         "Teknologi & Sistem",
+#         "Biaya software booking / sistem reservasi",
+#         "Hosting website / domain",
+#         "Aplikasi / API maskapai, kereta, hotel",
+#         "Maintenance & upgrade sistem",
+#         "Pemasaran & Promosi",
+#         "Iklan online (Google, Facebook, Instagram)",
+#         "Promo / diskon untuk pelanggan",
+#         "Sponsorship / kerjasama dengan partner",
+#         "Transportasi & Perjalanan",
+#         "Transportasi karyawan",
+#         "Perjalanan dinas / meeting partner",
+#         "Administrasi & Kantor",
+#         "Alat tulis & perlengkapan kantor",
+#         "Perlengkapan kebersihan",
+#         "Biaya pos & courier"
+#     ],
+#     "Finansial": ["Pajak penghasilan / PPN", "Biaya bank (transfer, administrasi)", "Biaya kartu kredit / pinjaman modal", "Asuransi bisnis / aset"],
+#     "Dana Cadangan / Investasi Bisnis": ["Dana darurat untuk operasional", "Investasi sistem / teknologi baru", "Upgrade kantor / ruang kerja", "Pelatihan & pengembangan SDM"],
+#     "Lain-lain": ["Denda atau penalti tiket", "Refund / komplain pelanggan", "Hadiah / apresiasi pelanggan", "Biaya legal / konsultasi hukum"],
+
+#     # ==== Cadangan Bisnis ====
+#     "Dana Cadangan / Investasi": ["Investasi jangka panjang", "Modal ekspansi bisnis", "Dana keamanan / likuiditas"],
+
+#     # ==== Tabungan / Investasi ====
+#     "Pendapatan / Return": ["Dividen saham", "Bunga deposito", "Keuntungan reksa dana", "Keuntungan properti / emas"],
+#     "Tabungan & Investasi": ["Tabungan darurat", "Dana pendidikan", "Dana pensiun", "Investasi saham / obligasi / reksa dana", "Properti / emas"],
+#     "Dana Cadangan / Darurat": ["Dana tak terduga", "Perbaikan aset mendadak", "Kehilangan penghasilan"]
+# }
+
+# # ======================
+# # UI Streamlit
+# # ======================
+# with st.expander("💰 Pencatatan Keuangan Profesional"):
+
+#     # ----------------------
+#     # Trigger generate otomatis
+#     # ----------------------
+#     if "generate_triggered" not in st.session_state:
+#         st.session_state["generate_triggered"] = False
     
-    if st.button("Generate Transaksi Otomatis"):
-        st.session_state["generate_triggered"] = True
+#     if st.button("Generate Transaksi Otomatis"):
+#         st.session_state["generate_triggered"] = True
     
-    if st.session_state["generate_triggered"]:
-        new_tx_rows = []
+#     if st.session_state["generate_triggered"]:
+#         new_tx_rows = []
 
-        # ----------------------
-        # Buat set key unik dari transaksi yang sudah ada
-        # ----------------------
-        existing_tx_keys = set()
-        for _, row_tx in st.session_state['transactions_df'].iterrows():
-            catatan = str(row_tx.get('catatan', ''))
-            if "key:" in catatan:
-                key = catatan.split("key:")[1].strip()
-                existing_tx_keys.add(key)
+#         # ----------------------
+#         # Buat set key unik dari transaksi yang sudah ada
+#         # ----------------------
+#         existing_tx_keys = set()
+#         for _, row_tx in st.session_state['transactions_df'].iterrows():
+#             catatan = str(row_tx.get('catatan', ''))
+#             if "key:" in catatan:
+#                 key = catatan.split("key:")[1].strip()
+#                 existing_tx_keys.add(key)
 
-        # ----------------------
-        # Loop data referensi
-        # ----------------------
-        for idx, row in data_filtered.iterrows():
-            sumber_dana = str(row.get("Sumber Dana", "")).strip().lower()
-            if sumber_dana not in ["cash", "tunai", "dana tunai/cash"]:
-                continue  # Abaikan Credit Card
+#         # ----------------------
+#         # Loop data referensi
+#         # ----------------------
+#         for idx, row in data_filtered.iterrows():
+#             sumber_dana = str(row.get("Sumber Dana", "")).strip().lower()
+#             if sumber_dana not in ["cash", "tunai", "dana tunai/cash"]:
+#                 continue  # Abaikan Credit Card
 
-            # Buat unique key dari 4 field mandatory
-            unique_key = (
-                f"{row['Tgl Berangkat']}|{row['Kode Booking']}|"
-                f"{row['No Penerbangan / Hotel / Kereta']}|{row['Nama Customer']}"
-            )
+#             # Buat unique key dari 4 field mandatory
+#             unique_key = (
+#                 f"{row['Tgl Berangkat']}|{row['Kode Booking']}|"
+#                 f"{row['No Penerbangan / Hotel / Kereta']}|{row['Nama Customer']}"
+#             )
 
-            if unique_key in existing_tx_keys:
-                continue  # Sudah tercatat, skip
+#             if unique_key in existing_tx_keys:
+#                 continue  # Sudah tercatat, skip
 
-            # ----------------------
-            # Pengeluaran
-            # ----------------------
-            tgl_pengeluaran = pd.to_datetime(row['Tgl Pemesanan']).date()
-            harga_beli = parse_currency(row['Harga Beli'])
-            tipe = row['Tipe']
+#             # ----------------------
+#             # Pengeluaran
+#             # ----------------------
+#             tgl_pengeluaran = pd.to_datetime(row['Tgl Pemesanan']).date()
+#             harga_beli = parse_currency(row['Harga Beli'])
+#             tipe = row['Tipe']
 
-            tx_id_out = generate_tx_id(st.session_state['transactions_df'], tgl_pengeluaran, prefix="OUT")
-            catatan = f"Generated from Sales System / Cash Transaction | key:{unique_key}"
+#             tx_id_out = generate_tx_id(st.session_state['transactions_df'], tgl_pengeluaran, prefix="OUT")
+#             catatan = f"Generated from Sales System / Cash Transaction | key:{unique_key}"
 
-            new_tx_rows.append([
-                tx_id_out,
-                tgl_pengeluaran,
-                "Pengeluaran",
-                "Bisnis Operasional",
-                "",
-                harga_beli,
-                "Pembelian",
-                tipe,
-                catatan
-            ])
+#             new_tx_rows.append([
+#                 tx_id_out,
+#                 tgl_pengeluaran,
+#                 "Pengeluaran",
+#                 "Bisnis Operasional",
+#                 "",
+#                 harga_beli,
+#                 "Pembelian",
+#                 tipe,
+#                 catatan
+#             ])
 
-            # Tandai key sudah tercatat agar tidak digenerate lagi
-            existing_tx_keys.add(unique_key)
+#             # Tandai key sudah tercatat agar tidak digenerate lagi
+#             existing_tx_keys.add(unique_key)
 
-        # ----------------------
-        # Preview hasil generate
-        # ----------------------
-        if new_tx_rows:
-            st.session_state['new_tx_rows'] = new_tx_rows
-            st.success(f"{len(new_tx_rows)} transaksi cash siap disimpan ✅")
-            df_new_tx = pd.DataFrame(
-                new_tx_rows,
-                columns=['tx_id', 'tanggal', 'jenis', 'rekening_sumber', 'rekening_tujuan',
-                         'jumlah', 'kategori', 'subkategori', 'catatan']
-            )
-            st.dataframe(df_new_tx)
-        else:
-            st.info("Tidak ada transaksi cash baru yang perlu digenerate.")
+#         # ----------------------
+#         # Preview hasil generate
+#         # ----------------------
+#         if new_tx_rows:
+#             st.session_state['new_tx_rows'] = new_tx_rows
+#             st.success(f"{len(new_tx_rows)} transaksi cash siap disimpan ✅")
+#             df_new_tx = pd.DataFrame(
+#                 new_tx_rows,
+#                 columns=['tx_id', 'tanggal', 'jenis', 'rekening_sumber', 'rekening_tujuan',
+#                          'jumlah', 'kategori', 'subkategori', 'catatan']
+#             )
+#             st.dataframe(df_new_tx)
+#         else:
+#             st.info("Tidak ada transaksi cash baru yang perlu digenerate.")
 
-    # ----------------------
-    # Trigger save ke TRANSACTIONS
-    # ----------------------
-    if 'new_tx_rows' in st.session_state and st.session_state['new_tx_rows']:
-        if st.button("Simpan ke TRANSACTIONS"):
-            for row in st.session_state['new_tx_rows']:
-                row_to_save = [
-                    str(row[0]),
-                    row[1].strftime("%Y-%m-%d") if hasattr(row[1], 'strftime') else str(row[1]),
-                    str(row[2]),
-                    str(row[3]),
-                    str(row[4]),
-                    float(row[5]),
-                    str(row[6]),
-                    str(row[7]),
-                    str(row[8])
-                ]
-                try:
-                    tx_ws.append_row(row_to_save, value_input_option="USER_ENTERED")
-                except Exception as e:
-                    st.error(f"Gagal menyimpan {row_to_save[0]}: {e}")
-                    continue
+#     # ----------------------
+#     # Trigger save ke TRANSACTIONS
+#     # ----------------------
+#     if 'new_tx_rows' in st.session_state and st.session_state['new_tx_rows']:
+#         if st.button("Simpan ke TRANSACTIONS"):
+#             for row in st.session_state['new_tx_rows']:
+#                 row_to_save = [
+#                     str(row[0]),
+#                     row[1].strftime("%Y-%m-%d") if hasattr(row[1], 'strftime') else str(row[1]),
+#                     str(row[2]),
+#                     str(row[3]),
+#                     str(row[4]),
+#                     float(row[5]),
+#                     str(row[6]),
+#                     str(row[7]),
+#                     str(row[8])
+#                 ]
+#                 try:
+#                     tx_ws.append_row(row_to_save, value_input_option="USER_ENTERED")
+#                 except Exception as e:
+#                     st.error(f"Gagal menyimpan {row_to_save[0]}: {e}")
+#                     continue
 
-                # Update local dataframe
-                st.session_state['transactions_df'] = pd.concat([
-                    st.session_state['transactions_df'],
-                    pd.DataFrame([row_to_save], columns=st.session_state['transactions_df'].columns)
-                ], ignore_index=True)
+#                 # Update local dataframe
+#                 st.session_state['transactions_df'] = pd.concat([
+#                     st.session_state['transactions_df'],
+#                     pd.DataFrame([row_to_save], columns=st.session_state['transactions_df'].columns)
+#                 ], ignore_index=True)
 
-            # Update saldo
-            saldo_map = hitung_saldo(accounts, st.session_state['transactions_df'])
-            st.session_state['new_tx_rows'] = []
-            st.success("Transaksi berhasil disimpan ✅")
-
-
+#             # Update saldo
+#             saldo_map = hitung_saldo(accounts, st.session_state['transactions_df'])
+#             st.session_state['new_tx_rows'] = []
+#             st.success("Transaksi berhasil disimpan ✅")
 
 
-    # =========================
-    # Input Manual
-    # =========================
-    with st.expander("Input Transaksi"):
-
-        jenis = st.selectbox(
-            "Jenis Transaksi",
-            ["Pengeluaran", "Pemasukan", "Transfer Antar Rekening"]
-        )
-        tanggal = st.date_input("Tanggal", datetime.today())
-
-        # ----------------------
-        # Pengeluaran
-        # ----------------------
-        if jenis == "Pengeluaran":
-            rekening = st.selectbox("Rekening Sumber", accounts['account_name'])
-
-            kategori_list = rekening_to_categories.get(rekening, {}).get("Pengeluaran", ["Pilih Kategori"])
-            kategori = st.selectbox("Kategori", kategori_list)
-
-            sub_list = subcategories.get(kategori, ["Pilih Subkategori"])
-            sub = st.selectbox("Sub Kategori", sub_list)
-
-            jumlah = st.number_input(
-                "Jumlah (Rp)",
-                min_value=1,
-                step=1000,
-                key=f"jumlah_{st.session_state.reset_counter}"
-            )
-            catatan = st.text_input(
-                "Catatan",
-                key=f"catatan_{st.session_state.reset_counter}"
-            )
-
-            st.markdown("#### 🧾 Preview Transaksi (cek dulu sebelum simpan)")
-            st.info(f"""
-**Jenis**     : Pengeluaran  
-**Tanggal**  : {tanggal.strftime('%d %B %Y')}  
-**Rekening** : {rekening}  
-**Kategori** : {kategori}  
-**Sub**      : {sub}  
-**Jumlah**   : Rp {jumlah:,.0f}
-""")
-
-            if st.button("Simpan Pengeluaran"):
-                if saldo_map.get(rekening, 0) < jumlah:
-                    st.error("Saldo tidak mencukupi.")
-                else:
-                    tx_id = generate_tx_id(transactions, tanggal, prefix="OUT")
-                    tx_ws.append_row([
-                        tx_id,
-                        tanggal.strftime("%Y-%m-%d"),
-                        "Pengeluaran",
-                        rekening,
-                        "",
-                        float(jumlah),
-                        kategori,
-                        sub,
-                        catatan
-                    ], value_input_option="USER_ENTERED")
-
-                    saldo_map[rekening] -= jumlah
-                    st.session_state.reset_counter += 1
-                    st.success("Pengeluaran tersimpan ✅")
-                    st.rerun()
-
-        # ----------------------
-        # Pemasukan
-        # ----------------------
-        elif jenis == "Pemasukan":
-            rekening = st.selectbox("Rekening Tujuan", accounts['account_name'])
-
-            kategori_list = rekening_to_categories.get(rekening, {}).get("Pemasukan", ["Pilih Kategori"])
-            kategori = st.selectbox("Kategori", kategori_list)
-
-            sub_list = subcategories.get(kategori, ["Pilih Subkategori"])
-            sub = st.selectbox("Sub Kategori", sub_list)
-
-            jumlah = st.number_input(
-                "Jumlah (Rp)",
-                min_value=1,
-                step=1000,
-                key=f"jumlah_{st.session_state.reset_counter}"
-            )
-            catatan = st.text_input(
-                "Catatan",
-                key=f"catatan_{st.session_state.reset_counter}"
-            )
-
-            st.markdown("#### 🧾 Preview Transaksi (cek dulu sebelum simpan)")
-            st.info(f"""
-**Jenis**     : Pemasukan  
-**Tanggal**  : {tanggal.strftime('%d %B %Y')}  
-**Rekening** : {rekening}  
-**Kategori** : {kategori}  
-**Sub**      : {sub}  
-**Jumlah**   : Rp {jumlah:,.0f}
-""")
-
-            if st.button("Simpan Pemasukan"):
-                tx_id = generate_tx_id(transactions, tanggal, prefix="IN")
-                tx_ws.append_row([
-                    tx_id,
-                    tanggal.strftime("%Y-%m-%d"),
-                    "Pemasukan",
-                    "",
-                    rekening,
-                    float(jumlah),
-                    kategori,
-                    sub,
-                    catatan
-                ], value_input_option="USER_ENTERED")
-
-                saldo_map[rekening] += jumlah
-                st.session_state.reset_counter += 1
-                st.success("Pemasukan tersimpan ✅")
-                st.rerun()
-
-        # ----------------------
-        # Transfer Antar Rekening
-        # ----------------------
-        else:
-            asal = st.selectbox("Rekening Asal", accounts['account_name'])
-            tujuan = st.selectbox("Rekening Tujuan", [a for a in accounts['account_name'] if a != asal])
-            jumlah = st.number_input(
-                "Jumlah (Rp)",
-                min_value=1,
-                step=1000,
-                key=f"jumlah_{st.session_state.reset_counter}"
-            )
-            catatan = st.text_input(
-                "Catatan",
-                key=f"catatan_{st.session_state.reset_counter}"
-            )
-
-            st.caption(
-                "ℹ️ Transfer antar rekening tidak memerlukan kategori "
-                "karena tidak memengaruhi laporan pemasukan atau pengeluaran."
-            )
-
-            st.markdown("#### 🧾 Preview Transaksi (cek dulu sebelum transfer)")
-            st.info(f"""
-**Jenis**        : Transfer Antar Rekening  
-**Tanggal**     : {tanggal.strftime('%d %B %Y')}  
-**Dari Rekening** : {asal}  
-**Ke Rekening**   : {tujuan}  
-**Jumlah**      : Rp {jumlah:,.0f}  
-""")
-
-            if st.button("Simpan Transfer"):
-                if saldo_map.get(asal, 0) < jumlah:
-                    st.error("Saldo tidak mencukupi.")
-                else:
-                    tx_id = generate_tx_id(transactions, tanggal, prefix="TRF")
-                    tx_ws.append_row([
-                        tx_id,
-                        tanggal.strftime("%Y-%m-%d"),
-                        "Transfer",
-                        asal,
-                        tujuan,
-                        float(jumlah),
-                        "Transfer Antar Rekening",
-                        "",
-                        catatan
-                    ], value_input_option="USER_ENTERED")
-
-                    saldo_map[asal] -= jumlah
-                    saldo_map[tujuan] += jumlah
-                    st.session_state.reset_counter += 1
-                    st.success("Transfer tersimpan ✅")
-                    st.rerun()
 
 
-    #st.write("SALDO_MAP FULL:", saldo_map)
+#     # =========================
+#     # Input Manual
+#     # =========================
+#     with st.expander("Input Transaksi"):
 
-    # ======================
-    # LAPORAN SALDO
-    # ======================
-    with st.expander("Jumlah Saldo Rekening", expanded=True):
-        st.subheader("📊 Saldo Rekening Terkini")
+#         jenis = st.selectbox(
+#             "Jenis Transaksi",
+#             ["Pengeluaran", "Pemasukan", "Transfer Antar Rekening"]
+#         )
+#         tanggal = st.date_input("Tanggal", datetime.today())
+
+#         # ----------------------
+#         # Pengeluaran
+#         # ----------------------
+#         if jenis == "Pengeluaran":
+#             rekening = st.selectbox("Rekening Sumber", accounts['account_name'])
+
+#             kategori_list = rekening_to_categories.get(rekening, {}).get("Pengeluaran", ["Pilih Kategori"])
+#             kategori = st.selectbox("Kategori", kategori_list)
+
+#             sub_list = subcategories.get(kategori, ["Pilih Subkategori"])
+#             sub = st.selectbox("Sub Kategori", sub_list)
+
+#             jumlah = st.number_input(
+#                 "Jumlah (Rp)",
+#                 min_value=1,
+#                 step=1000,
+#                 key=f"jumlah_{st.session_state.reset_counter}"
+#             )
+#             catatan = st.text_input(
+#                 "Catatan",
+#                 key=f"catatan_{st.session_state.reset_counter}"
+#             )
+
+#             st.markdown("#### 🧾 Preview Transaksi (cek dulu sebelum simpan)")
+#             st.info(f"""
+# **Jenis**     : Pengeluaran  
+# **Tanggal**  : {tanggal.strftime('%d %B %Y')}  
+# **Rekening** : {rekening}  
+# **Kategori** : {kategori}  
+# **Sub**      : {sub}  
+# **Jumlah**   : Rp {jumlah:,.0f}
+# """)
+
+#             if st.button("Simpan Pengeluaran"):
+#                 if saldo_map.get(rekening, 0) < jumlah:
+#                     st.error("Saldo tidak mencukupi.")
+#                 else:
+#                     tx_id = generate_tx_id(transactions, tanggal, prefix="OUT")
+#                     tx_ws.append_row([
+#                         tx_id,
+#                         tanggal.strftime("%Y-%m-%d"),
+#                         "Pengeluaran",
+#                         rekening,
+#                         "",
+#                         float(jumlah),
+#                         kategori,
+#                         sub,
+#                         catatan
+#                     ], value_input_option="USER_ENTERED")
+
+#                     saldo_map[rekening] -= jumlah
+#                     st.session_state.reset_counter += 1
+#                     st.success("Pengeluaran tersimpan ✅")
+#                     st.rerun()
+
+#         # ----------------------
+#         # Pemasukan
+#         # ----------------------
+#         elif jenis == "Pemasukan":
+#             rekening = st.selectbox("Rekening Tujuan", accounts['account_name'])
+
+#             kategori_list = rekening_to_categories.get(rekening, {}).get("Pemasukan", ["Pilih Kategori"])
+#             kategori = st.selectbox("Kategori", kategori_list)
+
+#             sub_list = subcategories.get(kategori, ["Pilih Subkategori"])
+#             sub = st.selectbox("Sub Kategori", sub_list)
+
+#             jumlah = st.number_input(
+#                 "Jumlah (Rp)",
+#                 min_value=1,
+#                 step=1000,
+#                 key=f"jumlah_{st.session_state.reset_counter}"
+#             )
+#             catatan = st.text_input(
+#                 "Catatan",
+#                 key=f"catatan_{st.session_state.reset_counter}"
+#             )
+
+#             st.markdown("#### 🧾 Preview Transaksi (cek dulu sebelum simpan)")
+#             st.info(f"""
+# **Jenis**     : Pemasukan  
+# **Tanggal**  : {tanggal.strftime('%d %B %Y')}  
+# **Rekening** : {rekening}  
+# **Kategori** : {kategori}  
+# **Sub**      : {sub}  
+# **Jumlah**   : Rp {jumlah:,.0f}
+# """)
+
+#             if st.button("Simpan Pemasukan"):
+#                 tx_id = generate_tx_id(transactions, tanggal, prefix="IN")
+#                 tx_ws.append_row([
+#                     tx_id,
+#                     tanggal.strftime("%Y-%m-%d"),
+#                     "Pemasukan",
+#                     "",
+#                     rekening,
+#                     float(jumlah),
+#                     kategori,
+#                     sub,
+#                     catatan
+#                 ], value_input_option="USER_ENTERED")
+
+#                 saldo_map[rekening] += jumlah
+#                 st.session_state.reset_counter += 1
+#                 st.success("Pemasukan tersimpan ✅")
+#                 st.rerun()
+
+#         # ----------------------
+#         # Transfer Antar Rekening
+#         # ----------------------
+#         else:
+#             asal = st.selectbox("Rekening Asal", accounts['account_name'])
+#             tujuan = st.selectbox("Rekening Tujuan", [a for a in accounts['account_name'] if a != asal])
+#             jumlah = st.number_input(
+#                 "Jumlah (Rp)",
+#                 min_value=1,
+#                 step=1000,
+#                 key=f"jumlah_{st.session_state.reset_counter}"
+#             )
+#             catatan = st.text_input(
+#                 "Catatan",
+#                 key=f"catatan_{st.session_state.reset_counter}"
+#             )
+
+#             st.caption(
+#                 "ℹ️ Transfer antar rekening tidak memerlukan kategori "
+#                 "karena tidak memengaruhi laporan pemasukan atau pengeluaran."
+#             )
+
+#             st.markdown("#### 🧾 Preview Transaksi (cek dulu sebelum transfer)")
+#             st.info(f"""
+# **Jenis**        : Transfer Antar Rekening  
+# **Tanggal**     : {tanggal.strftime('%d %B %Y')}  
+# **Dari Rekening** : {asal}  
+# **Ke Rekening**   : {tujuan}  
+# **Jumlah**      : Rp {jumlah:,.0f}  
+# """)
+
+#             if st.button("Simpan Transfer"):
+#                 if saldo_map.get(asal, 0) < jumlah:
+#                     st.error("Saldo tidak mencukupi.")
+#                 else:
+#                     tx_id = generate_tx_id(transactions, tanggal, prefix="TRF")
+#                     tx_ws.append_row([
+#                         tx_id,
+#                         tanggal.strftime("%Y-%m-%d"),
+#                         "Transfer",
+#                         asal,
+#                         tujuan,
+#                         float(jumlah),
+#                         "Transfer Antar Rekening",
+#                         "",
+#                         catatan
+#                     ], value_input_option="USER_ENTERED")
+
+#                     saldo_map[asal] -= jumlah
+#                     saldo_map[tujuan] += jumlah
+#                     st.session_state.reset_counter += 1
+#                     st.success("Transfer tersimpan ✅")
+#                     st.rerun()
+
+
+#     #st.write("SALDO_MAP FULL:", saldo_map)
+
+#     # ======================
+#     # LAPORAN SALDO
+#     # ======================
+#     with st.expander("Jumlah Saldo Rekening", expanded=True):
+#         st.subheader("📊 Saldo Rekening Terkini")
     
     
-        icons = {
-            "Kas Pribadi": "🏦",
-            "BCA Bisnis Operasional": "🏢",
-            "Rekening Investasi": "💰",
-            "Rekening Tabungan": "💳",
-        }
+#         icons = {
+#             "Kas Pribadi": "🏦",
+#             "BCA Bisnis Operasional": "🏢",
+#             "Rekening Investasi": "💰",
+#             "Rekening Tabungan": "💳",
+#         }
         
-        # Ambil saldo_map yang sudah dihitung dari hitung_saldo()
-        saldo_items = list(saldo_map.items())
+#         # Ambil saldo_map yang sudah dihitung dari hitung_saldo()
+#         saldo_items = list(saldo_map.items())
 
-        # Buat kolom 2 kartu per baris
-        for i in range(0, len(saldo_items), 2):
-            cols = st.columns(2)
-            for j, col in enumerate(cols):
-                idx = i + j
-                if idx < len(saldo_items):
-                    rekening, saldo = saldo_items[idx]
-                    #st.write(f"DEBUG {rekening}: {saldo}")
-                    icon = icons.get(rekening, "")
-                    with col:
-                        metric_card(f"{icon} {rekening}", f"Rp {saldo:,.0f}")
+#         # Buat kolom 2 kartu per baris
+#         for i in range(0, len(saldo_items), 2):
+#             cols = st.columns(2)
+#             for j, col in enumerate(cols):
+#                 idx = i + j
+#                 if idx < len(saldo_items):
+#                     rekening, saldo = saldo_items[idx]
+#                     #st.write(f"DEBUG {rekening}: {saldo}")
+#                     icon = icons.get(rekening, "")
+#                     with col:
+#                         metric_card(f"{icon} {rekening}", f"Rp {saldo:,.0f}")
 
-    with st.expander("📄 Detail Transaksi"):
-        # Pilih jenis filter
-        filter_type = st.radio(
-            "Filter Transaksi Berdasarkan",
-            ["Semua", "Rentang Tanggal", "Bulan", "Tahun"],
-            key="filter_type"
-        )
+#     with st.expander("📄 Detail Transaksi"):
+#         # Pilih jenis filter
+#         filter_type = st.radio(
+#             "Filter Transaksi Berdasarkan",
+#             ["Semua", "Rentang Tanggal", "Bulan", "Tahun"],
+#             key="filter_type"
+#         )
     
-        # Pilih rekening (opsional)
-        rekening_filter = st.selectbox(
-            "Pilih Rekening",
-            ["Semua"] + list(accounts['account_name']),
-            key="filter_rekening"
-        )
+#         # Pilih rekening (opsional)
+#         rekening_filter = st.selectbox(
+#             "Pilih Rekening",
+#             ["Semua"] + list(accounts['account_name']),
+#             key="filter_rekening"
+#         )
     
-        # Inisialisasi filter tanggal / bulan / tahun
-        tanggal_awal, tanggal_akhir, bulan_filter, tahun_filter = None, None, None, None
+#         # Inisialisasi filter tanggal / bulan / tahun
+#         tanggal_awal, tanggal_akhir, bulan_filter, tahun_filter = None, None, None, None
     
-        if filter_type == "Rentang Tanggal":
-            col1, col2 = st.columns(2)
-            with col1:
-                tanggal_awal = st.date_input(
-                    "Tanggal Awal",
-                    value=datetime.today(),
-                    key="tanggal_awal_filter"
-                )
-            with col2:
-                tanggal_akhir = st.date_input(
-                    "Tanggal Akhir",
-                    value=datetime.today(),
-                    key="tanggal_akhir_filter"
-                )
+#         if filter_type == "Rentang Tanggal":
+#             col1, col2 = st.columns(2)
+#             with col1:
+#                 tanggal_awal = st.date_input(
+#                     "Tanggal Awal",
+#                     value=datetime.today(),
+#                     key="tanggal_awal_filter"
+#                 )
+#             with col2:
+#                 tanggal_akhir = st.date_input(
+#                     "Tanggal Akhir",
+#                     value=datetime.today(),
+#                     key="tanggal_akhir_filter"
+#                 )
     
-        elif filter_type == "Bulan":
-            bulan_filter = st.selectbox(
-                "Bulan",
-                [f"{i:02d}" for i in range(1, 13)],
-                key="filter_bulan"
-            )
+#         elif filter_type == "Bulan":
+#             bulan_filter = st.selectbox(
+#                 "Bulan",
+#                 [f"{i:02d}" for i in range(1, 13)],
+#                 key="filter_bulan"
+#             )
     
-        elif filter_type == "Tahun":
-            tahun_filter = st.selectbox(
-                "Tahun",
-                sorted(transactions['tanggal'].apply(lambda x: pd.to_datetime(x).year).unique(), reverse=True),
-                key="filter_tahun"
-            )
+#         elif filter_type == "Tahun":
+#             tahun_filter = st.selectbox(
+#                 "Tahun",
+#                 sorted(transactions['tanggal'].apply(lambda x: pd.to_datetime(x).year).unique(), reverse=True),
+#                 key="filter_tahun"
+#             )
     
-        # =========================
-        # Terapkan Filter ke Dataframe
-        # =========================
-        df_display = transactions.copy()
+#         # =========================
+#         # Terapkan Filter ke Dataframe
+#         # =========================
+#         df_display = transactions.copy()
     
-        # Filter rekening
-        if rekening_filter != "Semua":
-            df_display = df_display[
-                (df_display['rekening_sumber'] == rekening_filter) |
-                (df_display['rekening_tujuan'] == rekening_filter)
-            ]
+#         # Filter rekening
+#         if rekening_filter != "Semua":
+#             df_display = df_display[
+#                 (df_display['rekening_sumber'] == rekening_filter) |
+#                 (df_display['rekening_tujuan'] == rekening_filter)
+#             ]
     
-        # Filter berdasarkan jenis filter
-        if filter_type == "Rentang Tanggal" and tanggal_awal and tanggal_akhir:
-            df_display = df_display[
-                (pd.to_datetime(df_display['tanggal']) >= pd.to_datetime(tanggal_awal)) &
-                (pd.to_datetime(df_display['tanggal']) <= pd.to_datetime(tanggal_akhir))
-            ]
-        elif filter_type == "Bulan" and bulan_filter:
-            df_display = df_display[
-                pd.to_datetime(df_display['tanggal']).dt.month == int(bulan_filter)
-            ]
-        elif filter_type == "Tahun" and tahun_filter:
-            df_display = df_display[
-                pd.to_datetime(df_display['tanggal']).dt.year == int(tahun_filter)
-            ]
+#         # Filter berdasarkan jenis filter
+#         if filter_type == "Rentang Tanggal" and tanggal_awal and tanggal_akhir:
+#             df_display = df_display[
+#                 (pd.to_datetime(df_display['tanggal']) >= pd.to_datetime(tanggal_awal)) &
+#                 (pd.to_datetime(df_display['tanggal']) <= pd.to_datetime(tanggal_akhir))
+#             ]
+#         elif filter_type == "Bulan" and bulan_filter:
+#             df_display = df_display[
+#                 pd.to_datetime(df_display['tanggal']).dt.month == int(bulan_filter)
+#             ]
+#         elif filter_type == "Tahun" and tahun_filter:
+#             df_display = df_display[
+#                 pd.to_datetime(df_display['tanggal']).dt.year == int(tahun_filter)
+#             ]
     
-        # Tampilkan dataframe hasil filter
-        st.markdown(f"#### Hasil Transaksi ({len(df_display)} baris)")
-        st.dataframe(df_display.reset_index(drop=True))
-'''
+#         # Tampilkan dataframe hasil filter
+#         st.markdown(f"#### Hasil Transaksi ({len(df_display)} baris)")
+#         st.dataframe(df_display.reset_index(drop=True))
+# '''
 
 
 

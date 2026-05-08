@@ -2842,7 +2842,7 @@ with st.expander("📘 Jurnal Akuntansi"):
     else:
         st.success("🟢 Cashflow sehat. Arus kas berjalan stabil.")
 
-Footer notes
+#Footer notes
     st.markdown("---")
     st.markdown("**Catatan:**\n- Pembelian via kartu kredit dicatat sebagai `Hutang Kartu - <Nama>` (liability) dan tidak mengurangi kas sampai pembayaran tagihan tercatat.\n- Pembayaran tagihan kartu dicatat sebagai pengurangan kas dan mengurangi liability.\n- Untuk otomasi pendapatan (cash-basis), sertakan kolom `Paid_Amount` atau catatan `Masuk` pada sheet 'Arus Kas'.")
 with st.expander("📘 Laporan - laporan"):

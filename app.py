@@ -219,9 +219,10 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         
             try:
                 pdf.get_string_width(val)
+        
             except Exception as e:
-                print("ERROR COL:", col)
-                print("VALUE:", repr(val))
+                st.error(f"ERROR COL: {col}")
+                st.code(repr(val))
                 raise e
         
             max_w = max(max_w, pdf.get_string_width(val) + 2)

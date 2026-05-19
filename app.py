@@ -216,6 +216,14 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         pdf.set_font("Arial", "", 9)
         for row in data:
             val = str(row.get(col, ""))
+        
+            try:
+                pdf.get_string_width(val)
+            except Exception as e:
+                print("ERROR COL:", col)
+                print("VALUE:", repr(val))
+                raise e
+        
             max_w = max(max_w, pdf.get_string_width(val) + 2)
         col_widths[col] = max(min_widths.get(col, 0), max_w)
 

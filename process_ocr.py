@@ -752,8 +752,12 @@ import re
 from datetime import datetime, timedelta
 
 def extract_kode_booking(text: str) -> str:
-    match = re.search(r'kode\s*booking\s*[:\-]?\s*([A-Z0-9]+)', text, re.IGNORECASE)
-    return match.group(1) if match else ''
+    match = re.search(
+        r'kode\s*booking\s*[:\-]?\s*([A-Z0-9]+)',
+        text,
+        re.IGNORECASE | re.MULTILINE
+    )
+    return match.group(1).strip() if match else ''
 def extract_tanggal(text: str) -> str:
     match = re.search(r'(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})', text)
     if not match:
@@ -774,9 +778,17 @@ def extract_tanggal(text: str) -> str:
     except ValueError:
         return ''
 def extract_rute_whoosh(text: str) -> str:
-    match = re.search(r'ID([A-Z]{3})\s*-\s*ID([A-Z]{3})', text)
+    match = re.search(
+        r'\((ID[A-Z]{3})\).*?\((ID[A-Z]{3})\)',
+        text,
+        re.DOTALL
+    )
+
     if match:
-        return f"{match.group(1)} - {match.group(2)}"
+        asal = match.group(1)[2:]   # buang ID
+        tujuan = match.group(2)[2:]
+        return f"{asal} - {tujuan}"
+
     return ''
 
 def extract_passengers_whoosh(text: str) -> list:
@@ -784,11 +796,16 @@ def extract_passengers_whoosh(text: str) -> list:
 
     # Ekstrak nama penumpang
     pattern = re.compile(
-        r'(?:TUAN|Tn\.?|MR\.?|NYONYA|NY\.?|MRS\.?|NN\.?)\s+([A-Z][a-zA-Z\s]+?)(?=\s+Nomor\s+Identitas)', re.IGNORECASE)
+        r'(?:TUAN|Tn\.?|MR\.?|NYONYA|NY\.?|MRS\.?|NN\.?)\s+([A-Z][a-zA-Z\s]+)',
+        re.IGNORECASE
+    )
     nama_list = [m.group(1).strip() for m in pattern.finditer(text)]
 
     # Ekstrak kursi (dalam urutan kemunculan)
-    kursi_pattern = re.compile(r'Kursi\s+Ekonomi\s+Premium\s+(\d+)\s*/\s*([0-9A-Z]+)', re.IGNORECASE)
+    kursi_pattern = re.compile(
+        r'Kursi\s*Ekonomi\s*Premium\s*(\d+)\s*/\s*([0-9A-Z]+)',
+        re.IGNORECASE | re.DOTALL
+    )
     kursi_list = kursi_pattern.findall(text)
 
     for i, nama in enumerate(nama_list):

@@ -796,7 +796,7 @@ def extract_passengers_whoosh(text: str) -> list:
 
     # Ekstrak nama penumpang
     pattern = re.compile(
-        r'(?:TUAN|Tn\.?|MR\.?|NYONYA|NY\.?|MRS\.?|NN\.?)\s+([A-Z][a-zA-Z\s]+)',
+        r'(?:TUAN|Tn\.?|MR\.?|NYONYA|NY\.?|MRS\.?|NN\.?)\s+([A-Z][A-Za-z ]+?)(?=\s*(?:Nomor\s+Identitas|Kursi|Dewasa|$))',
         re.IGNORECASE
     )
     nama_list = [m.group(1).strip() for m in pattern.finditer(text)]

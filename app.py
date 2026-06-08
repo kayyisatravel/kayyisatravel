@@ -5043,19 +5043,38 @@ class AITicketParserResult(BaseModel):
 # === 2. FUNGSI UTAMA PANGGILAN API GEMINI           ===
 # =======================================================
 def panggil_gemini_ai_parser(text_block: str) -> list:
-    """Fungsi mandiri untuk memproses teks menggunakan Gemini API"""
+    """Fungsi mandiri dengan instruksi ketat untuk memotong kelas maskapai dan merapikan durasi jam pesawat"""
     try:
-        # Sistem akan membaca key dari Secrets secara aman tanpa hardcode
         client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
         
         prompt = f"""
-        Kamu adalah sistem AI pembaca manifes tiket travel. Analisis teks OCR berikut dengan cermat.
-        Ekstrak informasinya dan masukkan ke dalam struktur JSON yang diminta.
+        Analisis teks OCR tiket/voucher berikut dengan cermat dan kembalikan hasilnya dalam bentuk JSON Array.
         
-        Aturan Penting:
-        1. Jika ada beberapa nama penumpang atau beberapa kamar, pecah menjadi baris baru (entri terpisah).
-        2. Bagi rata total Harga Beli dan Harga Jual secara adil ke setiap baris penumpang/kamar.
-        3. Pastikan format tanggal presisi YYYY-MM-DD.
+        Aturan Khusus Tipe PESAWAT:
+        1. Pada kolom "item_name", hanya masukkan Nama Maskapai dan Nomor Penerbangan (cth: "JT 883" atau "GA 204"). 
+           TIDAK BOLEH memasukkan kata kelas seperti "Economy", "Business", "Promo", "ECO", atau "BUS".
+        2. Pada kolom "durasi", isi WAJIB berupa format "Jam Berangkat - Jam Kedatangan" (cth: "09:10 - 10:30"). 
+           Gunakan format 24 jam atau bersihkan pemisah titik menjadi titik dua jika diperlukan.
+        
+        Format JSON Output yang WAJIB dipatuhi:
+        {{
+          "entries": [
+            {{
+              "tgl_pemesanan": "YYYY-MM-DD",
+              "tgl_berangkat": "YYYY-MM-DD",
+              "kode_booking": "KODE",
+              "item_name": "Nama Hotel/No Penerbangan (Tanpa Kelas)/Kursi Kereta",
+              "durasi": "1 mlm (untuk hotel) atau Jam Berangkat - Jam Tiba (untuk pesawat/kereta)",
+              "nama_customer": "Nama Tamu/Penumpang",
+              "rute": "Kota atau rute bandara/stasiun",
+              "harga_beli": 100000,
+              "harga_jual": 120000,
+              "tipe": "HOTEL atau PESAWAT atau KERETA",
+              "bf_status": "BF atau NBF atau kosong",
+              "platform": "Traveloka atau Tiket.com atau Agoda atau Lainnya"
+            }}
+          ]
+        }}
         
         Teks OCR Mentah:
         {text_block}
@@ -5066,7 +5085,6 @@ def panggil_gemini_ai_parser(text_block: str) -> list:
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                response_schema=AITicketParserResult,
                 temperature=0.1
             ),
         )

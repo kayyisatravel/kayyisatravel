@@ -5043,53 +5043,52 @@ class AITicketParserResult(BaseModel):
 # === 2. FUNGSI UTAMA PANGGILAN API GEMINI           ===
 # =======================================================
 def panggil_gemini_ai_parser(text_block: str) -> list:
-    """Fungsi AI Gemini dengan instruksi super ketat dan contoh format data GSheets"""
+    """Fungsi AI Gemini: Harga Jual otomatis disamakan dengan Harga Beli jika info Jual tidak ditemukan"""
     try:
         client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
         
         prompt = f"""
         Kamu adalah sistem AI parser data manifes travel. Ekstrak teks OCR berikut menjadi JSON Array secara presisi.
         
-        ATURAN STRUKTUR DATA WAJIB (IKUTI CONTOH):
-        1. Tipe PESAWAT:
-           - "item_name": HANYA nama maskapai dan nomor penerbangan. Jika transit/multi-flight, gabungkan dengan strip (Contoh: "QG997-QG 174"). JANGAN masukkan kata kelas seperti 'ECONOMY', 'Business', 'Promo'.
-           - "durasi": Format jam 'HH:MM - HH:MM' (Contoh: "15:00 - 19:40").
-           - "rute": HANYA kode bandara 3 huruf (Contoh: "TKG - SUB"). JANGAN masukkan nama kota panjang.
+        ATURAN STRUKTUR HARGA (DISIPLIN FINANSIAL):
+        1. "harga_beli": Ekstrak nominal total perolehan / total bayar / tarif dasar + pajak bersih dari dokumen (Angka integer).
+        2. "harga_jual": 
+           - Cari kata kunci khusus harga jual (cth: 'Harga Jual 1500000', 'Jual 1500000'). Jika ada, masukkan angka tersebut.
+           - JIKA TIDAK ADA informasi atau kata kunci tentang harga jual/nilai jual, kamu WAJIB menyamakan nilai "harga_jual" sama persis dengan nilai "harga_beli" yang kamu temukan (Sehingga nilai laba awal menjadi 0).
         
+        ATURAN STRUKTUR DATA LAINNYA:
+        1. Tipe PESAWAT:
+           - "item_name": HANYA nama maskapai dan nomor penerbangan (Contoh: "QG997-QG 174"). JANGAN masukkan kata kelas.
+           - "durasi": Format jam 'HH:MM - HH:MM' (Contoh: "15:00 - 19:40").
+           - "rute": HANYA kode bandara 3 huruf (Contoh: "TKG - SUB").
         2. Tipe HOTEL:
            - "item_name": Nama properti hotel bersih (Contoh: "Hotel Sunrise Syariah").
-           - "durasi": Jumlah malam + kata 'mlm' (Contoh: "1 mlm", "2 mlm").
-           - "rute": HANYA nama kota/kabupaten lokasi hotel (Contoh: "Banjarbaru", "Tuban").
-           - "bf_status": WAJIB diisi 'BF' (jika ada sarapan) atau 'NBF' (jika tanpa sarapan/room only).
-        
-        3. Tipe KERETA (Termasuk Whoosh):
-           - "item_name": Nama Kereta + Kelas + Nomor Kursi (Contoh: "Argo Anjasmoro  EKS 2/5D" atau "Whoosh PRE 2/3A").
+           - "durasi": Jumlah malam + kata 'mlm' (Contoh: "1 mlm").
+           - "rute": HANYA nama kota/kabupaten lokasi hotel (Contoh: "Banjarbaru").
+           - "bf_status": Isi 'BF' (jika ada sarapan) atau 'NBF' (jika tanpa sarapan).
+        3. Tipe KERETA (Termesuak Whoosh):
+           - "item_name": Nama Kereta + Kelas + Nomor Kursi (Contoh: "Argo Anjasmoro  EKS 2/5D").
            - "durasi": Format jam 'HH:MM - HH:MM' (Contoh: "23:35 - 08:40").
-           - "rute": HANYA kode stasiun (Contoh: "GMR - SBI" atau "HLM - BKS").
-        
-        4. TANGGAL (tgl_pemesanan & tgl_berangkat):
-           - Ekstrak dalam format standar ISO 'YYYY-MM-DD' (Contoh: "2026-05-22"). 
-           - Jika tanggal pemesanan tidak tertulis jelas, samakan nilainya dengan tanggal keberangkatan agar nanti disesuaikan oleh admin.
-        
-        5. PLATFORM (platform):
-           - Wajib tebak nama platform asalnya, pilih salah satu dari: "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin", "KAI Access", "RedDoorz", "Lainnya".
+           - "rute": HANYA kode stasiun (Contoh: "GMR - SBI").
+        4. TANGGAL: Format standar ISO 'YYYY-MM-DD'. Jika tanggal pemesanan ragu, samakan dengan tgl berangkat.
+        5. PLATFORM: Pilih salah satu dari: "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin", "KAI Access", "RedDoorz", "Lainnya".
 
-        Format Output Harus Berupa JSON Array Seperti Ini:
+        Format Output Wajib JSON Array:
         {{
           "entries": [
             {{
               "tgl_pemesanan": "YYYY-MM-DD",
               "tgl_berangkat": "YYYY-MM-DD",
               "kode_booking": "KODE123",
-              "item_name": "Nama Kendaraan/Hotel Sesuai Aturan di Atas",
-              "durasi": "Sesuai Aturan di Atas",
-              "nama_customer": "Nama Lengkap Tamu/Penumpang",
-              "rute": "Sesuai Aturan di Atas",
+              "item_name": "Nama Kendaraan/Hotel",
+              "durasi": "Sesuai Aturan",
+              "nama_customer": "Nama Lengkap",
+              "rute": "Sesuai Aturan",
               "harga_beli": 1500000,
-              "harga_jual": 1750000,
+              "harga_jual": 1500000, 
               "tipe": "PESAWAT atau HOTEL atau KERETA",
-              "bf_status": "BF atau NBF atau kosong jika bukan hotel",
-              "platform": "Nama Platform Sesuai Aturan di Atas"
+              "bf_status": "BF atau NBF atau kosong",
+              "platform": "Nama Platform"
             }}
           ]
         }}
@@ -5112,6 +5111,7 @@ def panggil_gemini_ai_parser(text_block: str) -> list:
     except Exception as e:
         st.error(f"Error pada sistem AI: {e}")
         return []
+
 
 # =======================================================
 # === 3. ATURAN OTOMATISASI DATA (LOGIKA BUSINESS)     ===

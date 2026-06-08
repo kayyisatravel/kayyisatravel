@@ -5043,42 +5043,58 @@ class AITicketParserResult(BaseModel):
 # === 2. FUNGSI UTAMA PANGGILAN API GEMINI           ===
 # =======================================================
 def panggil_gemini_ai_parser(text_block: str) -> list:
-    """Fungsi mandiri dengan instruksi ketat untuk memotong kelas maskapai dan merapikan durasi jam pesawat"""
+    """Fungsi AI Gemini dengan instruksi super ketat dan contoh format data GSheets"""
     try:
         client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
         
         prompt = f"""
-        Analisis teks OCR tiket travel berikut dengan cermat dan ekstrak informasinya ke dalam JSON Array.
+        Kamu adalah sistem AI parser data manifes travel. Ekstrak teks OCR berikut menjadi JSON Array secara presisi.
         
-        ATURAN UTAMA DISIPLIN FIELD:
-        1. KOREKSI PESAWAT (item_name): Masukkan HANYA Nama Maskapai dan Nomor Penerbangan (Contoh: 'Lion Air JT 781'). 
-           WAJIB membuang kata kelas seperti 'ECONOMY', 'Business', 'Promo', dll.
-        2. KOREKSI DURASI: Masukkan HANYA jam keberangkatan dan kedatangan dengan format 'HH:MM - HH:MM' atau 'HH.MM - HH.MM' (Contoh: '06:00 - 07:10').
-        3. KOREKSI RUTE: Ekstrak rute asal dan tujuan. Ambil HANYA kode 3 huruf kapitalnya saja (IATA code) dan pisahkan dengan strip (Contoh: 'PLW - UPG'). 
-           JANGAN masukkan nama kota panjangnya seperti 'Palu' atau 'Makassar'.
-        4. KOREKSI TANGGAL PEMESANAN: Jika tanggal transaksi pemesanan tidak tertulis jelas atau Anda ragu, masukkan string kosong "" atau samakan nilainya dengan tanggal keberangkatan agar nanti diisi manual oleh admin.
+        ATURAN STRUKTUR DATA WAJIB (IKUTI CONTOH):
+        1. Tipe PESAWAT:
+           - "item_name": HANYA nama maskapai dan nomor penerbangan. Jika transit/multi-flight, gabungkan dengan strip (Contoh: "QG997-QG 174"). JANGAN masukkan kata kelas seperti 'ECONOMY', 'Business', 'Promo'.
+           - "durasi": Format jam 'HH:MM - HH:MM' (Contoh: "15:00 - 19:40").
+           - "rute": HANYA kode bandara 3 huruf (Contoh: "TKG - SUB"). JANGAN masukkan nama kota panjang.
         
-        Format output wajib JSON Array seperti ini:
+        2. Tipe HOTEL:
+           - "item_name": Nama properti hotel bersih (Contoh: "Hotel Sunrise Syariah").
+           - "durasi": Jumlah malam + kata 'mlm' (Contoh: "1 mlm", "2 mlm").
+           - "rute": HANYA nama kota/kabupaten lokasi hotel (Contoh: "Banjarbaru", "Tuban").
+           - "bf_status": WAJIB diisi 'BF' (jika ada sarapan) atau 'NBF' (jika tanpa sarapan/room only).
+        
+        3. Tipe KERETA (Termasuk Whoosh):
+           - "item_name": Nama Kereta + Kelas + Nomor Kursi (Contoh: "Argo Anjasmoro  EKS 2/5D" atau "Whoosh PRE 2/3A").
+           - "durasi": Format jam 'HH:MM - HH:MM' (Contoh: "23:35 - 08:40").
+           - "rute": HANYA kode stasiun (Contoh: "GMR - SBI" atau "HLM - BKS").
+        
+        4. TANGGAL (tgl_pemesanan & tgl_berangkat):
+           - Ekstrak dalam format standar ISO 'YYYY-MM-DD' (Contoh: "2026-05-22"). 
+           - Jika tanggal pemesanan tidak tertulis jelas, samakan nilainya dengan tanggal keberangkatan agar nanti disesuaikan oleh admin.
+        
+        5. PLATFORM (platform):
+           - Wajib tebak nama platform asalnya, pilih salah satu dari: "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin", "KAI Access", "RedDoorz", "Lainnya".
+
+        Format Output Harus Berupa JSON Array Seperti Ini:
         {{
           "entries": [
             {{
               "tgl_pemesanan": "YYYY-MM-DD",
               "tgl_berangkat": "YYYY-MM-DD",
-              "kode_booking": "KFWHQQ",
-              "item_name": "Lion Air JT 781",
-              "durasi": "06:00 - 07:10",
-              "nama_customer": "Eka Rangga Febransyah",
-              "rute": "PLW - UPG",
-              "harga_beli": 1422968,
-              "harga_jual": 1422968,
-              "tipe": "PESAWAT",
-              "bf_status": "",
-              "platform": "Agoda"
+              "kode_booking": "KODE123",
+              "item_name": "Nama Kendaraan/Hotel Sesuai Aturan di Atas",
+              "durasi": "Sesuai Aturan di Atas",
+              "nama_customer": "Nama Lengkap Tamu/Penumpang",
+              "rute": "Sesuai Aturan di Atas",
+              "harga_beli": 1500000,
+              "harga_jual": 1750000,
+              "tipe": "PESAWAT atau HOTEL atau KERETA",
+              "bf_status": "BF atau NBF atau kosong jika bukan hotel",
+              "platform": "Nama Platform Sesuai Aturan di Atas"
             }}
           ]
         }}
         
-        Teks OCR Mentah:
+        Teks OCR Mentah yang Harus Kamu Ekstrak:
         {text_block}
         """
         
@@ -5148,9 +5164,9 @@ with st.expander('🤖 [BETA] Upload Data Text dengan Kecerdasan AI (Gemini)'):
                     hb = item.get("harga_beli") or 0
                     hj = item.get("harga_jual") or 0
                     laba = hj - hb
-                    persen_laba = f"{round((laba / hb) * 100, 2)}%".replace('.', ',') if hb > 0 else "0,00%"
+                    # Format persentase menggunakan format titik sesuai contoh data baru Anda
+                    persen_laba = f"{round((laba / hb) * 100, 2)}%" if hb > 0 else "0.0%"
                     
-                    # Susun agar strukturnya langsung COCOK dengan Google Sheets Anda
                     ai_entries.append({
                         'Tgl Pemesanan': item.get("tgl_pemesanan", ""),
                         'Tgl Berangkat': item.get("tgl_berangkat", ""),
@@ -5165,12 +5181,12 @@ with st.expander('🤖 [BETA] Upload Data Text dengan Kecerdasan AI (Gemini)'):
                         'Tipe': item.get("tipe", "").upper(),
                         'BF/NBF': item.get("bf_status", ""),
                         'No Invoice': '',
-                        'Keterangan': 'Belum Lunas',
+                        'Keterangan': 'Belum Lunas',   # Langsung otomatis terisi 'Belum Lunas'
                         'Nama Pemesan': 'ER ENDO',
                         'Admin': 'PA',
                         ' % Laba': persen_laba,
-                        'Sumber Dana': sumber_dana,   # Terisi otomatis!
-                        'Detail Dana': detail_dana,   # Terisi otomatis!
+                        'Sumber Dana': sumber_dana,   
+                        'Detail Dana': detail_dana,   
                         'Platform': item.get("platform", "Lainnya")
                     })
         

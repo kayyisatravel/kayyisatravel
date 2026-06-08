@@ -5043,7 +5043,7 @@ class AITicketParserResult(BaseModel):
 # === 2. FUNGSI UTAMA PANGGILAN API GEMINI           ===
 # =======================================================
 def panggil_gemini_ai_parser(text_block: str) -> list:
-    """Fungsi AI Gemini: Harga Jual otomatis disamakan dengan Harga Beli jika info Jual tidak ditemukan"""
+    """Fungsi AI Gemini: Mengunci format nama, kelas, dan nomor kursi kereta api secara disiplin"""
     try:
         client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
         
@@ -5051,12 +5051,12 @@ def panggil_gemini_ai_parser(text_block: str) -> list:
         Kamu adalah sistem AI parser data manifes travel. Ekstrak teks OCR berikut menjadi JSON Array secara presisi.
         
         ATURAN STRUKTUR HARGA (DISIPLIN FINANSIAL):
-        1. "harga_beli": Ekstrak nominal total perolehan / total bayar / tarif dasar + pajak bersih dari dokumen (Angka integer).
+        1. "harga_beli": Ekstrak nominal total perolehan / total bayar bersih dari dokumen (Angka integer).
         2. "harga_jual": 
            - Cari kata kunci khusus harga jual (cth: 'Harga Jual 1500000', 'Jual 1500000'). Jika ada, masukkan angka tersebut.
-           - JIKA TIDAK ADA informasi atau kata kunci tentang harga jual/nilai jual, kamu WAJIB menyamakan nilai "harga_jual" sama persis dengan nilai "harga_beli" yang kamu temukan (Sehingga nilai laba awal menjadi 0).
+           - JIKA TIDAK ADA informasi harga jual, kamu WAJIB menyamakan nilai "harga_jual" sama persis dengan nilai "harga_beli" (Sehingga nilai laba awal menjadi 0).
         
-        ATURAN STRUKTUR DATA LAINNYA:
+        ATURAN STRUKTUR DATA UTAMA (WAJIB DIPATUHI BAGAIMANAPUN INPUT TEKSNYA):
         1. Tipe PESAWAT:
            - "item_name": HANYA nama maskapai dan nomor penerbangan (Contoh: "QG997-QG 174"). JANGAN masukkan kata kelas.
            - "durasi": Format jam 'HH:MM - HH:MM' (Contoh: "15:00 - 19:40").
@@ -5066,10 +5066,12 @@ def panggil_gemini_ai_parser(text_block: str) -> list:
            - "durasi": Jumlah malam + kata 'mlm' (Contoh: "1 mlm").
            - "rute": HANYA nama kota/kabupaten lokasi hotel (Contoh: "Banjarbaru").
            - "bf_status": Isi 'BF' (jika ada sarapan) atau 'NBF' (jika tanpa sarapan).
-        3. Tipe KERETA (Termesuak Whoosh):
-           - "item_name": Nama Kereta + Kelas + Nomor Kursi (Contoh: "Argo Anjasmoro  EKS 2/5D").
+        3. Tipe KERETA (Termasuk Whoosh):
+           - "item_name": Format penulisan WAJIB seperti ini: [Nama Kereta] [Singkatan Kelas] [Nomor Gerbong]/[Nomor Kursi]
+             Ketentuan kelas: Eksekutif disingkat 'Eks', Ekonomi disingkat 'Eko', Premium disingkat 'Pre', Bisnis disingkat 'Bis'.
+             CONTOH WAJIB: "Sembrani Eks 4/5D", "Harina Eko 3/8C", "Kertajaya Pre 9/2A", "Whoosh Pre 3/1A".
            - "durasi": Format jam 'HH:MM - HH:MM' (Contoh: "23:35 - 08:40").
-           - "rute": HANYA kode stasiun (Contoh: "GMR - SBI").
+           - "rute": HANYA kode stasiun asal - tujuan (Contoh: "GMR - SBI" atau "HLM - BKS").
         4. TANGGAL: Format standar ISO 'YYYY-MM-DD'. Jika tanggal pemesanan ragu, samakan dengan tgl berangkat.
         5. PLATFORM: Pilih salah satu dari: "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin", "KAI Access", "RedDoorz", "Lainnya".
 
@@ -5080,14 +5082,14 @@ def panggil_gemini_ai_parser(text_block: str) -> list:
               "tgl_pemesanan": "YYYY-MM-DD",
               "tgl_berangkat": "YYYY-MM-DD",
               "kode_booking": "KODE123",
-              "item_name": "Nama Kendaraan/Hotel",
+              "item_name": "Nama Kendaraan/Hotel Sesuai Aturan Ketat di Atas",
               "durasi": "Sesuai Aturan",
               "nama_customer": "Nama Lengkap",
               "rute": "Sesuai Aturan",
               "harga_beli": 1500000,
               "harga_jual": 1500000, 
               "tipe": "PESAWAT atau HOTEL atau KERETA",
-              "bf_status": "BF atau NBF atau kosong",
+              "bf_status": "BF atau NBF atau kosong jika bukan hotel",
               "platform": "Nama Platform"
             }}
           ]
@@ -5111,6 +5113,7 @@ def panggil_gemini_ai_parser(text_block: str) -> list:
     except Exception as e:
         st.error(f"Error pada sistem AI: {e}")
         return []
+
 
 
 # =======================================================

@@ -5048,30 +5048,32 @@ def panggil_gemini_ai_parser(text_block: str) -> list:
         client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
         
         prompt = f"""
-        Analisis teks OCR tiket/voucher berikut dengan cermat dan kembalikan hasilnya dalam bentuk JSON Array.
+        Analisis teks OCR tiket travel berikut dengan cermat dan ekstrak informasinya ke dalam JSON Array.
         
-        Aturan Khusus Tipe PESAWAT:
-        1. Pada kolom "item_name", hanya masukkan Nama Maskapai dan Nomor Penerbangan (cth: "JT 883" atau "GA 204"). 
-           TIDAK BOLEH memasukkan kata kelas seperti "Economy", "Business", "Promo", "ECO", atau "BUS".
-        2. Pada kolom "durasi", isi WAJIB berupa format "Jam Berangkat - Jam Kedatangan" (cth: "09:10 - 10:30"). 
-           Gunakan format 24 jam atau bersihkan pemisah titik menjadi titik dua jika diperlukan.
+        ATURAN UTAMA DISIPLIN FIELD:
+        1. KOREKSI PESAWAT (item_name): Masukkan HANYA Nama Maskapai dan Nomor Penerbangan (Contoh: 'Lion Air JT 781'). 
+           WAJIB membuang kata kelas seperti 'ECONOMY', 'Business', 'Promo', dll.
+        2. KOREKSI DURASI: Masukkan HANYA jam keberangkatan dan kedatangan dengan format 'HH:MM - HH:MM' atau 'HH.MM - HH.MM' (Contoh: '06:00 - 07:10').
+        3. KOREKSI RUTE: Ekstrak rute asal dan tujuan. Ambil HANYA kode 3 huruf kapitalnya saja (IATA code) dan pisahkan dengan strip (Contoh: 'PLW - UPG'). 
+           JANGAN masukkan nama kota panjangnya seperti 'Palu' atau 'Makassar'.
+        4. KOREKSI TANGGAL PEMESANAN: Jika tanggal transaksi pemesanan tidak tertulis jelas atau Anda ragu, masukkan string kosong "" atau samakan nilainya dengan tanggal keberangkatan agar nanti diisi manual oleh admin.
         
-        Format JSON Output yang WAJIB dipatuhi:
+        Format output wajib JSON Array seperti ini:
         {{
           "entries": [
             {{
               "tgl_pemesanan": "YYYY-MM-DD",
               "tgl_berangkat": "YYYY-MM-DD",
-              "kode_booking": "KODE",
-              "item_name": "Nama Hotel/No Penerbangan (Tanpa Kelas)/Kursi Kereta",
-              "durasi": "1 mlm (untuk hotel) atau Jam Berangkat - Jam Tiba (untuk pesawat/kereta)",
-              "nama_customer": "Nama Tamu/Penumpang",
-              "rute": "Kota atau rute bandara/stasiun",
-              "harga_beli": 100000,
-              "harga_jual": 120000,
-              "tipe": "HOTEL atau PESAWAT atau KERETA",
-              "bf_status": "BF atau NBF atau kosong",
-              "platform": "Traveloka atau Tiket.com atau Agoda atau Lainnya"
+              "kode_booking": "KFWHQQ",
+              "item_name": "Lion Air JT 781",
+              "durasi": "06:00 - 07:10",
+              "nama_customer": "Eka Rangga Febransyah",
+              "rute": "PLW - UPG",
+              "harga_beli": 1422968,
+              "harga_jual": 1422968,
+              "tipe": "PESAWAT",
+              "bf_status": "",
+              "platform": "Agoda"
             }}
           ]
         }}

@@ -5044,10 +5044,9 @@ class AITicketParserResult(BaseModel):
 # =======================================================
 def panggil_gemini_ai_parser(text_block: str) -> list:
     """Fungsi mandiri untuk memproses teks menggunakan Gemini API"""
-    # Pastikan Anda sudah setting API Key di komputer/server Anda dengan nama GEMINI_API_KEY
-    # Atau jika ingin hardcode (tidak disarankan demi keamanan): client = genai.Client(api_key="ISI_API_KEY_ANDA")
     try:
-        client = genai.Client()
+        # Sistem akan membaca key dari Secrets secara aman tanpa hardcode
+        client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
         
         prompt = f"""
         Kamu adalah sistem AI pembaca manifes tiket travel. Analisis teks OCR berikut dengan cermat.

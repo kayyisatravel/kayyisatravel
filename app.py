@@ -5136,8 +5136,7 @@ def terapkan_otomatisasi_pembayaran(platform_name: str) -> (str, str):
 # =======================================================
 with st.expander('🤖 [BETA] Upload Data Text dengan Kecerdasan AI (Gemini)'):
     st.markdown("""
-    *Fitur ini menggunakan AI Gemini untuk membaca format dari **Traveloka, Tiket.com, dan Agoda** secara otomatis 
-    tanpa merusak sistem utama Anda.*
+    *Fitur ini menggunakan AI Gemini untuk membaca format secara otomatis.*
     """)
     
     ai_raw = st.text_area(

@@ -5010,8 +5010,175 @@ with st.expander("📘 Laporan - laporan"):
 #         st.dataframe(df_display.reset_index(drop=True))
 # '''
 
+#==================COBA GEMINI AI===============================================
+import streamlit as st
+import pandas as pd
+import json
+from google import genai
+from google.genai import types
+from pydantic import BaseModel, Field
+from typing import List, Optional
 
+# =======================================================
+# === 1. SKEMA DATA UNTUK MENGUNCI OUTPUT GEMINI AI ===
+# =======================================================
+class AITicketEntry(BaseModel):
+    tgl_pemesanan: str = Field(description="Tanggal pemesanan format YYYY-MM-DD. Jika tidak ada, samakan dengan tgl berangkat")
+    tgl_berangkat: str = Field(description="Tanggal keberangkatan tiket / check-in hotel format YYYY-MM-DD")
+    kode_booking: Optional[str] = Field(description="Kode booking, PNR, atau ID Pesanan")
+    item_name: str = Field(description="Nama Hotel, Nomor Penerbangan (cth: JT 883), atau Info Kursi Kereta")
+    durasi: str = Field(description="Durasi, contoh: '1 mlm' untuk hotel, atau jam perjalanan '17:52-20:35' untuk transportasi")
+    nama_customer: Optional[str] = Field(description="Nama lengkap tamu atau penumpang")
+    rute: Optional[str] = Field(description="Kota hotel (cth: Tuban), rute bandara (cth: SUB-HLP), atau stasiun (cth: BG-JR)")
+    harga_beli: Optional[int] = Field(description="Harga modal/beli total dibagi rata per kamar/pax (integer bersih)")
+    harga_jual: Optional[int] = Field(description="Harga jual ke pembeli total dibagi rata per kamar/pax (integer bersih)")
+    tipe: str = Field(description="Wajib pilih salah satu dari tiga kata ini: HOTEL, PESAWAT, KERETA")
+    bf_status: Optional[str] = Field(description="Khusus HOTEL: isi 'BF' jika include sarapan, 'NBF' jika tidak. Transportasi isi kosong ''")
+    platform: str = Field(description="Nama OTA/Platform asal teks, wajib salah satu dari: Tiket.com, Traveloka, Agoda, Trip.com, Book Cabin, KAI Access, RedDoorz, Lainnya")
 
+class AITicketParserResult(BaseModel):
+    entries: List[AITicketEntry]
+
+# =======================================================
+# === 2. FUNGSI UTAMA PANGGILAN API GEMINI           ===
+# =======================================================
+def panggil_gemini_ai_parser(text_block: str) -> list:
+    """Fungsi mandiri untuk memproses teks menggunakan Gemini API"""
+    # Pastikan Anda sudah setting API Key di komputer/server Anda dengan nama GEMINI_API_KEY
+    # Atau jika ingin hardcode (tidak disarankan demi keamanan): client = genai.Client(api_key="ISI_API_KEY_ANDA")
+    try:
+        client = genai.Client()
+        
+        prompt = f"""
+        Kamu adalah sistem AI pembaca manifes tiket travel. Analisis teks OCR berikut dengan cermat.
+        Ekstrak informasinya dan masukkan ke dalam struktur JSON yang diminta.
+        
+        Aturan Penting:
+        1. Jika ada beberapa nama penumpang atau beberapa kamar, pecah menjadi baris baru (entri terpisah).
+        2. Bagi rata total Harga Beli dan Harga Jual secara adil ke setiap baris penumpang/kamar.
+        3. Pastikan format tanggal presisi YYYY-MM-DD.
+        
+        Teks OCR Mentah:
+        {text_block}
+        """
+        
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=AITicketParserResult,
+                temperature=0.1
+            ),
+        )
+        
+        parsed_json = json.loads(response.text)
+        return parsed_json.get("entries", [])
+    except Exception as e:
+        st.error(f"Error pada sistem AI: {e}")
+        return []
+
+# =======================================================
+# === 3. ATURAN OTOMATISASI DATA (LOGIKA BUSINESS)     ===
+# =======================================================
+def terapkan_otomatisasi_pembayaran(platform_name: str) -> (str, str):
+    """Fungsi aturan default sesuai kesepakatan ide kita"""
+    p_lower = platform_name.lower()
+    
+    if "traveloka" in p_lower:
+        return "Credit Card", "Mandiri"
+    elif "tiket" in p_lower:
+        return "Dana Tunai/Cash", "VA BCA"
+    elif "kai" in p_lower or "access" in p_lower:
+        return "Dana Tunai/Cash", "Ovo"
+    elif "agoda" in p_lower:
+        return "Credit Card", "BCA"
+    else:
+        return "Dana Tunai/Cash", "" # Kosongkan jika platform lainnya
+
+# =======================================================
+# === 4. TAMPILAN UI STREAMLIT BARU (MANDIRI DI EXPANDER)===
+# =======================================================
+with st.expander('🤖 [BETA] Upload Data Text dengan Kecerdasan AI (Gemini)'):
+    st.markdown("""
+    *Fitur ini menggunakan AI Gemini untuk membaca format dari **Traveloka, Tiket.com, dan Agoda** secara otomatis 
+    tanpa merusak sistem utama Anda.*
+    """)
+    
+    ai_raw = st.text_area(
+        "Masukkan banyak entri teks OCR di sini, pisahkan setiap entri dengan '==='",
+        key="ai_bulk_input",
+        height=200
+    )
+
+    if st.button("🤖 Proses dengan Gemini AI"):
+        ai_entries = []
+        
+        # Potong blok berdasarkan tanda === seperti cara lama Anda
+        for i, block in enumerate(ai_raw.split("===")):
+            block = block.strip()
+            if block:
+                # Panggil AI untuk mengekstrak data berantakan
+                hasil_ai = panggil_gemini_ai_parser(block)
+                
+                for item in hasil_ai:
+                    # Jalankan logika otomatisasi pembayaran yang kita sepakati
+                    sumber_dana, detail_dana = terapkan_otomatisasi_pembayaran(item.get("platform", "Lainnya"))
+                    
+                    # Hitung Laba Otomatis
+                    hb = item.get("harga_beli") or 0
+                    hj = item.get("harga_jual") or 0
+                    laba = hj - hb
+                    persen_laba = f"{round((laba / hb) * 100, 2)}%".replace('.', ',') if hb > 0 else "0,00%"
+                    
+                    # Susun agar strukturnya langsung COCOK dengan Google Sheets Anda
+                    ai_entries.append({
+                        'Tgl Pemesanan': item.get("tgl_pemesanan", ""),
+                        'Tgl Berangkat': item.get("tgl_berangkat", ""),
+                        'Kode Booking': item.get("kode_booking", ""),
+                        'No Penerbangan / Hotel / Kereta': item.get("item_name", ""),
+                        'Durasi': item.get("durasi", ""),
+                        'Nama Customer': item.get("nama_customer", ""),
+                        'Rute': item.get("rute", ""),
+                        'Harga Beli': hb,
+                        'Harga Jual': hj,
+                        'Laba': laba,
+                        'Tipe': item.get("tipe", "").upper(),
+                        'BF/NBF': item.get("bf_status", ""),
+                        'No Invoice': '',
+                        'Keterangan': 'Belum Lunas',
+                        'Nama Pemesan': 'ER ENDO',
+                        'Admin': 'PA',
+                        ' % Laba': persen_laba,
+                        'Sumber Dana': sumber_dana,   # Terisi otomatis!
+                        'Detail Dana': detail_dana,   # Terisi otomatis!
+                        'Platform': item.get("platform", "Lainnya")
+                    })
+        
+        if ai_entries:
+            # Simpan hasil bacaan AI ke session state terpisah agar tidak menabrak cara lama
+            st.session_state.ai_bulk_parsed = pd.DataFrame(ai_entries)
+            st.success("✅ Gemini AI berhasil membaca dan menyelaraskan data!")
+
+    # Tampilkan pratinjau tabel khusus hasil AI jika data sudah siap
+    if "ai_bulk_parsed" in st.session_state and not st.session_state.ai_bulk_parsed.empty:
+        st.markdown("##### 📊 Tinjau Hasil Pembacaan Gemini AI")
+        
+        # Gunakan st.data_editor agar user tinggal klik & edit seperti Excel jika AI ada salah baca
+        edited_ai_df = st.data_editor(
+            st.session_state.ai_bulk_parsed,
+            use_container_width=True,
+            key="editor_tabel_ai"
+        )
+        
+        if st.button("💾 Push Data AI ke Google Sheets"):
+            # Di sini Anda tinggal panggil fungsi append_rows() milik Google Sheets Anda yang sudah ada
+            # Contoh:
+            # nilai_baris = edited_ai_df.values.tolist()
+            # sheet.append_rows(nilai_baris)
+            
+            st.success("🚀 [Simulasi] Data hasil AI berhasil dikirim ke Google Sheets!")
+            st.dataframe(edited_ai_df)
 
 
 

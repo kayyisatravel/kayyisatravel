@@ -34,3 +34,4 @@ prophet
 plotly
 seaborn
 streamlit-authenticator
+google-genai pydantic

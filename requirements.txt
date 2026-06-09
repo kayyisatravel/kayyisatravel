@@ -36,3 +36,4 @@ seaborn
 streamlit-authenticator
 google-genai 
 pydantic
+streamlit-mic-recorder

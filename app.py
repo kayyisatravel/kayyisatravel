@@ -882,37 +882,59 @@ def terapkan_otomatisasi_pembayaran(platform_name: str) -> (str, str):
 #st.markdown('---')
 
 # ==============================================================================
-# 🤖 [FIXED]: EXPANDER UTAMA - TRIPLE-INPUT (TEKS, GAMBAR, & SUARA) DENGAN AI
+# 🤖 [FIXED FINAL]: EXPANDER UTAMA - MULTI-INPUT (TEKS, GAMBAR, & SUARA) CERDAS AI
 # ==============================================================================
 with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expanded=True):
     st.markdown("""
     *Pilih metode input yang paling praktis. Sistem otomatis menyelaraskan format KAI, Hotel, maupun Pesawat.*
     """)
     
-    # Inisialisasi memori penampung teks jika belum ada di sistem
-    if "ai_bulk_input_text" not in st.session_state:
-        st.session_state["ai_bulk_input_text"] = ""
+    # Inisialisasi memori teks utama jika belum ada di sistem
+    if "konten_teks_travel_utama" not in st.session_state:
+        st.session_state["konten_teks_travel_utama"] = ""
         
     hasil_pilihan_ai = None
     input_mentah_ref = ""
     tombol_ditekan = False 
     
-    # ─── LOGIKA SAKLAR 3 TAB BERDAMPINGAN: SALING MELENGKAPI ───
-    tab_text, tab_file, tab_voice = st.tabs([
-        "📝 Input Salinan Teks (Copas)", 
-        "📷 Input Gambar / File PDF", 
-        "🎙️ Input Perekam Suara (Voice)"
+    # SAKLAR INTERAKTIF: 2 TAB BERDAMPINGAN JAUH LEBIH STABIL
+    tab_text, tab_file = st.tabs([
+        "📝 Input Teks / Suara (Copas & Dikte)", 
+        "📷 Input Gambar / File PDF"
     ])
     
-    # --- JALUR INPUT 1: KOTAK TEKS COPAS (MENGIKAT KEY SECARA AMAN) ---
+    # --- JALUR INPUT 1: KOTAK TEKS + MIKROFON SUARA (MENYATU HARMONIS) ---
     with tab_text:
-        # Kunci utama: Menghubungkan variabel 'key' langsung ke session_state penampung suara
-        ai_raw = st.text_area(
-            "Tempelkan teks manifestasi/voucher di sini, pisahkan setiap entri dengan '==='",
-            key="ai_bulk_input_text",
-            height=200
-        )
+        # Gunakan susunan kolom kecil berdampingan untuk meletakkan tombol mikrofon
+        col_textarea, col_microphone = st.columns([0.85, 0.15])
         
+        with col_microphone:
+            st.write("🎙️ **Dikte**")
+            # Tombol perekam suara diletakkan menyatu di samping kotak teks
+            audio_konten = mic_recorder(
+                start_prompt="Mulai",
+                stop_prompt="Stop",
+                key="mic_input_langsung_tab1",
+                just_once=True
+            )
+            
+            # Jika admin selesai berbicara, langsung kunci teksnya ke dalam memori utama
+            if audio_konten and audio_konten.get("text"):
+                st.session_state["konten_teks_travel_utama"] = audio_konten["text"].strip()
+                st.rerun()
+                
+        with col_textarea:
+            # Kotak teks utama diikat menggunakan parameter value ke session_state
+            ai_raw = st.text_area(
+                "Tempelkan teks atau gunakan tombol mikrofon di samping untuk mendikte data (pisahkan dengan '==='):",
+                value=st.session_state["konten_teks_travel_utama"],
+                key="input_text_area_travel_final",
+                height=200
+            )
+            # Pastikan memori tetap update jika admin mengetik manual lewat keyboard
+            st.session_state["konten_teks_travel_utama"] = ai_raw
+        
+        # Tombol Eksekusi Teks ke Keuangan
         col_t1, col_t2 = st.columns(2)
         with col_t1:
             if st.button("📊 Proses Teks ke Keuangan", key="btn_proses_text_finance", use_container_width=True):
@@ -943,30 +965,8 @@ with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expand
                     hasil_pilihan_ai = panggil_gemini_vision_parser(file_input)
                     input_mentah_ref = f"gambar_upload {file_input.name}"
 
-    # --- JALUR INPUT 3: KOTAK PEREKAM SUARA BARU (SUNTIKAN DATA AMAN) ---
-    with tab_voice:
-        st.markdown("💬 **Petunjuk**: Klik tombol *Mulai* di bawah, sebutkan detail tiket, lalu klik *Stop* untuk memindahkan teks suara ke Tab 1.")
-        
-        # Render Tombol Perekam Suara Browser
-        audio_konten = mic_recorder(
-            start_prompt="🎙️ Mulai Merekam Suara",
-            stop_prompt="🛑 Stop & Pindahkan ke Tab 1",
-            key="mic_input_utama_travel",
-            just_once=True,
-            use_container_width=True
-        )
-        
-        # Jika teks suara ditangkap oleh browser, langsung suntikkan ke KEY milik text_area di Tab 1
-        if audio_konten and audio_konten.get("text"):
-            teks_hasil_suara = audio_konten["text"].strip()
-            
-            # SUNTIKKAN DATA KE KEY ST.TEXT_AREA SECARA DIRECT
-            st.session_state["ai_bulk_input_text"] = teks_hasil_suara
-            st.success("📝 Berhasil mendeteksi suara! Teks sudah dipasok ke Tab 1. Silakan buka Tab 1 untuk memproses data.")
-            st.rerun()
-
     # --------------------------------------------------------------------------
-    # LOGIKA PEMROSESAN GABUNGAN (BERLAKU SAMA UNTUK KETIGA JALUR INPUT DI ATAS)
+    # LOGIKA PEMROSESAN GABUNGAN (BERLAKU SAMA UNTUK KEDUA METODE INPUT DI ATAS)
     # --------------------------------------------------------------------------
     if "peringatan_admin_ai" in st.session_state and st.session_state.peringatan_admin_ai:
         st.warning(st.session_state.peringatan_admin_ai)
@@ -993,7 +993,7 @@ with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expand
                 
                 text_lower_block = blok_teks_list[min(idx-1, len(blok_teks_list)-1)].lower() if input_mentah_ref else ""
                 if "jual" not in text_lower_block and "total harga" not in text_lower_block and item.get("tipe") != "HOTEL":
-                    kolom_bermasalah.append("Harga Jual (Tidak ditemukan di teks/gambar/suara mentah)")
+                    kolom_bermasalah.append("Harga Jual (Tidak ditemukan di teks/gambar mentah)")
                 
                 if kolom_bermasalah:
                     nama_c = item.get("nama_customer") or "Nama Tidak Terbaca"
@@ -1022,6 +1022,7 @@ with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expand
             st.rerun()
         else:
             st.error("⚠️ AI gagal mengekstrak data. Pastikan teks berisi manifes tiket yang valid atau kualitas gambar/suara cukup jelas.")
+
 
 
     # ==============================================================================

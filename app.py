@@ -780,7 +780,7 @@ class AITicketParserResult(BaseModel):
 # =======================================================
 # === 2. FUNGSI UTAMA PANGGILAN API GEMINI           ===
 # =======================================================
-def panggil_gemini_vision_parser(uploaded_file) -> list:
+def panggil_gemini_ai_parser(text_block: str) -> list:
     """Fungsi AI Gemini 3.1 Flash-Lite untuk MEMBACA GAMBAR ATAU PDF SECARA LANGSUNG"""
     try:
         client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])

@@ -749,35 +749,120 @@ with st.expander("⬆️📷 Upload Gambar atau PDF untuk OCR"):
 
 # --- SECTION 2: BULK MANUAL INPUT ---
 #st.markdown('---')
-with st.expander('⌨️ Upload Data Text'):
-        
-    if "bulk_input" not in st.session_state or not st.session_state["bulk_input"].strip():
-        st.session_state["bulk_input"] = "Kode booking:\n\n\nBeli "
-
-    raw = st.text_area(
-        "Masukkan banyak entri, pisahkan setiap entri dengan '==='",
-        key="bulk_input",
+# ==============================================================================
+# 🤖 [TERBARU]: EXPANDER UTAMA - INPUT DATA TEXT DENGAN KECERDASAN AI GEMINI 3.1
+# ==============================================================================
+with st.expander('⌨️ Upload Data Text (Cerdas AI - Gemini)', expanded=True):
+    st.markdown("""
+    *Masukkan teks manifestasi/voucher (Traveloka, Tiket.com, Agoda, Access by KAI, dll). 
+    Pisahkan setiap entri tiket dengan tanda `===`.*
+    """)
+    
+    # 1. Kotak Input Utama di Bagian Paling Atas Layar
+    ai_raw = st.text_area(
+        "Masukkan banyak entri teks OCR di sini, pisahkan setiap entri dengan '==='",
+        key="ai_bulk_input",
         height=200
     )
 
-    if st.button("🔍 Proses Bulk"):
-        entries = []
-        labels = []
-        for i, block in enumerate(raw.split("===")):
-            block = block.strip()
-            if block:
-                try:
-                    df_block = pd.DataFrame(process_ocr_unified(block))
-                    entries.append(df_block)
-                    labels.append(f"Entri {i+1}")
-                except Exception as e:
-                    st.error(f"Gagal parse blok ke-{i+1}: {e}")
-        if entries:
-            st.session_state.bulk_entries_raw = entries
-            st.session_state.bulk_labels = labels
-            st.session_state.bulk_parsed = pd.concat(entries, ignore_index=True)
+    # 2. Kotak Peringatan Validasi (Mundur Tepat di Bawah Text Box Input)
+    if "peringatan_admin_ai" in st.session_state and st.session_state.peringatan_admin_ai:
+        st.warning(st.session_state.peringatan_admin_ai)
 
-    # Jika ada hasil bulk_entries_raw, tampilkan UI editing
+    # 3. Tombol Proses Utama dengan AI
+    if st.button("🤖 Proses dengan Gemini AI", key="tombol_proses_ai_utama"):
+        ai_raw_clean = ai_raw.strip()
+        
+        if ai_raw_clean:
+            with st.spinner("Gemini AI sedang membaca manifes tiket..."):
+                # Memanggil fungsi parser Gemini 3.1 Flash-Lite
+                hasil_ai = panggil_gemini_ai_parser(ai_raw_clean)
+                
+                if hasil_ai:
+                    ai_entries = []
+                    pemberitahuan_masalah_data = [] 
+                    blok_teks_list = ai_raw_clean.split("===")
+                    
+                    for idx, item in enumerate(hasil_ai, start=1):
+                        sumber_dana, detail_dana = terapkan_otomatisasi_pembayaran(item.get("platform", "Lainnya"))
+                        
+                        # Ambil nilai awal dari AI
+                        kode_b = item.get("kode_booking")
+                        rute_p = item.get("rute")
+                        hb = item.get("harga_beli")
+                        hj = item.get("harga_jual")
+                        
+                        # --- LOGIKA VALIDASI FIELD MANDATORY ---
+                        kolom_bermasalah = []
+                        if not kode_b or str(kode_b).strip() == "":
+                            kolom_bermasalah.append("Kode Booking")
+                            kode_b = ""
+                        if not rute_p or str(rute_p).strip() == "":
+                            kolom_bermasalah.append("Rute/Kota")
+                            rute_p = ""
+                        if hb is None or hb == 0:
+                            kolom_bermasalah.append("Harga Beli")
+                            hb = 0
+                            
+                        # Cek apakah blok teks mentah tidak mengandung kata 'jual'
+                        text_lower_block = blok_teks_list[min(idx-1, len(blok_teks_list)-1)].lower()
+                        if "jual" not in text_lower_block:
+                            kolom_bermasalah.append("Harga Jual (Tidak ditemukan di teks mentah)")
+                        
+                        if kolom_bermasalah:
+                            nama_c = item.get("nama_customer") or "Nama Tidak Terbaca"
+                            pemberitahuan_masalah_data.append(f"Entri ke-{idx} (Nama: {nama_c}) ➔ Kolom belum terisi: **{', '.join(kolom_bermasalah)}**")
+
+                        # Aturan finansial: Fallback harga jual otomatis disamakan dengan beli jika kosong
+                        final_hj = hj if hj is not None else hb
+                        laba = final_hj - hb
+                        persen_laba = f"{round((laba / hb) * 100, 2)}%" if hb > 0 else "0.0%"
+
+                        ai_entries.append({
+                            'Tgl Pemesanan': item.get("tgl_pemesanan", ""),
+                            'Tgl Berangkat': item.get("tgl_berangkat", ""),
+                            'Kode Booking': kode_b,
+                            'No Penerbangan / Hotel / Kereta': item.get("item_name", ""),
+                            'Durasi': item.get("durasi", ""),
+                            'Nama Customer': item.get("nama_customer", ""),
+                            'Rute': rute_p,
+                            'Harga Beli': hb,
+                            'Harga Jual': final_hj,
+                            'Laba': laba,
+                            'Tipe': item.get("tipe", "").upper(),
+                            'BF/NBF': item.get("bf_status", ""),
+                            'No Invoice': '',
+                            'Keterangan': 'Belum Lunas',
+                            'Pemesan': 'ER ENDO',
+                            'Admin': 'PA',
+                            ' % Laba': persen_laba,
+                            'Sumber Dana': sumber_dana,
+                            'Detail Dana': detail_dana,
+                            'Platform': item.get("platform", "Lainnya")
+                        })
+                    
+                    # Suntikkan data AI langsung ke form edit bawaan Anda
+                    st.session_state.bulk_parsed = pd.DataFrame(ai_entries)
+                    st.session_state.edit_mode_bulk = True
+                    
+                    # Buat pesan peringatan jika ada field mandatory yang bolong
+                    if pemberitahuan_masalah_data:
+                        pesan_peringatan = "⚠️ **Peringatan Validasi Tiket!** Ditemukan kolom kosong/belum terdeteksi pada data berikut:\n\n"
+                        for item_error in pemberitahuan_masalah_data:
+                            pesan_peringatan += f"- {item_error}\n"
+                        pesan_peringatan += "\n**Mohon lengkapi atau perbaiki kolom di atas secara manual** pada menu edit di bawah ini sebelum data disimpan!"
+                        st.session_state.peringatan_admin_ai = pesan_peringatan
+                    else:
+                        if "peringatan_admin_ai" in st.session_state:
+                            del st.session_state["peringatan_admin_ai"]
+                    
+                    st.rerun()
+                else:
+                    st.warning("⚠️ AI gagal mengekstrak data. Pastikan teks berisi manifes tiket yang valid.")
+
+    # ==============================================================================
+    # 4. LOGIKA FORM EDIT MANUAL BAWAAN ANDA (Tetap dipertahankan di bawah tombol AI)
+    # ==============================================================================
     if "bulk_parsed" in st.session_state and not st.session_state.bulk_parsed.empty:
         df = st.session_state.bulk_parsed
         
@@ -786,10 +871,7 @@ with st.expander('⌨️ Upload Data Text'):
             if col not in df.columns:
                 df[col] = ""
 
-        if "edit_mode_bulk" not in st.session_state:
-            st.session_state.edit_mode_bulk = False
-
-        # Checkbox untuk mengaktifkan edit mode
+        # Checkbox bawaan Anda untuk mengaktifkan edit mode manual
         edit_mode = st.checkbox("✏️ Edit Data Manual", value=st.session_state.get("edit_mode_bulk", False))
 
         if edit_mode:
@@ -807,14 +889,10 @@ with st.expander('⌨️ Upload Data Text'):
                     updated_row = {}
 
                     for col, val in row_data.items():
-
                         # ========== HANDLE TANGGAL ==========
                         if col in ["Tgl Pemesanan", "Tgl Berangkat"]:
-                            try:
-                                val = pd.to_datetime(val).date()
-                            except:
-                                val = pd.Timestamp.today().date()
-
+                            try: val = pd.to_datetime(val).date()
+                            except: val = pd.Timestamp.today().date()
                             new_val = st.date_input(f"{col} (Baris {i})", value=val, key=f"{col}_{i}")
                             updated_row[col] = new_val
                             continue
@@ -827,44 +905,25 @@ with st.expander('⌨️ Upload Data Text'):
 
                         # ========== HANDLE DROPDOWN: SUMBER DANA ==========
                         elif col == "Sumber Dana":
-                            sumber_dana_options = [
-                                "Dana Tunai/Cash",
-                                "Credit Card",
-                                "Reedem Point"
-                            ]
-
+                            sumber_dana_options = ["Dana Tunai/Cash", "Credit Card", "Reedem Point"]
                             default_val = str(val) if str(val) in sumber_dana_options else "Dana Tunai/Cash"
-
-                            new_val = st.selectbox(
-                                f"{col} (Baris {i})",
-                                options=sumber_dana_options,
-                                index=sumber_dana_options.index(default_val),
-                                key=f"{col}_{i}"
-                            )
-
+                            new_val = st.selectbox(f"{col} (Baris {i})", options=sumber_dana_options, index=sumber_dana_options.index(default_val), key=f"{col}_{i}")
                             updated_row[col] = new_val
                             continue
 
                         # ========== HANDLE DROPDOWN: DETAIL DANA ==========
                         elif col == "Detail Dana":
                             sumber_dana = updated_row.get("Sumber Dana", row_data.get("Sumber Dana", ""))
-
                             if sumber_dana == "Dana Tunai/Cash":
-                                detail_options = [
-                                    "BCA", "Mandiri", "BRI", "BNI", "BSI",
-                                    "Mega", "SeaBank",
-                                    "VA BCA", "VA Mandiri", "VA BRI", "VA BNI",
-                                    "Ovo", "Dana", "Gopay", "ShopeePay", "Sakuku", "Blu Instant", "Bibli Pay"
-                                ]
+                                detail_options = ["BCA", "Mandiri", "BRI", "BNI", "BSI", "Mega", "SeaBank", "VA BCA", "VA Mandiri", "VA BRI", "VA BNI", "Ovo", "Dana", "Gopay", "ShopeePay", "Sakuku", "Blu Instant", "Bibli Pay"]
                             elif sumber_dana == "Credit Card":
                                 detail_options = ["BCA", "Mandiri", "BRI", "BNI", "BSI", "UOB", "Mega", "Allo", "CIMB"]
                             elif sumber_dana == "Reedem Point":
                                 detail_options = ["Tikom", "Traveloka", "Garuda"]
                             else:
                                 detail_options = [""]
-
                             default_val = str(val) if str(val) in detail_options else detail_options[0]
-
+                            
                             new_val = st.selectbox(
                                 f"{col} (Baris {i})",
                                 options=detail_options,

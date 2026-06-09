@@ -750,8 +750,6 @@ with st.expander("⬆️📷 Upload Gambar atau PDF untuk OCR"):
 # --- SECTION 2: BULK MANUAL INPUT ---
 #st.markdown('---')
 with st.expander('⌨️ Upload Data Text'):
-    if "peringatan_admin_ai" in st.session_state and st.session_state.peringatan_admin_ai:
-        st.warning(st.session_state.peringatan_admin_ai)
         
     if "bulk_input" not in st.session_state or not st.session_state["bulk_input"].strip():
         st.session_state["bulk_input"] = "Kode booking:\n\n\nBeli "
@@ -5140,29 +5138,34 @@ def terapkan_otomatisasi_pembayaran(platform_name: str) -> (str, str):
 # =======================================================
 # === 4. TAMPILAN UI STREAMLIT BARU (MANDIRI DI EXPANDER)===
 # =======================================================
+# --- ELEMEN TAMPILAN ANTARMUKA UI ---
 with st.expander('🤖 [BETA] Upload Data Text dengan Kecerdasan AI'):
     st.markdown("""
     *Fitur ini menggunakan AI Gemini 3.1 untuk membaca format tiket secara otomatis.*
     """)
     
+    # 1. Kotak Input Teks Utama
     ai_raw = st.text_area(
         "Masukkan banyak entri teks OCR di sini, pisahkan setiap entri dengan '==='",
         key="ai_bulk_input",
         height=200
     )
 
+    # === POSISI BARU: KOTAK PERINGATAN MUNCUL TEPAT DI BAWAH TEXT BOX INPUT ===
+    if "peringatan_admin_ai" in st.session_state and st.session_state.peringatan_admin_ai:
+        st.warning(st.session_state.peringatan_admin_ai)
+
     if st.button("🤖 Proses dengan Gemini AI"):
         ai_raw_clean = ai_raw.strip()
         
         if ai_raw_clean:
-            with st.spinner("Gemini AI sedang membaca manifes tiket..."):
+            with st.spinner("AI sedang membaca manifes tiket..."):
                 hasil_ai = panggil_gemini_ai_parser(ai_raw_clean)
                 
                 if hasil_ai:
                     ai_entries = []
                     pemberitahuan_masalah_data = [] # Penampung daftar masalah per baris data
                     
-                    # Pecah teks input mentah berdasarkan pemisah untuk pelacakan kata 'jual'
                     blok_teks_list = ai_raw_clean.split("===")
                     
                     for idx, item in enumerate(hasil_ai, start=1):
@@ -5228,7 +5231,7 @@ with st.expander('🤖 [BETA] Upload Data Text dengan Kecerdasan AI'):
                             'Platform': item.get("platform", "Lainnya")
                         })
                     
-                    # ALIRKAN MASUK KE MENU EDIT MANUAL UTAMA DI ATAS
+                    # ALIRKAN DATA MASUK KE MENU EDIT MANUAL UTAMA DI ATAS
                     st.session_state.bulk_parsed = pd.DataFrame(ai_entries)
                     st.session_state.edit_mode_bulk = True
                     

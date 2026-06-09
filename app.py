@@ -781,35 +781,28 @@ class AITicketParserResult(BaseModel):
 # === 2. FUNGSI UTAMA PANGGILAN API GEMINI           ===
 # =======================================================
 def panggil_gemini_ai_parser(text_block: str) -> list:
-    """Fungsi AI Gemini 3.1 Flash-Lite untuk MEMBACA GAMBAR ATAU PDF SECARA LANGSUNG"""
+    """JALUR 1: Fungsi AI Gemini 3.1 Flash-Lite KHUSUS UNTUK MEMBACA TEKS / DIKTE SUARA"""
     try:
         client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
         
-        # --- PERBAIKAN 2: Membaca data biner gambar/pdf dari Streamlit ---
-        file_bytes = uploaded_file.read()
-        mime_type = uploaded_file.type
-        image_part = types.Part.from_bytes(data=file_bytes, mime_type=mime_type)
-        
-        # --- PERBAIKAN 1: Teks prompt bersih tanpa variabel nyasar {text_block} ---
-        prompt = """
-        Kamu adalah sistem AI Computer Vision untuk agen travel. Analisis GAMBAR screenshot booking atau file PDF e-ticket ini.
-        Pahami isinya layaknya manusia dan ekstrak informasinya menjadi JSON Array secara presisi.
+        prompt = f"""
+        Kamu adalah sistem AI parser data manifes travel. Ekstrak teks OCR berikut menjadi JSON Array secara presisi.
         
         ATURAN STRUKTUR HARGA & LOGIKA FINANSIAL (SANGAT KETAT):
         1. "harga_beli": 
            - Cari total nominal pembayaran bersih ke vendor dari dokumen (cth: 'Total pembayaran IDR 550.000').
            - Hitung jumlah nama penumpang yang berhasil kamu ekstrak di dalam tiket ini.
-           - JIKA JUMLAH PENUMPANG LEBIH DARI 1 ORANG, kamu WAJIB membagi rata total nominal tersebut dengan jumlah penumpang untuk mendapatkan harga modal per orang (Contoh: Total 550.000 / 2 orang = 275000). Masukkan hasil pembagian per orang ini sebagai "harga_beli".
+           - JIKA JUAH PENUMPANG LEBIH DARI 1 ORANG, kamu WAJIB membagi rata total nominal tersebut dengan jumlah penumpang untuk mendapatkan harga modal per orang (Contoh: Total 550.000 / 2 orang = 275000). Masukkan hasil pembagian per orang ini sebagai "harga_beli".
         
         2. "harga_jual":
            - Langkah 1: Cari kata kunci tarif per orang (cth: 'Harga 303.500/pax' atau 'Jual 303500/pax'). Jika ada kata kunci '/pax' seperti ini, langsung masukkan angka tersebut sebagai "harga_jual" per individu. (JANGAN dikalikan jumlah orang).
            - Langkah 2: Jika tidak ada kata kunci '/pax', cari kata kunci 'Jual' total. Jika ada, bagi nominal jual total tersebut dengan jumlah penumpang untuk mencari harga jual per orang.
-           - Langkah 3 (LOGIKA HOTEL): Jika dokumen HOTEL dan ada kolom 'Total Harga', ambil nominal tersebut.
-           - Langkah 4 (FALLBACK): Jika langkah 1, 2, dan 3 tidak ditemukan, kamu WAJIB menyamakan nilai "harga_jual" sama persis dengan nilai "harga_beli" per orang yang sudah kamu hitung di poin 1.
+           - Langkah 3 (LOGIKA HOTEL): Jika dokumen HOTEL dan ada kolom 'Total Harga', ambil nominal tersebut dari rincian.
+           - Langkah 4 (FALLBACK): Jika langkah 1, 2, dan 3 tidak ditemukan, kamu WAJIB menyamakan nilai "harga_jual" sama persis dengan nilai "harga_beli" per orang yang sudah kamu hitung di poin 1 (Laba awal 0).
         
         ATURAN STRUKTUR DATA UTAMA (WAJIB DIPATUHI BAGAIMANAPUN INPUT TEKSNYA):
         1. Tipe PESAWAT:
-           - "item_name": HANYA nama maskapai dan nomor penerbangan (Contoh: "QG997-QG 174"). JANGAN masukkan kata kelas.
+           - "item_name": HANYA nama maskapai dan nomor penerbangan (Contoh: "QG997-QG 174" atau "Lion Air JT 781"). JANGAN masukkan kata kelas.
            - "durasi": Format jam 'HH:MM - HH:MM' (Contoh: "15:00 - 19:40").
            - "rute": HANYA kode bandara 3 huruf (Contoh: "TKG - SUB").
         2. Tipe HOTEL:
@@ -827,9 +820,9 @@ def panggil_gemini_ai_parser(text_block: str) -> list:
         5. PLATFORM: Pilih salah satu dari: "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin", "KAI Access", "RedDoorz", "Lainnya".
 
         Format Output Wajib JSON Array:
-        {
+        {{
           "entries": [
-            {
+            {{
               "tgl_pemesanan": "YYYY-MM-DD",
               "tgl_berangkat": "YYYY-MM-DD",
               "kode_booking": "KODE123",
@@ -842,12 +835,77 @@ def panggil_gemini_ai_parser(text_block: str) -> list:
               "tipe": "PESAWAT atau HOTEL atau KERETA",
               "bf_status": "BF atau NBF atau kosong jika bukan hotel",
               "platform": "Nama Platform"
+            }}
+          ]
+        }}
+        
+        Teks OCR Mentah yang Harus Kamu Ekstrak:
+        {text_block}
+        """
+        
+        response = client.models.generate_content(
+            model='gemini-3.1-flash-lite',
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.1
+            ),
+        )
+        
+        import json
+        parsed_json = json.loads(response.text)
+        return parsed_json.get("entries", [])
+    except Exception as e:
+        st.error(f"Error pada sistem AI Teks: {e}")
+        return []
+
+
+def panggil_gemini_vision_parser(uploaded_file) -> list:
+    """JALUR 2: Fungsi AI Gemini 3.1 Flash-Lite KHUSUS UNTUK MEMBACA GAMBAR SCREENSHOT / FILE PDF"""
+    try:
+        client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+        
+        # Ekstraksi biner dokumen gambar/pdf
+        file_bytes = uploaded_file.read()
+        mime_type = uploaded_file.type
+        image_part = types.Part.from_bytes(data=file_bytes, mime_type=mime_type)
+        
+        prompt = """
+        Kamu adalah sistem AI Computer Vision untuk agen travel. Analisis GAMBAR screenshot booking atau file PDF e-ticket ini.
+        Pahami isinya layaknya manusia dan ekstrak informasinya menjadi JSON Array secara presisi.
+        
+        ATURAN STRUKTUR HARGA & LOGIKA FINANSIAL (SANGAT KETAT):
+        1. "harga_beli": 
+           - Cari total nominal pembayaran bersih ke vendor dari dokumen gambar.
+           - JIKA JUMLAH PENUMPANG LEBIH DARI 1 ORANG, kamu WAJIB membagi rata total nominal tersebut dengan jumlah penumpang untuk mendapatkan harga modal per orang.
+        2. "harga_jual":
+           - Langkah 1: Cari kata kunci tarif per orang (cth: 'Harga 303.500/pax' atau 'Jual 303500/pax'). Jika ada kata kunci '/pax', langsung masukkan angka tersebut sebagai "harga_jual" per individu.
+           - Langkah 2: Jika tidak ada kata kunci '/pax', cari kata kunci 'Jual' total. Jika ada, bagi nominal jual total tersebut dengan jumlah penumpang untuk mencari harga jual per orang.
+           - Langkah 3 (LOGIKA HOTEL): Jika dokumen HOTEL dan ada kolom 'Total Harga', ambil nominal tersebut dari rincian.
+           - Langkah 4 (FALLBACK): Jika langkah 1, 2, dan 3 tidak ditemukan, kamu WAJIB menyamakan nilai "harga_jual" sama persis dengan nilai "harga_beli" per orang.
+
+        ATURAN STRUKTUR DATA UTAMA: Sama seperti standar operasional travel Kayyisa.
+        Format Output Wajib JSON Array:
+        {
+          "entries": [
+            {
+              "tgl_pemesanan": "YYYY-MM-DD",
+              "tgl_berangkat": "YYYY-MM-DD",
+              "kode_booking": "KODE123",
+              "item_name": "Nama Lengkap Sesuai Aturan",
+              "durasi": "Sesuai Aturan",
+              "nama_customer": "Nama Lengkap",
+              "rute": "Sesuai Aturan",
+              "harga_beli": 275000,
+              "harga_jual": 303500, 
+              "tipe": "PESAWAT atau HOTEL atau KERETA",
+              "bf_status": "BF atau NBF atau kosong jika bukan hotel",
+              "platform": "Nama Platform"
             }
           ]
         }
         """
         
-        # --- PERBAIKAN 3: Mengirim data objek gambar DAN teks prompt sekaligus ---
         response = client.models.generate_content(
             model='gemini-3.1-flash-lite',
             contents=[image_part, prompt],
@@ -861,9 +919,8 @@ def panggil_gemini_ai_parser(text_block: str) -> list:
         parsed_json = json.loads(response.text)
         return parsed_json.get("entries", [])
     except Exception as e:
-        st.error(f"Error pada sistem AI: {e}")
+        st.error(f"Error pada Vision AI Gambar: {e}")
         return []
-
 
 
 

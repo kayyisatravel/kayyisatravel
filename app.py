@@ -5137,9 +5137,9 @@ def terapkan_otomatisasi_pembayaran(platform_name: str) -> (str, str):
 # =======================================================
 # === 4. TAMPILAN UI STREAMLIT BARU (MANDIRI DI EXPANDER)===
 # =======================================================
-with st.expander('🤖 [BETA] Upload Data Text dengan Kecerdasan AI (Gemini)'):
+with st.expander('🤖 [BETA] Upload Data Text dengan Kecerdasan AI'):
     st.markdown("""
-    *Fitur ini menggunakan AI Gemini untuk membaca format secara otomatis.*
+    *Fitur ini menggunakan AI Gemini 3.1 untuk membaca format tiket secara otomatis.*
     """)
     
     ai_raw = st.text_area(
@@ -5149,73 +5149,54 @@ with st.expander('🤖 [BETA] Upload Data Text dengan Kecerdasan AI (Gemini)'):
     )
 
     if st.button("🤖 Proses dengan Gemini AI"):
-        ai_entries = []
+        ai_raw_clean = ai_raw.strip()
         
-        # Potong blok berdasarkan tanda === seperti cara lama Anda
-        for i, block in enumerate(ai_raw.split("===")):
-            block = block.strip()
-            if block:
-                # Panggil AI untuk mengekstrak data berantakan
-                hasil_ai = panggil_gemini_ai_parser(block)
+        if ai_raw_clean:
+            with st.spinner("Gemini AI sedang membaca manifes tiket..."):
+                hasil_ai = panggil_gemini_ai_parser(ai_raw_clean)
                 
-                for item in hasil_ai:
-                    # Jalankan logika otomatisasi pembayaran yang kita sepakati
-                    sumber_dana, detail_dana = terapkan_otomatisasi_pembayaran(item.get("platform", "Lainnya"))
+                if hasil_ai:
+                    ai_entries = []
+                    for item in hasil_ai:
+                        sumber_dana, detail_dana = terapkan_otomatisasi_pembayaran(item.get("platform", "Lainnya"))
+                        hb = item.get("harga_beli") or 0
+                        hj = item.get("harga_jual") or hb
+                        laba = hj - hb
+                        persen_laba = f"{round((laba / hb) * 100, 2)}%" if hb > 0 else "0.0%"
+                        
+                        ai_entries.append({
+                            'Tgl Pemesanan': item.get("tgl_pemesanan", ""),
+                            'Tgl Berangkat': item.get("tgl_berangkat", ""),
+                            'Kode Booking': item.get("kode_booking", ""),
+                            'No Penerbangan / Hotel / Kereta': item.get("item_name", ""),
+                            'Durasi': item.get("durasi", ""),
+                            'Nama Customer': item.get("nama_customer", ""),
+                            'Rute': item.get("rute", ""),
+                            'Harga Beli': hb,
+                            'Harga Jual': hj,
+                            'Laba': laba,
+                            'Tipe': item.get("tipe", "").upper(),
+                            'BF/NBF': item.get("bf_status", ""),
+                            'No Invoice': '',
+                            'Keterangan': 'Belum Lunas',
+                            'Pemesan': 'ER ENDO',
+                            'Admin': 'PA',
+                            ' % Laba': persen_laba,
+                            'Sumber Dana': sumber_dana,
+                            'Detail Dana': detail_dana,
+                            'Platform': item.get("platform", "Lainnya")
+                        })
                     
-                    # Hitung Laba Otomatis
-                    hb = item.get("harga_beli") or 0
-                    hj = item.get("harga_jual") or 0
-                    laba = hj - hb
-                    # Format persentase menggunakan format titik sesuai contoh data baru Anda
-                    persen_laba = f"{round((laba / hb) * 100, 2)}%" if hb > 0 else "0.0%"
+                    # ALIRKAN MASUK KE MENU EDIT MANUAL UTAMA DI ATAS
+                    st.session_state.bulk_parsed = pd.DataFrame(ai_entries)
                     
-                    ai_entries.append({
-                        'Tgl Pemesanan': item.get("tgl_pemesanan", ""),
-                        'Tgl Berangkat': item.get("tgl_berangkat", ""),
-                        'Kode Booking': item.get("kode_booking", ""),
-                        'No Penerbangan / Hotel / Kereta': item.get("item_name", ""),
-                        'Durasi': item.get("durasi", ""),
-                        'Nama Customer': item.get("nama_customer", ""),
-                        'Rute': item.get("rute", ""),
-                        'Harga Beli': hb,
-                        'Harga Jual': hj,
-                        'Laba': laba,
-                        'Tipe': item.get("tipe", "").upper(),
-                        'BF/NBF': item.get("bf_status", ""),
-                        'No Invoice': '',
-                        'Keterangan': 'Belum Lunas',   # Langsung otomatis terisi 'Belum Lunas'
-                        'Nama Pemesan': 'ER ENDO',
-                        'Admin': 'PA',
-                        ' % Laba': persen_laba,
-                        'Sumber Dana': sumber_dana,   
-                        'Detail Dana': detail_dana,   
-                        'Platform': item.get("platform", "Lainnya")
-                    })
-        
-        if ai_entries:
-            # Simpan hasil bacaan AI ke session state terpisah agar tidak menabrak cara lama
-            st.session_state.ai_bulk_parsed = pd.DataFrame(ai_entries)
-            st.success("✅ Gemini AI berhasil membaca dan menyelaraskan data!")
-
-    # Tampilkan pratinjau tabel khusus hasil AI jika data sudah siap
-    if "ai_bulk_parsed" in st.session_state and not st.session_state.ai_bulk_parsed.empty:
-        st.markdown("##### 📊 Tinjau Hasil Pembacaan Gemini AI")
-        
-        # Gunakan st.data_editor agar user tinggal klik & edit seperti Excel jika AI ada salah baca
-        edited_ai_df = st.data_editor(
-            st.session_state.ai_bulk_parsed,
-            use_container_width=True,
-            key="editor_tabel_ai"
-        )
-        
-        if st.button("💾 Push Data AI ke Google Sheets"):
-            # Di sini Anda tinggal panggil fungsi append_rows() milik Google Sheets Anda yang sudah ada
-            # Contoh:
-            # nilai_baris = edited_ai_df.values.tolist()
-            # sheet.append_rows(nilai_baris)
-            
-            st.success("🚀 [Simulasi] Data hasil AI berhasil dikirim ke Google Sheets!")
-            st.dataframe(edited_ai_df)
+                    # Aktifkan edit mode otomatis agar menu edit di atas langsung terbuka
+                    st.session_state.edit_mode_bulk = True
+                    
+                    st.success("✅ Gemini AI sukses mengekstrak data! Silakan gulir ke expander '⌨️ Upload Data Text' di atas, data sudah siap divalidasi dan diubah.")
+                    st.rerun()
+                else:
+                    st.warning("⚠️ AI gagal mengekstrak data dari teks tersebut. Pastikan teks berisi manifes tiket yang valid.")
 
 
 

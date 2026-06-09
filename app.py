@@ -27,7 +27,7 @@ from generator import parse_input_dynamic, generate_eticket, parse_evoucher_text
 from typing import List
 from tqdm import tqdm  # hanya dipakai untuk progress (bisa dihapus kalau tidak ingin)
 import itertools
-from streamlit_mic_recorder import mic_recorder
+from streamlit_mic_recorder import speech_to_text
 
 now = datetime.now(ZoneInfo("Asia/Jakarta"))
 

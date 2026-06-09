@@ -1,5 +1,4 @@
 
-
 import os
 os.environ["STREAMLIT_WATCHER_TYPE"] = "none"
 import streamlit as st
@@ -28,6 +27,7 @@ from generator import parse_input_dynamic, generate_eticket, parse_evoucher_text
 from typing import List
 from tqdm import tqdm  # hanya dipakai untuk progress (bisa dihapus kalau tidak ingin)
 import itertools
+from streamlit_mic_recorder import mic_recorder
 
 now = datetime.now(ZoneInfo("Asia/Jakarta"))
 

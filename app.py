@@ -881,35 +881,30 @@ def panggil_gemini_ai_parser(text_block: str) -> list:
         prompt = f"""
         Kamu adalah sistem AI parser data manifes travel. Ekstrak teks OCR berikut menjadi JSON Array secara presisi.
         
-        ATURAN STRUKTUR HARGA & LOGIKA MULTIPLIER (SANGAT KETAT):
-        1. "harga_beli": 
-           - Cari total nominal pembayaran bersih ke vendor atau modal dasar dari dokumen (cth: 'Total Harga Rp 1.860.000' atau 'Total pembayaran IDR 550.000').
-           - LOGIKA PEMISAHAN MULTI-BARIS: 
-             a) Jika dokumen TRANSPORTASI (Pesawat/Kereta) dan JUMLAH PENUMPANG LEBIH DARI 1 ORANG, kamu WAJIB memecah data menjadi beberapa entri sesuai nama penumpang, dan membagi rata total nominal tersebut dengan jumlah penumpang (Contoh: Total 550.000 / 2 orang = 275000).
-             b) Jika dokumen HOTEL dan JUMLAH KAMAR LEBIH DARI 1 KAMAR (cth: 'Jumlah Kamar: 2'), kamu WAJIB memecah data menjadi beberapa entri kamar terpisah (sebanyak jumlah kamar), memasangkan masing-masing nama tamu ke tiap kamar, dan membagi rata total nominal harga tersebut dengan jumlah kamar (Contoh: Total 1.860.000 / 2 kamar = 930000).
-           - Masukkan hasil pembagian per orang atau per kamar ini sebagai "harga_beli".
+        ATURAN STRUKTUR HARGA GABUNGAN VENDOR & INTERNAL (SANGAT KETAT):
+        1. Tentukan "Jumlah Kamar" (untuk Hotel) atau "Jumlah Penumpang" (untuk Transportasi) terlebih dahulu.
+           (Contoh pada teks: 'Jumlah Kamar: 2' dan terdapat 2 nama tamu: Jane Susanna & Gascha Firga Prananda, maka data wajib dipecah menjadi 2 baris entri).
         
-        2. "harga_jual":
-           - Langkah 1: Cari kata kunci tarif per orang atau per kamar yang ditulis manual (cth: 'Harga 303.500/pax', 'Jual 710000'). Jika ada kata kunci '/pax', langsung masukkan angka tersebut.
-           - Langkah 2 (LOGIKA HOTEL): Jika dokumen HOTEL, tidak ada instruksi 'Jual' manual, tetapi ada kolom 'Total Harga' atau 'Rate per Malam', kamu WAJIB melihat hasil pembagian di poin 1. Jika data dipecah per kamar, maka "harga_jual" diisi hasil pembagian 'Total Harga' dibagi 'Jumlah Kamar' (Contoh: Total Harga 1.860.000 / 2 kamar = 930000).
-           - Langkah 3 (FALLBACK): Jika langkah 1 dan 2 tidak ditemukan, kamu WAJIB menyamakan nilai "harga_jual" sama persis dengan nilai "harga_beli" yang sudah kamu hitung di poin 1 (Laba awal 0).
+        2. "harga_beli" (MODAL PER KAMAR / PER PAX):
+           - Cari teks nominal modal yang dibayarkan ke pihak vendor/OTA. Kata kuncinya wajib berada di dekat kata 'JUMLAH PEMBAYARAN', 'TOTAL', atau 'Dibayar Hari Ini' pada rincian kuitansi vendor (Contoh pada teks: 'JUMLAH PEMBAYARAN 1.596.000').
+           - Kamu WAJIB membagi rata nominal total vendor tersebut dengan jumlah kamar atau jumlah penumpang (Contoh: 1.596.000 / 2 kamar = 798000).
+           - Masukkan hasil pembagian bersih per kamar/per pax ini sebagai "harga_beli".
+        
+        3. "harga_jual" (HARGA TOKO PER KAMAR / PER PAX):
+           - Langkah 1: Jika admin mengetik kata manual (cth: 'Jual 950000'), gunakan angka itu.
+           - Langkah 2: Jika tidak ada input manual, cari teks nominal yang ditawarkan ke konsumen di dalam tabel itinerary internal Kayyisa. Kata kuncinya berada di dekat label 'Total Harga' atau 'Rate per Malam' (Contoh pada teks: 'Total Harga Rp 1.860.000').
+           - Kamu WAJIB membagi rata nominal total internal tersebut dengan jumlah kamar atau jumlah penumpang (Contoh: 1.860.000 / 2 kamar = 930000).
+           - Masukkan hasil pembagian bersih per kamar/per pax ini sebagai "harga_jual".
+           - Langkah 3 (FALLBACK): Jika Langkah 1 dan 2 tidak ada, samakan nilai "harga_jual" dengan "harga_beli" per baris.
         
         ATURAN STRUKTUR DATA UTAMA (WAJIB DIPATUHI BAGAIMANAPUN INPUT TEKSNYA):
-        1. Tipe PESAWAT:
-           - "item_name": HANYA nama maskapai dan nomor penerbangan (Contoh: "QG997-QG 174" atau "Lion Air JT 781"). JANGAN masukkan kata kelas.
-           - "durasi": Format jam 'HH:MM - HH:MM' (Contoh: "15:00 - 19:40").
-           - "rute": HANYA kode bandara 3 huruf (Contoh: "TKG - SUB").
+        1. Tipe PESAWAT: "item_name" berisi Nama Maskapai dan No Penerbangan (cth: "QG997-QG 174"). Durasi format 'HH:MM - HH:MM'. Rute HANYA kode bandara 3 huruf (cth: "TKG - SUB").
         2. Tipe HOTEL:
            - "item_name": Nama properti hotel bersih (Contoh: "Montana Hotel Syariah Banjarbaru").
            - "durasi": Jumlah malam + kata 'mlm' (Contoh: "2 mlm").
            - "rute": HANYA nama kota/kabupaten lokasi hotel (Contoh: "Banjarbaru").
            - "bf_status": Isi 'BF' (jika ada sarapan) atau 'NBF' (jika tanpa sarapan/Room Only).
-        3. Tipe KERETA (Termasuk Whoosh):
-           - "item_name": Format penulisan WAJIB seperti ini: [Nama Kereta] [Singkatan Kelas] [Nomor Gerbong]/[Nomor Kursi]
-             Ketentuan kelas: Eksekutif disingkat 'Eks', Ekonomi disingkat 'Eko', Premium disingkat 'Pre', Bisnis disingkat 'Bis'.
-             CONTOH WAJIB: "Sembrani Eks 4/5D", "Harina Eko 3/8C", "Kertajaya Pre 9/2A", "Whoosh Pre 3/1A".
-           - "durasi": Format jam 'HH:MM - HH:MM' (Contoh: "23:35 - 08:40").
-           - "rute": HANYA kode stasiun asal - tujuan (Contoh: "GMR - SBI" atau "HLM - BKS").
+        3. Tipe KERETA (Termasuk Whoosh): "item_name" format penulisan WAJIB: [Nama Kereta] [Singkatan Kelas] [Nomor Gerbong]/[Nomor Kursi] (Contoh: "Sembrani Eks 4/5D"). Durasi format 'HH:MM - HH:MM'. Rute berisi kode stasiun asal - tujuan (cth: "GMR - SBI").
         4. TANGGAL: Format standar ISO 'YYYY-MM-DD'. Jika tanggal pemesanan ragu, samakan dengan tgl berangkat.
         5. PLATFORM: Pilih salah satu dari: "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin", "KAI Access", "RedDoorz", "Lainnya".
 
@@ -968,35 +963,30 @@ def panggil_gemini_vision_parser(uploaded_file) -> list:
         Kamu adalah sistem AI Computer Vision untuk agen travel. Analisis GAMBAR screenshot booking atau file PDF e-ticket ini.
         Pahami isinya layaknya manusia dan ekstrak informasinya menjadi JSON Array secara presisi.
         
-        ATURAN STRUKTUR HARGA & LOGIKA MULTIPLIER (SANGAT KETAT):
-        1. "harga_beli": 
-           - Cari total nominal pembayaran bersih ke vendor atau modal dasar dari dokumen (cth: 'Total Harga Rp 1.860.000' atau 'Total pembayaran IDR 550.000').
-           - LOGIKA PEMISAHAN MULTI-BARIS: 
-             a) Jika dokumen TRANSPORTASI (Pesawat/Kereta) dan JUMLAH PENUMPANG LEBIH DARI 1 ORANG, kamu WAJIB memecah data menjadi beberapa entri sesuai nama penumpang, dan membagi rata total nominal tersebut dengan jumlah penumpang (Contoh: Total 550.000 / 2 orang = 275000).
-             b) Jika dokumen HOTEL dan JUMLAH KAMAR LEBIH DARI 1 KAMAR (cth: 'Jumlah Kamar: 2'), kamu WAJIB memecah data menjadi beberapa entri kamar terpisah (sebanyak jumlah kamar), memasangkan masing-masing nama tamu ke tiap kamar, dan membagi rata total nominal harga tersebut dengan jumlah kamar (Contoh: Total 1.860.000 / 2 kamar = 930000).
-           - Masukkan hasil pembagian per orang atau per kamar ini sebagai "harga_beli".
+        ATURAN STRUKTUR HARGA GABUNGAN VENDOR & INTERNAL (SANGAT KETAT):
+        1. Tentukan "Jumlah Kamar" (untuk Hotel) atau "Jumlah Penumpang" (untuk Transportasi) terlebih dahulu.
+           (Contoh pada teks: 'Jumlah Kamar: 2' dan terdapat 2 nama tamu: Jane Susanna & Gascha Firga Prananda, maka data wajib dipecah menjadi 2 baris entri).
         
-        2. "harga_jual":
-           - Langkah 1: Cari kata kunci tarif per orang atau per kamar yang ditulis manual (cth: 'Harga 303.500/pax', 'Jual 710000'). Jika ada kata kunci '/pax', langsung masukkan angka tersebut.
-           - Langkah 2 (LOGIKA HOTEL): Jika dokumen HOTEL, tidak ada instruksi 'Jual' manual, tetapi ada kolom 'Total Harga' atau 'Rate per Malam', kamu WAJIB melihat hasil pembagian di poin 1. Jika data dipecah per kamar, maka "harga_jual" diisi hasil pembagian 'Total Harga' dibagi 'Jumlah Kamar' (Contoh: Total Harga 1.860.000 / 2 kamar = 930000).
-           - Langkah 3 (FALLBACK): Jika langkah 1 dan 2 tidak ditemukan, kamu WAJIB menyamakan nilai "harga_jual" sama persis dengan nilai "harga_beli" yang sudah kamu hitung di poin 1 (Laba awal 0).
+        2. "harga_beli" (MODAL PER KAMAR / PER PAX):
+           - Cari teks nominal modal yang dibayarkan ke pihak vendor/OTA. Kata kuncinya wajib berada di dekat kata 'JUMLAH PEMBAYARAN', 'TOTAL', atau 'Dibayar Hari Ini' pada rincian kuitansi vendor (Contoh pada teks: 'JUMLAH PEMBAYARAN 1.596.000').
+           - Kamu WAJIB membagi rata nominal total vendor tersebut dengan jumlah kamar atau jumlah penumpang (Contoh: 1.596.000 / 2 kamar = 798000).
+           - Masukkan hasil pembagian bersih per kamar/per pax ini sebagai "harga_beli".
+        
+        3. "harga_jual" (HARGA TOKO PER KAMAR / PER PAX):
+           - Langkah 1: Jika admin mengetik kata manual (cth: 'Jual 950000'), gunakan angka itu.
+           - Langkah 2: Jika tidak ada input manual, cari teks nominal yang ditawarkan ke konsumen di dalam tabel itinerary internal Kayyisa. Kata kuncinya berada di dekat label 'Total Harga' atau 'Rate per Malam' (Contoh pada teks: 'Total Harga Rp 1.860.000').
+           - Kamu WAJIB membagi rata nominal total internal tersebut dengan jumlah kamar atau jumlah penumpang (Contoh: 1.860.000 / 2 kamar = 930000).
+           - Masukkan hasil pembagian bersih per kamar/per pax ini sebagai "harga_jual".
+           - Langkah 3 (FALLBACK): Jika Langkah 1 dan 2 tidak ada, samakan nilai "harga_jual" dengan "harga_beli" per baris.
         
         ATURAN STRUKTUR DATA UTAMA (WAJIB DIPATUHI BAGAIMANAPUN INPUT TEKSNYA):
-        1. Tipe PESAWAT:
-           - "item_name": HANYA nama maskapai dan nomor penerbangan (Contoh: "QG997-QG 174" atau "Lion Air JT 781"). JANGAN masukkan kata kelas.
-           - "durasi": Format jam 'HH:MM - HH:MM' (Contoh: "15:00 - 19:40").
-           - "rute": HANYA kode bandara 3 huruf (Contoh: "TKG - SUB").
+        1. Tipe PESAWAT: "item_name" berisi Nama Maskapai dan No Penerbangan (cth: "QG997-QG 174"). Durasi format 'HH:MM - HH:MM'. Rute HANYA kode bandara 3 huruf (cth: "TKG - SUB").
         2. Tipe HOTEL:
            - "item_name": Nama properti hotel bersih (Contoh: "Montana Hotel Syariah Banjarbaru").
            - "durasi": Jumlah malam + kata 'mlm' (Contoh: "2 mlm").
            - "rute": HANYA nama kota/kabupaten lokasi hotel (Contoh: "Banjarbaru").
            - "bf_status": Isi 'BF' (jika ada sarapan) atau 'NBF' (jika tanpa sarapan/Room Only).
-        3. Tipe KERETA (Termasuk Whoosh):
-           - "item_name": Format penulisan WAJIB seperti ini: [Nama Kereta] [Singkatan Kelas] [Nomor Gerbong]/[Nomor Kursi]
-             Ketentuan kelas: Eksekutif disingkat 'Eks', Ekonomi disingkat 'Eko', Premium disingkat 'Pre', Bisnis disingkat 'Bis'.
-             CONTOH WAJIB: "Sembrani Eks 4/5D", "Harina Eko 3/8C", "Kertajaya Pre 9/2A", "Whoosh Pre 3/1A".
-           - "durasi": Format jam 'HH:MM - HH:MM' (Contoh: "23:35 - 08:40").
-           - "rute": HANYA kode stasiun asal - tujuan (Contoh: "GMR - SBI" atau "HLM - BKS").
+        3. Tipe KERETA (Termasuk Whoosh): "item_name" format penulisan WAJIB: [Nama Kereta] [Singkatan Kelas] [Nomor Gerbong]/[Nomor Kursi] (Contoh: "Sembrani Eks 4/5D"). Durasi format 'HH:MM - HH:MM'. Rute berisi kode stasiun asal - tujuan (cth: "GMR - SBI").
         4. TANGGAL: Format standar ISO 'YYYY-MM-DD'. Jika tanggal pemesanan ragu, samakan dengan tgl berangkat.
         5. PLATFORM: Pilih salah satu dari: "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin", "KAI Access", "RedDoorz", "Lainnya".
         
@@ -1047,15 +1037,17 @@ def terapkan_otomatisasi_pembayaran(platform_name: str) -> (str, str):
     p_lower = platform_name.lower()
     
     if "traveloka" in p_lower:
-        return "Credit Card", "Mandiri"
+        return "Credit Card", "UOB"
     elif "tiket" in p_lower:
-        return "Dana Tunai/Cash", "VA BCA"
+        return "Credit Card", "UOB"
     elif "kai" in p_lower or "access" in p_lower:
-        return "Dana Tunai/Cash", "Ovo"
+        return "Credit Card", "UOB"
     elif "agoda" in p_lower:
-        return "Credit Card", "BCA"
+        return "Dana Tunai/Cash", "BNI"
+    elif "book cabin" in p_lower:
+        return "Credit Card", "BNI"
     else:
-        return "Dana Tunai/Cash", "" # Kosongkan jika platform lainnya
+        return "Credit Card", "UOB" # Kosongkan jika platform lainnya
 
 # --- SECTION 2: BULK MANUAL INPUT ---
 #st.markdown('---')

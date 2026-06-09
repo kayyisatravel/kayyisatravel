@@ -896,18 +896,26 @@ with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expand
         "🎙️ Input Perekam Suara (Voice)"
     ])
     
-    # Inisialisasi variabel penampung data dari ketiga jalur input
+    # Inisialisasi memori penampung teks jika belum ada di sistem
+    if "teks_konten_input" not in st.session_state:
+        st.session_state.teks_konten_input = ""
+        
     hasil_pilihan_ai = None
     input_mentah_ref = ""
-    tombol_ditekan = False # Penanda apakah ada tombol proses yang diklik
+    tombol_ditekan = False 
     
-    # --- JALUR INPUT 1: KOTAK TEKS COPAS ---
+    # --- JALUR INPUT 1: KOTAK TEKS COPAS (SEKARANG MENERIMA MEMORI SUARA) ---
     with tab_text:
+        # Nilai value dikunci ke session_state agar bisa diisi otomatis oleh mikrofon
         ai_raw = st.text_area(
             "Tempelkan teks manifestasi/voucher di sini, pisahkan setiap entri dengan '==='",
-            key="ai_bulk_input_text",
+            value=st.session_state.teks_konten_input,
+            key="ai_bulk_input_text_area",
             height=200
         )
+        # Selalu update memori jika admin mengetik manual di kotak ini
+        st.session_state.teks_konten_input = ai_raw
+        
         col_t1, col_t2 = st.columns(2)
         with col_t1:
             if st.button("📊 Proses Teks ke Keuangan", key="btn_proses_text_finance", use_container_width=True):
@@ -938,28 +946,29 @@ with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expand
                     hasil_pilihan_ai = panggil_gemini_vision_parser(file_input)
                     input_mentah_ref = f"gambar_upload {file_input.name}"
 
-    # --- JALUR INPUT 3: KOTAK PEREKAM SUARA BARU ---
+    # --- JALUR INPUT 3: KOTAK PEREKAM SUARA BARU (OTOMATIS OPER KE TAB 1) ---
     with tab_voice:
-        st.markdown("💬 **Petunjuk**: Klik tombol *Mulai* di bawah, sebutkan detail tiket (Nama, Rute, Kode Booking, Harga Beli/Jual jika ada), lalu klik *Stop*.")
+        st.markdown("💬 **Petunjuk**: Klik tombol *Mulai* di bawah, sebutkan detail tiket, lalu klik *Stop* untuk memindahkan teks suara ke Tab 1.")
         
-        # Render Tombol Mikrofon Cerdas
+        # Render Tombol Perekam Suara Browser
         audio_konten = mic_recorder(
             start_prompt="🎙️ Mulai Merekam Suara",
-            stop_prompt="🛑 Stop & Proses Suara",
+            stop_prompt="🛑 Stop & Pindahkan ke Tab 1",
             key="mic_input_utama_travel",
             just_once=True,
             use_container_width=True
         )
         
-        # Jika admin selesai berbicara, otomatis tangkap teks hasil konversi suara browser
+        # Jika admin selesai berbicara, tangkap teks dan pindahkan ke memori Tab 1
         if audio_konten and audio_konten.get("text"):
             teks_hasil_suara = audio_konten["text"].strip()
-            st.info(f"🗣️ **Teks Suara Terdeteksi:** *\"{teks_hasil_suara}\"*")
-            tombol_ditekan = True
             
-            with st.spinner("Gemini AI sedang menafsirkan suara Anda ke dalam data keuangan..."):
-                hasil_pilihan_ai = panggil_gemini_ai_parser(teks_hasil_suara)
-                input_mentah_ref = teks_hasil_suara
+            # SUNTIKKAN TEKS HASIL SUARA KE MEMORI UTAMA KOTAK INPUT TAB 1
+            st.session_state.teks_konten_input = teks_hasil_suara
+            st.success("📝 Berhasil menyalin suara menjadi teks! Teks sudah dipindahkan ke Tab 1 ('📝 Input Salinan Teks'). Silakan buka Tab 1 untuk melihat dan memprosesnya.")
+            
+            # Picu muat ulang layar agar Tab 1 langsung menampilkan teks suara tersebut
+            st.rerun()
 
     # --------------------------------------------------------------------------
     # LOGIKA PEMROSESAN GABUNGAN (BERLAKU SAMA UNTUK KETIGA JALUR INPUT DI ATAS)
@@ -967,7 +976,6 @@ with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expand
     if "peringatan_admin_ai" in st.session_state and st.session_state.peringatan_admin_ai:
         st.warning(st.session_state.peringatan_admin_ai)
 
-    # PERBAIKAN LOGIKA: Hanya masuk ke pengondisian jika ada tombol yang ditekan
     if tombol_ditekan:
         if hasil_pilihan_ai:
             ai_entries = []
@@ -1009,7 +1017,6 @@ with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expand
                     'Sumber Dana': sumber_dana, 'Detail Dana': detail_dana, 'Platform': item.get("platform", "Lainnya")
                 })
             
-            # OPER DATA INSTAN KE FORM EDIT UTAMA ANDA DI BAWAHNYA
             st.session_state.bulk_parsed = pd.DataFrame(ai_entries)
             st.session_state.edit_mode_bulk = True
             
@@ -1020,6 +1027,7 @@ with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expand
             st.rerun()
         else:
             st.error("⚠️ AI gagal mengekstrak data. Pastikan teks berisi manifes tiket yang valid atau kualitas gambar/suara cukup jelas.")
+
 
     # ==============================================================================
     # 4. LOGIKA FORM EDIT MANUAL BAWAAN ANDA (Tetap dipertahaman di bawah tombol AI)

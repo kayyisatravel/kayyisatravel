@@ -969,15 +969,35 @@ def panggil_gemini_vision_parser(uploaded_file) -> list:
         
         ATURAN STRUKTUR HARGA & LOGIKA FINANSIAL (SANGAT KETAT):
         1. "harga_beli": 
-           - Cari total nominal pembayaran bersih ke vendor dari dokumen gambar.
-           - JIKA JUMLAH PENUMPANG LEBIH DARI 1 ORANG, kamu WAJIB membagi rata total nominal tersebut dengan jumlah penumpang untuk mendapatkan harga modal per orang.
+           - Cari total nominal pembayaran bersih ke vendor dari dokumen (cth: 'Total pembayaran IDR 550.000').
+           - Hitung jumlah nama penumpang yang berhasil kamu ekstrak di dalam tiket ini.
+           - JIKA JUAH PENUMPANG LEBIH DARI 1 ORANG, kamu WAJIB membagi rata total nominal tersebut dengan jumlah penumpang untuk mendapatkan harga modal per orang (Contoh: Total 550.000 / 2 orang = 275000). Masukkan hasil pembagian per orang ini sebagai "harga_beli".
+        
         2. "harga_jual":
-           - Langkah 1: Cari kata kunci tarif per orang (cth: 'Harga 303.500/pax' atau 'Jual 303500/pax'). Jika ada kata kunci '/pax', langsung masukkan angka tersebut sebagai "harga_jual" per individu.
+           - Langkah 1: Cari kata kunci tarif per orang (cth: 'Harga 303.500/pax' atau 'Jual 303500/pax'). Jika ada kata kunci '/pax' seperti ini, langsung masukkan angka tersebut sebagai "harga_jual" per individu. (JANGAN dikalikan jumlah orang).
            - Langkah 2: Jika tidak ada kata kunci '/pax', cari kata kunci 'Jual' total. Jika ada, bagi nominal jual total tersebut dengan jumlah penumpang untuk mencari harga jual per orang.
            - Langkah 3 (LOGIKA HOTEL): Jika dokumen HOTEL dan ada kolom 'Total Harga', ambil nominal tersebut dari rincian.
-           - Langkah 4 (FALLBACK): Jika langkah 1, 2, dan 3 tidak ditemukan, kamu WAJIB menyamakan nilai "harga_jual" sama persis dengan nilai "harga_beli" per orang.
-
-        ATURAN STRUKTUR DATA UTAMA: Sama seperti standar operasional travel Kayyisa.
+           - Langkah 4 (FALLBACK): Jika langkah 1, 2, dan 3 tidak ditemukan, kamu WAJIB menyamakan nilai "harga_jual" sama persis dengan nilai "harga_beli" per orang yang sudah kamu hitung di poin 1 (Laba awal 0).
+        
+        ATURAN STRUKTUR DATA UTAMA (WAJIB DIPATUHI BAGAIMANAPUN INPUT TEKSNYA):
+        1. Tipe PESAWAT:
+           - "item_name": HANYA nama maskapai dan nomor penerbangan (Contoh: "QG997-QG 174" atau "Lion Air JT 781"). JANGAN masukkan kata kelas.
+           - "durasi": Format jam 'HH:MM - HH:MM' (Contoh: "15:00 - 19:40").
+           - "rute": HANYA kode bandara 3 huruf (Contoh: "TKG - SUB").
+        2. Tipe HOTEL:
+           - "item_name": Nama properti hotel bersih (Contoh: "Hotel Sunrise Syariah").
+           - "durasi": Jumlah malam + kata 'mlm' (Contoh: "1 mlm").
+           - "rute": HANYA nama kota/kabupaten lokasi hotel (Contoh: "Banjarbaru").
+           - "bf_status": Isi 'BF' (jika ada sarapan) atau 'NBF' (jika tanpa sarapan).
+        3. Tipe KERETA (Termasuk Whoosh):
+           - "item_name": Format penulisan WAJIB seperti ini: [Nama Kereta] [Singkatan Kelas] [Nomor Gerbong]/[Nomor Kursi]
+             Ketentuan kelas: Eksekutif disingkat 'Eks', Ekonomi disingkat 'Eko', Premium disingkat 'Pre', Bisnis disingkat 'Bis'.
+             CONTOH WAJIB: "Sembrani Eks 4/5D", "Harina Eko 3/8C", "Kertajaya Pre 9/2A", "Whoosh Pre 3/1A".
+           - "durasi": Format jam 'HH:MM - HH:MM' (Contoh: "23:35 - 08:40").
+           - "rute": HANYA kode stasiun asal - tujuan (Contoh: "GMR - SBI" atau "HLM - BKS").
+        4. TANGGAL: Format standar ISO 'YYYY-MM-DD'. Jika tanggal pemesanan ragu, samakan dengan tgl berangkat.
+        5. PLATFORM: Pilih salah satu dari: "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin", "KAI Access", "RedDoorz", "Lainnya".
+        
         Format Output Wajib JSON Array:
         {
           "entries": [

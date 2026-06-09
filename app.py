@@ -882,12 +882,20 @@ def terapkan_otomatisasi_pembayaran(platform_name: str) -> (str, str):
 #st.markdown('---')
 
 # ==============================================================================
-# 🤖 EXPANDER UTAMA - TRIPLE-INPUT (TEKS, GAMBAR, & SUARA) DENGAN AI
+# 🤖 [FIXED]: EXPANDER UTAMA - TRIPLE-INPUT (TEKS, GAMBAR, & SUARA) DENGAN AI
 # ==============================================================================
 with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expanded=True):
     st.markdown("""
     *Pilih metode input yang paling praktis. Sistem otomatis menyelaraskan format KAI, Hotel, maupun Pesawat.*
     """)
+    
+    # Inisialisasi memori penampung teks jika belum ada di sistem
+    if "ai_bulk_input_text" not in st.session_state:
+        st.session_state["ai_bulk_input_text"] = ""
+        
+    hasil_pilihan_ai = None
+    input_mentah_ref = ""
+    tombol_ditekan = False 
     
     # ─── LOGIKA SAKLAR 3 TAB BERDAMPINGAN: SALING MELENGKAPI ───
     tab_text, tab_file, tab_voice = st.tabs([
@@ -896,25 +904,14 @@ with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expand
         "🎙️ Input Perekam Suara (Voice)"
     ])
     
-    # Inisialisasi memori penampung teks jika belum ada di sistem
-    if "teks_konten_input" not in st.session_state:
-        st.session_state.teks_konten_input = ""
-        
-    hasil_pilihan_ai = None
-    input_mentah_ref = ""
-    tombol_ditekan = False 
-    
-    # --- JALUR INPUT 1: KOTAK TEKS COPAS (SEKARANG MENERIMA MEMORI SUARA) ---
+    # --- JALUR INPUT 1: KOTAK TEKS COPAS (MENGIKAT KEY SECARA AMAN) ---
     with tab_text:
-        # Nilai value dikunci ke session_state agar bisa diisi otomatis oleh mikrofon
+        # Kunci utama: Menghubungkan variabel 'key' langsung ke session_state penampung suara
         ai_raw = st.text_area(
             "Tempelkan teks manifestasi/voucher di sini, pisahkan setiap entri dengan '==='",
-            value=st.session_state.teks_konten_input,
-            key="ai_bulk_input_text_area",
+            key="ai_bulk_input_text",
             height=200
         )
-        # Selalu update memori jika admin mengetik manual di kotak ini
-        st.session_state.teks_konten_input = ai_raw
         
         col_t1, col_t2 = st.columns(2)
         with col_t1:
@@ -946,7 +943,7 @@ with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expand
                     hasil_pilihan_ai = panggil_gemini_vision_parser(file_input)
                     input_mentah_ref = f"gambar_upload {file_input.name}"
 
-    # --- JALUR INPUT 3: KOTAK PEREKAM SUARA BARU (OTOMATIS OPER KE TAB 1) ---
+    # --- JALUR INPUT 3: KOTAK PEREKAM SUARA BARU (SUNTIKAN DATA AMAN) ---
     with tab_voice:
         st.markdown("💬 **Petunjuk**: Klik tombol *Mulai* di bawah, sebutkan detail tiket, lalu klik *Stop* untuk memindahkan teks suara ke Tab 1.")
         
@@ -959,15 +956,13 @@ with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expand
             use_container_width=True
         )
         
-        # Jika admin selesai berbicara, tangkap teks dan pindahkan ke memori Tab 1
+        # Jika teks suara ditangkap oleh browser, langsung suntikkan ke KEY milik text_area di Tab 1
         if audio_konten and audio_konten.get("text"):
             teks_hasil_suara = audio_konten["text"].strip()
             
-            # SUNTIKKAN TEKS HASIL SUARA KE MEMORI UTAMA KOTAK INPUT TAB 1
-            st.session_state.teks_konten_input = teks_hasil_suara
-            st.success("📝 Berhasil menyalin suara menjadi teks! Teks sudah dipindahkan ke Tab 1 ('📝 Input Salinan Teks'). Silakan buka Tab 1 untuk melihat dan memprosesnya.")
-            
-            # Picu muat ulang layar agar Tab 1 langsung menampilkan teks suara tersebut
+            # SUNTIKKAN DATA KE KEY ST.TEXT_AREA SECARA DIRECT
+            st.session_state["ai_bulk_input_text"] = teks_hasil_suara
+            st.success("📝 Berhasil mendeteksi suara! Teks sudah dipasok ke Tab 1. Silakan buka Tab 1 untuk memproses data.")
             st.rerun()
 
     # --------------------------------------------------------------------------

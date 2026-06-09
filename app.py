@@ -757,6 +757,99 @@ from google.genai import types
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
+# ==============================================================================
+# 🎫 [TAMBAHAN BARU]: FUNGSI GENERATOR TIKET PDF RESMI - KAI, HOTEL, PESAWAT
+# ==============================================================================
+from fpdf import FPDF
+
+def buat_voucher_pdf_kayyisa(data_list: list) -> bytes:
+    """Fungsi mandiri merubah data hasil bacaan AI menjadi file PDF Voucher resmi berlogo Kayyisa"""
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    
+    for idx, item in enumerate(data_list):
+        pdf.add_page()
+        
+        # --- HEADER PERUSAHAAN ---
+        pdf.set_font("Arial", "B", 16)
+        pdf.set_text_color(16, 44, 87) # Warna Biru Gelap Profesional Kayyisa
+        pdf.cell(0, 10, "| Kayyisa Tour & Travel", ln=True, align="L")
+        
+        pdf.set_font("Arial", "I", 10)
+        pdf.set_text_color(128, 128, 128)
+        pdf.cell(0, 5, f"E-VOUCHER / E-TICKET RESERVASI - ENTRI {idx+1}", ln=True, align="L")
+        
+        # Garis Pembatas Atas
+        pdf.set_draw_color(16, 44, 87)
+        pdf.set_line_width(0.8)
+        pdf.line(10, 27, 200, 27)
+        pdf.ln(10)
+        
+        # --- DETAIL UTAMA TIKET ---
+        pdf.set_text_color(0, 0, 0)
+        pdf.set_font("Arial", "B", 12)
+        pdf.cell(0, 8, f"Tipe Reservasi: {str(item.get('tipe', 'TRAVEL')).upper()}", ln=True)
+        pdf.ln(2)
+        
+        # Buat struktur baris detail berkiri-kanan (Format rapi tanpa nominal uang)
+        pdf.set_font("Arial", "", 10)
+        
+        # Baris 1: Kode PNR
+        pdf.cell(45, 7, "Kode Booking (PNR)", border=0)
+        pdf.set_font("Arial", "B", 10)
+        pdf.cell(0, 7, f": {item.get('kode_booking', '-')}", border=0, ln=True)
+        pdf.set_font("Arial", "", 10)
+        
+        # Baris 2: Nama Hotel / Kendaraan
+        label_nama = "Nama Hotel" if item.get('tipe') == 'HOTEL' else "Nama Kendaraan"
+        pdf.cell(45, 7, label_nama, border=0)
+        pdf.cell(0, 7, f": {item.get('item_name', '-')}", border=0, ln=True)
+        
+        # Baris 3: Nama Tamu
+        pdf.cell(45, 7, "Nama Tamu / Penumpang", border=0)
+        pdf.set_font("Arial", "B", 10)
+        pdf.cell(0, 7, f": {item.get('nama_customer', '-')}", border=0, ln=True)
+        pdf.set_font("Arial", "", 10)
+        
+        # Baris 4: Rute atau Kota
+        label_rute = "Kota Properti" if item.get('tipe') == 'HOTEL' else "Rute Perjalanan"
+        pdf.cell(45, 7, label_rute, border=0)
+        pdf.cell(0, 7, f": {item.get('rute', '-')}", border=0, ln=True)
+        
+        # Baris 5: Durasi atau Jam
+        label_durasi = "Lama Menginap" if item.get('tipe') == 'HOTEL' else "Jam Perjalanan"
+        pdf.cell(45, 7, label_durasi, border=0)
+        pdf.cell(0, 7, f": {item.get('durasi', '-')}", border=0, ln=True)
+        
+        # Baris 6: Tanggal Keberangkatan
+        pdf.cell(45, 7, "Tanggal Berangkat/Check-in", border=0)
+        pdf.cell(0, 7, f": {item.get('tgl_berangkat', '-')}", border=0, ln=True)
+        
+        # Khusus Hotel, munculkan fasilitas makanan jika ada
+        if item.get('tipe') == 'HOTEL' and item.get('bf_status'):
+            pdf.cell(45, 7, "Fasilitas Makanan", border=0)
+            pdf.cell(0, 7, f": {'Termasuk Sarapan (BF)' if item.get('bf_status') == 'BF' else 'Tanpa Sarapan (Room Only)'}", border=0, ln=True)
+            
+        pdf.ln(15)
+        
+        # --- FOOTER DAN CATATAN PENTING ---
+        pdf.set_draw_color(200, 200, 200)
+        pdf.set_line_width(0.2)
+        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+        pdf.ln(5)
+        
+        pdf.set_font("Arial", "B", 9)
+        pdf.set_text_color(100, 100, 100)
+        pdf.cell(0, 5, "Catatan Penting:", ln=True)
+        pdf.set_font("Arial", "", 8)
+        pdf.cell(0, 4, "- Voucher ini adalah bukti reservasi resmi yang sah dari Kayyisa Tour & Travel.", ln=True)
+        pdf.cell(0, 4, "- Saat check-in hotel atau boarding transportasi, tunjukkan file PDF ini langsung dari HP Anda.", ln=True)
+        pdf.cell(0, 4, "- Jika ada kendala teknis di lapangan, segera hubungi layanan darurat kami via email/WhatsApp.", ln=True)
+
+    # Mengembalikan data dokumen dalam bentuk biner bytes agar bisa diunduh langsung via Streamlit
+    return pdf.output(dest="S")
+
+
 # =======================================================
 # === 1. SKEMA DATA UNTUK MENGUNCI OUTPUT GEMINI AI ===
 # =======================================================

@@ -881,17 +881,18 @@ def panggil_gemini_ai_parser(text_block: str) -> list:
         prompt = f"""
         Kamu adalah sistem AI parser data manifes travel. Ekstrak teks OCR berikut menjadi JSON Array secara presisi.
         
-        ATURAN STRUKTUR HARGA & LOGIKA FINANSIAL (SANGAT KETAT):
+        ATURAN STRUKTUR HARGA & LOGIKA MULTIPLIER (SANGAT KETAT):
         1. "harga_beli": 
-           - Cari total nominal pembayaran bersih ke vendor dari dokumen (cth: 'Total pembayaran IDR 550.000').
-           - Hitung jumlah nama penumpang yang berhasil kamu ekstrak di dalam tiket ini.
-           - JIKA JUAH PENUMPANG LEBIH DARI 1 ORANG, kamu WAJIB membagi rata total nominal tersebut dengan jumlah penumpang untuk mendapatkan harga modal per orang (Contoh: Total 550.000 / 2 orang = 275000). Masukkan hasil pembagian per orang ini sebagai "harga_beli".
+           - Cari total nominal pembayaran bersih ke vendor atau modal dasar dari dokumen (cth: 'Total Harga Rp 1.860.000' atau 'Total pembayaran IDR 550.000').
+           - LOGIKA PEMISAHAN MULTI-BARIS: 
+             a) Jika dokumen TRANSPORTASI (Pesawat/Kereta) dan JUMLAH PENUMPANG LEBIH DARI 1 ORANG, kamu WAJIB memecah data menjadi beberapa entri sesuai nama penumpang, dan membagi rata total nominal tersebut dengan jumlah penumpang (Contoh: Total 550.000 / 2 orang = 275000).
+             b) Jika dokumen HOTEL dan JUMLAH KAMAR LEBIH DARI 1 KAMAR (cth: 'Jumlah Kamar: 2'), kamu WAJIB memecah data menjadi beberapa entri kamar terpisah (sebanyak jumlah kamar), memasangkan masing-masing nama tamu ke tiap kamar, dan membagi rata total nominal harga tersebut dengan jumlah kamar (Contoh: Total 1.860.000 / 2 kamar = 930000).
+           - Masukkan hasil pembagian per orang atau per kamar ini sebagai "harga_beli".
         
         2. "harga_jual":
-           - Langkah 1: Cari kata kunci tarif per orang (cth: 'Harga 303.500/pax' atau 'Jual 303500/pax'). Jika ada kata kunci '/pax' seperti ini, langsung masukkan angka tersebut sebagai "harga_jual" per individu. (JANGAN dikalikan jumlah orang).
-           - Langkah 2: Jika tidak ada kata kunci '/pax', cari kata kunci 'Jual' total. Jika ada, bagi nominal jual total tersebut dengan jumlah penumpang untuk mencari harga jual per orang.
-           - Langkah 3 (LOGIKA HOTEL): Jika dokumen HOTEL dan ada kolom 'Total Harga', ambil nominal tersebut dari rincian.
-           - Langkah 4 (FALLBACK): Jika langkah 1, 2, dan 3 tidak ditemukan, kamu WAJIB menyamakan nilai "harga_jual" sama persis dengan nilai "harga_beli" per orang yang sudah kamu hitung di poin 1 (Laba awal 0).
+           - Langkah 1: Cari kata kunci tarif per orang atau per kamar yang ditulis manual (cth: 'Harga 303.500/pax', 'Jual 710000'). Jika ada kata kunci '/pax', langsung masukkan angka tersebut.
+           - Langkah 2 (LOGIKA HOTEL): Jika dokumen HOTEL, tidak ada instruksi 'Jual' manual, tetapi ada kolom 'Total Harga' atau 'Rate per Malam', kamu WAJIB melihat hasil pembagian di poin 1. Jika data dipecah per kamar, maka "harga_jual" diisi hasil pembagian 'Total Harga' dibagi 'Jumlah Kamar' (Contoh: Total Harga 1.860.000 / 2 kamar = 930000).
+           - Langkah 3 (FALLBACK): Jika langkah 1 dan 2 tidak ditemukan, kamu WAJIB menyamakan nilai "harga_jual" sama persis dengan nilai "harga_beli" yang sudah kamu hitung di poin 1 (Laba awal 0).
         
         ATURAN STRUKTUR DATA UTAMA (WAJIB DIPATUHI BAGAIMANAPUN INPUT TEKSNYA):
         1. Tipe PESAWAT:
@@ -899,10 +900,10 @@ def panggil_gemini_ai_parser(text_block: str) -> list:
            - "durasi": Format jam 'HH:MM - HH:MM' (Contoh: "15:00 - 19:40").
            - "rute": HANYA kode bandara 3 huruf (Contoh: "TKG - SUB").
         2. Tipe HOTEL:
-           - "item_name": Nama properti hotel bersih (Contoh: "Hotel Sunrise Syariah").
-           - "durasi": Jumlah malam + kata 'mlm' (Contoh: "1 mlm").
+           - "item_name": Nama properti hotel bersih (Contoh: "Montana Hotel Syariah Banjarbaru").
+           - "durasi": Jumlah malam + kata 'mlm' (Contoh: "2 mlm").
            - "rute": HANYA nama kota/kabupaten lokasi hotel (Contoh: "Banjarbaru").
-           - "bf_status": Isi 'BF' (jika ada sarapan) atau 'NBF' (jika tanpa sarapan).
+           - "bf_status": Isi 'BF' (jika ada sarapan) atau 'NBF' (jika tanpa sarapan/Room Only).
         3. Tipe KERETA (Termasuk Whoosh):
            - "item_name": Format penulisan WAJIB seperti ini: [Nama Kereta] [Singkatan Kelas] [Nomor Gerbong]/[Nomor Kursi]
              Ketentuan kelas: Eksekutif disingkat 'Eks', Ekonomi disingkat 'Eko', Premium disingkat 'Pre', Bisnis disingkat 'Bis'.
@@ -967,17 +968,18 @@ def panggil_gemini_vision_parser(uploaded_file) -> list:
         Kamu adalah sistem AI Computer Vision untuk agen travel. Analisis GAMBAR screenshot booking atau file PDF e-ticket ini.
         Pahami isinya layaknya manusia dan ekstrak informasinya menjadi JSON Array secara presisi.
         
-        ATURAN STRUKTUR HARGA & LOGIKA FINANSIAL (SANGAT KETAT):
+        ATURAN STRUKTUR HARGA & LOGIKA MULTIPLIER (SANGAT KETAT):
         1. "harga_beli": 
-           - Cari total nominal pembayaran bersih ke vendor dari dokumen (cth: 'Total pembayaran IDR 550.000').
-           - Hitung jumlah nama penumpang yang berhasil kamu ekstrak di dalam tiket ini.
-           - JIKA JUAH PENUMPANG LEBIH DARI 1 ORANG, kamu WAJIB membagi rata total nominal tersebut dengan jumlah penumpang untuk mendapatkan harga modal per orang (Contoh: Total 550.000 / 2 orang = 275000). Masukkan hasil pembagian per orang ini sebagai "harga_beli".
+           - Cari total nominal pembayaran bersih ke vendor atau modal dasar dari dokumen (cth: 'Total Harga Rp 1.860.000' atau 'Total pembayaran IDR 550.000').
+           - LOGIKA PEMISAHAN MULTI-BARIS: 
+             a) Jika dokumen TRANSPORTASI (Pesawat/Kereta) dan JUMLAH PENUMPANG LEBIH DARI 1 ORANG, kamu WAJIB memecah data menjadi beberapa entri sesuai nama penumpang, dan membagi rata total nominal tersebut dengan jumlah penumpang (Contoh: Total 550.000 / 2 orang = 275000).
+             b) Jika dokumen HOTEL dan JUMLAH KAMAR LEBIH DARI 1 KAMAR (cth: 'Jumlah Kamar: 2'), kamu WAJIB memecah data menjadi beberapa entri kamar terpisah (sebanyak jumlah kamar), memasangkan masing-masing nama tamu ke tiap kamar, dan membagi rata total nominal harga tersebut dengan jumlah kamar (Contoh: Total 1.860.000 / 2 kamar = 930000).
+           - Masukkan hasil pembagian per orang atau per kamar ini sebagai "harga_beli".
         
         2. "harga_jual":
-           - Langkah 1: Cari kata kunci tarif per orang (cth: 'Harga 303.500/pax' atau 'Jual 303500/pax'). Jika ada kata kunci '/pax' seperti ini, langsung masukkan angka tersebut sebagai "harga_jual" per individu. (JANGAN dikalikan jumlah orang).
-           - Langkah 2: Jika tidak ada kata kunci '/pax', cari kata kunci 'Jual' total. Jika ada, bagi nominal jual total tersebut dengan jumlah penumpang untuk mencari harga jual per orang.
-           - Langkah 3 (LOGIKA HOTEL): Jika dokumen HOTEL dan ada kolom 'Total Harga', ambil nominal tersebut dari rincian.
-           - Langkah 4 (FALLBACK): Jika langkah 1, 2, dan 3 tidak ditemukan, kamu WAJIB menyamakan nilai "harga_jual" sama persis dengan nilai "harga_beli" per orang yang sudah kamu hitung di poin 1 (Laba awal 0).
+           - Langkah 1: Cari kata kunci tarif per orang atau per kamar yang ditulis manual (cth: 'Harga 303.500/pax', 'Jual 710000'). Jika ada kata kunci '/pax', langsung masukkan angka tersebut.
+           - Langkah 2 (LOGIKA HOTEL): Jika dokumen HOTEL, tidak ada instruksi 'Jual' manual, tetapi ada kolom 'Total Harga' atau 'Rate per Malam', kamu WAJIB melihat hasil pembagian di poin 1. Jika data dipecah per kamar, maka "harga_jual" diisi hasil pembagian 'Total Harga' dibagi 'Jumlah Kamar' (Contoh: Total Harga 1.860.000 / 2 kamar = 930000).
+           - Langkah 3 (FALLBACK): Jika langkah 1 dan 2 tidak ditemukan, kamu WAJIB menyamakan nilai "harga_jual" sama persis dengan nilai "harga_beli" yang sudah kamu hitung di poin 1 (Laba awal 0).
         
         ATURAN STRUKTUR DATA UTAMA (WAJIB DIPATUHI BAGAIMANAPUN INPUT TEKSNYA):
         1. Tipe PESAWAT:
@@ -985,10 +987,10 @@ def panggil_gemini_vision_parser(uploaded_file) -> list:
            - "durasi": Format jam 'HH:MM - HH:MM' (Contoh: "15:00 - 19:40").
            - "rute": HANYA kode bandara 3 huruf (Contoh: "TKG - SUB").
         2. Tipe HOTEL:
-           - "item_name": Nama properti hotel bersih (Contoh: "Hotel Sunrise Syariah").
-           - "durasi": Jumlah malam + kata 'mlm' (Contoh: "1 mlm").
+           - "item_name": Nama properti hotel bersih (Contoh: "Montana Hotel Syariah Banjarbaru").
+           - "durasi": Jumlah malam + kata 'mlm' (Contoh: "2 mlm").
            - "rute": HANYA nama kota/kabupaten lokasi hotel (Contoh: "Banjarbaru").
-           - "bf_status": Isi 'BF' (jika ada sarapan) atau 'NBF' (jika tanpa sarapan).
+           - "bf_status": Isi 'BF' (jika ada sarapan) atau 'NBF' (jika tanpa sarapan/Room Only).
         3. Tipe KERETA (Termasuk Whoosh):
            - "item_name": Format penulisan WAJIB seperti ini: [Nama Kereta] [Singkatan Kelas] [Nomor Gerbong]/[Nomor Kursi]
              Ketentuan kelas: Eksekutif disingkat 'Eks', Ekonomi disingkat 'Eko', Premium disingkat 'Pre', Bisnis disingkat 'Bis'.

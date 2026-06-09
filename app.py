@@ -880,119 +880,149 @@ def terapkan_otomatisasi_pembayaran(platform_name: str) -> (str, str):
 
 # --- SECTION 2: BULK MANUAL INPUT ---
 #st.markdown('---')
+
 # ==============================================================================
-# 🤖 [TERBARU]: EXPANDER UTAMA - INPUT DATA TEXT DENGAN KECERDASAN AI GEMINI 3.1
+# 🤖 EXPANDER UTAMA - TRIPLE-INPUT (TEKS, GAMBAR, & SUARA) DENGAN AI
 # ==============================================================================
-with st.expander('⌨️ Upload Data Text (Cerdas AI - Gemini)', expanded=True):
+with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expanded=True):
     st.markdown("""
-    *Masukkan teks manifestasi/voucher (Traveloka, Tiket.com, Agoda, Access by KAI, dll). 
-    Pisahkan setiap entri tiket dengan tanda `===`.*
+    *Pilih metode input yang paling praktis. Sistem otomatis menyelaraskan format KAI, Hotel, maupun Pesawat.*
     """)
     
-    # 1. Kotak Input Utama di Bagian Paling Atas Layar
-    ai_raw = st.text_area(
-        "Input Datanya Disini:",
-        key="ai_bulk_input",
-        height=200
-    )
+    # ─── LOGIKA SAKLAR 3 TAB BERDAMPINGAN: SALING MELENGKAPI ───
+    tab_text, tab_file, tab_voice = st.tabs([
+        "📝 Input Salinan Teks (Copas)", 
+        "📷 Input Gambar / File PDF", 
+        "🎙️ Input Perekam Suara (Voice)"
+    ])
+    
+    # Inisialisasi variabel penampung data dari ketiga jalur input
+    hasil_pilihan_ai = None
+    input_mentah_ref = ""
+    tombol_ditekan = False # Penanda apakah ada tombol proses yang diklik
+    
+    # --- JALUR INPUT 1: KOTAK TEKS COPAS ---
+    with tab_text:
+        ai_raw = st.text_area(
+            "Tempelkan teks manifestasi/voucher di sini, pisahkan setiap entri dengan '==='",
+            key="ai_bulk_input_text",
+            height=200
+        )
+        col_t1, col_t2 = st.columns(2)
+        with col_t1:
+            if st.button("📊 Proses Teks ke Keuangan", key="btn_proses_text_finance", use_container_width=True):
+                if ai_raw.strip():
+                    tombol_ditekan = True
+                    with st.spinner("Gemini AI sedang membaca salinan teks..."):
+                        hasil_pilihan_ai = panggil_gemini_ai_parser(ai_raw.strip())
+                        input_mentah_ref = ai_raw.strip()
+        with col_t2:
+            if ai_raw.strip():
+                with st.spinner("AI sedang menyiapkan voucher PDF dari teks..."):
+                    hasil_ai_pdf = panggil_gemini_ai_parser(ai_raw.strip())
+                    if hasil_ai_pdf:
+                        pdf_data = buat_voucher_pdf_kayyisa(hasil_ai_pdf)
+                        st.download_button("📥 Download Voucher PDF", data=pdf_data, file_name=f"Voucher_Teks_{datetime.now().strftime('%d%m%Y')}.pdf", mime="application/pdf", use_container_width=True, key="dl_pdf_txt")
 
-    # 2. Kotak Peringatan Validasi (Mundur Tepat di Bawah Text Box Input)
+    # --- JALUR INPUT 2: KOTAK UPLOAD FILE ---
+    with tab_file:
+        file_input = st.file_uploader(
+            "Seret dan lepas file screenshot booking atau file PDF e-ticket asli dari vendor ke sini:",
+            type=["png", "jpg", "jpeg", "pdf"],
+            key="asisten_ai_file_input"
+        )
+        if st.button("🤖 Jalankan Proses Cerdas Gambar AI", key="btn_proses_vision_finance", use_container_width=True):
+            if file_input is not None:
+                tombol_ditekan = True
+                with st.spinner("Vision AI sedang membedah dokumen gambar/PDF Anda..."):
+                    hasil_pilihan_ai = panggil_gemini_vision_parser(file_input)
+                    input_mentah_ref = f"gambar_upload {file_input.name}"
+
+    # --- JALUR INPUT 3: KOTAK PEREKAM SUARA BARU ---
+    with tab_voice:
+        st.markdown("💬 **Petunjuk**: Klik tombol *Mulai* di bawah, sebutkan detail tiket (Nama, Rute, Kode Booking, Harga Beli/Jual jika ada), lalu klik *Stop*.")
+        
+        # Render Tombol Mikrofon Cerdas
+        audio_konten = mic_recorder(
+            start_prompt="🎙️ Mulai Merekam Suara",
+            stop_prompt="🛑 Stop & Proses Suara",
+            key="mic_input_utama_travel",
+            just_once=True,
+            use_container_width=True
+        )
+        
+        # Jika admin selesai berbicara, otomatis tangkap teks hasil konversi suara browser
+        if audio_konten and audio_konten.get("text"):
+            teks_hasil_suara = audio_konten["text"].strip()
+            st.info(f"🗣️ **Teks Suara Terdeteksi:** *\"{teks_hasil_suara}\"*")
+            tombol_ditekan = True
+            
+            with st.spinner("Gemini AI sedang menafsirkan suara Anda ke dalam data keuangan..."):
+                hasil_pilihan_ai = panggil_gemini_ai_parser(teks_hasil_suara)
+                input_mentah_ref = teks_hasil_suara
+
+    # --------------------------------------------------------------------------
+    # LOGIKA PEMROSESAN GABUNGAN (BERLAKU SAMA UNTUK KETIGA JALUR INPUT DI ATAS)
+    # --------------------------------------------------------------------------
     if "peringatan_admin_ai" in st.session_state and st.session_state.peringatan_admin_ai:
         st.warning(st.session_state.peringatan_admin_ai)
 
-    # 3. Tombol Proses Utama dengan AI
-    if st.button("🤖 Proses dengan Gemini AI", key="tombol_proses_ai_utama"):
-        ai_raw_clean = ai_raw.strip()
-        
-        if ai_raw_clean:
-            with st.spinner("Gemini AI sedang membaca manifes tiket..."):
-                # Memanggil fungsi parser Gemini 3.1 Flash-Lite
-                hasil_ai = panggil_gemini_ai_parser(ai_raw_clean)
+    # PERBAIKAN LOGIKA: Hanya masuk ke pengondisian jika ada tombol yang ditekan
+    if tombol_ditekan:
+        if hasil_pilihan_ai:
+            ai_entries = []
+            pemberitahuan_masalah_data = [] 
+            blok_teks_list = input_mentah_ref.split("===")
+            
+            for idx, item in enumerate(hasil_pilihan_ai, start=1):
+                sumber_dana, detail_dana = terapkan_otomatisasi_pembayaran(item.get("platform", "Lainnya"))
                 
-                if hasil_ai:
-                    ai_entries = []
-                    pemberitahuan_masalah_data = [] 
-                    blok_teks_list = ai_raw_clean.split("===")
-                    
-                    for idx, item in enumerate(hasil_ai, start=1):
-                        sumber_dana, detail_dana = terapkan_otomatisasi_pembayaran(item.get("platform", "Lainnya"))
-                        
-                        # Ambil nilai awal dari AI
-                        kode_b = item.get("kode_booking")
-                        rute_p = item.get("rute")
-                        hb = item.get("harga_beli")
-                        hj = item.get("harga_jual")
-                        
-                        # --- LOGIKA VALIDASI FIELD MANDATORY ---
-                        kolom_bermasalah = []
-                        if not kode_b or str(kode_b).strip() == "":
-                            kolom_bermasalah.append("Kode Booking")
-                            kode_b = ""
-                        if not rute_p or str(rute_p).strip() == "":
-                            kolom_bermasalah.append("Rute/Kota")
-                            rute_p = ""
-                        if hb is None or hb == 0:
-                            kolom_bermasalah.append("Harga Beli")
-                            hb = 0
-                            
-                        # Cek apakah blok teks mentah tidak mengandung kata 'jual'
-                        text_lower_block = blok_teks_list[min(idx-1, len(blok_teks_list)-1)].lower()
-                        if "jual" not in text_lower_block:
-                            kolom_bermasalah.append("Harga Jual (Tidak ditemukan di teks mentah)")
-                        
-                        if kolom_bermasalah:
-                            nama_c = item.get("nama_customer") or "Nama Tidak Terbaca"
-                            pemberitahuan_masalah_data.append(f"Entri ke-{idx} (Nama: {nama_c}) ➔ Kolom belum terisi: **{', '.join(kolom_bermasalah)}**")
+                kode_b = item.get("kode_booking")
+                rute_p = item.get("rute")
+                hb = item.get("harga_beli") or 0
+                hj = item.get("harga_jual") or hb
+                
+                # --- JARING PENGAMAN MANDATORY VALIDATION ---
+                kolom_bermasalah = []
+                if not kode_b: kolom_bermasalah.append("Kode Booking")
+                if not rute_p: kolom_bermasalah.append("Rute/Kota")
+                if hb == 0: kolom_bermasalah.append("Harga Beli (Tidak terdeteksi)")
+                
+                text_lower_block = blok_teks_list[min(idx-1, len(blok_teks_list)-1)].lower() if input_mentah_ref else ""
+                if "jual" not in text_lower_block and "total harga" not in text_lower_block and item.get("tipe") != "HOTEL":
+                    kolom_bermasalah.append("Harga Jual (Tidak ditemukan di teks/gambar/suara mentah)")
+                
+                if kolom_bermasalah:
+                    nama_c = item.get("nama_customer") or "Nama Tidak Terbaca"
+                    pemberitahuan_masalah_data.append(f"Entri ke-{idx} (Nama: {nama_c}) ➔ Kolom kosong: **{', '.join(kolom_bermasalah)}**")
 
-                        # Aturan finansial: Fallback harga jual otomatis disamakan dengan beli jika kosong
-                        final_hj = hj if hj is not None else hb
-                        laba = final_hj - hb
-                        persen_laba = f"{round((laba / hb) * 100, 2)}%" if hb > 0 else "0.0%"
+                laba = hj - hb
+                persen_laba = f"{round((laba / hb) * 100, 2)}%" if hb > 0 else "0.0%"
 
-                        ai_entries.append({
-                            'Tgl Pemesanan': item.get("tgl_pemesanan", ""),
-                            'Tgl Berangkat': item.get("tgl_berangkat", ""),
-                            'Kode Booking': kode_b,
-                            'No Penerbangan / Hotel / Kereta': item.get("item_name", ""),
-                            'Durasi': item.get("durasi", ""),
-                            'Nama Customer': item.get("nama_customer", ""),
-                            'Rute': rute_p,
-                            'Harga Beli': hb,
-                            'Harga Jual': final_hj,
-                            'Laba': laba,
-                            'Tipe': item.get("tipe", "").upper(),
-                            'BF/NBF': item.get("bf_status", ""),
-                            'No Invoice': '',
-                            'Keterangan': 'Belum Lunas',
-                            'Pemesan': 'ER ENDO',
-                            'Admin': 'PA',
-                            ' % Laba': persen_laba,
-                            'Sumber Dana': sumber_dana,
-                            'Detail Dana': detail_dana,
-                            'Platform': item.get("platform", "Lainnya")
-                        })
-                    
-                    # Suntikkan data AI langsung ke form edit bawaan Anda
-                    st.session_state.bulk_parsed = pd.DataFrame(ai_entries)
-                    st.session_state.edit_mode_bulk = True
-                    
-                    # Buat pesan peringatan jika ada field mandatory yang bolong
-                    if pemberitahuan_masalah_data:
-                        pesan_peringatan = "⚠️ **Peringatan Validasi Tiket!** Ditemukan kolom kosong/belum terdeteksi pada data berikut:\n\n"
-                        for item_error in pemberitahuan_masalah_data:
-                            pesan_peringatan += f"- {item_error}\n"
-                        pesan_peringatan += "\n**Mohon lengkapi atau perbaiki kolom di atas secara manual** pada menu edit di bawah ini sebelum data disimpan!"
-                        st.session_state.peringatan_admin_ai = pesan_peringatan
-                    else:
-                        if "peringatan_admin_ai" in st.session_state:
-                            del st.session_state["peringatan_admin_ai"]
-                    
-                    st.rerun()
-                else:
-                    st.warning("⚠️ AI gagal mengekstrak data. Pastikan teks berisi manifes tiket yang valid.")
+                ai_entries.append({
+                    'Tgl Pemesanan': item.get("tgl_pemesanan", ""), 'Tgl Berangkat': item.get("tgl_berangkat", ""),
+                    'Kode Booking': kode_b if kode_b else "", 'No Penerbangan / Hotel / Kereta': item.get("item_name", ""),
+                    'Durasi': item.get("durasi", ""), 'Nama Customer': item.get("nama_customer", ""), 'Rute': rute_p if rute_p else "",
+                    'Harga Beli': hb, 'Harga Jual': hj, 'Laba': laba, 'Tipe': item.get("tipe", "").upper(),
+                    'BF/NBF': item.get("bf_status", ""), 'No Invoice': '', 'Keterangan': 'Belum Lunas',
+                    'Pemesan': 'ER ENDO', 'Admin': 'PA', ' % Laba': persen_laba,
+                    'Sumber Dana': sumber_dana, 'Detail Dana': detail_dana, 'Platform': item.get("platform", "Lainnya")
+                })
+            
+            # OPER DATA INSTAN KE FORM EDIT UTAMA ANDA DI BAWAHNYA
+            st.session_state.bulk_parsed = pd.DataFrame(ai_entries)
+            st.session_state.edit_mode_bulk = True
+            
+            if pemberitahuan_masalah_data:
+                st.session_state.peringatan_admin_ai = "⚠️ **Peringatan Validasi Tiket!** Ditemukan beberapa kolom wajib masih kosong:\n\n" + "\n".join([f"- {e}" for e in pemberitahuan_masalah_data]) + "\n\n**Mohon lengkapi data kosong tersebut** pada menu edit manual di bawah ini sebelum disimpan!"
+            else:
+                if "peringatan_admin_ai" in st.session_state: del st.session_state["peringatan_admin_ai"]
+            st.rerun()
+        else:
+            st.error("⚠️ AI gagal mengekstrak data. Pastikan teks berisi manifes tiket yang valid atau kualitas gambar/suara cukup jelas.")
 
     # ==============================================================================
-    # 4. LOGIKA FORM EDIT MANUAL BAWAAN ANDA (Tetap dipertahankan di bawah tombol AI)
+    # 4. LOGIKA FORM EDIT MANUAL BAWAAN ANDA (Tetap dipertahaman di bawah tombol AI)
     # ==============================================================================
     if "bulk_parsed" in st.session_state and not st.session_state.bulk_parsed.empty:
         df = st.session_state.bulk_parsed
@@ -1001,6 +1031,7 @@ with st.expander('⌨️ Upload Data Text (Cerdas AI - Gemini)', expanded=True):
         for col in required_cols:
             if col not in df.columns:
                 df[col] = ""
+
 
         # Checkbox bawaan Anda untuk mengaktifkan edit mode manual
         edit_mode = st.checkbox("✏️ Edit Data Manual", value=st.session_state.get("edit_mode_bulk", False))

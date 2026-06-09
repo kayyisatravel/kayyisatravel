@@ -912,12 +912,15 @@ with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expand
     
     # --- JALUR INPUT 1: KOTAK TEKS + MIKROFON SUARA (MENYATU HARMONIS) ---
     with tab_text:
-        # Gunakan susunan kolom kecil berdampingan untuk meletakkan tombol mikrofon
+        # Inisialisasi awal agar key tidak kosong saat pertama dibuka
+        if "konten_teks_travel_utama" not in st.session_state:
+            st.session_state["konten_teks_travel_utama"] = ""
+
+        # Layout kolom: Kiri untuk teks, Kanan untuk mikrofon
         col_textarea, col_microphone = st.columns([0.85, 0.15])
         
         with col_microphone:
             st.write("🎙️ **Dikte**")
-            # Tombol perekam suara diletakkan menyatu di samping kotak teks
             audio_konten = mic_recorder(
                 start_prompt="Mulai",
                 stop_prompt="Stop",
@@ -925,23 +928,21 @@ with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expand
                 just_once=True
             )
             
-            # Jika admin selesai berbicara, langsung kunci teksnya ke dalam memori utama
+            # === KUNCI PERBAIKAN VOICE ===
+            # Jika ada suara terdeteksi, suntikkan langsung ke KEY kotak teks area di bawah
             if audio_konten and audio_konten.get("text"):
                 st.session_state["konten_teks_travel_utama"] = audio_konten["text"].strip()
-                st.rerun()
+                st.rerun() # Picu update layar instan
                 
         with col_textarea:
-            # Kotak teks utama diikat menggunakan parameter value ke session_state
+            # PERBAIKAN UTAMA: Hapus parameter 'value', gunakan 'key' saja sebagai sumber data tunggal
             ai_raw = st.text_area(
                 "Tempelkan teks atau gunakan tombol mikrofon di samping untuk mendikte data (pisahkan dengan '==='):",
-                value=st.session_state["konten_teks_travel_utama"],
-                key="input_text_area_travel_final",
+                key="konten_teks_travel_utama",
                 height=200
             )
-            # Pastikan memori tetap update jika admin mengetik manual lewat keyboard
-            st.session_state["konten_teks_travel_utama"] = ai_raw
         
-        # Tombol Eksekusi Teks ke Keuangan
+        # Tombol Eksekusi Teks ke Keuangan (Logika ke bawah tetap sama)
         col_t1, col_t2 = st.columns(2)
         with col_t1:
             if st.button("📊 Proses Teks ke Keuangan", key="btn_proses_text_finance", use_container_width=True):
@@ -957,6 +958,7 @@ with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expand
                     if hasil_ai_pdf:
                         pdf_data = buat_voucher_pdf_kayyisa(hasil_ai_pdf)
                         st.download_button("📥 Download Voucher PDF", data=pdf_data, file_name=f"Voucher_Teks_{datetime.now().strftime('%d%m%Y')}.pdf", mime="application/pdf", use_container_width=True, key="dl_pdf_txt")
+
 
     # --- JALUR INPUT 2: KOTAK UPLOAD FILE ---
     with tab_file:

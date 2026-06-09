@@ -31,6 +31,7 @@ import itertools
 
 now = datetime.now(ZoneInfo("Asia/Jakarta"))
 
+
 #refresh
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="OCR & Dashboard Tiket", layout="centered", initial_sidebar_state="expanded")
@@ -746,6 +747,130 @@ with st.expander("⬆️📷 Upload Gambar atau PDF untuk OCR"):
    #         st.session_state.parsed_entries_manual = None
 
 #manual_input_section()
+
+#==================COBA GEMINI AI===============================================
+import streamlit as st
+import pandas as pd
+import json
+from google import genai
+from google.genai import types
+from pydantic import BaseModel, Field
+from typing import List, Optional
+
+# =======================================================
+# === 1. SKEMA DATA UNTUK MENGUNCI OUTPUT GEMINI AI ===
+# =======================================================
+class AITicketEntry(BaseModel):
+    tgl_pemesanan: str = Field(description="Tanggal pemesanan format YYYY-MM-DD. Jika tidak ada, samakan dengan tgl berangkat")
+    tgl_berangkat: str = Field(description="Tanggal keberangkatan tiket / check-in hotel format YYYY-MM-DD")
+    kode_booking: Optional[str] = Field(description="Kode booking, PNR, atau ID Pesanan")
+    item_name: str = Field(description="Nama Hotel, Nomor Penerbangan (cth: JT 883), atau Info Kursi Kereta")
+    durasi: str = Field(description="Durasi, contoh: '1 mlm' untuk hotel, atau jam perjalanan '17:52-20:35' untuk transportasi")
+    nama_customer: Optional[str] = Field(description="Nama lengkap tamu atau penumpang")
+    rute: Optional[str] = Field(description="Kota hotel (cth: Tuban), rute bandara (cth: SUB-HLP), atau stasiun (cth: BG-JR)")
+    harga_beli: Optional[int] = Field(description="Harga modal/beli total dibagi rata per kamar/pax (integer bersih)")
+    harga_jual: Optional[int] = Field(description="Harga jual ke pembeli total dibagi rata per kamar/pax (integer bersih)")
+    tipe: str = Field(description="Wajib pilih salah satu dari tiga kata ini: HOTEL, PESAWAT, KERETA")
+    bf_status: Optional[str] = Field(description="Khusus HOTEL: isi 'BF' jika include sarapan, 'NBF' jika tidak. Transportasi isi kosong ''")
+    platform: str = Field(description="Nama OTA/Platform asal teks, wajib salah satu dari: Tiket.com, Traveloka, Agoda, Trip.com, Book Cabin, KAI Access, RedDoorz, Lainnya")
+
+class AITicketParserResult(BaseModel):
+    entries: List[AITicketEntry]
+
+# =======================================================
+# === 2. FUNGSI UTAMA PANGGILAN API GEMINI           ===
+# =======================================================
+def panggil_gemini_ai_parser(text_block: str) -> list:
+    """Fungsi AI Gemini: Mengunci format nama, kelas, dan nomor kursi kereta api secara disiplin"""
+    try:
+        client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+        
+        prompt = f"""
+        Kamu adalah sistem AI parser data manifes travel. Ekstrak teks OCR berikut menjadi JSON Array secara presisi.
+        
+        ATURAN STRUKTUR HARGA (DISIPLIN FINANSIAL):
+        1. "harga_beli": Ekstrak nominal total perolehan / total bayar bersih dari dokumen (Angka integer).
+        2. "harga_jual": 
+           - Cari kata kunci khusus harga jual (cth: 'Harga Jual 1500000', 'Jual 1500000'). Jika ada, masukkan angka tersebut.
+           - JIKA TIDAK ADA informasi harga jual, kamu WAJIB menyamakan nilai "harga_jual" sama persis dengan nilai "harga_beli" (Sehingga nilai laba awal menjadi 0).
+        
+        ATURAN STRUKTUR DATA UTAMA (WAJIB DIPATUHI BAGAIMANAPUN INPUT TEKSNYA):
+        1. Tipe PESAWAT:
+           - "item_name": HANYA nama maskapai dan nomor penerbangan (Contoh: "QG997-QG 174"). JANGAN masukkan kata kelas.
+           - "durasi": Format jam 'HH:MM - HH:MM' (Contoh: "15:00 - 19:40").
+           - "rute": HANYA kode bandara 3 huruf (Contoh: "TKG - SUB").
+        2. Tipe HOTEL:
+           - "item_name": Nama properti hotel bersih (Contoh: "Hotel Sunrise Syariah").
+           - "durasi": Jumlah malam + kata 'mlm' (Contoh: "1 mlm").
+           - "rute": HANYA nama kota/kabupaten lokasi hotel (Contoh: "Banjarbaru").
+           - "bf_status": Isi 'BF' (jika ada sarapan) atau 'NBF' (jika tanpa sarapan).
+        3. Tipe KERETA (Termasuk Whoosh):
+           - "item_name": Format penulisan WAJIB seperti ini: [Nama Kereta] [Singkatan Kelas] [Nomor Gerbong]/[Nomor Kursi]
+             Ketentuan kelas: Eksekutif disingkat 'Eks', Ekonomi disingkat 'Eko', Premium disingkat 'Pre', Bisnis disingkat 'Bis'.
+             CONTOH WAJIB: "Sembrani Eks 4/5D", "Harina Eko 3/8C", "Kertajaya Pre 9/2A", "Whoosh Pre 3/1A".
+           - "durasi": Format jam 'HH:MM - HH:MM' (Contoh: "23:35 - 08:40").
+           - "rute": HANYA kode stasiun asal - tujuan (Contoh: "GMR - SBI" atau "HLM - BKS").
+        4. TANGGAL: Format standar ISO 'YYYY-MM-DD'. Jika tanggal pemesanan ragu, samakan dengan tgl berangkat.
+        5. PLATFORM: Pilih salah satu dari: "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin", "KAI Access", "RedDoorz", "Lainnya".
+
+        Format Output Wajib JSON Array:
+        {{
+          "entries": [
+            {{
+              "tgl_pemesanan": "YYYY-MM-DD",
+              "tgl_berangkat": "YYYY-MM-DD",
+              "kode_booking": "KODE123",
+              "item_name": "Nama Kendaraan/Hotel Sesuai Aturan Ketat di Atas",
+              "durasi": "Sesuai Aturan",
+              "nama_customer": "Nama Lengkap",
+              "rute": "Sesuai Aturan",
+              "harga_beli": 1500000,
+              "harga_jual": 1500000, 
+              "tipe": "PESAWAT atau HOTEL atau KERETA",
+              "bf_status": "BF atau NBF atau kosong jika bukan hotel",
+              "platform": "Nama Platform"
+            }}
+          ]
+        }}
+        
+        Teks OCR Mentah yang Harus Kamu Ekstrak:
+        {text_block}
+        """
+        
+        response = client.models.generate_content(
+            model='gemini-3.1-flash-lite',
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.1
+            ),
+        )
+        
+        parsed_json = json.loads(response.text)
+        return parsed_json.get("entries", [])
+    except Exception as e:
+        st.error(f"Error pada sistem AI: {e}")
+        return []
+
+
+
+# =======================================================
+# === 3. ATURAN OTOMATISASI DATA (LOGIKA BUSINESS)     ===
+# =======================================================
+def terapkan_otomatisasi_pembayaran(platform_name: str) -> (str, str):
+    """Fungsi aturan default sesuai kesepakatan ide kita"""
+    p_lower = platform_name.lower()
+    
+    if "traveloka" in p_lower:
+        return "Credit Card", "Mandiri"
+    elif "tiket" in p_lower:
+        return "Dana Tunai/Cash", "VA BCA"
+    elif "kai" in p_lower or "access" in p_lower:
+        return "Dana Tunai/Cash", "Ovo"
+    elif "agoda" in p_lower:
+        return "Credit Card", "BCA"
+    else:
+        return "Dana Tunai/Cash", "" # Kosongkan jika platform lainnya
 
 # --- SECTION 2: BULK MANUAL INPUT ---
 #st.markdown('---')
@@ -5070,245 +5195,3 @@ with st.expander("📘 Laporan - laporan"):
 #         st.dataframe(df_display.reset_index(drop=True))
 # '''
 
-#==================COBA GEMINI AI===============================================
-import streamlit as st
-import pandas as pd
-import json
-from google import genai
-from google.genai import types
-from pydantic import BaseModel, Field
-from typing import List, Optional
-
-# =======================================================
-# === 1. SKEMA DATA UNTUK MENGUNCI OUTPUT GEMINI AI ===
-# =======================================================
-class AITicketEntry(BaseModel):
-    tgl_pemesanan: str = Field(description="Tanggal pemesanan format YYYY-MM-DD. Jika tidak ada, samakan dengan tgl berangkat")
-    tgl_berangkat: str = Field(description="Tanggal keberangkatan tiket / check-in hotel format YYYY-MM-DD")
-    kode_booking: Optional[str] = Field(description="Kode booking, PNR, atau ID Pesanan")
-    item_name: str = Field(description="Nama Hotel, Nomor Penerbangan (cth: JT 883), atau Info Kursi Kereta")
-    durasi: str = Field(description="Durasi, contoh: '1 mlm' untuk hotel, atau jam perjalanan '17:52-20:35' untuk transportasi")
-    nama_customer: Optional[str] = Field(description="Nama lengkap tamu atau penumpang")
-    rute: Optional[str] = Field(description="Kota hotel (cth: Tuban), rute bandara (cth: SUB-HLP), atau stasiun (cth: BG-JR)")
-    harga_beli: Optional[int] = Field(description="Harga modal/beli total dibagi rata per kamar/pax (integer bersih)")
-    harga_jual: Optional[int] = Field(description="Harga jual ke pembeli total dibagi rata per kamar/pax (integer bersih)")
-    tipe: str = Field(description="Wajib pilih salah satu dari tiga kata ini: HOTEL, PESAWAT, KERETA")
-    bf_status: Optional[str] = Field(description="Khusus HOTEL: isi 'BF' jika include sarapan, 'NBF' jika tidak. Transportasi isi kosong ''")
-    platform: str = Field(description="Nama OTA/Platform asal teks, wajib salah satu dari: Tiket.com, Traveloka, Agoda, Trip.com, Book Cabin, KAI Access, RedDoorz, Lainnya")
-
-class AITicketParserResult(BaseModel):
-    entries: List[AITicketEntry]
-
-# =======================================================
-# === 2. FUNGSI UTAMA PANGGILAN API GEMINI           ===
-# =======================================================
-def panggil_gemini_ai_parser(text_block: str) -> list:
-    """Fungsi AI Gemini: Mengunci format nama, kelas, dan nomor kursi kereta api secara disiplin"""
-    try:
-        client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
-        
-        prompt = f"""
-        Kamu adalah sistem AI parser data manifes travel. Ekstrak teks OCR berikut menjadi JSON Array secara presisi.
-        
-        ATURAN STRUKTUR HARGA (DISIPLIN FINANSIAL):
-        1. "harga_beli": Ekstrak nominal total perolehan / total bayar bersih dari dokumen (Angka integer).
-        2. "harga_jual": 
-           - Cari kata kunci khusus harga jual (cth: 'Harga Jual 1500000', 'Jual 1500000'). Jika ada, masukkan angka tersebut.
-           - JIKA TIDAK ADA informasi harga jual, kamu WAJIB menyamakan nilai "harga_jual" sama persis dengan nilai "harga_beli" (Sehingga nilai laba awal menjadi 0).
-        
-        ATURAN STRUKTUR DATA UTAMA (WAJIB DIPATUHI BAGAIMANAPUN INPUT TEKSNYA):
-        1. Tipe PESAWAT:
-           - "item_name": HANYA nama maskapai dan nomor penerbangan (Contoh: "QG997-QG 174"). JANGAN masukkan kata kelas.
-           - "durasi": Format jam 'HH:MM - HH:MM' (Contoh: "15:00 - 19:40").
-           - "rute": HANYA kode bandara 3 huruf (Contoh: "TKG - SUB").
-        2. Tipe HOTEL:
-           - "item_name": Nama properti hotel bersih (Contoh: "Hotel Sunrise Syariah").
-           - "durasi": Jumlah malam + kata 'mlm' (Contoh: "1 mlm").
-           - "rute": HANYA nama kota/kabupaten lokasi hotel (Contoh: "Banjarbaru").
-           - "bf_status": Isi 'BF' (jika ada sarapan) atau 'NBF' (jika tanpa sarapan).
-        3. Tipe KERETA (Termasuk Whoosh):
-           - "item_name": Format penulisan WAJIB seperti ini: [Nama Kereta] [Singkatan Kelas] [Nomor Gerbong]/[Nomor Kursi]
-             Ketentuan kelas: Eksekutif disingkat 'Eks', Ekonomi disingkat 'Eko', Premium disingkat 'Pre', Bisnis disingkat 'Bis'.
-             CONTOH WAJIB: "Sembrani Eks 4/5D", "Harina Eko 3/8C", "Kertajaya Pre 9/2A", "Whoosh Pre 3/1A".
-           - "durasi": Format jam 'HH:MM - HH:MM' (Contoh: "23:35 - 08:40").
-           - "rute": HANYA kode stasiun asal - tujuan (Contoh: "GMR - SBI" atau "HLM - BKS").
-        4. TANGGAL: Format standar ISO 'YYYY-MM-DD'. Jika tanggal pemesanan ragu, samakan dengan tgl berangkat.
-        5. PLATFORM: Pilih salah satu dari: "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin", "KAI Access", "RedDoorz", "Lainnya".
-
-        Format Output Wajib JSON Array:
-        {{
-          "entries": [
-            {{
-              "tgl_pemesanan": "YYYY-MM-DD",
-              "tgl_berangkat": "YYYY-MM-DD",
-              "kode_booking": "KODE123",
-              "item_name": "Nama Kendaraan/Hotel Sesuai Aturan Ketat di Atas",
-              "durasi": "Sesuai Aturan",
-              "nama_customer": "Nama Lengkap",
-              "rute": "Sesuai Aturan",
-              "harga_beli": 1500000,
-              "harga_jual": 1500000, 
-              "tipe": "PESAWAT atau HOTEL atau KERETA",
-              "bf_status": "BF atau NBF atau kosong jika bukan hotel",
-              "platform": "Nama Platform"
-            }}
-          ]
-        }}
-        
-        Teks OCR Mentah yang Harus Kamu Ekstrak:
-        {text_block}
-        """
-        
-        response = client.models.generate_content(
-            model='gemini-3.1-flash-lite',
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                temperature=0.1
-            ),
-        )
-        
-        parsed_json = json.loads(response.text)
-        return parsed_json.get("entries", [])
-    except Exception as e:
-        st.error(f"Error pada sistem AI: {e}")
-        return []
-
-
-
-# =======================================================
-# === 3. ATURAN OTOMATISASI DATA (LOGIKA BUSINESS)     ===
-# =======================================================
-def terapkan_otomatisasi_pembayaran(platform_name: str) -> (str, str):
-    """Fungsi aturan default sesuai kesepakatan ide kita"""
-    p_lower = platform_name.lower()
-    
-    if "traveloka" in p_lower:
-        return "Credit Card", "Mandiri"
-    elif "tiket" in p_lower:
-        return "Dana Tunai/Cash", "VA BCA"
-    elif "kai" in p_lower or "access" in p_lower:
-        return "Dana Tunai/Cash", "Ovo"
-    elif "agoda" in p_lower:
-        return "Credit Card", "BCA"
-    else:
-        return "Dana Tunai/Cash", "" # Kosongkan jika platform lainnya
-
-# =======================================================
-# === 4. TAMPILAN UI STREAMLIT BARU (MANDIRI DI EXPANDER)===
-# =======================================================
-# --- ELEMEN TAMPILAN ANTARMUKA UI ---
-with st.expander('🤖 [BETA] Upload Data Text dengan Kecerdasan AI'):
-    st.markdown("""
-    *Fitur ini menggunakan AI Gemini 3.1 untuk membaca format tiket secara otomatis.*
-    """)
-    
-    # 1. Kotak Input Teks Utama
-    ai_raw = st.text_area(
-        "Masukkan banyak entri teks OCR di sini, pisahkan setiap entri dengan '==='",
-        key="ai_bulk_input",
-        height=200
-    )
-
-    # === POSISI BARU: KOTAK PERINGATAN MUNCUL TEPAT DI BAWAH TEXT BOX INPUT ===
-    if "peringatan_admin_ai" in st.session_state and st.session_state.peringatan_admin_ai:
-        st.warning(st.session_state.peringatan_admin_ai)
-
-    if st.button("🤖 Proses dengan Gemini AI"):
-        ai_raw_clean = ai_raw.strip()
-        
-        if ai_raw_clean:
-            with st.spinner("AI sedang membaca manifes tiket..."):
-                hasil_ai = panggil_gemini_ai_parser(ai_raw_clean)
-                
-                if hasil_ai:
-                    ai_entries = []
-                    pemberitahuan_masalah_data = [] # Penampung daftar masalah per baris data
-                    
-                    blok_teks_list = ai_raw_clean.split("===")
-                    
-                    for idx, item in enumerate(hasil_ai, start=1):
-                        sumber_dana, detail_dana = terapkan_otomatisasi_pembayaran(item.get("platform", "Lainnya"))
-                        
-                        # Ambil nilai awal dari AI
-                        kode_b = item.get("kode_booking")
-                        rute_p = item.get("rute")
-                        hb = item.get("harga_beli")
-                        hj = item.get("harga_jual")
-                        
-                        # --- LOGIKA VALIDASI FIELD MANDATORY ---
-                        kolom_bermasalah = []
-                        
-                        if not kode_b or str(kode_b).strip() == "":
-                            kolom_bermasalah.append("Kode Booking")
-                            kode_b = ""
-                            
-                        if not rute_p or str(rute_p).strip() == "":
-                            kolom_bermasalah.append("Rute/Kota")
-                            rute_p = ""
-                            
-                        if hb is None or hb == 0:
-                            kolom_bermasalah.append("Harga Beli")
-                            hb = 0
-                            
-                        # Cek spesifik apakah teks asli blok tersebut tidak mengandung info kata 'jual'
-                        text_lower_block = blok_teks_list[min(idx-1, len(blok_teks_list)-1)].lower()
-                        if "jual" not in text_lower_block:
-                            kolom_bermasalah.append("Harga Jual (Tidak ditemukan di teks mentah)")
-                        
-                        # Jika ada masalah di baris ini, catat detailnya untuk peringatan admin
-                        if kolom_bermasalah:
-                            nama_c = item.get("nama_customer") or "Nama Tidak Terbaca"
-                            detail_error = f"Entri ke-{idx} (Nama: {nama_c}) ➔ Kolom belum terisi: **{', '.join(kolom_bermasalah)}**"
-                            pemberitahuan_masalah_data.append(detail_error)
-
-                        # Tetapkan fallback harga jual jika kosong agar rumus matematika tidak crash
-                        final_hj = hj if hj is not None else hb
-                        laba = final_hj - hb
-                        persen_laba = f"{round((laba / hb) * 100, 2)}%" if hb > 0 else "0.0%"
-
-                        ai_entries.append({
-                            'Tgl Pemesanan': item.get("tgl_pemesanan", ""),
-                            'Tgl Berangkat': item.get("tgl_berangkat", ""),
-                            'Kode Booking': kode_b,
-                            'No Penerbangan / Hotel / Kereta': item.get("item_name", ""),
-                            'Durasi': item.get("durasi", ""),
-                            'Nama Customer': item.get("nama_customer", ""),
-                            'Rute': rute_p,
-                            'Harga Beli': hb,
-                            'Harga Jual': final_hj,
-                            'Laba': laba,
-                            'Tipe': item.get("tipe", "").upper(),
-                            'BF/NBF': item.get("bf_status", ""),
-                            'No Invoice': '',
-                            'Keterangan': 'Belum Lunas',
-                            'Pemesan': 'ER ENDO',
-                            'Admin': 'PA',
-                            ' % Laba': persen_laba,
-                            'Sumber Dana': sumber_dana,
-                            'Detail Dana': detail_dana,
-                            'Platform': item.get("platform", "Lainnya")
-                        })
-                    
-                    # ALIRKAN DATA MASUK KE MENU EDIT MANUAL UTAMA DI ATAS
-                    st.session_state.bulk_parsed = pd.DataFrame(ai_entries)
-                    st.session_state.edit_mode_bulk = True
-                    
-                    # === STRUKTURISASI PESAN PERINGATAN UNTUK ADMIN ===
-                    if pemberitahuan_masalah_data:
-                        pesan_peringatan = "⚠️ **Peringatan Validasi Tiket!** Ditemukan kolom kosong/belum terdeteksi pada data berikut:\n\n"
-                        for item_error in pemberitahuan_masalah_data:
-                            pesan_peringatan += f"- {item_error}\n"
-                        pesan_peringatan += "\n**Mohon lengkapi atau perbaiki kolom di atas secara manual** pada menu edit di bawah ini sebelum data disimpan!"
-                        st.session_state.peringatan_admin_ai = pesan_peringatan
-                    else:
-                        if "peringatan_admin_ai" in st.session_state:
-                            del st.session_state["peringatan_admin_ai"]
-                    
-                    st.rerun()
-                else:
-                    st.warning("⚠️ AI gagal mengekstrak data dari teks tersebut. Pastikan teks berisi manifes tiket yang valid.")
-
-
-
-    

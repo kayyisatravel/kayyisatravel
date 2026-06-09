@@ -789,10 +789,16 @@ def panggil_gemini_ai_parser(text_block: str) -> list:
         Kamu adalah sistem AI parser data manifes travel. Ekstrak teks OCR berikut menjadi JSON Array secara presisi.
         
         ATURAN STRUKTUR HARGA & LOGIKA FINANSIAL (SANGAT KETAT):
-        1. "harga_beli": Ekstrak nominal total perolehan / total bayar bersih modal asli dari dokumen vendor (Angka integer).
+        1. "harga_beli": 
+           - Cari total nominal pembayaran bersih ke vendor dari dokumen (cth: 'Total pembayaran IDR 550.000').
+           - Hitung jumlah nama penumpang yang berhasil kamu ekstrak di dalam tiket ini.
+           - JIKA JUMLAH PENUMPANG LEBIH DARI 1 ORANG, kamu WAJIB membagi rata total nominal tersebut dengan jumlah penumpang untuk mendapatkan harga modal per orang (Contoh: Total 550.000 / 2 orang = 275000). Masukkan hasil pembagian per orang ini sebagai "harga_beli".
+        
         2. "harga_jual":
-           - Langkah 1: Cari apakah ada kata kunci harga jual eksplisit yang ditulis manual (cth: 'Harga Jual 710000', 'Jual 710000'). Jika ada, gunakan angka itu.
-           - Langkah 2 (LOGIKA KHUSUS HOTEL): Jika tidak ditemukan kata kunci 'Jual', namun dokumen berjenis HOTEL dan memiliki tabel rincian dengan kolom 'Total Harga' (seperti contoh e-voucher Kayyisa: 'Total Harga Rp 555.000'), ambil nominal dari 'Total Harga' tersebut sebagai "harga_jual".
+           - Langkah 1: Cari kata kunci tarif per orang (cth: 'Harga 303.500/pax' atau 'Jual 303500/pax'). Jika ada kata kunci '/pax' seperti ini, langsung masukkan angka tersebut sebagai "harga_jual" per individu. (JANGAN dikalikan jumlah orang).
+           - Langkah 2: Jika tidak ada kata kunci '/pax', cari kata kunci 'Jual' total. Jika ada, bagi nominal jual total tersebut dengan jumlah penumpang untuk mencari harga jual per orang.
+           - Langkah 3 (LOGIKA HOTEL): Jika dokumen HOTEL dan ada kolom 'Total Harga', ambil nominal tersebut.
+           - Langkah 4 (FALLBACK): Jika langkah 1, 2, dan 3 tidak ditemukan, kamu WAJIB menyamakan nilai "harga_jual" sama persis dengan nilai "harga_beli" per orang yang sudah kamu hitung di poin 1.
         
         ATURAN STRUKTUR DATA UTAMA (WAJIB DIPATUHI BAGAIMANAPUN INPUT TEKSNYA):
         1. Tipe PESAWAT:

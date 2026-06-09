@@ -911,38 +911,45 @@ with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expand
     ])
     
     # --- JALUR INPUT 1: KOTAK TEKS + MIKROFON SUARA (MENYATU HARMONIS) ---
+        # Ganti import di bagian paling atas file jika belum ada:
+    # from streamlit_mic_recorder import speech_to_text
+
+    # --- JALUR INPUT 1: KOTAK TEKS + SPEECH TO TEXT RESMI ---
     with tab_text:
-        # Inisialisasi awal agar key tidak kosong saat pertama dibuka
+        # Inisialisasi awal memori kunci teks jika belum ada
         if "konten_teks_travel_utama" not in st.session_state:
             st.session_state["konten_teks_travel_utama"] = ""
 
-        # Layout kolom: Kiri untuk teks, Kanan untuk mikrofon
-        col_textarea, col_microphone = st.columns([0.85, 0.15])
+        # Layout kolom: Kiri untuk teks area, Kanan untuk tombol mikrofon
+        col_textarea, col_microphone = st.columns([0.80, 0.20])
         
         with col_microphone:
-            st.write("🎙️ **Dikte**")
-            audio_konten = mic_recorder(
-                start_prompt="Mulai",
-                stop_prompt="Stop",
-                key="mic_input_langsung_tab1",
-                just_once=True
+            st.write("🎙️ **Dikte Suara**")
+            
+            # === PERBAIKAN FATAL: Menggunakan fungsi speech_to_text, bukan mic_recorder ===
+            teks_suara_langsung = speech_to_text(
+                start_prompt="🎙️ Mulai",
+                stop_prompt="🛑 Stop",
+                language='id', # Mengunci deteksi suara ke Bahasa Indonesia baku
+                key="fitur_speech_to_text_kayyisa",
+                just_once=True,
+                use_container_width=True
             )
             
-            # === KUNCI PERBAIKAN VOICE ===
-            # Jika ada suara terdeteksi, suntikkan langsung ke KEY kotak teks area di bawah
-            if audio_konten and audio_konten.get("text"):
-                st.session_state["konten_teks_travel_utama"] = audio_konten["text"].strip()
-                st.rerun() # Picu update layar instan
+            # Jika admin selesai berbicara, langsung suntikkan ke memori text area
+            if teks_suara_langsung:
+                st.session_state["konten_teks_travel_utama"] = teks_suara_langsung
+                st.rerun() # Muat ulang agar langsung tertulis di teks area samping
                 
         with col_textarea:
-            # PERBAIKAN UTAMA: Hapus parameter 'value', gunakan 'key' saja sebagai sumber data tunggal
+            # Mengunci key ke session state agar teks dari suara masuk otomatis
             ai_raw = st.text_area(
-                "Tempelkan teks atau gunakan tombol mikrofon di samping untuk mendikte data (pisahkan dengan '==='):",
+                "Tempelkan teks atau klik 'Mulai' di samping untuk mendikte data (pisahkan dengan '==='):",
                 key="konten_teks_travel_utama",
                 height=200
             )
         
-        # Tombol Eksekusi Teks ke Keuangan (Logika ke bawah tetap sama)
+        # Tombol Proses ke Keuangan (Logika ke bawah tetap sama 100%)
         col_t1, col_t2 = st.columns(2)
         with col_t1:
             if st.button("📊 Proses Teks ke Keuangan", key="btn_proses_text_finance", use_container_width=True):
@@ -958,6 +965,7 @@ with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expand
                     if hasil_ai_pdf:
                         pdf_data = buat_voucher_pdf_kayyisa(hasil_ai_pdf)
                         st.download_button("📥 Download Voucher PDF", data=pdf_data, file_name=f"Voucher_Teks_{datetime.now().strftime('%d%m%Y')}.pdf", mime="application/pdf", use_container_width=True, key="dl_pdf_txt")
+
 
 
     # --- JALUR INPUT 2: KOTAK UPLOAD FILE ---

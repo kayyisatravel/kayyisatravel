@@ -891,10 +891,11 @@ def panggil_gemini_ai_parser(text_block: str) -> list:
            - Masukkan hasil pembagian bersih per kamar/per pax ini sebagai "harga_beli".
         
         3. "harga_jual" (HARGA TOKO PER KAMAR / PER PAX):
-           - Langkah 1: Jika admin mengetik kata manual (cth: 'Jual 950000'), gunakan angka itu.
+           - Langkah 1: Jika admin mengetik kata manual (cth: 'Jual 950000'), gunakan angka itu. Atau (ATURAN SHORTCUT): Jika admin mengetik manual kata 'Harga' diikuti nominal angka (Contoh: 'Harga Rp 1.000.000' atau 'Harga 1000000'), maka nominal tersebut WAJIB kamu tetapkan sebagai "harga_jual".
            - Langkah 2: Jika tidak ada input manual, cari teks nominal yang ditawarkan ke konsumen di dalam tabel itinerary internal Kayyisa. Kata kuncinya berada di dekat label 'Total Harga' atau 'Rate per Malam' (Contoh pada teks: 'Total Harga Rp 1.860.000').
            - Kamu WAJIB membagi rata nominal total internal tersebut dengan jumlah kamar atau jumlah penumpang (Contoh: 1.860.000 / 2 kamar = 930000).
            - Masukkan hasil pembagian bersih per kamar/per pax ini sebagai "harga_jual".
+           - Jika dokumen HOTEL, tidak ada instruksi 'Jual'/'Harga' manual, tetapi ada kolom 'Total Harga' resmi dari tabel voucher (cth: 'Total Harga Rp 1.860.000'), ambil angka ini sebagai total omzet jual. Kamu WAJIB membagi rata total harga ini dengan 'Jumlah Kamar' (Contoh: Total Harga tabel 1.860.000 / 2 kamar = 930000). Masukkan hasil pembagian per kamar ini sebagai "harga_jual".
            - Langkah 3 (FALLBACK): Jika Langkah 1 dan 2 tidak ada, samakan nilai "harga_jual" dengan "harga_beli" per baris.
         
         ATURAN STRUKTUR DATA UTAMA (WAJIB DIPATUHI BAGAIMANAPUN INPUT TEKSNYA):
@@ -973,10 +974,11 @@ def panggil_gemini_vision_parser(uploaded_file) -> list:
            - Masukkan hasil pembagian bersih per kamar/per pax ini sebagai "harga_beli".
         
         3. "harga_jual" (HARGA TOKO PER KAMAR / PER PAX):
-           - Langkah 1: Jika admin mengetik kata manual (cth: 'Jual 950000'), gunakan angka itu.
+           - Langkah 1: Jika admin mengetik kata manual (cth: 'Jual 950000'), gunakan angka itu. Atau (ATURAN SHORTCUT): Jika admin mengetik manual kata 'Harga' diikuti nominal angka (Contoh: 'Harga Rp 1.000.000' atau 'Harga 1000000'), maka nominal tersebut WAJIB kamu tetapkan sebagai "harga_jual".
            - Langkah 2: Jika tidak ada input manual, cari teks nominal yang ditawarkan ke konsumen di dalam tabel itinerary internal Kayyisa. Kata kuncinya berada di dekat label 'Total Harga' atau 'Rate per Malam' (Contoh pada teks: 'Total Harga Rp 1.860.000').
            - Kamu WAJIB membagi rata nominal total internal tersebut dengan jumlah kamar atau jumlah penumpang (Contoh: 1.860.000 / 2 kamar = 930000).
            - Masukkan hasil pembagian bersih per kamar/per pax ini sebagai "harga_jual".
+           - Jika dokumen HOTEL, tidak ada instruksi 'Jual'/'Harga' manual, tetapi ada kolom 'Total Harga' resmi dari tabel voucher (cth: 'Total Harga Rp 1.860.000'), ambil angka ini sebagai total omzet jual. Kamu WAJIB membagi rata total harga ini dengan 'Jumlah Kamar' (Contoh: Total Harga tabel 1.860.000 / 2 kamar = 930000). Masukkan hasil pembagian per kamar ini sebagai "harga_jual".
            - Langkah 3 (FALLBACK): Jika Langkah 1 dan 2 tidak ada, samakan nilai "harga_jual" dengan "harga_beli" per baris.
         
         ATURAN STRUKTUR DATA UTAMA (WAJIB DIPATUHI BAGAIMANAPUN INPUT TEKSNYA):

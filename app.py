@@ -750,6 +750,9 @@ with st.expander("⬆️📷 Upload Gambar atau PDF untuk OCR"):
 # --- SECTION 2: BULK MANUAL INPUT ---
 #st.markdown('---')
 with st.expander('⌨️ Upload Data Text'):
+    if "peringatan_admin_ai" in st.session_state and st.session_state.peringatan_admin_ai:
+        st.warning(st.session_state.peringatan_admin_ai)
+        
     if "bulk_input" not in st.session_state or not st.session_state["bulk_input"].strip():
         st.session_state["bulk_input"] = "Kode booking:\n\n\nBeli "
 
@@ -5157,23 +5160,61 @@ with st.expander('🤖 [BETA] Upload Data Text dengan Kecerdasan AI'):
                 
                 if hasil_ai:
                     ai_entries = []
-                    for item in hasil_ai:
+                    pemberitahuan_masalah_data = [] # Penampung daftar masalah per baris data
+                    
+                    # Pecah teks input mentah berdasarkan pemisah untuk pelacakan kata 'jual'
+                    blok_teks_list = ai_raw_clean.split("===")
+                    
+                    for idx, item in enumerate(hasil_ai, start=1):
                         sumber_dana, detail_dana = terapkan_otomatisasi_pembayaran(item.get("platform", "Lainnya"))
-                        hb = item.get("harga_beli") or 0
-                        hj = item.get("harga_jual") or hb
-                        laba = hj - hb
-                        persen_laba = f"{round((laba / hb) * 100, 2)}%" if hb > 0 else "0.0%"
                         
+                        # Ambil nilai awal dari AI
+                        kode_b = item.get("kode_booking")
+                        rute_p = item.get("rute")
+                        hb = item.get("harga_beli")
+                        hj = item.get("harga_jual")
+                        
+                        # --- LOGIKA VALIDASI FIELD MANDATORY ---
+                        kolom_bermasalah = []
+                        
+                        if not kode_b or str(kode_b).strip() == "":
+                            kolom_bermasalah.append("Kode Booking")
+                            kode_b = ""
+                            
+                        if not rute_p or str(rute_p).strip() == "":
+                            kolom_bermasalah.append("Rute/Kota")
+                            rute_p = ""
+                            
+                        if hb is None or hb == 0:
+                            kolom_bermasalah.append("Harga Beli")
+                            hb = 0
+                            
+                        # Cek spesifik apakah teks asli blok tersebut tidak mengandung info kata 'jual'
+                        text_lower_block = blok_teks_list[min(idx-1, len(blok_teks_list)-1)].lower()
+                        if "jual" not in text_lower_block:
+                            kolom_bermasalah.append("Harga Jual (Tidak ditemukan di teks mentah)")
+                        
+                        # Jika ada masalah di baris ini, catat detailnya untuk peringatan admin
+                        if kolom_bermasalah:
+                            nama_c = item.get("nama_customer") or "Nama Tidak Terbaca"
+                            detail_error = f"Entri ke-{idx} (Nama: {nama_c}) ➔ Kolom belum terisi: **{', '.join(kolom_bermasalah)}**"
+                            pemberitahuan_masalah_data.append(detail_error)
+
+                        # Tetapkan fallback harga jual jika kosong agar rumus matematika tidak crash
+                        final_hj = hj if hj is not None else hb
+                        laba = final_hj - hb
+                        persen_laba = f"{round((laba / hb) * 100, 2)}%" if hb > 0 else "0.0%"
+
                         ai_entries.append({
                             'Tgl Pemesanan': item.get("tgl_pemesanan", ""),
                             'Tgl Berangkat': item.get("tgl_berangkat", ""),
-                            'Kode Booking': item.get("kode_booking", ""),
+                            'Kode Booking': kode_b,
                             'No Penerbangan / Hotel / Kereta': item.get("item_name", ""),
                             'Durasi': item.get("durasi", ""),
                             'Nama Customer': item.get("nama_customer", ""),
-                            'Rute': item.get("rute", ""),
+                            'Rute': rute_p,
                             'Harga Beli': hb,
-                            'Harga Jual': hj,
+                            'Harga Jual': final_hj,
                             'Laba': laba,
                             'Tipe': item.get("tipe", "").upper(),
                             'BF/NBF': item.get("bf_status", ""),
@@ -5189,11 +5230,19 @@ with st.expander('🤖 [BETA] Upload Data Text dengan Kecerdasan AI'):
                     
                     # ALIRKAN MASUK KE MENU EDIT MANUAL UTAMA DI ATAS
                     st.session_state.bulk_parsed = pd.DataFrame(ai_entries)
-                    
-                    # Aktifkan edit mode otomatis agar menu edit di atas langsung terbuka
                     st.session_state.edit_mode_bulk = True
                     
-                    st.success("✅ Gemini AI sukses mengekstrak data! Silakan gulir ke expander '⌨️ Upload Data Text' di atas, data sudah siap divalidasi dan diubah.")
+                    # === STRUKTURISASI PESAN PERINGATAN UNTUK ADMIN ===
+                    if pemberitahuan_masalah_data:
+                        pesan_peringatan = "⚠️ **Peringatan Validasi Tiket!** Ditemukan kolom kosong/belum terdeteksi pada data berikut:\n\n"
+                        for item_error in pemberitahuan_masalah_data:
+                            pesan_peringatan += f"- {item_error}\n"
+                        pesan_peringatan += "\n**Mohon lengkapi atau perbaiki kolom di atas secara manual** pada menu edit di bawah ini sebelum data disimpan!"
+                        st.session_state.peringatan_admin_ai = pesan_peringatan
+                    else:
+                        if "peringatan_admin_ai" in st.session_state:
+                            del st.session_state["peringatan_admin_ai"]
+                    
                     st.rerun()
                 else:
                     st.warning("⚠️ AI gagal mengekstrak data dari teks tersebut. Pastikan teks berisi manifes tiket yang valid.")

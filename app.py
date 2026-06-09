@@ -1116,7 +1116,7 @@ with st.expander('⌨️ Upload Data Text (Cerdas AI - Gemini)', expanded=True):
 
                     edited_rows[i] = updated_row
 
-            # Simpan semua perubahan
+             # Simpan semua perubahan
             if st.button("💾 Simpan Semua Perubahan"):
                 for i, updated in edited_rows.items():
                     for col, val in updated.items():
@@ -1126,18 +1126,19 @@ with st.expander('⌨️ Upload Data Text (Cerdas AI - Gemini)', expanded=True):
                 st.session_state.edit_mode_bulk = False
                 st.success(f"✅ {len(edited_rows)} baris berhasil diperbarui.")
                 st.rerun()
-            else:
-                st.session_state.edit_mode_bulk = False
-                st.markdown("#### 📊 Data Gabungan Hasil Bulk")
-                st.dataframe(st.session_state.bulk_parsed, use_container_width=True)
-    
-        # Bulk save
-        if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bulk ke GSheet"):
-            save_gsheet(st.session_state.bulk_parsed)
-            for k in ["bulk_parsed", "bulk_input", "file_uploader"]:
-                st.session_state.pop(k, None)
-    
-            st.rerun()
+
+        else:
+            st.session_state.edit_mode_bulk = False
+            st.markdown("#### 📊 Data Gabungan Hasil Bulk")
+            st.dataframe(st.session_state.bulk_parsed, use_container_width=True)
+
+    # Bulk save
+    if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bulk ke GSheet"):
+        save_gsheet(st.session_state.bulk_parsed)
+        for k in ["bulk_parsed", "bulk_input", "file_uploader"]:
+            st.session_state.pop(k, None)
+
+        st.rerun()
 
 with st.expander("✏️ Input Manual Data"):
     tgl_pemesanan = st.date_input("Tgl Pemesanan", value=date.today(), key="tgl_pemesanan")

@@ -785,8 +785,15 @@ def panggil_gemini_vision_parser(uploaded_file) -> list:
     try:
         client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
         
-        prompt = f"""
-        Kamu adalah sistem AI parser data manifes travel. Ekstrak teks OCR berikut menjadi JSON Array secara presisi.
+        # --- PERBAIKAN 2: Membaca data biner gambar/pdf dari Streamlit ---
+        file_bytes = uploaded_file.read()
+        mime_type = uploaded_file.type
+        image_part = types.Part.from_bytes(data=file_bytes, mime_type=mime_type)
+        
+        # --- PERBAIKAN 1: Teks prompt bersih tanpa variabel nyasar {text_block} ---
+        prompt = """
+        Kamu adalah sistem AI Computer Vision untuk agen travel. Analisis GAMBAR screenshot booking atau file PDF e-ticket ini.
+        Pahami isinya layaknya manusia dan ekstrak informasinya menjadi JSON Array secara presisi.
         
         ATURAN STRUKTUR HARGA & LOGIKA FINANSIAL (SANGAT KETAT):
         1. "harga_beli": 
@@ -820,9 +827,9 @@ def panggil_gemini_vision_parser(uploaded_file) -> list:
         5. PLATFORM: Pilih salah satu dari: "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin", "KAI Access", "RedDoorz", "Lainnya".
 
         Format Output Wajib JSON Array:
-        {{
+        {
           "entries": [
-            {{
+            {
               "tgl_pemesanan": "YYYY-MM-DD",
               "tgl_berangkat": "YYYY-MM-DD",
               "kode_booking": "KODE123",
@@ -835,28 +842,28 @@ def panggil_gemini_vision_parser(uploaded_file) -> list:
               "tipe": "PESAWAT atau HOTEL atau KERETA",
               "bf_status": "BF atau NBF atau kosong jika bukan hotel",
               "platform": "Nama Platform"
-            }}
+            }
           ]
-        }}
-        
-        Teks OCR Mentah yang Harus Kamu Ekstrak:
-        {text_block}
+        }
         """
         
+        # --- PERBAIKAN 3: Mengirim data objek gambar DAN teks prompt sekaligus ---
         response = client.models.generate_content(
             model='gemini-3.1-flash-lite',
-            contents=prompt,
+            contents=[image_part, prompt],
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 temperature=0.1
             ),
         )
         
+        import json
         parsed_json = json.loads(response.text)
         return parsed_json.get("entries", [])
     except Exception as e:
         st.error(f"Error pada sistem AI: {e}")
         return []
+
 
 
 

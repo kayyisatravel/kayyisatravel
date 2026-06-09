@@ -788,11 +788,11 @@ def panggil_gemini_ai_parser(text_block: str) -> list:
         prompt = f"""
         Kamu adalah sistem AI parser data manifes travel. Ekstrak teks OCR berikut menjadi JSON Array secara presisi.
         
-        ATURAN STRUKTUR HARGA (DISIPLIN FINANSIAL):
-        1. "harga_beli": Ekstrak nominal total perolehan / total bayar bersih dari dokumen (Angka integer).
-        2. "harga_jual": 
-           - Cari kata kunci khusus harga jual (cth: 'Harga Jual 1500000', 'Jual 1500000'). Jika ada, masukkan angka tersebut.
-           - JIKA TIDAK ADA informasi harga jual, kamu WAJIB menyamakan nilai "harga_jual" sama persis dengan nilai "harga_beli" (Sehingga nilai laba awal menjadi 0).
+        ATURAN STRUKTUR HARGA & LOGIKA FINANSIAL (SANGAT KETAT):
+        1. "harga_beli": Ekstrak nominal total perolehan / total bayar bersih modal asli dari dokumen vendor (Angka integer).
+        2. "harga_jual":
+           - Langkah 1: Cari apakah ada kata kunci harga jual eksplisit yang ditulis manual (cth: 'Harga Jual 710000', 'Jual 710000'). Jika ada, gunakan angka itu.
+           - Langkah 2 (LOGIKA KHUSUS HOTEL): Jika tidak ditemukan kata kunci 'Jual', namun dokumen berjenis HOTEL dan memiliki tabel rincian dengan kolom 'Total Harga' (seperti contoh e-voucher Kayyisa: 'Total Harga Rp 555.000'), ambil nominal dari 'Total Harga' tersebut sebagai "harga_jual".
         
         ATURAN STRUKTUR DATA UTAMA (WAJIB DIPATUHI BAGAIMANAPUN INPUT TEKSNYA):
         1. Tipe PESAWAT:

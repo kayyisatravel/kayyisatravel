@@ -885,7 +885,7 @@ with st.expander('⌨️ Upload Data Text (Cerdas AI - Gemini)', expanded=True):
     
     # 1. Kotak Input Utama di Bagian Paling Atas Layar
     ai_raw = st.text_area(
-        "Masukkan banyak entri teks OCR di sini, pisahkan setiap entri dengan '==='",
+        "Masukkan Datanya Disini:",
         key="ai_bulk_input",
         height=200
     )

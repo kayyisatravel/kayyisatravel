@@ -1022,10 +1022,40 @@ with st.expander('⌨️ Upload Data Text (Cerdas AI - Gemini)', expanded=True):
                             updated_row[col] = new_val
                             continue
 
-                        # ========== HANDLE NUMERIC ==========
-                        elif isinstance(val, (int, float)):
-                            new_val = st.text_input(f"{col} (Baris {i})", value=str(val), key=f"{col}_{i}")
-                            updated_row[col] = new_val
+                        # ========== HANDLE NUMERIC (REAKTIF LIVE UPDATE) ==========
+                        elif col in ["Harga Beli", "Harga Jual", "Laba", " % Laba"]:
+                            if col in ["Harga Beli", "Harga Jual"]:
+                                # Ambil nilai numerik awal atau yang sedang diketik
+                                val_clean = str(val).split('.')[0] if '.' in str(val) else str(val)
+                                val_num = int(val_clean) if str(val_clean).isdigit() else 0
+                                
+                                new_val = st.text_input(f"{col} (Baris {i})", value=str(val_num), key=f"{col}_{i}")
+                                updated_row[col] = int(new_val) if new_val.isdigit() else 0
+                            
+                            elif col == "Laba":
+                                # TARIK ANGKA LIVE SAAT INI DARI SCREEN INPUT ADMIN
+                                hb_live = st.session_state.get(f"Harga Beli_{i}", str(df.at[i, "Harga Beli"]))
+                                hj_live = st.session_state.get(f"Harga Jual_{i}", str(df.at[i, "Harga Jual"]))
+                                
+                                hb_int = int(hb_live) if str(hb_live).isdigit() else 0
+                                hj_int = int(hj_live) if str(hj_live).isdigit() else 0
+                                
+                                laba_live = hj_int - hb_int
+                                # Tampilkan teks info tebal interaktif agar admin bisa melihat untung live
+                                st.markdown(f"💵 **Laba Terkini (Baris {i}):** Rp {laba_live:,}")
+                                updated_row["Laba"] = laba_live
+                                
+                            elif col == " % Laba":
+                                hb_live = st.session_state.get(f"Harga Beli_{i}", str(df.at[i, "Harga Beli"]))
+                                hj_live = st.session_state.get(f"Harga Jual_{i}", str(df.at[i, "Harga Jual"]))
+                                
+                                hb_int = int(hb_live) if str(hb_live).isdigit() else 0
+                                hj_int = int(hj_live) if str(hj_live).isdigit() else 0
+                                laba_live = hj_int - hb_int
+                                
+                                persen_live = f"{round((laba_live / hb_int) * 100, 2)}%" if hb_int > 0 else "0.0%"
+                                st.markdown(f"📈 **% Laba Terkini (Baris {i}):** {persen_live}")
+                                updated_row[" % Laba"] = persen_live
                             continue
 
                         # ========== HANDLE DROPDOWN: SUMBER DANA ==========
@@ -1052,10 +1082,9 @@ with st.expander('⌨️ Upload Data Text (Cerdas AI - Gemini)', expanded=True):
                             new_val = st.selectbox(
                                 f"{col} (Baris {i})",
                                 options=detail_options,
-                                index=detail_options.index(default_val),
+                                index=detail_options.index(default_val) if default_val in detail_options else 0,
                                 key=f"{col}_{i}"
                             )
-
                             updated_row[col] = new_val
                             continue
 
@@ -1063,24 +1092,13 @@ with st.expander('⌨️ Upload Data Text (Cerdas AI - Gemini)', expanded=True):
                         elif col == "Platform":
                             platform_options = [
                                 "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin",
-                                "KAI Access", "RedDoorz",
-                                "Garuda App", "Citilink App", "Lion Air Group App", "AirAsia App",
-                                "Booking.com", "OYO", "Dafam",
-                                "Lainnya"
+                                "KAI Access", "RedDoorz", "Garuda App", "Citilink App", 
+                                "Lion Air Group App", "AirAsia App", "Booking.com", "OYO", "Dafam", "Lainnya"
                             ]
-
                             default_val = str(val) if str(val) in platform_options else "Lainnya"
-
-                            new_val = st.selectbox(
-                                f"{col} (Baris {i})",
-                                options=platform_options,
-                                index=platform_options.index(default_val),
-                                key=f"{col}_{i}"
-                            )
-
+                            new_val = st.selectbox(f"{col} (Baris {i})", options=platform_options, index=platform_options.index(default_val), key=f"{col}_{i}")
                             updated_row[col] = new_val
                             continue
-
 
                         # ========== HANDLE DEFAULT TEXT ==========
                         else:
@@ -1108,19 +1126,6 @@ with st.expander('⌨️ Upload Data Text (Cerdas AI - Gemini)', expanded=True):
                 st.session_state.edit_mode_bulk = False
                 st.success(f"✅ {len(edited_rows)} baris berhasil diperbarui.")
                 st.rerun()
-
-        else:
-            st.session_state.edit_mode_bulk = False
-            st.markdown("#### 📊 Data Gabungan Hasil Bulk")
-            st.dataframe(st.session_state.bulk_parsed, use_container_width=True)
-
-    # Bulk save
-    if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bulk ke GSheet"):
-        save_gsheet(st.session_state.bulk_parsed)
-        for k in ["bulk_parsed", "bulk_input", "file_uploader"]:
-            st.session_state.pop(k, None)
-
-        st.rerun()
 
 with st.expander("✏️ Input Manual Data"):
     tgl_pemesanan = st.date_input("Tgl Pemesanan", value=date.today(), key="tgl_pemesanan")

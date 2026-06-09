@@ -973,54 +973,50 @@ with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expand
 
     # --- JALUR INPUT 1: KOTAK TEKS + SPEECH TO TEXT RESMI ---
     with tab_text:
-        # Inisialisasi awal memori kunci teks jika belum ada
-        if "konten_teks_travel_utama" not in st.session_state:
-            st.session_state["konten_teks_travel_utama"] = ""
+    # Inisialisasi awal memori kunci teks jika belum ada
+    if "konten_teks_travel_utama" not in st.session_state:
+        st.session_state["konten_teks_travel_utama"] = ""
 
-        # Layout kolom: Kiri untuk teks area, Kanan untuk tombol mikrofon
-        col_textarea, col_microphone = st.columns([0.80, 0.20])
+    # Layout kolom: Kiri untuk teks area, Kanan untuk tombol mikrofon
+    col_textarea, col_microphone = st.columns([0.80, 0.20])
+    
+    with col_microphone:
+        st.write("🎙️ **Dikte Suara**")
+        teks_suara_langsung = speech_to_text(
+            start_prompt="🎙️ Mulai",
+            stop_prompt="🛑 Stop",
+            language='id', 
+            key="fitur_speech_to_text_kayyisa",
+            just_once=True,
+            use_container_width=True
+        )
         
-        with col_microphone:
-            st.write("🎙️ **Dikte Suara**")
+        if teks_suara_langsung:
+            st.session_state["konten_teks_travel_utama"] = teks_suara_langsung
+            st.rerun() 
             
-            # === PERBAIKAN FATAL: Menggunakan fungsi speech_to_text, bukan mic_recorder ===
-            teks_suara_langsung = speech_to_text(
-                start_prompt="🎙️ Mulai",
-                stop_prompt="🛑 Stop",
-                language='id', # Mengunci deteksi suara ke Bahasa Indonesia baku
-                key="fitur_speech_to_text_kayyisa",
-                just_once=True,
-                use_container_width=True
-            )
-            
-            # Jika admin selesai berbicara, langsung suntikkan ke memori text area
-            if teks_suara_langsung:
-                st.session_state["konten_teks_travel_utama"] = teks_suara_langsung
-                st.rerun() # Muat ulang agar langsung tertulis di teks area samping
-                
-        with col_textarea:
-            # Mengunci key ke session state agar teks dari suara masuk otomatis
-            ai_raw = st.text_area(
-                "Tempelkan teks atau klik 'Mulai' di samping untuk mendikte data (pisahkan dengan '==='):",
-                key="konten_teks_travel_utama",
-                height=200
-            )
-        
-        # Tombol Proses ke Keuangan (Logika ke bawah tetap sama 100%)
-        col_t1, col_t2 = st.columns(2)
-        with col_t1:
-            if st.button("📊 Proses Teks ke Keuangan", key="btn_proses_text_finance", use_container_width=True):
-                if ai_raw.strip():
-                    tombol_ditekan = True
-                    with st.spinner("Gemini AI sedang membaca salinan teks..."):
-                        hasil_pilihan_ai = panggil_gemini_ai_parser(ai_raw.strip())
-                        input_mentah_ref = ai_raw.strip()
-        with col_t2:
+    with col_textarea:
+        ai_raw = st.text_area(
+            "Tempelkan teks atau klik 'Mulai' di samping untuk mendikte data (pisahkan dengan '==='):",
+            key="konten_teks_travel_utama",
+            height=200
+        )
+    
+    col_t1, col_t2 = st.columns(2)
+    with col_t1:
+        if st.button("📊 Proses Teks ke Keuangan", key="btn_proses_text_finance", use_container_width=True):
             if ai_raw.strip():
-                with st.spinner("AI sedang menyiapkan voucher PDF dari teks..."):
-                    hasil_ai_pdf = panggil_gemini_ai_parser(ai_raw.strip())
-                    if hasil_ai_pdf:
-                        pdf_data = buat_voucher_pdf_kayyisa(hasil_ai_pdf)
+                tombol_ditekan = True
+                with st.spinner("Gemini AI sedang membaca salinan teks..."):
+                    # MEMANGGIL FUNGSI TEKS YANG BENAR
+                    hasil_pilihan_ai = panggil_gemini_ai_parser(ai_raw.strip())
+                    input_mentah_ref = ai_raw.strip()
+    with col_t2:
+        if ai_raw.strip():
+            with st.spinner("AI sedang menyiapkan voucher PDF dari teks..."):
+                hasil_ai_pdf = panggil_gemini_ai_parser(ai_raw.strip())
+                if hasil_ai_pdf:
+                    pdf_data = buat_voucher_pdf_kayyisa(hasil_ai_pdf)
                         st.download_button("📥 Download Voucher PDF", data=pdf_data, file_name=f"Voucher_Teks_{datetime.now().strftime('%d%m%Y')}.pdf", mime="application/pdf", use_container_width=True, key="dl_pdf_txt")
 
 

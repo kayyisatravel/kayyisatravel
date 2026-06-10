@@ -148,16 +148,29 @@ def parse_evoucher_text(text):
 
 
 def generate_eticket(data):
-    # Deteksi otomatis jenis armada berdasarkan data manifest teks dari AI Gemini 3.1
+    """
+    Fungsi render HTML E-Tiket Kereta Api & Whoosh bawaan Anda.
+    Sudah disesuaikan dinamis: Mengubah Logo KCIC, Judul Whoosh, dan menyalin data kursi utuh.
+    """
+    # 1. Deteksi Otomatis Jenis Armada secara presisi dari output AI
     nama_kereta_raw = str(data.get('nama_kereta', '')).lower()
-    is_whoosh = "whoosh" in nama_kereta_raw or str(data.get('asal', '')).lower() == "halim"
+    stasiun_asal_raw = str(data.get('asal', '')).lower()
+    is_whoosh = "whoosh" in nama_kereta_raw or "halim" in stasiun_asal_raw
 
-    # Membaca list 'penumpang' yang dikirim oleh AI Gemini 3.1
+    # Penentuan Logo dan Judul secara dinamis berbasis armada
+    if is_whoosh:
+        logo_url = "https://wikipedia.org" # Menggunakan URL gambar Logo resmi KCIC
+        judul_tiket = "E-Tiket Whoosh"
+    else:
+        logo_url = "https://pilihanhidup.com" # Logo KAI asli Anda
+        judul_tiket = "E-Tiket Kereta Api"
+
+    # 2. Iterasi Baris Penumpang Manifes
     penumpang_rows = []
     for idx, p in enumerate(data.get('penumpang', []), start=1):
         qr_html_cell = ""
         
-        # KHUSUS ARMADA WHOOSH: Tarik gambar biner QR asli dari session state berdasarkan placeholder key
+        # Khusus Armada Whoosh: Sediakan penempelan biner QR Code Gate boarding asli
         if is_whoosh:
             key_qr = p.get('qr_placeholder_key', f"qr_penumpang_{idx}")
             file_qr = st.session_state.get(key_qr)
@@ -165,8 +178,7 @@ def generate_eticket(data):
             if file_qr:
                 import base64
                 encoded_img = base64.b64encode(file_qr.getvalue()).decode()
-                # Modifikasi aman: Menyisipkan gambar QR code asli tepat di bawah nomor kursi penumpang
-                qr_html_cell = f'<br><img src="data:image/png;base64,{encoded_img}" style="width:85px; height:85px; margin-top:5px; border:1px solid #ccc; padding:2px;"/>'
+                qr_html_cell = f'<br><img src="data:image/png;base64,{encoded_img}" style="width:90px; height:90px; margin-top:5px; border:1px solid #ccc; padding:2px;"/>'
             else:
                 qr_html_cell = '<br><span style="color:#e67e22; font-size:11px; font-weight:bold;">[QR Belum Diupload]</span>'
 
@@ -175,13 +187,17 @@ def generate_eticket(data):
           <td style="text-align: left; padding:8px; border: 1px solid #bbb;">{p.get('nama', '-')}</td>
           <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p.get('tipe', '-')}</td>
           <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p.get('ktp', '-')}</td>
-          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p.get('kursi', '-')}{qr_html_cell}</td>
+          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">
+             {p.get('kursi', '-')}
+             {qr_html_cell}
+          </td>
         </tr>
         """
         penumpang_rows.append(row_html)
 
     penumpang_rows_joined = "\n".join(penumpang_rows)
 
+    # 3. Tatanan Template HTML Visual Utama Anda
     html = f"""
     <style>
       @media print {{
@@ -200,10 +216,12 @@ def generate_eticket(data):
                 box-shadow: 0 8px 25px rgba(0,0,0,0.12); padding: 30px; color: #333;">
 
       <div style="text-align: center; margin-bottom: 20px;">
-        <img src="https://pilihanhidup.com/wp-content/uploads/2024/04/logo-KAI.png" style="width: 120px;"/>
+        <!-- URL LOGO DIUBAH SECARA DINAMIS (KAI ATAU KCIC) -->
+        <img src="{logo_url}" style="width: 120px; height: auto;"/>
       </div>
 
-      <h1 style="color:#0047b3;">E-Tiket Kereta Api</h1>
+      <!-- JUDUL UTAMA DIUBAH SECARA DINAMIS -->
+      <h1 style="color:#0047b3;">{judul_tiket}</h1>
       <p><strong>Kode Booking:</strong> {data.get('kode_booking', 'N/A')}<br>
          <strong>Nama Kereta:</strong> {data.get('nama_kereta', 'Tidak Diketahui')}<br>
          <strong>Kelas:</strong> {data.get('kelas', 'Tidak Diketahui')}</p>
@@ -221,7 +239,7 @@ def generate_eticket(data):
             <th style="padding: 8px; border: 1px solid #bbb;">Nama</th>
             <th style="padding: 8px; border: 1px solid #bbb;">Tipe</th>
             <th style="padding: 8px; border: 1px solid #bbb;">No Identitas</th>
-            <th style="padding: 8px; border: 1px solid #bbb;">Kursi</th>
+            <th style="padding: 8px; border: 1px solid #bbb;">Kursi {'/ QR Gate' if is_whoosh else ''}</th>
           </tr>
         </thead>
         <tbody>
@@ -229,8 +247,17 @@ def generate_eticket(data):
         </tbody>
       </table>
 
+      <!-- INFO TAMBAHAN PETUNJUK NAIK JIKA ARMADA ADALAH WHOOSH -->
+      {f'''<div style="margin-top: 25px; background: #fff8ee; padding: 15px; border-radius: 8px; border-left: 4px solid #e67e22; font-size:14px; color:#c0392b;">
+        <strong>📋 Cara Naik Whoosh:</strong><br>
+        1. Tiba di stasiun setidaknya 30 menit sebelum keberangkatan.<br>
+        2. Scan kode QR di gerbang keberangkatan asli masing-masing penumpang.<br>
+        3. Gerbang keberangkatan ditutup resmi 5 menit sebelum keberangkatan.
+      </div>''' if is_whoosh else ""}
+
+      <!-- BARCODE KAI GLOBAL OTOMATIS DISAPA SAAT BUKAN WHOOSH -->
       {f'''<div style="margin-top: 20px; text-align: center;">
-        <img src="https://barcode.tec-it.com/barcode.ashx?data={data.get('kode_booking', '')}&code=PDF417"
+        <img src="https://tec-it.com{data.get('kode_booking', '')}&code=PDF417"
              style="width: 250px; height: 80px;" />
         <p><strong>Kode Booking:</strong> {data.get('kode_booking', '')}</p>
       </div>''' if not is_whoosh else ""}

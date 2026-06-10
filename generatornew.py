@@ -287,7 +287,7 @@ def generate_eticket(data):
 
       <!-- BARCODE KAI GLOBAL OTOMATIS DISAPA SAAT BUKAN WHOOSH -->
       {f'''<div style="margin-top: 30px; text-align: center;">
-        <img src="https://tec-it.com{data.get('kode_booking', '')}&code=PDF417" style="width: 250px; height: 80px;" />
+        <img src="https://barcode.tec-it.com/barcode.ashx?data={data.get('kode_booking', '')}&code=PDF417" style="width: 250px; height: 80px;" />
         <p style="font-size: 12px; font-weight: bold; margin-top: 6px; color: #666; letter-spacing: 0.5px;">Kode Booking: {data.get('kode_booking', '')}</p>
       </div>''' if not is_whoosh else ""}
 

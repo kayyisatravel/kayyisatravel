@@ -16,6 +16,26 @@ import pdf417gen
 # =====================================================================
 # 1. SKEMA DATA STRUKTUR UTAMA PYDANTIC UNTUK GEMINI 3.1
 # =====================================================================
+# Skema blueprint pendukung di hulu agar otomatis klop dengan fungsi generate_eticket Anda
+class PenumpangKeretaSchema(BaseModel):
+    nama: str = Field(description="Nama penumpang wajib Title Case (EYD). Bersihkan gelar sapaan.")
+    tipe: str = Field(description="Tipe penumpang: Dewasa atau Anak")
+    ktp: str = Field(description="Nomor identitas KTP/Paspor. Jika kosong isi 'N/A'")
+    kursi: str = Field(description="Nomor kursi spesifik, contoh: 'EKS 5 / 10D' atau 'Kereta 6 / Kursi 8F'")
+    qr_placeholder_key: str = Field(description="Penanda urutan gambar: 'qr_penumpang_1', 'qr_penumpang_2', dst.")
+
+class AIKeretaMasterSchema(BaseModel):
+    kode_booking: str = Field(description="Kode booking / PNR utama")
+    nama_kereta: str = Field(description="Nama kereta api berformat EYD baku. Contoh: 'Serayu' atau 'Ambarawa Ekspres'")
+    kelas: str = Field(description="Kelas kereta api, contoh: 'Ekonomi' atau 'Eksekutif'")
+    tanggal_berangkat: str = Field(description="Tanggal berangkat indah, cth: 'Selasa, 19 Mei 2026'")
+    jam_berangkat: str = Field(description="Jam berangkat format HH.MM atau HH:MM")
+    tanggal_tiba: str = Field(description="Tanggal tiba indah, cth: 'Selasa, 19 Mei 2026'")
+    jam_tiba: str = Field(description="Jam tiba format HH.MM atau HH:MM")
+    asal: str = Field(description="Stasiun asal lengkap + kode, cth: 'Surabaya Gubeng (SGU)' atau 'Halim'")
+    tujuan: str = Field(description="Stasiun tujuan lengkap + kode, cth: 'Banyuwangi Kota (BWI)' atau 'Tegalluar'")
+    penumpang: List[PenumpangKeretaSchema] = Field(default=[])
+
 class PenumpangTiket(BaseModel):
     nama: str = Field(description="""
         Wajib ubah nama menjadi format Title Case / Huruf Kapital di Awal Kata (EYD Baku). 
@@ -93,120 +113,85 @@ def generate_pdf417_barcode(data_str):
     return pdf417gen.render_image(codes, scale=3, ratio=3)
 
 def generate_eticket_pdf_new(data):
-    """Fungsi Canvas pembuat PDF E-Tiket Kereta Api / Whoosh versi AI terbaru"""
-    buffer = BytesIO()
-    c = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
+    """
+    Fungsi render HTML E-Tiket Kereta Api bawaan Anda.
+    Sudah diselaraskan variabelnya agar membaca data hasil output AI Gemini 3.1.
+    """
+    # Membaca list 'penumpang' yang dikirim oleh AI
+    penumpang_rows = "\n".join([
+        f"""
+        <tr>
+          <td style="text-align: left; padding:8px; border: 1px solid #bbb;">{p.get('nama', '-')}</td>
+          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p.get('tipe', '-')}</td>
+          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p.get('ktp', '-')}</td>
+          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p.get('kursi', '-')}</td>
+        </tr>
+        """ for p in data.get('penumpang', [])
+    ])
 
-    # Banner Navy Blue Atas
-    c.setFillColorRGB(0, 0.25, 0.5)
-    c.rect(40, height - 70, width - 80, 40, fill=1, stroke=0)
-    c.setFillColorRGB(1, 1, 1)
-    c.setFont("Helvetica-Bold", 13)
-    
-    label_title = "E-TIKET WHOOSH" if data.get('tipe_dokumen') == "Whoosh" else "E-TIKET KERETA API"
-    c.drawString(55, height - 53, f"KAYYISA TOUR & TRAVEL  |  {label_title}")
+    html = f"""
+    <style>
+      @media print {{
+        .no-print {{
+          display: none !important;
+        }}
+        thead {{
+          background-color: #cce0ff !important;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }}
+      }}
+    </style>
 
-    # Data Utama Manifes Perjalanan
-    y = height - 105
-    c.setFillColorRGB(0, 0, 0)
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(50, y, f"Kode Booking: {data.get('kode_booking', 'N/A')}")
-    
-    c.setFont("Helvetica", 10)
-    y -= 18
-    c.drawString(50, y, f"Nama Armada: {data.get('nama_armada', '-')} ({data.get('kelas_armada', '-')})")
-    y -= 14
-    c.drawString(50, y, f"Rute Perjalanan: {data.get('stasiun_asal', '-')} ➔ {data.get('stasiun_tujuan', '-')}")
-    y -= 14
-    c.drawString(50, y, f"Waktu Berangkat: {data.get('tanggal_berangkat', '-')} pukul {data.get('jam_berangkat', '-')}")
-    y -= 14
-    c.drawString(50, y, f"Estimasi Tiba: {data.get('tanggal_tiba', '-')} pukul {data.get('jam_tiba', '-')}")
-    
-    # Garis Pembatas
-    y -= 15
-    c.setStrokeColorRGB(0.8, 0.8, 0.8)
-    c.line(50, y, width - 50, y)
-    
-    # Judul Tabel Penumpang
-    y -= 25
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(50, y, "Detail Penumpang & Posisi Kursi:")
-    
-    # Header Tabel Visual
-    y -= 20
-    c.setStrokeColorRGB(0, 0.25, 0.5)
-    c.setFillColorRGB(0.88, 0.93, 1.0) 
-    c.rect(50, y - 22, width - 100, 22, fill=1, stroke=0)
-    
-    c.setFillColorRGB(0, 0, 0)
-    c.setFont("Helvetica-Bold", 9)
-    c.drawString(60, y - 14, "Nama Penumpang (Sesuai EYD)")
-    c.drawString(240, y - 14, "Tipe")
-    c.drawString(310, y - 14, "No. Identitas")
-    c.drawString(420, y - 14, "Kursi")
-    if data.get('tipe_dokumen') == "Whoosh":
-        c.drawString(505, y - 14, "QR Code Gate")
-        
-    y -= 22
-    c.setFont("Helvetica", 9)
-    
-    # LOOPING DINAMIS: Mendukung berapapun jumlah penumpang (Multi-Baris)
-    for p in data.get("daftar_penumpang", []):
-        if y < 130:
-            c.showPage()
-            y = height - 80
-            c.setFont("Helvetica", 9)
-            
-        c.drawString(60, y - 16, str(p.get('nama', '-')))
-        c.drawString(240, y - 16, str(p.get('tipe', '-')))
-        c.drawString(310, y - 16, str(p.get('ktp', '-')))
-        c.drawString(420, y - 16, str(p.get('kursi', '-')))
-        
-        # Penanganan khusus penempelan gambar QR Code asli Whoosh
-        if data.get('tipe_dokumen') == "Whoosh":
-            key_qr = p.get('qr_placeholder_key')
-            file_gambar_qr = st.session_state.get(key_qr)
-            if file_gambar_qr:
-                rl_image = ImageReader(file_gambar_qr)
-                c.drawImage(rl_image, 505, y - 45, width=45, height=45)
-                c.setStrokeColorRGB(0.85, 0.85, 0.85)
-                c.line(50, y - 50, width - 50, y - 50)
-                y -= 50
-            else:
-                c.drawString(505, y - 16, "[Belum Diupload]")
-                c.setStrokeColorRGB(0.85, 0.85, 0.85)
-                c.line(50, y - 25, width - 50, y - 25)
-                y -= 25
-        else:
-            c.setStrokeColorRGB(0.85, 0.85, 0.85)
-            c.line(50, y - 25, width - 50, y - 25)
-            y -= 25
+    <div style="font-family: 'Segoe UI'; max-width: 720px; margin: 30px auto; background: #fff; border-radius: 14px;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.12); padding: 30px; color: #333;">
 
-    # Cetak Barcode PDF417 Global untuk KAI biasa
-    if data.get('tipe_dokumen') == "Kereta":
-        y -= 40
-        if y < 120:
-            c.showPage()
-            y = height - 100
-        kode_b = data.get('kode_booking', 'KAYYISA')
-        barcode_img = generate_pdf417_barcode(kode_b)
-        pil_buf = BytesIO()
-        barcode_img.save(pil_buf, format='PNG')
-        pil_buf.seek(0)
-        c.drawImage(ImageReader(pil_buf), 50, y - 60, width=200, height=60)
-        y -= 75
-        c.setFont("Helvetica-Bold", 9)
-        c.drawString(50, y, f"Kode Booking Boarding: {kode_b}")
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img src="https://pilihanhidup.com/wp-content/uploads/2024/04/logo-KAI.png" style="width: 120px;"/>
+      </div>
 
-    c.setFont("Helvetica-Oblique", 9)
-    c.setFillColorRGB(0.4, 0.4, 0.4)
-    c.drawString(50, 45, "*Mohon siapkan dokumen identitas fisik asli yang sesuai saat boarding di stasiun.")
+      <h1 style="color:#0047b3;">E-Tiket Kereta Api</h1>
+      <p><strong>Kode Booking:</strong> {data.get('kode_booking', 'N/A')}<br>
+         <strong>Nama Kereta:</strong> {data.get('nama_kereta', 'Tidak Diketahui')}<br>
+         <strong>Kelas:</strong> {data.get('kelas', 'Tidak Diketahui')}</p>
+         
+         <strong>Tanggal Berangkat:</strong> {data.get('tanggal_berangkat', 'Tidak Diketahui')}<br>
+         <strong>Tanggal Tiba:</strong> {data.get('tanggal_tiba', 'Tidak Diketahui')}</p>
 
-    c.showPage()
-    c.save()
-    buffer.seek(0)
-    return buffer
+      <p><strong>Rute:</strong><br>
+      {data.get('asal', 'Tidak Diketahui')} <strong>{data.get('jam_berangkat', '')}</strong> → {data.get('tujuan', 'Tidak Diketahui')} <strong>{data.get('jam_tiba', '')}</strong></p>
+
+      <h2 style="border-bottom: 2px solid #0047b3;">Detail Penumpang</h2>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead style="background: #cce0ff;">
+          <tr>
+            <th style="padding: 8px; border: 1px solid #bbb;">Nama</th>
+            <th style="padding: 8px; border: 1px solid #bbb;">Tipe</th>
+            <th style="padding: 8px; border: 1px solid #bbb;">No Identitas</th>
+            <th style="padding: 8px; border: 1px solid #bbb;">Kursi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {penumpang_rows}
+        </tbody>
+      </table>
+
+      <div style="margin-top: 20px; text-align: center;">
+        <img src="https://barcode.tec-it.com/barcode.ashx?data={data.get('kode_booking', '')}&code=PDF417"
+             style="width: 250px; height: 80px;" />
+        <p><strong>Kode Booking:</strong> {data.get('kode_booking', '')}</p>
+      </div>
+
+      <div style="text-align: center; margin-top: 30px;">
+        <button class="no-print" onclick="window.print()"
+                style="padding: 10px 20px; background-color: #0047b3; color: white; border: none;
+                       border-radius: 6px; cursor: pointer; font-size: 16px;">
+          Cetak Tiket
+        </button>
+      </div>
+    </div>
+    """
+    return html
 
 def generate_evoucher_pdf_new(data):
     """Fungsi pembuat berkas PDF E-Voucher Hotel versi AI terbaru"""

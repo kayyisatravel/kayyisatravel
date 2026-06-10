@@ -1,4 +1,4 @@
-
+import generatornew
 import os
 os.environ["STREAMLIT_WATCHER_TYPE"] = "none"
 import streamlit as st
@@ -2412,6 +2412,40 @@ def generate_ticket(data, tipe):
         return generate_evoucher_html(data)  # fungsi generate voucher hotel kamu
         
 st.markdown("""<hr style="border-top: 1px solid #7f8c8d;">""", unsafe_allow_html=True)
+
+#======================GENERATOR TIKET BARU==========================================
+with st.expander("🎫 [NEW] Generator E-Tiket & Voucher (Cerdas AI - Gemini 3.1)"):
+    tipe_pilihan = st.radio("Pilih tipe:", ["Kereta", "Whoosh", "Hotel"], key="radio_ai_new")
+    input_mentah = st.text_area("Tempel teks manifes copas dari OTA di sini:", key="text_ai_new")
+    
+    if st.button("✨ Proses dengan Gemini 3.1 Flash Lite", key="btn_ai_new"):
+        # Memanggil file penafsir baru Anda
+        hasil_ai = generatornew.panggil_ai_ticket_parser(input_mentah, tipe_pilihan)
+        if hasil_ai:
+            st.session_state['data_ai_new'] = hasil_ai
+            st.success("Berhasil diproses AI!")
+
+    # Logika tampilkan download PDF baru
+    if 'data_ai_new' in st.session_state:
+        data_siap = st.session_state['data_ai_new']
+        
+        # Munculkan kolom upload QR Code jika itu armada Whoosh
+        if data_siap.get("tipe_dokumen") == "Whoosh":
+            for p in data_siap.get("daftar_penumpang", []):
+                key_qr = p["qr_placeholder_key"]
+                file_qr = st.file_uploader(f"Upload QR Code asli untuk {p['nama']}", key=f"up_{key_qr}")
+                if file_qr:
+                    st.session_state[key_qr] = file_qr
+
+        # Download Button menggunakan generatornew
+        if tipe_pilihan in ["Kereta", "Whoosh"]:
+            pdf_stream = generatornew.generate_eticket_pdf_new(data_siap)
+        else:
+            pdf_stream = generatornew.generate_evoucher_pdf_new(data_siap)
+            
+        st.download_button("📥 Unduh PDF Resmi (EYD Approved)", data=pdf_stream, file_name="Dokumen_Kayyisa.pdf", mime="application/pdf")
+
+=====================================================================================
 
 with st.expander("🎫 Generator E-Tiket"):
 

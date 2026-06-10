@@ -53,6 +53,13 @@ class AIHotelMasterSchema(BaseModel):
     kamar: str = Field(description="Tipe/Kategori kamar hotel lengkap, contoh: 'Kamar Standard Twin dengan Kipas (Standard Room with Fan)'")
     fasilitas: str = Field(description="Fasilitas makan atau utama, contoh: 'Sarapan (2 Pax) per kamar' atau 'Wifi'")
     permintaan_khusus: str = Field(description="Catatan permintaan khusus tamu, contoh: 'Non Smoking room, King Bed'")
+    hotel_phone: Optional[str] = Field(default="-", description="""
+        Gunakan fitur pencarian internet (Google Search) untuk melacak nomor telepon resmi, 
+        nomor HP layanan, atau kontak resepsionis aktif dari properti hotel ini berdasarkan nama hotel 
+        dan alamat lokasi di atas. Kembalikan hasilnya dalam format string bersih, contoh: '+6285265575009'. 
+        Jika setelah dicari di internet tetap tidak ditemukan, isi dengan tanda strip '-'.
+    """)
+    
 
 
 # =====================================================================
@@ -370,7 +377,10 @@ def generate_evoucher_html(data):
 
       <div class="section">
         <h3>Properti & Lokasi</h3>
-        <p>{get('hotel_name')}<br>{get('location')}</p>
+        <p><strong>{get('hotel_name')}</strong><br>
+           {get('location')}<br>
+           <strong>📞 Kontak Hotel:</strong> {get('hotel_phone')}
+        </p>
       </div>
 
       <div class="section">

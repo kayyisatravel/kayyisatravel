@@ -207,17 +207,14 @@ def generate_eticket(data):
 def generate_evoucher_html(data):
     get = lambda k: data.get(k, '-') if data.get(k, '-') else '-'
     
-    # =====================================================================
-    # REVISI 1: Menambahkan penomoran angka otomatis di depan nama tamu
-    # =====================================================================
+    # 1. PERBAIKAN: Penomoran angka otomatis pada daftar tamu
     tamu_list = data.get('tamu', [])
     if tamu_list and tamu_list != '-':
         tamu_html = "".join(f"<p>{idx}. {tamu}</p>" for idx, tamu in enumerate(tamu_list, start=1))
     else:
         tamu_html = "<p>-</p>"
 
-    # Format harga total
-    total_harga = "-"
+    # Format hitungan angka harga total
     try:
         hrg_per_malam = float(data.get('harga_per_malam', 0))
         tot_malam = int(data.get('total_malam', 1))
@@ -227,6 +224,7 @@ def generate_evoucher_html(data):
         tot_malam = 1
         jml_kamar = 1
 
+    total_harga = "-"
     try:
         total_harga_val = hrg_per_malam * tot_malam * jml_kamar
         total_harga = f"Rp {total_harga_val:,.0f}".replace(',', '.')
@@ -234,13 +232,10 @@ def generate_evoucher_html(data):
         pass
 
     # =====================================================================
-    # REVISI 2: Menambahkan teks kuantitas kamar di depan tipe kamar
+    # 2. PERBAIKAN: Menggabungkan jumlah kamar dan nama kamar secara lengkap
     # =====================================================================
-    tipe_kamar_raw = get('kamar')
-    if jml_kamar > 1:
-        teks_kamar_final = f"{jml_kamar} (kamar) {tipe_kamar_raw}"
-    else:
-        teks_kamar_final = tipe_kamar_raw
+    nama_kamar_raw = get('kamar')
+    teks_kamar_final = f"{jml_kamar} (kamar) {nama_kamar_raw}"
 
     html = f"""
     <style>

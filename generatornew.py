@@ -196,10 +196,10 @@ def generate_eticket(data):
 
         row_html = f"""
         <tr>
-          <td style="text-align: left; padding:12px 8px; border: 1px solid {color_table_border}; font-size: 14px;">{p.get('nama', '-')}</td>
-          <td style="text-align: center; padding:12px 8px; border: 1px solid {color_table_border}; font-size: 14px;">{p.get('tipe', '-')}</td>
-          <td style="text-align: center; padding:12px 8px; border: 1px solid {color_table_border}; font-size: 14px;">{p.get('ktp', '-')}</td>
-          <td style="text-align: center; padding:12px 8px; border: 1px solid {color_table_border}; font-size: 14px; font-weight: 500;">
+          <td style="text-align: left; padding:12px 10px; border: 1px solid {color_table_border}; font-size: 14px; color:#222;">{p.get('nama', '-')}</td>
+          <td style="text-align: center; padding:12px 10px; border: 1px solid {color_table_border}; font-size: 14px; color:#444;">{p.get('tipe', '-')}</td>
+          <td style="text-align: center; padding:12px 10px; border: 1px solid {color_table_border}; font-size: 14px; color:#444;">{p.get('ktp', '-')}</td>
+          <td style="text-align: center; padding:12px 10px; border: 1px solid {color_table_border}; font-size: 14px; font-weight: 500; color:#111;">
              {p.get('kursi', '-')}
              {qr_html_cell}
           </td>
@@ -253,7 +253,7 @@ def generate_eticket(data):
       </div>
 
       <!-- REVISI: Transformasi wadah rute menjadi bentuk kontainer melengkung minimalis modern -->
-      <div style="font-size: 14px; line-height: 1.6; background: #f5f7fa; padding: 14px 18px; border-radius: 8px; margin-bottom: 25px; border: 1px solid #eef1f6;">
+      <div style="font-size: 14px; line-height: 1.6; background: #f5f7fa; padding: 14px 18px; border-radius: 8px; margin-bottom: 25px; border: 1px solid #eef1f6; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
          <strong style="color: {color_primary}; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Rute Perjalanan:</strong><br>
          <span style="font-size: 15px; color:#222;">{data.get('asal', 'Tidak Diketahui')} <strong>{data.get('jam_berangkat', '')}</strong> ➔ {data.get('tujuan', 'Tidak Diketahui')} <strong>{data.get('jam_tiba', '')}</strong></span>
       </div>

@@ -1,130 +1,130 @@
 import json
-import re
-import string
-from io import BytesIO
-from datetime import datetime
 import streamlit as st
 from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
 from typing import List, Optional
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
-from reportlab.lib.utils import ImageReader
-import pdf417gen
 
 # =====================================================================
-# 1. SKEMA DATA STRUKTUR UTAMA PYDANTIC UNTUK GEMINI 3.1
+# 1. BLUEPRINT PYDANTIC SCHEMA (DISELARASKAN DENGAN KAMUS DATA LAMA ANDA)
 # =====================================================================
-# Skema blueprint pendukung di hulu agar otomatis klop dengan fungsi generate_eticket Anda
+
 class PenumpangKeretaSchema(BaseModel):
-    nama: str = Field(description="Nama penumpang wajib Title Case (EYD). Bersihkan gelar sapaan.")
-    tipe: str = Field(description="Tipe penumpang: Dewasa atau Anak")
-    ktp: str = Field(description="Nomor identitas KTP/Paspor. Jika kosong isi 'N/A'")
-    kursi: str = Field(description="Nomor kursi spesifik, contoh: 'EKS 5 / 10D' atau 'Kereta 6 / Kursi 8F'")
-    qr_placeholder_key: str = Field(description="Penanda urutan gambar: 'qr_penumpang_1', 'qr_penumpang_2', dst.")
+    nama: str = Field(description="""
+        Nama lengkap penumpang wajib diubah ke format Title Case / Huruf Kapital di Awal Kata (EYD Baku). 
+        Wajib hapus total gelar sapaan maskapai atau OTA seperti 'Tuan', 'Nyonya', 'Nona', 'Tn', 'Ny', 'Mr', 'Mrs', 'Ms' jika ada.
+        Contoh input: 'NYONYA Amiliya Duwi Setiyowati' -> Hasil: 'Amiliya Duwi Setiyowati'.
+        Contoh input: 'Tuan Novan Wibowo' -> Hasil: 'Novan Wibowo'.
+    """)
+    tipe: str = Field(description="Tipe penumpang, contoh: 'Dewasa' atau 'Anak'")
+    ktp: str = Field(description="Nomor identitas / NIK / KTP / Paspor penumpang. Jika tidak ada isi 'N/A'")
+    kursi: str = Field(description="Nomor posisi kursi spesifik, contoh: 'EKS 5/10D' atau 'Kereta 6 / Kursi 8F'")
+    qr_placeholder_key: str = Field(description="Penanda urutan gambar khusus Whoosh: 'qr_penumpang_1', 'qr_penumpang_2', dst.")
 
 class AIKeretaMasterSchema(BaseModel):
-    kode_booking: str = Field(description="Kode booking / PNR utama")
-    nama_kereta: str = Field(description="Nama kereta api berformat EYD baku. Contoh: 'Serayu' atau 'Ambarawa Ekspres'")
-    kelas: str = Field(description="Kelas kereta api, contoh: 'Ekonomi' atau 'Eksekutif'")
-    tanggal_berangkat: str = Field(description="Tanggal berangkat indah, cth: 'Selasa, 19 Mei 2026'")
-    jam_berangkat: str = Field(description="Jam berangkat format HH.MM atau HH:MM")
-    tanggal_tiba: str = Field(description="Tanggal tiba indah, cth: 'Selasa, 19 Mei 2026'")
-    jam_tiba: str = Field(description="Jam tiba format HH.MM atau HH:MM")
-    asal: str = Field(description="Stasiun asal lengkap + kode, cth: 'Surabaya Gubeng (SGU)' atau 'Halim'")
-    tujuan: str = Field(description="Stasiun tujuan lengkap + kode, cth: 'Banyuwangi Kota (BWI)' atau 'Tegalluar'")
-    penumpang: List[PenumpangKeretaSchema] = Field(default=[])
+    kode_booking: str = Field(description="Kode booking / PNR / ID Pesanan utama dari vendor")
+    tanggal: str = Field(description="Tanggal keberangkatan format indah dibaca manusia, contoh: '12 Feb 2026' atau '19 Mei 2026'")
+    tanggal_berangkat: str = Field(description="Samakan nilainya dengan field 'tanggal'")
+    jam_berangkat: str = Field(description="Jam keberangkatan format HH:MM atau HH.MM")
+    tanggal_tiba: str = Field(description="Tanggal tiba di stasiun tujuan format indah dibaca manusia, contoh: '12 Feb 2026'")
+    jam_tiba: str = Field(description="Jam tiba di stasiun tujuan format HH:MM atau HH.MM")
+    asal: str = Field(description="Nama stasiun asal lengkap beserta kode stasiunnya di dalam kurung, contoh: 'Semarang Tawang (SMT)' atau 'Halim'")
+    tujuan: str = Field(description="Nama stasiun tujuan lengkap beserta kode stasiunnya di dalam kurung, contoh: 'Surabaya Pasarturi (SBI)' atau 'Tegalluar'")
+    nama_kereta: str = Field(description="Nama armada kereta api berformat EYD baku (Title Case) tanpa nomor seri di belakangnya, contoh: 'Ambarawa Ekspres' atau 'Serayu'")
+    kelas: str = Field(description="Kelas kategori kereta api berformat Title Case, contoh: 'Ekonomi' atau 'Eksekutif'")
+    penumpang: List[PenumpangKeretaSchema] = Field(default=[], description="Daftar array manifes seluruh penumpang")
 
-class PenumpangTiket(BaseModel):
-    nama: str = Field(description="""
-        Wajib ubah nama menjadi format Title Case / Huruf Kapital di Awal Kata (EYD Baku). 
-        Hapus total gelar sapaan maskapai/OTA seperti 'Tuan', 'Nyonya', 'Nona', 'Tn', 'Ny', 'Mr', 'Mrs', 'Ms'.
-        Contoh: 'Tuan Novan Wibowo' -> 'Novan Wibowo'.
-        Contoh: 'NYONYA EVA NATALIA' -> 'Eva Natalia'.
-    """)
-    tipe: str = Field(description="Tipe kategori penumpang: 'Dewasa' atau 'Anak'")
-    ktp: str = Field(description="Nomor NIK/KTP/Paspor penumpang. Jika tidak ditemukan, isi 'N/A'")
-    kursi: str = Field(description="Nomor kursi spesifik. Contoh KAI: 'EKS 5 / 10D', Contoh Whoosh: 'Kereta 6 / Kursi 8F'")
-    qr_placeholder_key: str = Field(description="String tegas penanda urutan: 'qr_penumpang_1', 'qr_penumpang_2', 'qr_penumpang_3', dst.")
 
-class AIKayyisaMasterSchema(BaseModel):
-    platform: str = Field(description="Sumber OTA asal, cth: 'Tiket.com', 'Traveloka', 'Access by KAI'")
-    tipe_dokumen: str = Field(description="Wajib deteksi jenis dokumen secara tegas: 'Kereta', 'Whoosh', atau 'Hotel'")
-    kode_booking: str = Field(description="Kode booking, PNR, atau ID Pesanan utama vendor. Jika tidak ada isi 'N/A'")
-    
-    # Atribut Transportasi (KAI & Whoosh)
-    nama_armada: Optional[str] = Field(default="Tidak Diketahui", description="Format EYD baku. Cth: 'Ambarawa Ekspres', 'Serayu', atau 'Whoosh G1031'")
-    kelas_armada: Optional[str] = Field(default="Tidak Diketahui", description="Cth: 'Ekonomi Premium', 'Eksekutif'")
-    tanggal_berangkat: Optional[str] = Field(default="-", description="Format tanggal indah dibaca, cth: 'Kam, 12 Feb 2026'")
-    jam_berangkat: Optional[str] = Field(default="", description="Format jam HH:MM")
-    tanggal_tiba: Optional[str] = Field(default="-", description="Format tanggal indah dibaca, cth: 'Kam, 12 Feb 2026'")
-    jam_tiba: Optional[str] = Field(default="", description="Format jam HH:MM")
-    stasiun_asal: Optional[str] = Field(default="-", description="Nama stasiun asal + kode, cth: 'Semarang Tawang (SMT)' atau 'Halim'")
-    stasiun_tujuan: Optional[str] = Field(default="-", description="Nama stasiun tujuan + kode, cth: 'Surabaya Pasarturi (SBI)' atau 'Tegalluar Summarecon'")
-    daftar_penumpang: List[PenumpangTiket] = Field(default=[])
+class AIHotelMasterSchema(BaseModel):
+    order_id: str = Field(description="ID Pesanan / Order ID dari platform OTA")
+    itinerary_id: str = Field(description="ID Itinerary, jika tidak ada di teks isi dengan '-'")
+    hotel_name: str = Field(description="Nama hotel lengkap berformat EYD baku / Title Case, contoh: 'Hotel Ambun Suri'")
+    location: str = Field(description="Alamat lengkap, jalan, kecamatan, kota, dan provinsi lokasi hotel")
+    jumlah_kamar: int = Field(description="Jumlah total kamar yang dipesan sebagai Integer murni")
+    tanggal_masuk: str = Field(description="Tanggal Check-in format indah dibaca, contoh: 'Sel, 09 Jun 2026'")
+    jam_masuk: str = Field(description="Waktu jam check-in akomodasi, contoh: '14:00-23:59'")
+    tanggal_keluar: str = Field(description="Tanggal Check-out format indah dibaca, contoh: 'Rab, 10 Jun 2026'")
+    jam_keluar: str = Field(description="Waktu jam check-out akomodasi, contoh: '12:00'")
+    harga_per_malam: float = Field(description="Tarif harga per malam per kamar sebagai angka murni/Float")
+    total_malam: int = Field(description="AI wajib menghitung selisih hari check-in & check-out secara presisi sebagai Integer murni")
+    tamu: List[str] = Field(default=[], description="Daftar nama-nama tamu menginap berformat EYD baku / Title Case tanpa gelar sapaan")
+    kamar: str = Field(description="Tipe/Kategori kamar hotel lengkap, contoh: 'Kamar Standard Twin dengan Kipas (Standard Room with Fan)'")
+    fasilitas: str = Field(description="Fasilitas makan atau utama, contoh: 'Sarapan (2 Pax) per kamar' atau 'Wifi'")
+    permintaan_khusus: str = Field(description="Catatan permintaan khusus tamu, contoh: 'Non Smoking room, King Bed'")
 
-    # Atribut Akomodasi (Voucher Hotel)
-    hotel_name: Optional[str] = Field(default="-", description="Format EYD baku. Cth: 'Paus Homestay Syariah' atau 'Hotel Ambun Suri'")
-    location: Optional[str] = Field(default="-", description="Alamat lengkap akomodasi")
-    jumlah_kamar: Optional[int] = Field(default=1)
-    total_malam: Optional[int] = Field(default=1, description="AI wajib menghitung selisih hari check-in & check-out secara presisi sebagai integer murni")
-    harga_per_malam: Optional[float] = Field(default=0.0, description="Angka nominal murni tanpa Rp atau tanda titik")
-    tamu_hotel: List[str] = Field(default=[], description="Daftar nama tamu kamar berformat EYD baku tanpa gelar sapaan")
-    tipe_kamar: Optional[str] = Field(default="-")
-    fasilitas_catatan: Optional[str] = Field(default="-", description="Info sarapan, non-smoking room, dll")
 
 # =====================================================================
-# 2. ENGINE PARSER UTAMA BERBASIS AI GEMINI 3.1 FLASH LITE
+# 2. FUNGSI PARSER KECERDASAN BUATAN GEMINI 3.1 FLASH-LITE
 # =====================================================================
-def panggil_ai_ticket_parser(text_block: str, tipe_tiket_pilihan: str) -> dict:
-    """Membaca teks manifes OTA berantakan menjadi data berstruktur EYD baku via Gemini 3.1 Flash Lite"""
+
+def parse_input_dynamic(text):
+    """
+    JALUR AI TRANSPORTASI: Menggantikan fungsi regex lama Anda.
+    Membaca teks manifes Kereta Api & Whoosh secara akurat dengan Gemini 3.1 Flash-Lite.
+    """
     try:
         client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
         prompt = f"""
-        Kamu adalah sistem AI Parser Dokumen Keuangan milik Kayyisa Tour & Travel.
-        Kategori Dokumen Target: {tipe_tiket_pilihan.upper()}.
-        
-        Tugasmu adalah membedah teks input kasar hasil salinan OTA berikut menjadi format JSON terstruktur yang mematuhi skema Pydantic secara mutlak.
-        Pastikan pembersihan gelar sapaan dan konversi ejaan EYD baku (Title Case) dijalankan langsung di internal core kamu.
+        Kamu adalah sistem AI Parser Kereta Api milik Kayyisa Tour & Travel.
+        Tugasmu mengekstrak teks input kasar hasil copas OTA menjadi format JSON terstruktur yang mematuhi skema secara mutlak.
+        Konversi ejaan nama dan armada ke EYD Baku (Title Case) serta pembersihan gelar wajib dilakukan di internal kamu.
         
         Teks Input Kasar:
-        {text_block}
+        {text}
         """
         response = client.models.generate_content(
             model='gemini-3.1-flash-lite',
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                response_schema=AIKayyisaMasterSchema,
+                response_schema=AIKeretaMasterSchema,
                 temperature=0.1
             ),
         )
         return json.loads(response.text)
     except Exception as e:
-        st.error(f"Gagal memproses data melalui AI Gemini 3.1: {e}")
+        st.error(f"AI Kereta Error: {e}")
         return {}
 
-# =====================================================================
-# 3. LOGIKA RENDER PDF DENGAN LOGIKA MULTI-QR DYNAMIC (REPORTLAB)
-# =====================================================================
-def generate_pdf417_barcode(data_str):
-    codes = pdf417gen.encode(data_str, columns=6, security_level=2)
-    return pdf417gen.render_image(codes, scale=3, ratio=3)
 
-def generate_ticket_new(data):
+def parse_evoucher_text(text):
     """
-    Fungsi render HTML E-Tiket Kereta Api bawaan Anda.
-    Sudah diselaraskan variabelnya agar membaca data hasil output AI Gemini 3.1.
+    JALUR AI AKOMODASI: Menggantikan fungsi baris lama Anda.
+    Membaca teks manifes Voucher Hotel secara akurat dengan Gemini 3.1 Flash-Lite.
     """
-    # Membaca list 'penumpang' yang dikirim oleh AI
+    try:
+        client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+        prompt = f"""
+        Kamu adalah sistem AI Parser Hotel milik Kayyisa Tour & Travel.
+        Tugasmu mengekstrak teks input kasar hasil copas OTA menjadi format JSON terstruktur yang mematuhi skema secara mutlak.
+        Hitung total malam menginap secara matematis dan bersihkan nama tamu sesuai kaidah EYD baku.
+        
+        Teks Input Kasar:
+        {text}
+        """
+        response = client.models.generate_content(
+            model='gemini-3.1-flash-lite',
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=AIHotelMasterSchema,
+                temperature=0.1
+            ),
+        )
+        return json.loads(response.text)
+    except Exception as e:
+        st.error(f"AI Hotel Error: {e}")
+        return {}
+
+
+def generate_eticket(data):
     penumpang_rows = "\n".join([
         f"""
         <tr>
-          <td style="text-align: left; padding:8px; border: 1px solid #bbb;">{p.get('nama', '-')}</td>
-          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p.get('tipe', '-')}</td>
-          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p.get('ktp', '-')}</td>
-          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p.get('kursi', '-')}</td>
+          <td style="text-align: left; padding:8px; border: 1px solid #bbb;">{p['nama']}</td>
+          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p['tipe']}</td>
+          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p['ktp']}</td>
+          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p['kursi']}</td>
         </tr>
         """ for p in data.get('penumpang', [])
     ])
@@ -193,7 +193,196 @@ def generate_ticket_new(data):
     """
     return html
 
-def generate_evoucher_pdf_new(data):
+
+def parse_evoucher_text(text):
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    
+    data = {
+        'order_id': '-',
+        'itinerary_id': '-',
+        'hotel_name': '-',
+        'location': '-',
+        'jumlah_kamar': '-',
+        'tanggal_masuk': '-',
+        'jam_masuk': '-',
+        'tanggal_keluar': '-',
+        'jam_keluar': '-',
+        'tamu': [],
+        'kamar': '-',
+        'jumlah_tamu': 1,
+        'fasilitas': '-',
+        'permintaan_khusus': '-',
+        'harga_per_malam': 0,
+        'total_malam': 1,
+        'total_harga': '-'
+    }
+
+    # Ambil Order ID & Itinerary ID jika ada
+    for line in lines:
+        low = line.lower()
+        if 'order id' in low:
+            parts = line.split(':', 1)
+            if len(parts) > 1:
+                data['order_id'] = parts[1].strip()
+        elif 'itinerary id' in low:
+            parts = line.split(':', 1)
+            if len(parts) > 1:
+                data['itinerary_id'] = parts[1].strip()
+
+    # Cari posisi "Detail Reservasi" untuk hotel & lokasi
+    try:
+        idx_detail_reservasi = lines.index('Detail Reservasi')
+        if idx_detail_reservasi >= 2:
+            data['hotel_name'] = lines[idx_detail_reservasi - 2]
+            data['location'] = lines[idx_detail_reservasi - 1]
+    except ValueError:
+        pass
+
+    # Cari jumlah kamar (contoh format: "1 x Standard Room")
+    for line in lines:
+        line_lower = line.lower()
+        if match := re.search(r'(\d+)\s*[x×]', line_lower):
+            data['jumlah_kamar'] = int(match.group(1))
+            break
+
+    def is_valid_date(s):
+        # Contoh: "Sel, 08 Jul 2025"
+        return re.match(r'^[A-Za-z]{3,},\s+\d{2}\s+\w{3,}\s+\d{4}$', s.strip()) is not None
+    
+    def is_valid_time(s):
+        # Contoh: "12:00" atau "14:00-23:59"
+        return re.match(r'^\d{2}:\d{2}(-\d{2}:\d{2})?$', s.strip()) is not None
+    
+    # ----------- Ambil Tanggal Keluar -----------
+    if 'Tanggal keluar' in lines:
+        idx = lines.index('Tanggal keluar')
+        # Baris setelahnya: tanggal
+        if idx + 1 < len(lines) and is_valid_date(lines[idx + 1]):
+            data['tanggal_keluar'] = lines[idx + 1].strip()
+        # Baris berikutnya: jam
+        if idx + 2 < len(lines) and is_valid_time(lines[idx + 2]):
+            data['jam_keluar'] = lines[idx + 2].strip()
+    
+    # ----------- Ambil Tanggal Masuk -----------
+    if 'Tanggal masuk' in lines:
+        idx = lines.index('Tanggal masuk')
+        if idx + 1 < len(lines) and is_valid_date(lines[idx + 1]):
+            data['tanggal_masuk'] = lines[idx + 1].strip()
+        if idx + 2 < len(lines) and is_valid_time(lines[idx + 2]):
+            data['jam_masuk'] = lines[idx + 2].strip()
+
+    # Ambil daftar tamu (baris setelah "Detail Tamu" sampai sebelum "Kamar")
+    try:
+        idx_tamu = lines.index('Detail Tamu')
+        tamu_list = []
+        i = idx_tamu + 1
+        while i < len(lines) and not lines[i].lower().startswith('kamar'):
+            tamu_list.append(lines[i])
+            i += 1
+        data['tamu'] = tamu_list
+    except ValueError:
+        data['tamu'] = []
+
+    # Ambil kamar dan jumlah tamu
+    try:
+        idx_kamar = lines.index('Kamar')
+        if idx_kamar + 1 < len(lines):
+            data['kamar'] = lines[idx_kamar + 1]
+        if idx_kamar + 2 < len(lines):
+            jumlah_tamu_line = lines[idx_kamar + 2]
+            match = re.search(r'(\d+)', jumlah_tamu_line)
+            if match:
+                data['jumlah_tamu'] = int(match.group(1))
+    except ValueError:
+        pass
+
+    # Ambil fasilitas
+    try:
+        idx_fasilitas = lines.index('Fasilitas')
+        if idx_fasilitas + 1 < len(lines):
+            data['fasilitas'] = lines[idx_fasilitas + 1]
+    except ValueError:
+        pass
+
+    # Ambil permintaan khusus
+    try:
+        idx_permintaan = lines.index('Permintaan Khusus')
+        if idx_permintaan + 1 < len(lines):
+            data['permintaan_khusus'] = lines[idx_permintaan + 1].replace('Others:', '').strip()
+    except ValueError:
+        pass
+
+    # Ambil harga per malam (cari baris yang mengandung kata "Harga")
+    for line in lines:
+        if line.lower().startswith('harga'):
+            parts = line.split()
+            for part in parts:
+                part_clean = part.replace('.', '').replace(',', '.')
+                try:
+                    harga = float(part_clean)
+                    data['harga_per_malam'] = harga
+                    break
+                except:
+                    continue
+    bulan_mapping = {
+        'Jan': 'Jan',
+        'Feb': 'Feb',
+        'Mar': 'Mar',
+        'Apr': 'Apr',
+        'Mei': 'May',
+        'Jun': 'Jun',
+        'Jul': 'Jul',
+        'Agu': 'Aug',
+        'Sep': 'Sep',
+        'Okt': 'Oct',
+        'Nov': 'Nov',
+        'Des': 'Dec'
+    }
+
+    # Fungsi parsing tanggal (format: "Min, 06 Jul 2025")
+    def parse_date(date_str):
+        try:
+            # Ambil bagian tanggal setelah koma jika ada
+            if ',' in date_str:
+                date_part = date_str.split(',', 1)[1].strip()
+            else:
+                date_part = date_str.strip()
+    
+            # Ganti nama bulan Indonesia dengan versi Inggris
+            for indo_bulan, eng_bulan in bulan_mapping.items():
+                if indo_bulan in date_part:
+                    date_part = date_part.replace(indo_bulan, eng_bulan)
+                    break
+    
+            return datetime.strptime(date_part, '%d %b %Y')
+        except:
+            return None
+
+
+    masuk = parse_date(data['tanggal_masuk'])
+    keluar = parse_date(data['tanggal_keluar'])
+
+    if masuk and keluar and keluar > masuk:
+        data['total_malam'] = (keluar - masuk).days
+    else:
+        data['total_malam'] = 1
+
+    # Hitung total harga: harga_per_malam x jumlah_kamar x total_malam
+    try:
+        total_harga = (
+            float(data['harga_per_malam']) *
+            int(data['jumlah_kamar']) *
+            int(data['total_malam'])
+        )
+        data['total_harga'] = total_harga
+    except Exception:
+        data['total_harga'] = '-'
+
+    return data
+
+    
+# Fungsi generate HTML voucher (disesuaikan dari kode kamu)
+def generate_evoucher_html(data):
     get = lambda k: data.get(k, '-') if data.get(k, '-') else '-'
     tamu_html = "".join(f"<p>{tamu}</p>" for tamu in get('tamu')) if get('tamu') != '-' else "<p>-</p>"
 
@@ -395,39 +584,74 @@ def generate_evoucher_pdf_new(data):
     """
     return html
 
+
+
+# ===== Contoh pemakaian =====
+
+if __name__ == "__main__":
+    contoh_input = """
+Kode booking: 75L8DMJ
+Min, 06 Jul 2025 - 22:50
+
+Surabaya Gubeng (SGU) - Surabaya
+
+Blambangan Ekspres
+
+Eksekutif (AC) 05j 35m
+
+Sen, 07 Jul 2025 - 04:25
+
+Banyuwangi Kota (BWI) - Banyuwangi
+
+Penumpang & Fasilitas
+
+1. NYONYA Amiliya Duwi Setiyowati
+
+Dewasa
+
+Nomor Identitas: 3522096901030005
+
+SGU - BWI
+
+Kursi EKS 5/10D
+"""
+
+    data = parse_input_new_format(contoh_input)
+    html = generate_eticket(data)
+    print(html)
+
+# =========================
+# GENERATE PDF E-TIKET
+# =========================
+
+def generate_pdf417_barcode(data):
+    codes = pdf417gen.encode(data, columns=6, security_level=2)
+    image = pdf417gen.render_image(codes, scale=3, ratio=3)
+    return image
+
 def generate_eticket_pdf(data):
-    """
-    Fungsi ReportLab Canvas pembuat berkas PDF E-Tiket Kereta Api resmi Kayyisa.
-    100% menggunakan arsitektur visual asli Anda, diselaraskan dengan output data AI Gemini 3.1.
-    """
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
 
-    # Koordinat awal atas kertas
     y = height - 50
     c.setFont("Helvetica-Bold", 16)
     c.drawString(50, y, "E-TIKET KERETA API")
     y -= 30
 
     c.setFont("Helvetica", 12)
-    c.drawString(50, y, f"Kode Booking: {data.get('kode_booking', 'N/A')}")
+    c.drawString(50, y, f"Kode Booking: {data['kode_booking']}")
     y -= 20
-    # Menyelaraskan key 'tanggal_berangkat' sebagai substitusi 'tanggal' lama agar konsisten
-    c.drawString(50, y, f"Tanggal: {data.get('tanggal_berangkat', 'Tidak Diketahui')}")
+    c.drawString(50, y, f"Tanggal: {data['tanggal']}")
     y -= 20
-    c.drawString(50, y, f"Nama Kereta: {data.get('nama_kereta', 'Tidak Diketahui')}")
+    c.drawString(50, y, f"Nama Kereta: {data['nama_kereta']}")
     y -= 30
 
     c.setFont("Helvetica-Bold", 12)
     c.drawString(50, y, "Rute Perjalanan:")
     y -= 20
     c.setFont("Helvetica", 12)
-    c.drawString(
-        50, 
-        y, 
-        f"{data.get('asal', 'Tidak Diketahui')} ({data.get('jam_berangkat', '')}) → {data.get('tujuan', 'Tidak Diketahui')} ({data.get('jam_tiba', '')})"
-    )
+    c.drawString(50, y, f"{data['asal']} ({data['jam_berangkat']}) → {data['tujuan']} ({data['jam_tiba']})")
     y -= 40
 
     c.setFont("Helvetica-Bold", 12)
@@ -435,37 +659,37 @@ def generate_eticket_pdf(data):
     y -= 20
     c.setFont("Helvetica", 11)
 
-    # Iterasi daftar array penumpang hasil normalisasi EYD otomatis AI Gemini 3.1
-    for p in data.get("penumpang", []):
-        c.drawString(60, y, f"- {p.get('nama', '-')} ({p.get('tipe', '-')}), KTP: {p.get('ktp', '-')}, Kursi: {p.get('kursi', '-')}")
+    for p in data["penumpang"]:
+        c.drawString(60, y, f"- {p['nama']} ({p['tipe']}), KTP: {p['ktp']}, Kursi: {p['kursi']}")
         y -= 18
-        # Jaring pengaman pendeteksi batas bawah halaman agar tidak menabrak barcode
-        if y < 150:  
+        if y < 150:  # avoid overflow for barcode
             c.showPage()
             y = height - 50
-            c.setFont("Helvetica", 11)
 
     y -= 30
 
-    # Menghasilkan citra gambar biner barcode PDF417 bawaan sistem Anda dari kode_booking
-    barcode_img = generate_pdf417_barcode(data.get('kode_booking', 'KAYYISA'))
+    # Generate barcode image from kode_booking
+    barcode_img = generate_pdf417_barcode(data['kode_booking'])
     
-    # Konversi PIL image hasil generate_pdf417_barcode ke ReportLab ImageReader
+    # Convert PIL image to ReportLab ImageReader
     pil_buffer = BytesIO()
     barcode_img.save(pil_buffer, format='PNG')
     pil_buffer.seek(0)
     rl_image = ImageReader(pil_buffer)
 
-    # Menggambar barcode ke canvas PDF secara presisi
+    # Draw barcode image
     c.drawImage(rl_image, 50, y - 100, width=250, height=80)
 
     y -= 110
     c.setFont("Helvetica-Oblique", 10)
     c.drawString(50, y, "Tunjukkan e-tiket ini dan identitas resmi saat boarding.")
 
-    # Eksekusi tutup canvas halaman dan kembalikan biner objek PDF
     c.showPage()
     c.save()
     buffer.seek(0)
     return buffer
-
+    
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+    return buffer

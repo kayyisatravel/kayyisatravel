@@ -1346,11 +1346,26 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
             st.dataframe(st.session_state.bulk_parsed, use_container_width=True)
 
     # Bulk save
-    if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bulk ke GSheet"):
-        save_gsheet(st.session_state.bulk_parsed)
-        for k in ["bulk_parsed", "bulk_input", "file_uploader"]:
-            st.session_state.pop(k, None)
+    if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bulk ke GSheet", use_container_width=True):
+        with st.spinner("Sedang mengunggah data pembukuan ke Google Sheets keuangan..."):
+            # Jalankan fungsi penyimpanan data asli Anda
+            save_gsheet(st.session_state.bulk_parsed)
+        
+        # LIST KUNCI TERSTRUKTUR: Menghapus seluruh jejak widget secara legal
+        kunci_wajib_bersih = [
+            "bulk_parsed",                   # Hapus dataframe pembukuan bawah
+            "konten_teks_travel_utama",      # FIX: Bersihkan kotak input teks area atas
+            "asisten_ai_file_input",         # FIX: Bersihkan berkas uploader gambar/PDF
+            "fitur_speech_to_text_kayyisa"   # FIX: Reset mikrofon dikte suara kembali ke awal
+        ]
+        
+        # Eksekusi pembersihan total menggunakan metode pop aman
+        for kunci in kunci_wajib_bersih:
+            st.session_state.pop(kunci, None)
 
+        st.success("🚀 Sukses! Data aman di GSheet dan form input telah dibersihkan kembali ke awal.")
+        
+        # Segarkan halaman secara bersih, seluruh textbox dan uploader otomatis kosong suci kembali
         st.rerun()
 
 with st.expander("✏️ Input Manual Data"):

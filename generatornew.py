@@ -148,16 +148,39 @@ def parse_evoucher_text(text):
 
 
 def generate_eticket(data):
-    penumpang_rows = "\n".join([
-        f"""
+    # Deteksi otomatis jenis armada berdasarkan data manifest teks dari AI Gemini 3.1
+    nama_kereta_raw = str(data.get('nama_kereta', '')).lower()
+    is_whoosh = "whoosh" in nama_kereta_raw or str(data.get('asal', '')).lower() == "halim"
+
+    # Membaca list 'penumpang' yang dikirim oleh AI Gemini 3.1
+    penumpang_rows = []
+    for idx, p in enumerate(data.get('penumpang', []), start=1):
+        qr_html_cell = ""
+        
+        # KHUSUS ARMADA WHOOSH: Tarik gambar biner QR asli dari session state berdasarkan placeholder key
+        if is_whoosh:
+            key_qr = p.get('qr_placeholder_key', f"qr_penumpang_{idx}")
+            file_qr = st.session_state.get(key_qr)
+            
+            if file_qr:
+                import base64
+                encoded_img = base64.b64encode(file_qr.getvalue()).decode()
+                # Modifikasi aman: Menyisipkan gambar QR code asli tepat di bawah nomor kursi penumpang
+                qr_html_cell = f'<br><img src="data:image/png;base64,{encoded_img}" style="width:85px; height:85px; margin-top:5px; border:1px solid #ccc; padding:2px;"/>'
+            else:
+                qr_html_cell = '<br><span style="color:#e67e22; font-size:11px; font-weight:bold;">[QR Belum Diupload]</span>'
+
+        row_html = f"""
         <tr>
-          <td style="text-align: left; padding:8px; border: 1px solid #bbb;">{p['nama']}</td>
-          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p['tipe']}</td>
-          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p['ktp']}</td>
-          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p['kursi']}</td>
+          <td style="text-align: left; padding:8px; border: 1px solid #bbb;">{p.get('nama', '-')}</td>
+          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p.get('tipe', '-')}</td>
+          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p.get('ktp', '-')}</td>
+          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p.get('kursi', '-')}{qr_html_cell}</td>
         </tr>
-        """ for p in data.get('penumpang', [])
-    ])
+        """
+        penumpang_rows.append(row_html)
+
+    penumpang_rows_joined = "\n".join(penumpang_rows)
 
     html = f"""
     <style>
@@ -202,15 +225,15 @@ def generate_eticket(data):
           </tr>
         </thead>
         <tbody>
-          {penumpang_rows}
+          {penumpang_rows_joined}
         </tbody>
       </table>
 
-      <div style="margin-top: 20px; text-align: center;">
+      {f'''<div style="margin-top: 20px; text-align: center;">
         <img src="https://barcode.tec-it.com/barcode.ashx?data={data.get('kode_booking', '')}&code=PDF417"
              style="width: 250px; height: 80px;" />
         <p><strong>Kode Booking:</strong> {data.get('kode_booking', '')}</p>
-      </div>
+      </div>''' if not is_whoosh else ""}
 
       <div style="text-align: center; margin-top: 30px;">
         <button class="no-print" onclick="window.print()"

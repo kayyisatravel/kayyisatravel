@@ -194,117 +194,205 @@ def generate_eticket_pdf_new(data):
     return html
 
 def generate_evoucher_pdf_new(data):
-    """Fungsi pembuat berkas PDF E-Voucher Hotel versi AI terbaru"""
-    buffer = BytesIO()
-    c = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
+    get = lambda k: data.get(k, '-') if data.get(k, '-') else '-'
+    tamu_html = "".join(f"<p>{tamu}</p>" for tamu in get('tamu')) if get('tamu') != '-' else "<p>-</p>"
+
+    # Format harga total
+    total_harga = "-"
+    try:
+        total_harga_val = get('harga_per_malam') * get('total_malam') * get('jumlah_kamar')
+        total_harga = f"Rp {total_harga_val:,.0f}".replace(',', '.')
+    except:
+        pass
+
+    html = f"""
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+      .voucher {{
+        width:700px;
+        border:2px solid #004080;
+        border-radius:10px;
+        padding:30px 35px;
+        font-family: 'Montserrat', sans-serif;
+        background: #f9fbff;
+        color: #004080;
+        box-shadow: 0 4px 10px rgba(0,64,128,0.1);
+      }}
+      .header {{
+        display:flex;
+        align-items:center;
+        justify-content: space-between;
+        background: linear-gradient(90deg, #e0e8f9, #b3c7f9);
+        padding: 10px 20px;
+        border-radius: 8px;
+        border-bottom: 2px solid #004080;
+        margin-bottom: 20px;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }}
+      .header-left {{
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }}
+      .header-left img {{
+        height: 45px;
+        border-radius: 5px;
+        border: 1px solid #004080;
+        background: white;
+      }}
+      .header-left h1 {{
+        margin: 0;
+        font-weight: 700;
+        font-size: 25px;
+        letter-spacing: 1px;
+        white-space: nowrap;
+      }}
+      .header-right {{
+        font-weight: 400;
+        font-size: 14px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        align-self: center;
+        margin-left: auto;
+        text-align: right;
+      }}
+      .section {{
+        margin-top:18px;
+      }}
+      .section h3 {{
+        margin-bottom:10px;
+        color:#004080;
+        border-bottom: 2px solid #004080;
+        padding-bottom: 6px;
+        font-weight:700;
+        font-size:18px;
+        display:flex;
+        align-items:center;
+        gap:10px;
+      }}
+      .section p {{
+        margin:5px 0;
+        font-size: 15px;
+      }}
+      .footer {{
+        margin-top:35px;
+        font-size:14px;
+        color:#555;
+        border-top:1.5px solid #ccc;
+        padding-top:15px;
+        text-align:center;
+        font-style: italic;
+      }}
+      .icon {{
+        width: 20px;
+        height: 20px;
+        fill: #004080;
+      }}
+      .price-table {{
+        margin-top: 12px;
+        border-collapse: collapse;
+        width: 100%;
+      }}
+      .price-table th, .price-table td {{
+        border: 1px solid #aac4ff;
+        padding: 10px 14px;
+        text-align: center;
+        vertical-align: middle;
+        font-size: 15px;
+        color: #003366;
+      }}
+      .price-table th {{
+        background-color: #c6d6ff;
+        font-weight: 700;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }}
+
+      /* Tambahan untuk cetak */
+      @media print {{
+        .no-print {{
+          display: none !important;
+        }}
+        .header,
+        .price-table th {{
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }}
+      }}
+    </style>
+
+    <div class="voucher">
+      <div class="header">
+        <div class="header-left">
+          <h1>|Kayyisa Tour & Travel</h1>
+        </div>
+        <div class="header-right">
+          Hotel Reservation
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Order & Itinerary</h3>
+        <p>Order ID: {get('order_id')}<br>
+           Itinerary ID: {get('itinerary_id')}</p>
+      </div>
+
+      <div class="section">
+        <h3>Properti & Lokasi</h3>
+        <p>{get('hotel_name')}<br>{get('location')}</p>
+      </div>
+
+      <div class="section">
+        <h3>Detail Reservasi</h3>
+        <p>Jumlah Kamar: {get('jumlah_kamar')}<br>
+           Check-in: {get('tanggal_masuk')} – {get('jam_masuk')}<br>
+           Check-out: {get('tanggal_keluar')} – {get('jam_keluar')}</p>
+      </div>
+
+      <div class="section">
+        <h3>Harga</h3>
+        <table class="price-table">
+          <tr>
+            <th>Rate per Malam</th>
+            <th>Total Malam</th>
+            <th>Jumlah Kamar</th>
+            <th>Total Harga</th>
+          </tr>
+          <tr>
+            <td>Rp {get('harga_per_malam'):,.0f}</td>
+            <td>{get('total_malam')} malam</td>
+            <td>{get('jumlah_kamar')}</td>
+            <td><strong>{total_harga}</strong></td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="section">
+        <h3>Detail Tamu & Kamar</h3>
+        {tamu_html}<br>
+        <p>{get('kamar')}</p>
+      </div>
+
+      <div class="section">
+        <h3>Fasilitas & Permintaan</h3>
+        <p>Fasilitas: {get('fasilitas')}<br>
+           Permintaan Khusus: {get('permintaan_khusus')}</p>
+      </div>
+
+      <div class="footer">
+        Jika ada kendala saat check‑in, silakan hubungi kami di: (62813 3671 6677 / kayyisatour@gmail.com)
+      </div>
+      
+      <div style="text-align: center; margin-top: 30px;">
+        <button class="no-print" onclick="window.print()"
+                style="padding: 10px 20px; background-color: #0047b3; color: white; border: none;
+                       border-radius: 6px; cursor: pointer; font-size: 16px;">
+          Cetak Tiket
+        </button>
+      </div>
+    </div>
+    """
+    return html
     
-    c.setFillColorRGB(0, 0.25, 0.5)
-    c.rect(40, height - 70, width - 80, 40, fill=1, stroke=0)
-    c.setFillColorRGB(1, 1, 1)
-    c.setFont("Helvetica-Bold", 14)
-    c.drawString(55, height - 54, "| Kayyisa Tour & Travel")
-    c.setFont("Helvetica", 11)
-    c.drawRightString(width - 55, height - 53, "HOTEL RESERVATION VOUCHER")
-    
-    y = height - 105
-    c.setFillColorRGB(0, 0, 0)
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(50, y, "Order & Itinerary")
-    c.setFont("Helvetica", 10)
-    y -= 18
-    c.drawString(50, y, f"Platform Asal: {data.get('platform', 'Lainnya')}  |  ID Pesanan: {data.get('kode_booking', '-')}")
-    
-    y -= 25
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(50, y, "Akomodasi & Lokasi")
-    
-    y -= 18
-    c.setFont("Helvetica-Bold", 12)
-    c.setFillColorRGB(0, 0.25, 0.5)
-    c.drawString(50, y, f"🏨 {data.get('hotel_name', '-')}")
-    
-    y -= 14
-    c.setFillColorRGB(0, 0, 0)
-    c.setFont("Helvetica-Oblique", 10)
-    c.drawString(50, y, f"Alamat: {data.get('location', '-')}")
-    
-    y -= 25
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(50, y, "Detail Jadwal Menginap")
-    c.setFont("Helvetica", 10)
-    y -= 18
-    c.drawString(50, y, f"Check-in  : {data.get('tanggal_masuk', '-')} (Jam {data.get('jam_masuk', '-')})")
-    
-    y -= 14
-    c.drawString(50, y, f"Check-out : {data.get('tanggal_keluar', '-')} (Jam {data.get('jam_keluar', '-')})")
-    
-    y -= 30
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(50, y, "Rincian Pembiayaan Kamar")
-    
-    y -= 18
-    c.setStrokeColorRGB(0.7, 0.8, 0.9)
-    c.setFillColorRGB(0.9, 0.94, 1.0)
-    c.rect(50, y - 25, width - 100, 25, fill=1, stroke=1)
-    
-    c.setFillColorRGB(0, 0, 0)
-    c.setFont("Helvetica-Bold", 9)
-    c.drawCentredString(120, y - 16, "Rate per Malam")
-    c.drawCentredString(230, y - 16, "Durasi")
-    c.drawCentredString(340, y - 16, "Jumlah Kamar")
-    c.drawCentredString(460, y - 16, "Total Harga")
-    
-    y -= 25
-    c.setFillColorRGB(1, 1, 1)
-    c.rect(50, y - 25, width - 100, 25, fill=1, stroke=1)
-    
-    c.setFillColorRGB(0, 0, 0)
-    c.setFont("Helvetica", 9)
-    
-    hrg_malam = data.get('harga_per_malam', 0.0)
-    tot_malam = data.get('total_malam', 1)
-    jml_kamar = data.get('jumlah_kamar', 1)
-    total_gross = hrg_malam * tot_malam * jml_kamar
-    
-    c.drawCentredString(110, y - 17, f"Rp {hrg_malam:,.0f}".replace(',', '.'))
-    c.drawCentredString(230, y - 17, f"{tot_malam} Malam")
-    c.drawCentredString(340, y - 17, f"{jml_kamar} Kamar")
-    c.setFont("Helvetica-Bold", 9)
-    c.drawCentredString(460, y - 17, f"Rp {total_gross:,.0f}".replace(',', '.'))
-    
-    y -= 45
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(50, y, "Detail Tamu Menginap & Tipe Kamar")
-    c.setFont("Helvetica", 10)
-    
-    y -= 18
-    c.drawString(50, y, f"Kategori Bed : {data.get('tipe_kamar', '-')}")
-    
-    y -= 14
-    c.drawString(50, y, "Daftar Tamu  :")
-    
-    y -= 14
-    for t_idx, nama_tamu in enumerate(data.get('tamu_hotel', []), start=1):
-        c.drawString(65, y, f"{t_idx}. {nama_tamu} (EYD Baku)")
-        y -= 14
-        
-    y -= 15
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(50, y, "Fasilitas & Kebijakan Kamar")
-    c.setFont("Helvetica", 10)
-    
-    y -= 18
-    c.drawString(50, y, f"Fasilitas Utama    : {data.get('fasilitas_catatan', '-')}")
-    
-    c.setStrokeColorRGB(0.8, 0.8, 0.8)
-    c.line(50, 70, width - 50, 70)
-    c.setFont("Helvetica-Oblique", 9)
-    c.setFillColorRGB(0.3, 0.3, 0.3)
-    c.drawCentredString(width / 2.0, 52, "Jika ada kendala saat check-in, silakan hubungi layanan darurat 24/7 kami di: (62813 3671 6677 / kayyisatour@gmail.com)")
-    
-    c.showPage()
-    c.save()
-    buffer.seek(0)
-    return buffer
 

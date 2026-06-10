@@ -253,7 +253,7 @@ def generate_eticket(data):
       </div>
 
       <!-- REVISI: Transformasi wadah rute menjadi bentuk kontainer melengkung minimalis modern -->
-      <div style="font-size: 14px; line-height: 1.6; background: transparent; padding: 14px 18px; border-radius: 8px; margin-bottom: 25px; border: 2px solid {color_primary}; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+      <div style="font-size: 14px; line-height: 1.6; background: transparent; padding: 14px 18px; border-radius: 8px; margin-bottom: 25px; text-align: center; border: 2px solid {color_primary}; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
          <strong style="color: {color_primary}; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Rute Perjalanan:</strong><br>
          <span style="font-size: 15px; color:#222;">{data.get('asal', 'Tidak Diketahui')} <strong>{data.get('jam_berangkat', '')}</strong> ➔ {data.get('tujuan', 'Tidak Diketahui')} <strong>{data.get('jam_tiba', '')}</strong></span>
       </div>

@@ -112,7 +112,7 @@ def generate_pdf417_barcode(data_str):
     codes = pdf417gen.encode(data_str, columns=6, security_level=2)
     return pdf417gen.render_image(codes, scale=3, ratio=3)
 
-def generate_eticket_pdf_new(data):
+def generate_ticket_new(data):
     """
     Fungsi render HTML E-Tiket Kereta Api bawaan Anda.
     Sudah diselaraskan variabelnya agar membaca data hasil output AI Gemini 3.1.

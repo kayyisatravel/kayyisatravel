@@ -20,7 +20,10 @@ class PenumpangKeretaSchema(BaseModel):
     """)
     tipe: str = Field(description="Tipe penumpang, contoh: 'Dewasa' atau 'Anak'")
     ktp: str = Field(description="Nomor identitas / NIK / KTP / Paspor penumpang. Jika tidak ada isi 'N/A'")
-    kursi: str = Field(description="Nomor posisi kursi spesifik, contoh: 'EKS 5/10D' atau 'Kereta 6 / Kursi 8F'")
+    kursi: str = Field(description="""
+        Nomor posisi kursi spesifik, contoh: 'EKS 5/10D' atau 'Kereta 6 / Kursi 8F.
+        Contoh teks: 'EKO-3/ 19-E' -> Maka isi field kursi wajib: 'EKO 3/19E'.
+        Contoh teks: 'Eksekutif 2 / 5A' -> Maka isi field kursi wajib: 'EKS 2/5A'.
     qr_placeholder_key: str = Field(description="Penanda urutan gambar khusus Whoosh: 'qr_penumpang_1', 'qr_penumpang_2', dst.")
 
 class AIKeretaMasterSchema(BaseModel):

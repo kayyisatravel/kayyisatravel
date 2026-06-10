@@ -1112,7 +1112,7 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
             )
         
         # --- PERBAIKAN: Hanya gunakan 1 Tombol Utama Lebar Penuh (Tanpa Tombol Cetak PDF) ---
-        if st.button("📊 Proses Teks ke Keuangan", key="btn_proses_text_finance", use_container_width=True):
+        if st.button("📊 Proses ke Database", key="btn_proses_text_finance", use_container_width=True):
             if ai_raw.strip():
                 tombol_ditekan = True
                 with st.spinner("Gemini AI sedang membaca salinan teks..."):
@@ -1183,14 +1183,26 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
                     'Sumber Dana': sumber_dana, 'Detail Dana': detail_dana, 'Platform': item.get("platform", "Lainnya")
                 })
             
+                        # --- MASUKKAN KE DATA FRAME UTAMA ---
             st.session_state.bulk_parsed = pd.DataFrame(ai_entries)
             st.session_state.edit_mode_bulk = True
             
             if pemberitahuan_masalah_data:
                 st.session_state.peringatan_admin_ai = "⚠️ **Peringatan Validasi Tiket!** Ditemukan beberapa kolom wajib masih kosong:\n\n" + "\n".join([f"- {e}" for e in pemberitahuan_masalah_data]) + "\n\n**Mohon lengkapi data kosong tersebut** pada menu edit manual di bawah ini sebelum disimpan!"
             else:
-                if "peringatan_admin_ai" in st.session_state: del st.session_state["peringatan_admin_ai"]
+                if "peringatan_admin_ai" in st.session_state: 
+                    del st.session_state["peringatan_admin_ai"]
+            
+            # =====================================================================
+            # AMAN & BERSIH: Reset memori kotak teks & file uploader sebelum rerun
+            # =====================================================================
+            st.session_state["konten_teks_travel_utama"] = "" # Bersihkan teks area
+            if "asisten_ai_file_input" in st.session_state:
+                del st.session_state["asisten_ai_file_input"] # Bersihkan file uploader
+                
+            # Memicu refresh halaman Streamlit dengan kondisi form sudah kosong kembali
             st.rerun()
+            
         else:
             st.error("⚠️ AI gagal mengekstrak data. Pastikan teks berisi manifes tiket yang valid atau kualitas gambar/suara cukup jelas.")
 

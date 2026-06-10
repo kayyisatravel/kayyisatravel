@@ -2415,36 +2415,74 @@ def generate_ticket(data, tipe):
 st.markdown("""<hr style="border-top: 1px solid #7f8c8d;">""", unsafe_allow_html=True)
 
 #======================GENERATOR TIKET BARU==========================================
-with st.expander("🎫 [NEW] Generator E-Tiket & Voucher (Cerdas AI - Gemini 3.1)"):
-    tipe_pilihan = st.radio("Pilih tipe:", ["Kereta", "Whoosh", "Hotel"], key="radio_ai_new")
-    input_mentah = st.text_area("Tempel teks manifes copas dari OTA di sini:", key="text_ai_new")
+with st.expander("🎫 [NEW] Generator E-Tiket & Voucher (Cerdas AI - Gemini 3.1)", expanded=True):
+
+    # Pilihan tipe tiket sesuai model AI baru Anda
+    tipe_tiket = st.radio("Pilih tipe tiket:", ["Kereta", "Whoosh", "Hotel"], key="tipe_tiket_radio_new")
     
-    if st.button("✨ Proses dengan Gemini 3.1 Flash Lite", key="btn_ai_new"):
-        # Memanggil file penafsir baru Anda
-        hasil_ai = generatornew.panggil_ai_ticket_parser(input_mentah, tipe_pilihan)
-        if hasil_ai:
-            st.session_state['data_ai_new'] = hasil_ai
-            st.success("Berhasil diproses AI!")
+    st.session_state['tipe_tiket_new'] = tipe_tiket
 
-    # Logika tampilkan download PDF baru
-    if 'data_ai_new' in st.session_state:
-        data_siap = st.session_state['data_ai_new']
-        
-        # Munculkan kolom upload QR Code jika itu armada Whoosh
-        if data_siap.get("tipe_dokumen") == "Whoosh":
-            for p in data_siap.get("daftar_penumpang", []):
-                key_qr = p["qr_placeholder_key"]
-                file_qr = st.file_uploader(f"Upload QR Code asli untuk {p['nama']}", key=f"up_{key_qr}")
-                if file_qr:
-                    st.session_state[key_qr] = file_qr
+    # Template default pembantu visual admin
+    if tipe_tiket == "Hotel":
+        default_text = "Order ID:\nItinerary ID:\n\nHarga "
+    else:
+        default_text = "Kode booking: "
 
-        # Download Button menggunakan generatornew
-        if tipe_pilihan in ["Kereta", "Whoosh"]:
-            pdf_stream = generatornew.generate_eticket_pdf_new(data_siap)
+    # Inisialisasi text_area hanya sekali per tipe (hindari reset)
+    input_key = f"input_text_new_{tipe_tiket}"
+    if input_key not in st.session_state:
+        st.session_state[input_key] = default_text
+
+    # Area input teks manifest
+    input_text = st.text_area(
+        f"Tempelkan teks tiket {tipe_tiket}",
+        value=st.session_state[input_key],
+        height=300,
+        key=input_key
+    )
+
+    # Tombol generate (Hanya memproses parsing data & mengunci state data)
+    if st.button("Generate Tiket", key="btn_generate_ai_new", use_container_width=True):
+        if input_text.strip() and input_text != default_text:
+            with st.spinner(f"AI Gemini 3.1 sedang menyusun data manifest {tipe_tiket}..."):
+                # Menggunakan engine parser cerdas dari generatornew
+                data = generatornew.panggil_ai_ticket_parser(input_text.strip(), tipe_tiket)
+                if data:
+                    st.session_state['last_data_new'] = data
+                    st.session_state['tipe_tiket_new'] = tipe_tiket
+                    st.success("🎉 Data manifest berhasil diekstrak secara akurat oleh AI!")
+                else:
+                    st.error("AI gagal mengekstrak data. Periksa teks input Anda.")
         else:
-            pdf_stream = generatornew.generate_evoucher_pdf_new(data_siap)
+            st.warning("Silakan masukkan data tiket terlebih dahulu.")
+
+    # --- LOGIKA KHUSUS: REAKTIF MULTI-UPLOAD GAMBAR QR CODE WHOOSH ASLI ---
+    if 'last_data_new' in st.session_state and st.session_state.get('tipe_tiket_new') == "Whoosh" and tipe_tiket == "Whoosh":
+        data_aktif = st.session_state['last_data_new']
+        st.markdown("### 📷 Upload Screenshot Gambar QR Code Asli Penumpang Whoosh")
+        
+        for index, penumpang in enumerate(data_aktif.get("penumpang", []), start=1):
+            placeholder_key = penumpang.get("qr_placeholder_key")
+            st.write(f"🔹 **Penumpang {index}: {penumpang['nama']} ({penumpang['kursi']})**")
             
-        st.download_button("📥 Unduh PDF Resmi (EYD Approved)", data=pdf_stream, file_name="Dokumen_Kayyisa.pdf", mime="application/pdf")
+            file_qr_uploaded = st.file_uploader(
+                f"Pilih berkas QR Code untuk {penumpang['nama']}",
+                type=["png", "jpg", "jpeg"],
+                key=f"uploader_bin_key_{placeholder_key}"
+            )
+            if file_qr_uploaded is not None:
+                st.session_state[placeholder_key] = file_qr_uploaded
+
+    # Tampilkan hasil PREVIEW HTML jika data sudah siap (Sama persis seperti alur lama)
+    if 'last_data_new' in st.session_state and st.session_state.get('tipe_tiket_new') == tipe_tiket:
+        data_render = st.session_state['last_data_new']
+        try:
+            # Memanggil fungsi distribusi render HTML dari generatornew
+            html_content = generatornew.generate_ticket_new(data_render, tipe_tiket)
+            st.components.v1.html(html_content, height=850, scrolling=True)
+        except Exception as e:
+            st.warning(f"⚠️ Gagal membuat tampilan preview tiket: {e}")
+
 
 #=====================================================================================
 

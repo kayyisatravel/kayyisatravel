@@ -2445,7 +2445,7 @@ with st.expander("🎫 [NEW] Generator E-Tiket & Voucher (Cerdas AI - Gemini 3.1
             
         st.download_button("📥 Unduh PDF Resmi (EYD Approved)", data=pdf_stream, file_name="Dokumen_Kayyisa.pdf", mime="application/pdf")
 
-=====================================================================================
+#=====================================================================================
 
 with st.expander("🎫 Generator E-Tiket"):
 

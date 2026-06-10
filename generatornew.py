@@ -172,7 +172,7 @@ def generate_eticket(data):
         color_table_border = "#ffccd3"  # Garis tepi tabel rose/peach lembut
     else:
         logo_url = "https://pilihanhidup.com/wp-content/uploads/2024/04/logo-KAI.png" # Logo KAI asli Anda
-        judul_tiket = "E-Tiket Kereta Api"
+        judul_tiket = ""
         color_primary = "#0047b3"  # Biru KAI asli
         color_table_header = "#cce0ff"  # Biru muda pastel
         color_table_border = "#bbb"

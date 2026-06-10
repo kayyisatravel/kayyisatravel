@@ -1058,7 +1058,7 @@ def terapkan_otomatisasi_pembayaran(platform_name: str) -> (str, str):
 # ==============================================================================
 # 🤖 [FIXED FINAL]: EXPANDER UTAMA - MULTI-INPUT (TEKS, GAMBAR, & SUARA) CERDAS AI
 # ==============================================================================
-with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expanded=True):
+with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
     st.markdown("""
     *Pilih metode input yang paling praktis. Sistem otomatis menyelaraskan format KAI, Hotel, maupun Pesawat.*
     """)
@@ -1090,7 +1090,7 @@ with st.expander('⌨️ Upload Data Reservasi (Cerdas AI - Gemini 3.1)', expand
         col_textarea, col_microphone = st.columns([0.80, 0.20])
         
         with col_microphone:
-            st.write("🎙️ **Dikte Suara**")
+            st.write("🎙️ **Input Suara**")
             teks_suara_langsung = speech_to_text(
                 start_prompt="🎙️ Mulai",
                 stop_prompt="🛑 Stop",
@@ -2415,25 +2415,25 @@ def generate_ticket(data, tipe):
 st.markdown("""<hr style="border-top: 1px solid #7f8c8d;">""", unsafe_allow_html=True)
 
 #======================GENERATOR TIKET BARU==========================================
-with st.expander("🎫 [NEW] Generator E-Tiket & Voucher (Cerdas AI - Gemini 3.1)", expanded=True):
+with st.expander("🎫 Generator AI E-Tiket"):
 
-    # Pilihan tipe tiket sesuai model AI baru Anda
-    tipe_tiket = st.radio("Pilih tipe tiket:", ["Kereta", "Whoosh", "Hotel"], key="tipe_tiket_radio_new")
+    # Pilihan tipe tiket diperluas untuk mengakomodasi Whoosh, dialirkan sesuai skema AI
+    tipe_tiket = st.radio("Pilih tipe tiket:", ["Kereta", "Whoosh", "Hotel"], key="tipe_tiket_radio")
     
-    st.session_state['tipe_tiket_new'] = tipe_tiket
+    st.session_state['tipe_tiket'] = tipe_tiket
 
-    # Template default pembantu visual admin
+    # Template default berdasarkan tipe tiket
     if tipe_tiket == "Hotel":
         default_text = "Order ID:\nItinerary ID:\n\nHarga "
     else:
         default_text = "Kode booking: "
 
     # Inisialisasi text_area hanya sekali per tipe (hindari reset)
-    input_key = f"input_text_new_{tipe_tiket}"
+    input_key = f"input_text_{tipe_tiket}"
     if input_key not in st.session_state:
         st.session_state[input_key] = default_text
 
-    # Area input teks manifest
+    # Area input teks
     input_text = st.text_area(
         f"Tempelkan teks tiket {tipe_tiket}",
         value=st.session_state[input_key],
@@ -2441,47 +2441,59 @@ with st.expander("🎫 [NEW] Generator E-Tiket & Voucher (Cerdas AI - Gemini 3.1
         key=input_key
     )
 
-    # Tombol generate (Hanya memproses parsing data & mengunci state data)
-    if st.button("Generate Tiket", key="btn_generate_ai_new", use_container_width=True):
-        if input_text.strip() and input_text != default_text:
-            with st.spinner(f"AI Gemini 3.1 sedang menyusun data manifest {tipe_tiket}..."):
-                # Menggunakan engine parser cerdas dari generatornew
-                data = generatornew.panggil_ai_ticket_parser(input_text.strip(), tipe_tiket)
-                if data:
-                    st.session_state['last_data_new'] = data
-                    st.session_state['tipe_tiket_new'] = tipe_tiket
-                    st.success("🎉 Data manifest berhasil diekstrak secara akurat oleh AI!")
-                else:
-                    st.error("AI gagal mengekstrak data. Periksa teks input Anda.")
-        else:
-            st.warning("Silakan masukkan data tiket terlebih dahulu.")
-
-    # --- LOGIKA KHUSUS: REAKTIF MULTI-UPLOAD GAMBAR QR CODE WHOOSH ASLI ---
-    if 'last_data_new' in st.session_state and st.session_state.get('tipe_tiket_new') == "Whoosh" and tipe_tiket == "Whoosh":
-        data_aktif = st.session_state['last_data_new']
-        st.markdown("### 📷 Upload Screenshot Gambar QR Code Asli Penumpang Whoosh")
-        
+    # --- LOGIKA KHUSUS: MULTI-UPLOAD GAMBAR QR CODE WHOOSH ASLI ---
+    # Muncul secara reaktif tepat di bawah kotak teks jika admin memilih menu Whoosh dan data sudah ada
+    if tipe_tiket == "Whoosh" and 'last_data' in st.session_state and st.session_state.get('tipe_tiket') == "Whoosh":
+        data_aktif = st.session_state['last_data']
+        st.markdown("#### 📷 Kolom Upload QR Code Asli Whoosh")
         for index, penumpang in enumerate(data_aktif.get("penumpang", []), start=1):
             placeholder_key = penumpang.get("qr_placeholder_key")
-            st.write(f"🔹 **Penumpang {index}: {penumpang['nama']} ({penumpang['kursi']})**")
-            
+            st.caption(f"🔹 **Penumpang {index}: {penumpang.get('nama', '-')} ({penumpang.get('kursi', '-')})**")
             file_qr_uploaded = st.file_uploader(
-                f"Pilih berkas QR Code untuk {penumpang['nama']}",
+                f"Pilih screenshot QR Code untuk {penumpang.get('nama', '-')}",
                 type=["png", "jpg", "jpeg"],
                 key=f"uploader_bin_key_{placeholder_key}"
             )
             if file_qr_uploaded is not None:
                 st.session_state[placeholder_key] = file_qr_uploaded
 
-    # Tampilkan hasil PREVIEW HTML jika data sudah siap (Sama persis seperti alur lama)
-    if 'last_data_new' in st.session_state and st.session_state.get('tipe_tiket_new') == tipe_tiket:
-        data_render = st.session_state['last_data_new']
+    # Tombol generate (Memanggil Fungsi AI Baru dari berkas generatornew.py)
+    if st.button("Generate Tiket"):
+        if input_text.strip() and input_text != default_text:
+            with st.spinner(f"AI Gemini 3.1 sedang mengekstrak manifest {tipe_tiket} (EYD Baku)..."):
+                
+                # INTEGRASI JALUR ENGINE PARSER AI BARU
+                if tipe_tiket in ["Kereta", "Whoosh"]:
+                    # Memanggil fungsi AI yang menggantikan regex kereta lama Anda
+                    data = generatornew.parse_input_dynamic(input_text.strip())
+                elif tipe_tiket == "Hotel":
+                    # Memanggil fungsi AI yang menggantikan pembacaan baris hotel lama Anda
+                    data = generatornew.parse_evoucher_text(input_text.strip())
+                
+                if data:
+                    st.session_state['last_data'] = data
+                    st.session_state['tipe_tiket'] = tipe_tiket
+                    st.success("🎉 AI Gemini 3.1 sukses menstrukturkan data secara presisi!")
+                else:
+                    st.error("AI gagal mengekstrak data. Pastikan teks masukan terbaca dengan jelas.")
+        else:
+            st.warning("Silakan masukkan data tiket terlebih dahulu.")
+
+    # Tampilkan hasil preview HTML menggunakan fungsi visual asli Anda jika sudah ada
+    if 'last_data' in st.session_state and st.session_state.get('tipe_tiket') == tipe_tiket:
+        data = st.session_state['last_data']
         try:
-            # Memanggil fungsi distribusi render HTML dari generatornew
-            html_content = generatornew.generate_ticket_new(data_render, tipe_tiket)
-            st.components.v1.html(html_content, height=850, scrolling=True)
+            # Memanggil fungsi penyaji HTML bawaan Anda di generator.py atau generatornew.py
+            if tipe_tiket in ["Kereta", "Whoosh"]:
+                # Mengirim data biner ke fungsi template eticket
+                html = generatornew.generate_eticket(data)
+            elif tipe_tiket == "Hotel":
+                # Mengirim data biner ke fungsi template voucher hotel
+                html = generatornew.generate_evoucher_html(data)
+                
+            st.components.v1.html(html, height=800, scrolling=True)
         except Exception as e:
-            st.warning(f"⚠️ Gagal membuat tampilan preview tiket: {e}")
+            st.warning(f"⚠️ Gagal membuat tampilan tiket: {e}")
 
 
 #=====================================================================================

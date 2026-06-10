@@ -165,10 +165,10 @@ def generate_eticket(data):
 
     # Penentuan Logo dan Judul secara dinamis berbasis armada
     if is_whoosh:
-        logo_url = "https://wikipedia.org" # Menggunakan URL gambar Logo resmi KCIC
+        logo_url = "https://kcic.co.id/lkapp/wp-content/uploads/2023/09/1-Whoosh-Merah@300x-100-square.jpg" # Menggunakan URL gambar Logo resmi KCIC
         judul_tiket = "E-Tiket Whoosh"
     else:
-        logo_url = "https://pilihanhidup.com" # Logo KAI asli Anda
+        logo_url = "https://pilihanhidup.com/wp-content/uploads/2024/04/logo-KAI.png" # Logo KAI asli Anda
         judul_tiket = "E-Tiket Kereta Api"
 
     # 2. Iterasi Baris Penumpang Manifes
@@ -263,7 +263,7 @@ def generate_eticket(data):
 
       <!-- BARCODE KAI GLOBAL OTOMATIS DISAPA SAAT BUKAN WHOOSH -->
       {f'''<div style="margin-top: 20px; text-align: center;">
-        <img src="https://tec-it.com{data.get('kode_booking', '')}&code=PDF417"
+        <img src="https://barcode.tec-it.com/barcode.ashx?data={data.get('kode_booking', '')}&code=PDF417"
              style="width: 250px; height: 80px;" />
         <p><strong>Kode Booking:</strong> {data.get('kode_booking', '')}</p>
       </div>''' if not is_whoosh else ""}

@@ -64,6 +64,9 @@ class AIHotelMasterSchema(BaseModel):
         JANGAN memotong kata imbuhan di belakangnya seperti '- Free Breakfast', 'with Fan', atau 'Room Only'.
         Contoh teks: '1 Standard - Free Breakfast' -> Maka isi field kamar wajib: 'Standard - Free Breakfast'.
         Contoh teks: 'SUPERIOR KING BED - Room Only' -> Maka isi field kamar wajib: 'SUPERIOR KING BED - Room Only'.
+        Tidak perlu menambahkan 'Kamar'. 
+        Contoh teks: 'KAMAR SUPERIOR KING BED - Room Only' -> Maka isi field kamar wajib: 'SUPERIOR KING BED - Room Only'.
+        Contoh teks: '1 Kamar Standard - Free Breakfast' -> Maka isi field kamar wajib: 'Standard - Free Breakfast'.
     """)
     
 

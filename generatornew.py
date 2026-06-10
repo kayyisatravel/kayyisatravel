@@ -34,8 +34,16 @@ class AIKeretaMasterSchema(BaseModel):
     jam_berangkat: str = Field(description="Jam keberangkatan format HH:MM atau HH.MM")
     tanggal_tiba: str = Field(description="Tanggal tiba di stasiun tujuan format indah dibaca manusia, contoh: '12 Feb 2026'")
     jam_tiba: str = Field(description="Jam tiba di stasiun tujuan format HH:MM atau HH.MM")
-    asal: str = Field(description="Nama stasiun asal lengkap beserta kode stasiunnya di dalam kurung, contoh: 'Semarang Tawang (SMT)' atau 'Halim'")
-    tujuan: str = Field(description="Nama stasiun tujuan lengkap beserta kode stasiunnya di dalam kurung, contoh: 'Surabaya Pasarturi (SBI)' atau 'Tegalluar'")
+    asal: str = Field(description="""
+        Nama stasiun asal lengkap beserta kode stasiunnya di dalam kurung, contoh: 'Semarang Tawang (SMT)' atau 'Halim'")
+        Kode stasiun wajib sesuai aturan resmi KAI dan KCIC.
+        Jika tidak ada data sama sekali, ambil 3 digit terdepan nama stasiun. Contoh: 'Buduran (BUD)' atau Gedangan (GED)'
+        """)
+    tujuan: str = Field(description="""
+        Nama stasiun tujuan lengkap beserta kode stasiunnya di dalam kurung, contoh: 'Surabaya Pasarturi (SBI)' atau 'Tegalluar'")
+        Kode stasiun wajib sesuai aturan resmi KAI dan KCIC.
+        Jika tidak ada data sama sekali, ambil 3 digit terdepan nama stasiun. Contoh: 'Sedati (SED)' atau Wonoayu (WON)'
+        """)
     nama_kereta: str = Field(description="Nama armada kereta api berformat EYD baku (Title Case) tanpa nomor seri di belakangnya, contoh: 'Ambarawa Ekspres' atau 'Serayu'")
     kelas: str = Field(description="Kelas kategori kereta api berformat Title Case, contoh: 'Ekonomi' atau 'Eksekutif'")
     penumpang: List[PenumpangKeretaSchema] = Field(default=[], description="Daftar array manifes seluruh penumpang")

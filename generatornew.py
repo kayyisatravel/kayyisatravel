@@ -414,7 +414,7 @@ def generate_evoucher_html(data):
 
       <div class="section">
         <h3>Detail Tamu & Kamar</h3>
-        <strong>{tamu_html}<br>
+        <strong>{tamu_html}</strong><br>
         <p>{teks_kamar_final}</p>
       </div>
 

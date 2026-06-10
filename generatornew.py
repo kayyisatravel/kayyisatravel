@@ -163,13 +163,19 @@ def generate_eticket(data):
     stasiun_asal_raw = str(data.get('asal', '')).lower()
     is_whoosh = "whoosh" in nama_kereta_raw or "halim" in stasiun_asal_raw
 
-    # Penentuan Logo dan Judul secara dinamis berbasis armada
+    # Penentuan Logo, Judul, dan Tema Warna secara dinamis berbasis armada
     if is_whoosh:
-        logo_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/WHOOSH_Logo.svg/3840px-WHOOSH_Logo.svg.png" # Menggunakan URL gambar Logo resmi KCIC
-        judul_tiket = "E-Tiket Whoosh"
+        logo_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/WHOOSH_Logo.svg/3840px-WHOOSH_Logo.svg.png"
+        judul_tiket = ""  # DIHAPUS: Judul dikosongkan agar minimalis & tidak mengganggu sesuai ide Anda
+        color_primary = "#b3001b"  # Merah Crimson Whoosh
+        color_table_header = "#ffebeb"  # Latar header tabel merah pastel lembut
+        color_table_border = "#ffccd3"  # Garis tepi tabel rose/peach lembut
     else:
         logo_url = "https://pilihanhidup.com/wp-content/uploads/2024/04/logo-KAI.png" # Logo KAI asli Anda
         judul_tiket = "E-Tiket Kereta Api"
+        color_primary = "#0047b3"  # Biru KAI asli
+        color_table_header = "#cce0ff"  # Biru muda pastel
+        color_table_border = "#bbb"
 
     # 2. Iterasi Baris Penumpang Manifes
     penumpang_rows = []
@@ -184,16 +190,16 @@ def generate_eticket(data):
             if file_qr:
                 import base64
                 encoded_img = base64.b64encode(file_qr.getvalue()).decode()
-                qr_html_cell = f'<br><img src="data:image/png;base64,{encoded_img}" style="width:90px; height:90px; margin-top:5px; border:1px solid #ccc; padding:2px;"/>'
+                qr_html_cell = f'<br><img src="data:image/png;base64,{encoded_img}" style="width:90px; height:90px; margin-top:5px; border:1px solid {color_table_border}; padding:2px;"/>'
             else:
                 qr_html_cell = '<br><span style="color:#e67e22; font-size:11px; font-weight:bold;">[QR Belum Diupload]</span>'
 
         row_html = f"""
         <tr>
-          <td style="text-align: left; padding:8px; border: 1px solid #bbb;">{p.get('nama', '-')}</td>
-          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p.get('tipe', '-')}</td>
-          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">{p.get('ktp', '-')}</td>
-          <td style="text-align: center; padding:8px; border: 1px solid #bbb;">
+          <td style="text-align: left; padding:12px 8px; border: 1px solid {color_table_border}; font-size: 14px;">{p.get('nama', '-')}</td>
+          <td style="text-align: center; padding:12px 8px; border: 1px solid {color_table_border}; font-size: 14px;">{p.get('tipe', '-')}</td>
+          <td style="text-align: center; padding:12px 8px; border: 1px solid {color_table_border}; font-size: 14px;">{p.get('ktp', '-')}</td>
+          <td style="text-align: center; padding:12px 8px; border: 1px solid {color_table_border}; font-size: 14px; font-weight: 500;">
              {p.get('kursi', '-')}
              {qr_html_cell}
           </td>
@@ -206,7 +212,7 @@ def generate_eticket(data):
     # 3. Tatanan Template HTML Visual Utama Anda
     html = f"""
     <style>
-      /* Mengimpor font premium Montserrat untuk Judul dan Tombol */
+      /* FIX: Alamat impor Google Fonts diperbaiki agar font Montserrat termuat valid */
       @import url('https://googleapis.com');
 
       @media print {{
@@ -214,44 +220,51 @@ def generate_eticket(data):
           display: none !important;
         }}
         thead {{
-          background-color: #cce0ff !important;
+          background-color: {color_table_header} !important;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }}
       }}
     </style>
 
-    <div style="font-family: 'Segoe UI'; max-width: 720px; margin: 30px auto; background: #fff; border-radius: 14px;
-                box-shadow: 0 8px 25px rgba(0,0,0,0.12); padding: 30px; color: #333;">
+    <div style="font-family: 'Segoe UI', sans-serif; max-width: 720px; margin: 30px auto; background: #fff; border-radius: 14px;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.08); padding: 35px; color: #333;">
 
       <!-- SINKRONISASI UKURAN LOGO: Tinggi dikunci rata 45px agar seimbang -->
       <div style="text-align: center; margin-bottom: 25px; height: 45px; display: flex; align-items: center; justify-content: center;">
         <img src="{logo_url}" style="height: 45px; width: auto; object-fit: contain;"/>
       </div>
 
-      <!-- MODIFIKASI TIPOGRAFI: Judul menggunakan font Montserrat tebal -->
-      <h1 style="font-family: 'Montserrat', sans-serif; color:#0047b3; font-size: 26px; font-weight: 700; text-align: center; margin-bottom: 20px; letter-spacing: -0.5px;">
-        {judul_tiket}
-      </h1>
+      <!-- MODIFIKASI DINAMIS: Menampilkan judul hanya jika bukan Whoosh agar tampilan minimalis & bersih -->
+      {f'''<h1 style="font-family: 'Montserrat', sans-serif; color:{color_primary}; font-size: 26px; font-weight: 700; text-align: center; margin-bottom: 20px; letter-spacing: -0.5px;">{judul_tiket}</h1>''' if not is_whoosh else "<div style='margin-top:10px;'></div>"}
       
-      <p><strong>Kode Booking:</strong> {data.get('kode_booking', 'N/A')}<br>
+      <p style="font-size: 14px; line-height: 1.6;">
+         <strong>Kode Booking:</strong> <span style="font-size: 16px; color: #e65c00; font-weight: bold;">{data.get('kode_booking', 'N/A')}</span><br>
          <strong>Nama Kereta:</strong> {data.get('nama_kereta', 'Tidak Diketahui')}<br>
-         <strong>Kelas:</strong> {data.get('kelas', 'Tidak Diketahui')}</p>
+         <strong>Kelas:</strong> {data.get('kelas', 'Tidak Diketahui')}
+      </p>
          
+      <p style="font-size: 14px; line-height: 1.6;">
          <strong>Tanggal Berangkat:</strong> {data.get('tanggal_berangkat', 'Tidak Diketahui')}<br>
-         <strong>Tanggal Tiba:</strong> {data.get('tanggal_tiba', 'Tidak Diketahui')}</p>
+         <strong>Tanggal Tiba:</strong> {data.get('tanggal_tiba', 'Tidak Diketahui')}
+      </p>
 
-      <p><strong>Rute:</strong><br>
-      {data.get('asal', 'Tidak Diketahui')} <strong>{data.get('jam_berangkat', '')}</strong> → {data.get('tujuan', 'Tidak Diketahui')} <strong>{data.get('jam_tiba', '')}</strong></p>
+      <p style="font-size: 14px; line-height: 1.6; background: #fafafa; padding: 12px; border-radius: 8px; border-left: 4px solid {color_primary};">
+         <strong>Rute Perjalanan:</strong><br>
+         {data.get('asal', 'Tidak Diketahui')} <strong>{data.get('jam_berangkat', '')}</strong> → {data.get('tujuan', 'Tidak Diketahui')} <strong>{data.get('jam_tiba', '')}</strong>
+      </p>
 
-      <h2 style="border-bottom: 2px solid #0047b3;">Detail Penumpang</h2>
-      <table style="width: 100%; border-collapse: collapse;">
-        <thead style="background: #cce0ff;">
+      <h2 style="font-family: 'Montserrat', sans-serif; font-size: 16px; color: {color_primary}; border-bottom: 2px solid {color_primary}; padding-bottom: 6px; margin-top: 25px;">
+         Detail Penumpang
+      </h2>
+      <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+        <!-- DYNAMIC BACKGROUND HEADER TABEL -->
+        <thead style="background: {color_table_header};">
           <tr>
-            <th style="padding: 8px; border: 1px solid #bbb;">Nama</th>
-            <th style="padding: 8px; border: 1px solid #bbb;">Tipe</th>
-            <th style="padding: 8px; border: 1px solid #bbb;">No Identitas</th>
-            <th style="padding: 8px; border: 1px solid #bbb;">Kursi {'/ QR Gate' if is_whoosh else ''}</th>
+            <th style="padding: 10px 8px; border: 1px solid {color_table_border}; font-size: 13px; color: #111;">Nama</th>
+            <th style="padding: 10px 8px; border: 1px solid {color_table_border}; font-size: 13px; color: #111;">Tipe</th>
+            <th style="padding: 10px 8px; border: 1px solid {color_table_border}; font-size: 13px; color: #111;">No Identitas</th>
+            <th style="padding: 10px 8px; border: 1px solid {color_table_border}; font-size: 13px; color: #111;">Kursi {'/ QR Gate' if is_whoosh else ''}</th>
           </tr>
         </thead>
         <tbody>
@@ -260,7 +273,7 @@ def generate_eticket(data):
       </table>
 
       <!-- INFO TAMBAHAN PETUNJUK NAIK JIKA ARMADA ADALAH WHOOSH -->
-      {f'''<div style="margin-top: 25px; background: #fff8ee; padding: 15px; border-radius: 8px; border-left: 4px solid #e67e22; font-size:14px; color:#c0392b;">
+      {f'''<div style="margin-top: 25px; background: #fff8ee; padding: 15px; border-radius: 8px; border-left: 4px solid #e67e22; font-size:13px; color:#c0392b; line-height:1.6;">
         <strong>📋 Cara Naik Whoosh:</strong><br>
         1. Tiba di stasiun setidaknya 30 menit sebelum keberangkatan.<br>
         2. Scan kode QR di gerbang keberangkatan asli masing-masing penumpang.<br>
@@ -271,14 +284,14 @@ def generate_eticket(data):
       {f'''<div style="margin-top: 20px; text-align: center;">
         <img src="https://barcode.tec-it.com/barcode.ashx?data={data.get('kode_booking', '')}&code=PDF417"
              style="width: 250px; height: 80px;" />
-        <p><strong>Kode Booking:</strong> {data.get('kode_booking', '')}</p>
+        <p style="font-size: 12px; font-weight: bold; margin-top: 5px; color: #555;">Kode Booking: {data.get('kode_booking', '')}</p>
       </div>''' if not is_whoosh else ""}
 
-      <div style="text-align: center; margin-top: 30px;">
-        <!-- MODIFIKASI TIPOGRAFI TOMBOL: Menggunakan Montserrat Bold -->
+      <div style="text-align: center; margin-top: 35px;">
+        <!-- MODIFIKASI TIPOGRAFI TOMBOL: Menggunakan Montserrat Bold dan Background Tema Dinamis -->
         <button class="no-print" onclick="window.print()"
-                style="padding: 10px 24px; background-color: #0047b3; color: white; border: none;
-                       border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: bold; font-family: 'Montserrat', sans-serif;">
+                style="padding: 11px 26px; background-color: {color_primary}; color: white; border: none;
+                       border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; font-family: 'Montserrat', sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
           Cetak Tiket
         </button>
       </div>

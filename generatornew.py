@@ -59,6 +59,12 @@ class AIHotelMasterSchema(BaseModel):
         dan alamat lokasi di atas. Kembalikan hasilnya dalam format string bersih, contoh: '+6285265575009'. 
         Jika setelah dicari di internet tetap tidak ditemukan, isi dengan tanda strip '-'.
     """)
+    kamar: str = Field(description="""
+        PENTING: Salin Nama Kamar atau Tipe Kamar secara UTUH dan LENGKAP persis seperti teks yang tertera pada manifes vendor/OTA.
+        JANGAN memotong kata imbuhan di belakangnya seperti '- Free Breakfast', 'with Fan', atau 'Room Only'.
+        Contoh teks: '1 Standard - Free Breakfast' -> Maka isi field kamar wajib: 'Standard - Free Breakfast'.
+        Contoh teks: 'SUPERIOR KING BED - Room Only' -> Maka isi field kamar wajib: 'SUPERIOR KING BED - Room Only'.
+    """)
     
 
 
@@ -235,7 +241,7 @@ def generate_evoucher_html(data):
     # 2. PERBAIKAN: Menggabungkan jumlah kamar dan nama kamar secara lengkap
     # =====================================================================
     nama_kamar_raw = get('kamar')
-    teks_kamar_final = f"{jml_kamar} (kamar) {nama_kamar_raw}"
+    teks_kamar_final = f"{jml_kamar} x Kamar {nama_kamar_raw}"
 
     html = f"""
     <style>

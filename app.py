@@ -1184,6 +1184,7 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
                 })
             
                         # --- MASUKKAN KE DATA FRAME UTAMA ---
+                
             st.session_state.bulk_parsed = pd.DataFrame(ai_entries)
             st.session_state.edit_mode_bulk = True
             
@@ -1194,13 +1195,18 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
                     del st.session_state["peringatan_admin_ai"]
             
             # =====================================================================
-            # AMAN & BERSIH: Reset memori kotak teks & file uploader sebelum rerun
+            # FIX PERMANEN: Gunakan .pop() untuk menghapus key widget secara legal
             # =====================================================================
-            st.session_state["konten_teks_travel_utama"] = "" # Bersihkan teks area
-            if "asisten_ai_file_input" in st.session_state:
-                del st.session_state["asisten_ai_file_input"] # Bersihkan file uploader
+            # Menghapus memori teks area agar kembali kosong ke nilai default awal
+            st.session_state.pop("konten_teks_travel_utama", None)
+            
+            # Menghapus berkas biner lama pada file uploader agar kembali bersih
+            st.session_state.pop("asisten_ai_file_input", None)
+            
+            # Opsional: Jika Anda ingin membersihkan riwayat rekaman suara mikrofon
+            st.session_state.pop("fitur_speech_to_text_kayyisa", None)
                 
-            # Memicu refresh halaman Streamlit dengan kondisi form sudah kosong kembali
+            # Memicu penyegaran halaman secara bersih dengan kondisi form kembali kosong
             st.rerun()
             
         else:

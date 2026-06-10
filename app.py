@@ -2418,7 +2418,6 @@ st.markdown("""<hr style="border-top: 1px solid #7f8c8d;">""", unsafe_allow_html
 with st.expander("🎫 Generator AI E-Tiket"):
 
     tipe_tiket_ai = st.radio("Pilih tipe tiket:", ["Kereta", "Whoosh", "Hotel"], key="tipe_tiket_radio_ai_new")
-    
     st.session_state['tipe_tiket_ai'] = tipe_tiket_ai
 
     # Template default berdasarkan tipe tiket
@@ -2427,7 +2426,7 @@ with st.expander("🎫 Generator AI E-Tiket"):
     else:
         default_text_ai = "Kode booking: "
 
-    # PERBAIKAN: Mengubah nama input_key agar unik khusus untuk AI
+    # Mengubah nama input_key agar unik khusus untuk AI
     input_key_ai = f"input_text_ai_{tipe_tiket_ai}"
     if input_key_ai not in st.session_state:
         st.session_state[input_key_ai] = default_text_ai
@@ -2440,24 +2439,7 @@ with st.expander("🎫 Generator AI E-Tiket"):
         key=input_key_ai
     )
 
-    # --- LOGIKA KHUSUS: MULTI-UPLOAD GAMBAR QR CODE WHOOSH ASLI ---
-    if tipe_tiket_ai == "Whoosh" and 'last_data_ai' in st.session_state and st.session_state.get('tipe_tiket_ai') == "Whoosh":
-        data_aktif_ai = st.session_state['last_data_ai']
-        st.markdown("#### 📷 Kolom Upload QR Code Asli Whoosh")
-        for index, penumpang in enumerate(data_aktif_ai.get("penumpang", []), start=1):
-            placeholder_key = penumpang.get("qr_placeholder_key")
-            st.caption(f"🔹 **Passenger {index}: {penumpang.get('nama', '-')} ({penumpang.get('kursi', '-')})**")
-            
-            # PERBAIKAN: Mengubah nama key upload agar unik
-            file_qr_uploaded = st.file_uploader(
-                f"Pilih screenshot QR Code untuk {penumpang.get('nama', '-')}",
-                type=["png", "jpg", "jpeg"],
-                key=f"uploader_bin_ai_key_{placeholder_key}"
-            )
-            if file_qr_uploaded is not None:
-                st.session_state[placeholder_key] = file_qr_uploaded
-
-    # Tombol generate khusus versi AI
+    # 1. TOMBOL GENERATE UTAMA (Murni Mengisi Memori Session State)
     if st.button("Generate Tiket AI", key="btn_generate_ai_master_key", use_container_width=True):
         if input_text_ai.strip() and input_text_ai != default_text_ai:
             with st.spinner(f"AI Gemini 3.1 sedang mengekstrak manifest {tipe_tiket_ai} (EYD Baku)..."):
@@ -2469,7 +2451,7 @@ with st.expander("🎫 Generator AI E-Tiket"):
                     data_ai = generatornew.parse_evoucher_text(input_text_ai.strip())
                 
                 if data_ai:
-                    # PERBAIKAN: Menggunakan nama session_state baru khusus untuk versi AI
+                    # Kunci data hasil parsing ke state permanen agar aman saat soft refresh Android
                     st.session_state['last_data_ai'] = data_ai
                     st.session_state['tipe_tiket_ai'] = tipe_tiket_ai
                     st.success("🎉 AI Gemini 3.1 sukses menstrukturkan data secara presisi!")
@@ -2478,8 +2460,28 @@ with st.expander("🎫 Generator AI E-Tiket"):
         else:
             st.warning("Silakan masukkan data tiket terlebih dahulu.")
 
-    # Tampilkan hasil preview HTML menggunakan fungsi visual asli Anda (Tanpa Ubah Desain)
-        # Tampilkan hasil jika data sudah ada di memori session state
+    # =====================================================================
+    # 2. LOGIKA PROSES UPLOAD (Dipindahkan ke Bawah Setelah Tombol Sukses)
+    # =====================================================================
+    if 'last_data_ai' in st.session_state and st.session_state.get('tipe_tiket_ai') == "Whoosh" and tipe_tiket_ai == "Whoosh":
+        data_aktif_ai = st.session_state['last_data_ai']
+        st.markdown("#### 📷 Kolom Upload QR Code Asli Whoosh")
+        
+        for index, penumpang in enumerate(data_aktif_ai.get("penumpang", []), start=1):
+            placeholder_key = penumpang.get("qr_placeholder_key", f"qr_penumpang_{index}")
+            st.caption(f"🔹 **Passenger {index}: {penumpang.get('nama', '-')} ({penumpang.get('kursi', '-')})**")
+            
+            file_qr_uploaded = st.file_uploader(
+                f"Pilih screenshot QR Code untuk {penumpang.get('nama', '-')}",
+                type=["png", "jpg", "jpeg"],
+                key=f"uploader_bin_ai_key_{placeholder_key}"
+            )
+            if file_qr_uploaded is not None:
+                st.session_state[placeholder_key] = file_qr_uploaded
+
+    # =====================================================================
+    # 3. TAMPILKAN PRATINJAU VISUAL HTML (Membaca Data Kamus State Hasil AI)
+    # =====================================================================
     if 'last_data_ai' in st.session_state and st.session_state.get('tipe_tiket_ai') == tipe_tiket_ai:
         data_render_ai = st.session_state['last_data_ai']
         try:

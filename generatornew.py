@@ -394,5 +394,78 @@ def generate_evoucher_pdf_new(data):
     </div>
     """
     return html
+
+def generate_eticket_pdf(data):
+    """
+    Fungsi ReportLab Canvas pembuat berkas PDF E-Tiket Kereta Api resmi Kayyisa.
+    100% menggunakan arsitektur visual asli Anda, diselaraskan dengan output data AI Gemini 3.1.
+    """
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+
+    # Koordinat awal atas kertas
+    y = height - 50
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(50, y, "E-TIKET KERETA API")
+    y -= 30
+
+    c.setFont("Helvetica", 12)
+    c.drawString(50, y, f"Kode Booking: {data.get('kode_booking', 'N/A')}")
+    y -= 20
+    # Menyelaraskan key 'tanggal_berangkat' sebagai substitusi 'tanggal' lama agar konsisten
+    c.drawString(50, y, f"Tanggal: {data.get('tanggal_berangkat', 'Tidak Diketahui')}")
+    y -= 20
+    c.drawString(50, y, f"Nama Kereta: {data.get('nama_kereta', 'Tidak Diketahui')}")
+    y -= 30
+
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, y, "Rute Perjalanan:")
+    y -= 20
+    c.setFont("Helvetica", 12)
+    c.drawString(
+        50, 
+        y, 
+        f"{data.get('asal', 'Tidak Diketahui')} ({data.get('jam_berangkat', '')}) → {data.get('tujuan', 'Tidak Diketahui')} ({data.get('jam_tiba', '')})"
+    )
+    y -= 40
+
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, y, "Detail Penumpang:")
+    y -= 20
+    c.setFont("Helvetica", 11)
+
+    # Iterasi daftar array penumpang hasil normalisasi EYD otomatis AI Gemini 3.1
+    for p in data.get("penumpang", []):
+        c.drawString(60, y, f"- {p.get('nama', '-')} ({p.get('tipe', '-')}), KTP: {p.get('ktp', '-')}, Kursi: {p.get('kursi', '-')}")
+        y -= 18
+        # Jaring pengaman pendeteksi batas bawah halaman agar tidak menabrak barcode
+        if y < 150:  
+            c.showPage()
+            y = height - 50
+            c.setFont("Helvetica", 11)
+
+    y -= 30
+
+    # Menghasilkan citra gambar biner barcode PDF417 bawaan sistem Anda dari kode_booking
+    barcode_img = generate_pdf417_barcode(data.get('kode_booking', 'KAYYISA'))
     
+    # Konversi PIL image hasil generate_pdf417_barcode ke ReportLab ImageReader
+    pil_buffer = BytesIO()
+    barcode_img.save(pil_buffer, format='PNG')
+    pil_buffer.seek(0)
+    rl_image = ImageReader(pil_buffer)
+
+    # Menggambar barcode ke canvas PDF secara presisi
+    c.drawImage(rl_image, 50, y - 100, width=250, height=80)
+
+    y -= 110
+    c.setFont("Helvetica-Oblique", 10)
+    c.drawString(50, y, "Tunjukkan e-tiket ini dan identitas resmi saat boarding.")
+
+    # Eksekusi tutup canvas halaman dan kembalikan biner objek PDF
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+    return buffer
 

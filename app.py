@@ -1191,27 +1191,10 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
             if pemberitahuan_masalah_data:
                 st.session_state.peringatan_admin_ai = "⚠️ **Peringatan Validasi Tiket!** Ditemukan beberapa kolom wajib masih kosong:\n\n" + "\n".join([f"- {e}" for e in pemberitahuan_masalah_data]) + "\n\n**Mohon lengkapi data kosong tersebut** pada menu edit manual di bawah ini sebelum disimpan!"
             else:
-                if "peringatan_admin_ai" in st.session_state: 
-                    del st.session_state["peringatan_admin_ai"]
-            
-            # =====================================================================
-            # FIX PERMANEN: Gunakan .pop() untuk menghapus key widget secara legal
-            # =====================================================================
-            # Menghapus memori teks area agar kembali kosong ke nilai default awal
-            st.session_state.pop("konten_teks_travel_utama", None)
-            
-            # Menghapus berkas biner lama pada file uploader agar kembali bersih
-            st.session_state.pop("asisten_ai_file_input", None)
-            
-            # Opsional: Jika Anda ingin membersihkan riwayat rekaman suara mikrofon
-            st.session_state.pop("fitur_speech_to_text_kayyisa", None)
-                
-            # Memicu penyegaran halaman secara bersih dengan kondisi form kembali kosong
+                if "peringatan_admin_ai" in st.session_state: del st.session_state["peringatan_admin_ai"]
             st.rerun()
-            
         else:
             st.error("⚠️ AI gagal mengekstrak data. Pastikan teks berisi manifes tiket yang valid atau kualitas gambar/suara cukup jelas.")
-
 
 
     # ==============================================================================

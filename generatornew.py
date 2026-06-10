@@ -195,193 +195,6 @@ def generate_eticket(data):
     """
     return html
 
-
-def parse_evoucher_text(text):
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
-    
-    data = {
-        'order_id': '-',
-        'itinerary_id': '-',
-        'hotel_name': '-',
-        'location': '-',
-        'jumlah_kamar': '-',
-        'tanggal_masuk': '-',
-        'jam_masuk': '-',
-        'tanggal_keluar': '-',
-        'jam_keluar': '-',
-        'tamu': [],
-        'kamar': '-',
-        'jumlah_tamu': 1,
-        'fasilitas': '-',
-        'permintaan_khusus': '-',
-        'harga_per_malam': 0,
-        'total_malam': 1,
-        'total_harga': '-'
-    }
-
-    # Ambil Order ID & Itinerary ID jika ada
-    for line in lines:
-        low = line.lower()
-        if 'order id' in low:
-            parts = line.split(':', 1)
-            if len(parts) > 1:
-                data['order_id'] = parts[1].strip()
-        elif 'itinerary id' in low:
-            parts = line.split(':', 1)
-            if len(parts) > 1:
-                data['itinerary_id'] = parts[1].strip()
-
-    # Cari posisi "Detail Reservasi" untuk hotel & lokasi
-    try:
-        idx_detail_reservasi = lines.index('Detail Reservasi')
-        if idx_detail_reservasi >= 2:
-            data['hotel_name'] = lines[idx_detail_reservasi - 2]
-            data['location'] = lines[idx_detail_reservasi - 1]
-    except ValueError:
-        pass
-
-    # Cari jumlah kamar (contoh format: "1 x Standard Room")
-    for line in lines:
-        line_lower = line.lower()
-        if match := re.search(r'(\d+)\s*[x×]', line_lower):
-            data['jumlah_kamar'] = int(match.group(1))
-            break
-
-    def is_valid_date(s):
-        # Contoh: "Sel, 08 Jul 2025"
-        return re.match(r'^[A-Za-z]{3,},\s+\d{2}\s+\w{3,}\s+\d{4}$', s.strip()) is not None
-    
-    def is_valid_time(s):
-        # Contoh: "12:00" atau "14:00-23:59"
-        return re.match(r'^\d{2}:\d{2}(-\d{2}:\d{2})?$', s.strip()) is not None
-    
-    # ----------- Ambil Tanggal Keluar -----------
-    if 'Tanggal keluar' in lines:
-        idx = lines.index('Tanggal keluar')
-        # Baris setelahnya: tanggal
-        if idx + 1 < len(lines) and is_valid_date(lines[idx + 1]):
-            data['tanggal_keluar'] = lines[idx + 1].strip()
-        # Baris berikutnya: jam
-        if idx + 2 < len(lines) and is_valid_time(lines[idx + 2]):
-            data['jam_keluar'] = lines[idx + 2].strip()
-    
-    # ----------- Ambil Tanggal Masuk -----------
-    if 'Tanggal masuk' in lines:
-        idx = lines.index('Tanggal masuk')
-        if idx + 1 < len(lines) and is_valid_date(lines[idx + 1]):
-            data['tanggal_masuk'] = lines[idx + 1].strip()
-        if idx + 2 < len(lines) and is_valid_time(lines[idx + 2]):
-            data['jam_masuk'] = lines[idx + 2].strip()
-
-    # Ambil daftar tamu (baris setelah "Detail Tamu" sampai sebelum "Kamar")
-    try:
-        idx_tamu = lines.index('Detail Tamu')
-        tamu_list = []
-        i = idx_tamu + 1
-        while i < len(lines) and not lines[i].lower().startswith('kamar'):
-            tamu_list.append(lines[i])
-            i += 1
-        data['tamu'] = tamu_list
-    except ValueError:
-        data['tamu'] = []
-
-    # Ambil kamar dan jumlah tamu
-    try:
-        idx_kamar = lines.index('Kamar')
-        if idx_kamar + 1 < len(lines):
-            data['kamar'] = lines[idx_kamar + 1]
-        if idx_kamar + 2 < len(lines):
-            jumlah_tamu_line = lines[idx_kamar + 2]
-            match = re.search(r'(\d+)', jumlah_tamu_line)
-            if match:
-                data['jumlah_tamu'] = int(match.group(1))
-    except ValueError:
-        pass
-
-    # Ambil fasilitas
-    try:
-        idx_fasilitas = lines.index('Fasilitas')
-        if idx_fasilitas + 1 < len(lines):
-            data['fasilitas'] = lines[idx_fasilitas + 1]
-    except ValueError:
-        pass
-
-    # Ambil permintaan khusus
-    try:
-        idx_permintaan = lines.index('Permintaan Khusus')
-        if idx_permintaan + 1 < len(lines):
-            data['permintaan_khusus'] = lines[idx_permintaan + 1].replace('Others:', '').strip()
-    except ValueError:
-        pass
-
-    # Ambil harga per malam (cari baris yang mengandung kata "Harga")
-    for line in lines:
-        if line.lower().startswith('harga'):
-            parts = line.split()
-            for part in parts:
-                part_clean = part.replace('.', '').replace(',', '.')
-                try:
-                    harga = float(part_clean)
-                    data['harga_per_malam'] = harga
-                    break
-                except:
-                    continue
-    bulan_mapping = {
-        'Jan': 'Jan',
-        'Feb': 'Feb',
-        'Mar': 'Mar',
-        'Apr': 'Apr',
-        'Mei': 'May',
-        'Jun': 'Jun',
-        'Jul': 'Jul',
-        'Agu': 'Aug',
-        'Sep': 'Sep',
-        'Okt': 'Oct',
-        'Nov': 'Nov',
-        'Des': 'Dec'
-    }
-
-    # Fungsi parsing tanggal (format: "Min, 06 Jul 2025")
-    def parse_date(date_str):
-        try:
-            # Ambil bagian tanggal setelah koma jika ada
-            if ',' in date_str:
-                date_part = date_str.split(',', 1)[1].strip()
-            else:
-                date_part = date_str.strip()
-    
-            # Ganti nama bulan Indonesia dengan versi Inggris
-            for indo_bulan, eng_bulan in bulan_mapping.items():
-                if indo_bulan in date_part:
-                    date_part = date_part.replace(indo_bulan, eng_bulan)
-                    break
-    
-            return datetime.strptime(date_part, '%d %b %Y')
-        except:
-            return None
-
-
-    masuk = parse_date(data['tanggal_masuk'])
-    keluar = parse_date(data['tanggal_keluar'])
-
-    if masuk and keluar and keluar > masuk:
-        data['total_malam'] = (keluar - masuk).days
-    else:
-        data['total_malam'] = 1
-
-    # Hitung total harga: harga_per_malam x jumlah_kamar x total_malam
-    try:
-        total_harga = (
-            float(data['harga_per_malam']) *
-            int(data['jumlah_kamar']) *
-            int(data['total_malam'])
-        )
-        data['total_harga'] = total_harga
-    except Exception:
-        data['total_harga'] = '-'
-
-    return data
-
     
 # Fungsi generate HTML voucher (disesuaikan dari kode kamu)
 def generate_evoucher_html(data):
@@ -390,8 +203,22 @@ def generate_evoucher_html(data):
 
     # Format harga total
     total_harga = "-"
+    
+    # =====================================================================
+    # JARING PENGAMAN: Konversi paksa string dari AI menjadi Angka Murni (Float/Int)
+    # untuk mencegah eror Unknown format code 'f'
+    # =====================================================================
     try:
-        total_harga_val = get('harga_per_malam') * get('total_malam') * get('jumlah_kamar')
+        hrg_per_malam = float(data.get('harga_per_malam', 0))
+        tot_malam = int(data.get('total_malam', 1))
+        jml_kamar = int(data.get('jumlah_kamar', 1))
+    except (ValueError, TypeError):
+        hrg_per_malam = 0.0
+        tot_malam = 1
+        jml_kamar = 1
+
+    try:
+        total_harga_val = hrg_per_malam * tot_malam * jml_kamar
         total_harga = f"Rp {total_harga_val:,.0f}".replace(',', '.')
     except:
         pass

@@ -262,10 +262,10 @@ def generate_eticket(data):
          Detail Penumpang
       </h2>
       <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-        <!-- DYNAMIC BACKGROUND HEADER TABEL -->
+        <!-- FIX: Background header tabel menggunakan warna pastel lembut -->
         <thead style="background: {color_table_header};">
           <tr>
-            <!-- REVISI: Padding vertikal header dinaikkan ke 12px -->
+            <!-- FIX: Garis tepi header tabel disamakan menggunakan variabel color_table_border -->
             <th style="padding: 12px 8px; border: 1px solid {color_table_border}; font-size: 13px; color: #333; font-weight: 700;">Nama</th>
             <th style="padding: 12px 8px; border: 1px solid {color_table_border}; font-size: 13px; color: #333; font-weight: 700;">Tipe</th>
             <th style="padding: 12px 8px; border: 1px solid {color_table_border}; font-size: 13px; color: #333; font-weight: 700;">No Identitas</th>

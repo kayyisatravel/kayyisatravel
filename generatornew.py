@@ -165,7 +165,7 @@ def generate_eticket(data):
 
     # Penentuan Logo dan Judul secara dinamis berbasis armada
     if is_whoosh:
-        logo_url = "https://kcic.co.id/lkapp/wp-content/uploads/2023/09/1-Whoosh-Merah@300x-100-square.jpg" # Menggunakan URL gambar Logo resmi KCIC
+        logo_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/WHOOSH_Logo.svg/3840px-WHOOSH_Logo.svg.png" # Menggunakan URL gambar Logo resmi KCIC
         judul_tiket = "E-Tiket Whoosh"
     else:
         logo_url = "https://pilihanhidup.com/wp-content/uploads/2024/04/logo-KAI.png" # Logo KAI asli Anda

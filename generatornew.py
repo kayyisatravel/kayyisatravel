@@ -21,11 +21,17 @@ class PenumpangKeretaSchema(BaseModel):
     tipe: str = Field(description="Tipe penumpang, contoh: 'Dewasa' atau 'Anak'")
     ktp: str = Field(description="Nomor identitas / NIK / KTP / Paspor penumpang. Jika tidak ada isi 'N/A'")
     kursi: str = Field(description="""
-        Nomor posisi kursi spesifik, contoh: 'EKS 5/10D' atau 'Kereta 6 / Kursi 8F.
-        Contoh teks: 'EKO-3/ 19-E' -> Maka isi field kursi wajib: 'EKO 3/19E'.
-        Contoh teks: 'Eksekutif 2 / 5A' -> Maka isi field kursi wajib: 'EKS 2/5A'.
-        """)
+        Nomor posisi kursi spesifik. Wajib lakukan penyingkatan format secara ketat jika mendeteksi tiket Whoosh.
+        Aturan Penyingkatan Whoosh:
+        - Teks format 'Ekonomi Premium / Kereta [X] / Kursi [Y]' WAJIB dikonversi menjadi 'Eko Pre [X]/[Y]'.
+        - Contoh input: 'Ekonomi Premium / Kereta 6 / Kursi 8F' -> Hasil output wajib: 'Eko Pre 6/8F'.
+        - Contoh input: 'Ekonomi Premium / Kereta 6 / Kursi 9F' -> Hasil output wajib: 'Eko Pre 6/9F'.
+        Aturan Penyingkatan KAI Biasa:
+        - Contoh teks: 'EKO-3/ 19-E' -> Hasil output wajib: 'EKO 3/19E'.
+        - Contoh teks: 'Eksekutif 2 / 5A' -> Hasil output wajib: 'EKS 2/5A'.
+    """)
     qr_placeholder_key: str = Field(description="Penanda urutan gambar khusus Whoosh: 'qr_penumpang_1', 'qr_penumpang_2', dst.")
+
 
 class AIKeretaMasterSchema(BaseModel):
     kode_booking: str = Field(description="Kode booking / PNR / ID Pesanan utama dari vendor")

@@ -222,67 +222,104 @@ def generate_evoucher_pdf_new(data):
     c.setFont("Helvetica", 11)
     c.drawRightString(width - 55, height - 53, "HOTEL RESERVATION VOUCHER")
     
-    y = height - 105c.setFillColorRGB(0, 0, 0)
+    y = height - 105
+    c.setFillColorRGB(0, 0, 0)
     c.setFont("Helvetica-Bold", 11)
     c.drawString(50, y, "Order & Itinerary")
     c.setFont("Helvetica", 10)
     y -= 18
     c.drawString(50, y, f"Platform Asal: {data.get('platform', 'Lainnya')}  |  ID Pesanan: {data.get('kode_booking', '-')}")
-    y -= 25c.setFont("Helvetica-Bold", 11)
-    c.drawString(50, y, "Akomodasi & Lokasi")y -= 18c.setFont("Helvetica-Bold", 12)
+    
+    y -= 25
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(50, y, "Akomodasi & Lokasi")
+    
+    y -= 18
+    c.setFont("Helvetica-Bold", 12)
     c.setFillColorRGB(0, 0.25, 0.5)
     c.drawString(50, y, f"🏨 {data.get('hotel_name', '-')}")
-    y -= 14c.setFillColorRGB(0, 0, 0)
+    
+    y -= 14
+    c.setFillColorRGB(0, 0, 0)
     c.setFont("Helvetica-Oblique", 10)
     c.drawString(50, y, f"Alamat: {data.get('location', '-')}")
-    y -= 25c.setFont("Helvetica-Bold", 11)
+    
+    y -= 25
+    c.setFont("Helvetica-Bold", 11)
     c.drawString(50, y, "Detail Jadwal Menginap")
     c.setFont("Helvetica", 10)
     y -= 18
     c.drawString(50, y, f"Check-in  : {data.get('tanggal_masuk', '-')} (Jam {data.get('jam_masuk', '-')})")
-    y -= 14c.drawString(50, y, f"Check-out : {data.get('tanggal_keluar', '-')} (Jam {data.get('jam_keluar', '-')})")
-    y -= 30c.setFont("Helvetica-Bold", 11)
+    
+    y -= 14
+    c.drawString(50, y, f"Check-out : {data.get('tanggal_keluar', '-')} (Jam {data.get('jam_keluar', '-')})")
+    
+    y -= 30
+    c.setFont("Helvetica-Bold", 11)
     c.drawString(50, y, "Rincian Pembiayaan Kamar")
-    y -= 18c.setStrokeColorRGB(0.7, 0.8, 0.9)c.setFillColorRGB(0.9, 0.94, 1.0)
+    
+    y -= 18
+    c.setStrokeColorRGB(0.7, 0.8, 0.9)
+    c.setFillColorRGB(0.9, 0.94, 1.0)
     c.rect(50, y - 25, width - 100, 25, fill=1, stroke=1)
+    
     c.setFillColorRGB(0, 0, 0)
     c.setFont("Helvetica-Bold", 9)
     c.drawCentredString(120, y - 16, "Rate per Malam")
     c.drawCentredString(230, y - 16, "Durasi")
     c.drawCentredString(340, y - 16, "Jumlah Kamar")
     c.drawCentredString(460, y - 16, "Total Harga")
-    y -= 25c.setFillColorRGB(1, 1, 1)
+    
+    y -= 25
+    c.setFillColorRGB(1, 1, 1)
     c.rect(50, y - 25, width - 100, 25, fill=1, stroke=1)
+    
     c.setFillColorRGB(0, 0, 0)
     c.setFont("Helvetica", 9)
+    
     hrg_malam = data.get('harga_per_malam', 0.0)
     tot_malam = data.get('total_malam', 1)
     jml_kamar = data.get('jumlah_kamar', 1)
     total_gross = hrg_malam * tot_malam * jml_kamar
+    
     c.drawCentredString(110, y - 17, f"Rp {hrg_malam:,.0f}".replace(',', '.'))
     c.drawCentredString(230, y - 17, f"{tot_malam} Malam")
     c.drawCentredString(340, y - 17, f"{jml_kamar} Kamar")
     c.setFont("Helvetica-Bold", 9)
     c.drawCentredString(460, y - 17, f"Rp {total_gross:,.0f}".replace(',', '.'))
-    y -= 45c.setFont("Helvetica-Bold", 11)
+    
+    y -= 45
+    c.setFont("Helvetica-Bold", 11)
     c.drawString(50, y, "Detail Tamu Menginap & Tipe Kamar")
     c.setFont("Helvetica", 10)
-    y -= 18c.drawString(50, y, f"Kategori Bed : {data.get('tipe_kamar', '-')}")
-    y -= 14c.drawString(50, y, "Daftar Tamu  :")
+    
+    y -= 18
+    c.drawString(50, y, f"Kategori Bed : {data.get('tipe_kamar', '-')}")
+    
+    y -= 14
+    c.drawString(50, y, "Daftar Tamu  :")
+    
     y -= 14
     for t_idx, nama_tamu in enumerate(data.get('tamu_hotel', []), start=1):
         c.drawString(65, y, f"{t_idx}. {nama_tamu} (EYD Baku)")
-        y -= 14y -= 15
-        c.setFont("Helvetica-Bold", 11)
-        c.drawString(50, y, "Fasilitas & Kebijakan Kamar")
-        c.setFont("Helvetica", 10)
-        y -= 18c.drawString(50, y, f"Fasilitas Utama    : {data.get('fasilitas_catatan', '-')}")
-        c.setStrokeColorRGB(0.8, 0.8, 0.8)
-        c.line(50, 70, width - 50, 70)
-        c.setFont("Helvetica-Oblique", 9)
-        c.setFillColorRGB(0.3, 0.3, 0.3)
-        c.drawCentredString(width / 2.0, 52, "Jika ada kendala saat check-in, silakan hubungi layanan darurat 24/7 kami di: (62813 3671 6677 / kayyisatour@gmail.com)")
-        c.showPage()
-        c.save()
-        buffer.seek(0)
-        return buffer
+        y -= 14
+        
+    y -= 15
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(50, y, "Fasilitas & Kebijakan Kamar")
+    c.setFont("Helvetica", 10)
+    
+    y -= 18
+    c.drawString(50, y, f"Fasilitas Utama    : {data.get('fasilitas_catatan', '-')}")
+    
+    c.setStrokeColorRGB(0.8, 0.8, 0.8)
+    c.line(50, 70, width - 50, 70)
+    c.setFont("Helvetica-Oblique", 9)
+    c.setFillColorRGB(0.3, 0.3, 0.3)
+    c.drawCentredString(width / 2.0, 52, "Jika ada kendala saat check-in, silakan hubungi layanan darurat 24/7 kami di: (62813 3671 6677 / kayyisatour@gmail.com)")
+    
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+    return buffer
+

@@ -276,8 +276,8 @@ def generate_eticket(data):
       {f'''<div style="margin-top: 25px; background: #fff8ee; padding: 15px; border-radius: 8px; border-left: 4px solid #e67e22; font-size:13px; color:#c0392b; line-height:1.6;">
         <strong>Panduan Perjalanan Whoosh:</strong><br>
         1. Tiba di stasiun setidaknya 30 menit sebelum keberangkatan.<br>
-        2. Scan kode QR di gerbang keberangkatan asli masing-masing penumpang.<br>
-        3. Gerbang keberangkatan ditutup resmi 5 menit sebelum keberangkatan.
+        2. Scan kode QR di gerbang keberangkatan.<br>
+        3. Gerbang keberangkatan ditutup 5 menit sebelum keberangkatan.
       </div>''' if is_whoosh else ""}
 
       <!-- BARCODE KAI GLOBAL OTOMATIS DISAPA SAAT BUKAN WHOOSH -->

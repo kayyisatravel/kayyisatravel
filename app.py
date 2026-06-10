@@ -2482,38 +2482,15 @@ with st.expander("🎫 Generator AI E-Tiket"):
         # Tampilkan hasil jika data sudah ada di memori session state
     if 'last_data_ai' in st.session_state and st.session_state.get('tipe_tiket_ai') == tipe_tiket_ai:
         data_render_ai = st.session_state['last_data_ai']
-        
-        # =====================================================================
-        # DETEKSI MULTI-PASSENGER: Buat slot upload QR Code dinamis khusus Whoosh
-        # =====================================================================
-        nama_kereta_low = data_render_ai.get('nama_kereta', '').lower()
-        if tipe_tiket_ai == "Whoosh" or "whoosh" in nama_kereta_low:
-            st.markdown("---")
-            st.markdown("### 📷 Upload Screenshot QR Code Pendukung Per Penumpang")
-            st.caption("Pilih potongan gambar QR Code asli agar penumpang bisa melakukan scan di gate stasiun KCIC.")
-            
-            # Loop dinamis membuat uploader sebanyak jumlah penumpang yang dideteksi AI
-            for idx, p in enumerate(data_render_ai.get("penumpang", []), start=1):
-                # Buat penanda key memori unik per penumpang
-                key_qr_state = p.get("qr_placeholder_key", f"qr_penumpang_{idx}")
-                
-                st.write(f"👤 **Penumpang {idx}: {p.get('nama')} ({p.get('kursi')})**")
-                file_qr_uploaded = st.file_uploader(
-                    f"Pilih screenshot QR Code untuk {p.get('nama')}",
-                    type=["png", "jpg", "jpeg"],
-                    key=f"bin_upload_key_whoosh_{key_qr_state}"
-                )
-                
-                # Masukkan file gambar biner ke session state agar langsung dibaca oleh fungsi HTML di atas
-                if file_qr_uploaded is not None:
-                    st.session_state[key_qr_state] = file_qr_uploaded
-
-        # Tampilkan komponen render visual HTML asli Anda
         try:
-            html_ai = generatornew.generate_ticket_new(data_render_ai, tipe_tiket_ai)
-            st.components.v1.html(html_ai, height=850, scrolling=True)
+            if tipe_tiket_ai in ["Kereta", "Whoosh"]:
+                html_ai = generatornew.generate_eticket(data_render_ai)
+            elif tipe_tiket_ai == "Hotel":
+                html_ai = generatornew.generate_evoucher_html(data_render_ai)
+                
+            st.components.v1.html(html_ai, height=800, scrolling=True)
         except Exception as e:
-            st.warning(f"⚠️ Gagal membuat pratinjau layout tiket: {e}")
+            st.warning(f"⚠️ Gagal membuat tampilan tiket: {e}")
 
 
 #=====================================================================================

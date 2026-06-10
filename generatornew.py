@@ -209,8 +209,8 @@ def generate_eticket(data):
 
     penumpang_rows_joined = "\n".join(penumpang_rows)
 
-        # =====================================================================
-    # # 3. Tatanan Template HTML Visual Utama Anda
+    # =====================================================================
+    #3. Tatanan Template HTML Visual Utama Anda (Premium Professional Style)
     # =====================================================================
     html = f"""
     <style>
@@ -230,31 +230,33 @@ def generate_eticket(data):
     </style>
 
     <div style="font-family: 'Segoe UI', sans-serif; max-width: 720px; margin: 30px auto; background: #fff; border-radius: 14px;
-                box-shadow: 0 8px 25px rgba(0,0,0,0.08); padding: 35px; color: #333;">
+                box-shadow: 0 8px 30px rgba(0,0,0,0.06); padding: 35px; color: #333; border: 1px solid #f0f2f5;">
 
       <!-- SINKRONISASI UKURAN LOGO: Tinggi dikunci rata 45px agar seimbang -->
       <div style="text-align: center; margin-bottom: 25px; height: 45px; display: flex; align-items: center; justify-content: center;">
         <img src="{logo_url}" style="height: 45px; width: auto; object-fit: contain;"/>
       </div>
 
-      <!-- MODIFIKASI DINAMIS: Menampilkan judul hanya jika bukan Whoosh agar tampilan minimalis & bersih -->
-      {f'''<h1 style="font-family: 'Montserrat', sans-serif; color:{color_primary}; font-size: 26px; font-weight: 700; text-align: center; margin-bottom: 20px; letter-spacing: -0.5px;">{judul_tiket}</h1>''' if not is_whoosh else "<div style='margin-top:10px;'></div>"}
+      <!-- REVISI: Judul ditarik ke tengah menggunakan font Montserrat Bold premium -->
+      {f'''<h1 style="font-family: 'Montserrat', sans-serif; color:{color_primary}; font-size: 26px; font-weight: 700; text-align: center; margin-bottom: 25px; letter-spacing: -0.5px;">{judul_tiket}</h1>''' if not is_whoosh else "<div style='margin-top:10px;'></div>"}
       
-      <p style="font-size: 14px; line-height: 1.6;">
-         <strong>Kode Booking:</strong> <span style="font-size: 16px; color: #e65c00; font-weight: bold;">{data.get('kode_booking', 'N/A')}</span><br>
-         <strong>Nama Kereta:</strong> {data.get('nama_kereta', 'Tidak Diketahui')}<br>
-         <strong>Kelas:</strong> {data.get('kelas', 'Tidak Diketahui')}
-      </p>
-         
-      <p style="font-size: 14px; line-height: 1.6;">
-         <strong>Tanggal Berangkat:</strong> {data.get('tanggal_berangkat', 'Tidak Diketahui')}<br>
-         <strong>Tanggal Tiba:</strong> {data.get('tanggal_tiba', 'Tidak Diketahui')}
-      </p>
+      <div style="display: flex; justify-content: space-between; flex-wrap: wrap; margin-bottom: 15px; font-size: 14px; line-height: 1.6;">
+        <div style="flex: 1; min-width: 250px;">
+          <strong>Kode Booking:</strong> <span style="font-size: 16px; color: #e65c00; font-weight: bold;">{data.get('kode_booking', 'N/A')}</span><br>
+          <strong>Nama Kereta:</strong> {data.get('nama_kereta', 'Tidak Diketahui')}<br>
+          <strong>Kelas:</strong> {data.get('kelas', 'Tidak Diketahui')}
+        </div>
+        <div style="flex: 1; min-width: 250px; text-align: right;">
+          <strong>Tanggal Berangkat:</strong> {data.get('tanggal_berangkat', 'Tidak Diketahui')}<br>
+          <strong>Tanggal Tiba:</strong> {data.get('tanggal_tiba', 'Tidak Diketahui')}
+        </div>
+      </div>
 
-      <p style="font-size: 14px; line-height: 1.6; background: #fafafa; padding: 12px; border-radius: 8px; border-left: 4px solid {color_primary};">
-         <strong>Rute Perjalanan:</strong><br>
-         {data.get('asal', 'Tidak Diketahui')} <strong>{data.get('jam_berangkat', '')}</strong> → {data.get('tujuan', 'Tidak Diketahui')} <strong>{data.get('jam_tiba', '')}</strong>
-      </p>
+      <!-- REVISI: Transformasi wadah rute menjadi bentuk kontainer melengkung minimalis modern -->
+      <div style="font-size: 14px; line-height: 1.6; background: #f5f7fa; padding: 14px 18px; border-radius: 8px; margin-bottom: 25px; border: 1px solid #eef1f6;">
+         <strong style="color: {color_primary}; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Rute Perjalanan:</strong><br>
+         <span style="font-size: 15px; color:#222;">{data.get('asal', 'Tidak Diketahui')} <strong>{data.get('jam_berangkat', '')}</strong> ➔ {data.get('tujuan', 'Tidak Diketahui')} <strong>{data.get('jam_tiba', '')}</strong></span>
+      </div>
 
       <h2 style="font-family: 'Montserrat', sans-serif; font-size: 16px; color: {color_primary}; border-bottom: 2px solid {color_primary}; padding-bottom: 6px; margin-top: 25px;">
          Detail Penumpang
@@ -263,10 +265,11 @@ def generate_eticket(data):
         <!-- DYNAMIC BACKGROUND HEADER TABEL -->
         <thead style="background: {color_table_header};">
           <tr>
-            <th style="padding: 10px 8px; border: 1px solid {color_table_border}; font-size: 13px; color: #111;">Nama</th>
-            <th style="padding: 10px 8px; border: 1px solid {color_table_border}; font-size: 13px; color: #111;">Tipe</th>
-            <th style="padding: 10px 8px; border: 1px solid {color_table_border}; font-size: 13px; color: #111;">No Identitas</th>
-            <th style="padding: 10px 8px; border: 1px solid {color_table_border}; font-size: 13px; color: #111;">Kursi {'/ QR Gate' if is_whoosh else ''}</th>
+            <!-- REVISI: Padding vertikal header dinaikkan ke 12px -->
+            <th style="padding: 12px 8px; border: 1px solid {color_table_border}; font-size: 13px; color: #333; font-weight: 700;">Nama</th>
+            <th style="padding: 12px 8px; border: 1px solid {color_table_border}; font-size: 13px; color: #333; font-weight: 700;">Tipe</th>
+            <th style="padding: 12px 8px; border: 1px solid {color_table_border}; font-size: 13px; color: #333; font-weight: 700;">No Identitas</th>
+            <th style="padding: 12px 8px; border: 1px solid {color_table_border}; font-size: 13px; color: #333; font-weight: 700;">Kursi {'/ QR Gate' if is_whoosh else ''}</th>
           </tr>
         </thead>
         <tbody>
@@ -283,23 +286,23 @@ def generate_eticket(data):
       </div>''' if is_whoosh else ""}
 
       <!-- BARCODE KAI GLOBAL OTOMATIS DISAPA SAAT BUKAN WHOOSH -->
-      {f'''<div style="margin-top: 20px; text-align: center;">
-        <img src="https://barcode.tec-it.com/barcode.ashx?data={data.get('kode_booking', '')}&code=PDF417"
-             style="width: 250px; height: 80px;" />
-        <p style="font-size: 12px; font-weight: bold; margin-top: 5px; color: #555;">Kode Booking: {data.get('kode_booking', '')}</p>
+      {f'''<div style="margin-top: 30px; text-align: center;">
+        <img src="https://tec-it.com{data.get('kode_booking', '')}&code=PDF417" style="width: 250px; height: 80px;" />
+        <p style="font-size: 12px; font-weight: bold; margin-top: 6px; color: #666; letter-spacing: 0.5px;">Kode Booking: {data.get('kode_booking', '')}</p>
       </div>''' if not is_whoosh else ""}
 
       <div style="text-align: center; margin-top: 35px;">
         <!-- MODIFIKASI TIPOGRAFI TOMBOL: Menggunakan Montserrat Bold dan Background Tema Dinamis -->
         <button class="no-print" onclick="window.print()"
                 style="padding: 11px 24px; background-color: {color_primary}; color: white; border: none;
-                       border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; font-family: 'Montserrat', sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                       border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; font-family: 'Montserrat', sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.12); letter-spacing: 0.2px;">
           Cetak Tiket
         </button>
       </div>
     </div>
     """
     return html
+
 
     
 # Fungsi generate HTML voucher (disesuaikan dari kode kamu)

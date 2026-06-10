@@ -206,6 +206,9 @@ def generate_eticket(data):
     # 3. Tatanan Template HTML Visual Utama Anda
     html = f"""
     <style>
+      /* Mengimpor font premium Montserrat untuk Judul dan Tombol */
+      @import url('https://googleapis.com');
+
       @media print {{
         .no-print {{
           display: none !important;
@@ -221,13 +224,16 @@ def generate_eticket(data):
     <div style="font-family: 'Segoe UI'; max-width: 720px; margin: 30px auto; background: #fff; border-radius: 14px;
                 box-shadow: 0 8px 25px rgba(0,0,0,0.12); padding: 30px; color: #333;">
 
-      <div style="text-align: center; margin-bottom: 20px;">
-        <!-- URL LOGO DIUBAH SECARA DINAMIS (KAI ATAU KCIC) -->
-        <img src="{logo_url}" style="width: 120px; height: auto;"/>
+      <!-- SINKRONISASI UKURAN LOGO: Tinggi dikunci rata 45px agar seimbang -->
+      <div style="text-align: center; margin-bottom: 25px; height: 45px; display: flex; align-items: center; justify-content: center;">
+        <img src="{logo_url}" style="height: 45px; width: auto; object-fit: contain;"/>
       </div>
 
-      <!-- JUDUL UTAMA DIUBAH SECARA DINAMIS -->
-      <h1 style="color:#0047b3;">{judul_tiket}</h1>
+      <!-- MODIFIKASI TIPOGRAFI: Judul menggunakan font Montserrat tebal -->
+      <h1 style="font-family: 'Montserrat', sans-serif; color:#0047b3; font-size: 26px; font-weight: 700; text-align: center; margin-bottom: 20px; letter-spacing: -0.5px;">
+        {judul_tiket}
+      </h1>
+      
       <p><strong>Kode Booking:</strong> {data.get('kode_booking', 'N/A')}<br>
          <strong>Nama Kereta:</strong> {data.get('nama_kereta', 'Tidak Diketahui')}<br>
          <strong>Kelas:</strong> {data.get('kelas', 'Tidak Diketahui')}</p>
@@ -269,9 +275,10 @@ def generate_eticket(data):
       </div>''' if not is_whoosh else ""}
 
       <div style="text-align: center; margin-top: 30px;">
+        <!-- MODIFIKASI TIPOGRAFI TOMBOL: Menggunakan Montserrat Bold -->
         <button class="no-print" onclick="window.print()"
-                style="padding: 10px 20px; background-color: #0047b3; color: white; border: none;
-                       border-radius: 6px; cursor: pointer; font-size: 16px;">
+                style="padding: 10px 24px; background-color: #0047b3; color: white; border: none;
+                       border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: bold; font-family: 'Montserrat', sans-serif;">
           Cetak Tiket
         </button>
       </div>

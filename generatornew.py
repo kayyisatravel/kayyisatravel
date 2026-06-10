@@ -209,10 +209,12 @@ def generate_eticket(data):
 
     penumpang_rows_joined = "\n".join(penumpang_rows)
 
-    # 3. Tatanan Template HTML Visual Utama Anda
+        # =====================================================================
+    # # 3. Tatanan Template HTML Visual Utama Anda
+    # =====================================================================
     html = f"""
     <style>
-      /* FIX: Alamat impor Google Fonts diperbaiki agar font Montserrat termuat valid */
+      /* FIX: Alamat impor Google Fonts diperbaiki secara valid agar font Montserrat aktif */
       @import url('https://googleapis.com');
 
       @media print {{
@@ -290,7 +292,7 @@ def generate_eticket(data):
       <div style="text-align: center; margin-top: 35px;">
         <!-- MODIFIKASI TIPOGRAFI TOMBOL: Menggunakan Montserrat Bold dan Background Tema Dinamis -->
         <button class="no-print" onclick="window.print()"
-                style="padding: 11px 26px; background-color: {color_primary}; color: white; border: none;
+                style="padding: 11px 24px; background-color: {color_primary}; color: white; border: none;
                        border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; font-family: 'Montserrat', sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
           Cetak Tiket
         </button>

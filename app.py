@@ -116,6 +116,8 @@ from datetime import datetime
 
 def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filename, logo_path, ttd_path=None, status_lunas="BELUM LUNAS", nama_pemesan="Pelanggan"):
     import os
+    import re
+    import math
     import pandas as pd
     from datetime import datetime
     
@@ -130,7 +132,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # HEADER (ALAMAT + LOGO)
     # =============================
     pdf.set_font("Arial", "B", 8)
-    pdf.set_y(20)  
+    pdf.set_y(15)  
     alamat_perusahaan = (
         "KAYYISA TOUR & TRAVEL\n"
         "The Taman Dhika Cluster Wilis Blok F2 No. 2 Buduran, Sidoarjo - Jawa Timur\n"
@@ -147,49 +149,48 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         except Exception as e:
             print("Gagal load logo:", e)
 
-    pdf.ln(4)  
-    pdf.set_draw_color(224, 228, 236)  # Warna garis pembatas abu-abu sangat tipis pro
+    pdf.ln(3)  
+    pdf.set_draw_color(224, 228, 236)  # Warna garis pembatas abu-abu tipis pro
     pdf.set_line_width(0.3)  
     pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())  
     pdf.set_y(pdf.get_y() + 2)  
 
-    pdf.ln(5)
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 10, "INVOICE", ln=True, align="C")
     pdf.ln(3)
+    pdf.set_font("Arial", "B", 13)
+    pdf.cell(0, 10, "INVOICE", ln=True, align="C")
+    pdf.ln(2)
 
     if not isinstance(tanggal_invoice, datetime):
         tanggal_invoice = datetime.now()
 
-    pdf.set_font("Arial", "", 9.5)
-    pdf.cell(0, 6, f"Nama Pemesan: {nama_pemesan}", ln=True)
-    pdf.cell(0, 6, f"Tanggal Invoice: {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
-    pdf.cell(0, 6, f"No. Invoice: {unique_invoice_no}", ln=True)
+    pdf.set_font("Arial", "", 9)
+    pdf.cell(0, 5, f"Nama Pemesan: {nama_pemesan}", ln=True)
+    pdf.cell(0, 5, f"Tanggal Invoice: {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
+    pdf.cell(0, 5, f"No. Invoice: {unique_invoice_no}", ln=True)
     
-    pdf.set_font("Arial", "B", 9.5)
-    pdf.write(6, "Status Pembayaran: ")
+    pdf.set_font("Arial", "B", 9)
+    pdf.write(5, "Status Pembayaran: ")
     if str(status_lunas).upper() == "LUNAS":
         pdf.set_text_color(39, 174, 96) # Hijau
-        pdf.cell(0, 6, "LUNAS", ln=True)
+        pdf.cell(0, 5, "LUNAS", ln=True)
     else:
         pdf.set_text_color(192, 41, 43) # Merah
-        pdf.cell(0, 6, "BELUM LUNAS", ln=True)
+        pdf.cell(0, 5, "BELUM LUNAS", ln=True)
     pdf.set_text_color(0, 0, 0)
-    pdf.ln(5)
+    pdf.ln(4)
 
     # =====================================================================
-    # KOLOM TABEL & DISTRIBUSI LEBAR PROPORSIONAL (TOTAL PAS 180mm)
+    # LEBAR KOLOM PROPORSIONAL PAS 190mm (BATAS MAKSIMAL KERTAS A4)
     # =====================================================================
-    # Menetapkan lebar kolom secara presisi agar pas di halaman A4 (Total lebar = 185 mm)
     col_widths = {
-        "No": 7,
-        "Tgl Pemesanan": 20,
-        "Tgl Berangkat": 20,
-        "Kode Booking": 20,
-        "No Penerbangan / Hotel / Kereta": 35,  # Ruang longgar untuk nama hotel/pesawat panjang
+        "No": 8,
+        "Tgl Pemesanan": 21,
+        "Tgl Berangkat": 21,
+        "Kode Booking": 21,
+        "No Penerbangan / Hotel / Kereta": 36,  # Kolom diperlebar khusus teks panjang
         "Durasi": 13,
-        "Nama Customer": 30,  # Ruang longgar untuk nama panjang
-        "Rute": 18,
+        "Nama Customer": 32,  # Kolom diperlebar khusus nama panjang
+        "Rute": 16,
         "Harga Jual": 22
     }
 
@@ -203,110 +204,102 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # CETAK HEADER JUDUL KOLOM TABEL
     # =====================================================================
     pdf.set_font("Arial", "B", 8)
-    pdf.set_fill_color(224, 235, 255)  # Biru muda pastel khas korporat
-    pdf.set_draw_color(180, 200, 230)  # Border tabel biru pastel halus
+    pdf.set_fill_color(224, 235, 255)  # Latar biru muda pastel khas korporat
+    pdf.set_draw_color(180, 200, 230)  # Bingkai biru pastel tipis disamakan dengan rute
     
     pdf.cell(col_widths["No"], 8, "No", border=1, align="C", fill=True)
     for col in kolom_pdf:
-        pdf.cell(col_widths[col], 8, header_mapping.get(col, col), border=1, align="C", fill=True)
+        label_header = header_mapping.get(col, col)
+        pdf.cell(col_widths[col], 8, label_header, border=1, align="C", fill=True)
     pdf.ln()
 
     # =====================================================================
-    # ISI TABEL DENGAN LOGIKA MULTI-CELL (OTOMATIS TURUN BAWAH JIKA PANJANG)
+    # ISI DATA TABEL (FIX METODE RENDER ADVANCED ROW HEIGHT SYNC)
     # =====================================================================
-    pdf.set_font("Arial", "", 8)
+    pdf.set_font("Arial", "", 7.5)  # Font disesuaikan ukuran 7.5 agar muat proporsional
     total_harga = 0.0
     
-    # Fungsi pembantu pembersih angka rupiah
     def to_number(val):
         if isinstance(val, (int, float)): return float(val)
         digits = re.findall(r"\d+", str(val))
         return float("".join(digits)) if digits else 0.0
 
     for i, row in enumerate(data, start=1):
-        # 1. Hitung dulu berapa tinggi baris yang dibutuhkan untuk record ini
-        lines_needed = [1]
+        # Format nilai dan masukkan ke dalam dictionary baris sementara
+        row_formatted = {}
         for col in kolom_pdf:
             val_str = str(row.get(col, ""))
-            # Format tanggal khusus di tabel
             if col in ["Tgl Pemesanan", "Tgl Berangkat"]:
                 try: val_str = pd.to_datetime(val_str, dayfirst=True).strftime("%d-%m-%Y")
                 except: pass
             elif col == "Harga Jual":
-                val_str = f"Rp {to_number(val_str):,.0f}".replace(',', '.')
-                
-            # Hitung perkiraan baris teks berdasarkan lebar kolom masing-masing
-            string_width = pdf.get_string_width(val_str)
-            # Beri toleransi padding cell
-            lines = math.ceil(string_width / (col_widths[col] - 2))
-            lines_needed.append(lines)
-            
-        # Tentukan tinggi baris dinamis (tinggi base 6mm x jumlah baris teks terbanyak)
-        max_lines = max(lines_needed)
-        row_h = max_lines * 5  # Tinggi baris adaptif mendeteksi teks panjang
+                num_val = to_number(val_str)
+                if i == 1:
+                    total_harga = sum(to_number(r.get("Harga Jual", 0)) for r in data)
+                val_str = f"Rp {num_val:,.0f}".replace(',', '.')
+            row_formatted[col] = val_str
 
-        # Cek proteksi ganti halaman otomatis jika tidak muat di bawah kertas
+        # 1. Hitung baris teks terbanyak untuk baris ini (Menentukan tinggi dinamis)
+        max_lines = 1
+        for col in kolom_pdf:
+            string_width = pdf.get_string_width(row_formatted[col])
+            # Perkiraan baris teks di dalam kotak sel
+            lines = math.ceil(string_width / (col_widths[col] - 2))
+            if lines > max_lines:
+                max_lines = lines
+                
+        # Tinggi base per baris teks adalah 4.5 mm
+        row_h = max_lines * 4.5 
+
+        # Jaring pengaman otomatis ganti halaman baru agar tabel tidak terputus jelek
         if pdf.get_y() + row_h > pdf.page_break_trigger:
             pdf.add_page()
-            # Cetak ulang header tabel di halaman baru agar pro
             pdf.set_font("Arial", "B", 8)
             pdf.set_fill_color(224, 235, 255)
             pdf.cell(col_widths["No"], 8, "No", border=1, align="C", fill=True)
             for col in kolom_pdf:
                 pdf.cell(col_widths[col], 8, header_mapping.get(col, col), border=1, align="C", fill=True)
             pdf.ln()
-            pdf.set_font("Arial", "", 8)
+            pdf.set_font("Arial", "", 7.5)
 
-        # 2. Cetak Data menggunakan koordinat X,Y tetap agar garis tabel tidak rusak
+        # 2. LOGIKA UTAMA SINKRONISASI BINDING GARIS SEL (ANTI-RETAK)
         start_x = pdf.get_x()
         start_y = pdf.get_y()
         
-        # Cetak Kolom Nomor Urut
+        # Gambar kotak pembungkus nomor urut
         pdf.rect(start_x, start_y, col_widths["No"], row_h)
-        pdf.cell(col_widths["No"], row_h, str(i), align="C")
+        pdf.cell(col_widths["No"], row_h, str(i), border=0, align="C")
         current_x = start_x + col_widths["No"]
         
-        # Cetak Seluruh Kolom Data Penumpang secara berurutan
+        # Render cell data satu demi satu secara presisi lurus sebaris
         for col in kolom_pdf:
-            val = row.get(col, "")
-            
-            # Formatter konten baris
-            if col in ["Tgl Pemesanan", "Tgl Berangkat"]:
-                try: val = pd.to_datetime(val, dayfirst=True).strftime("%d-%m-%Y")
-                except: val = str(val)
-                align_cell = "C"
-            elif col == "Harga Jual":
-                num_val = to_number(val)
-                if i == 1: # Hitung total tagihan murni di loop pertama
-                    total_harga = sum(to_number(r.get("Harga Jual", 0)) for r in data)
-                val = f"Rp {num_val:,.0f}".replace(',', '.')
-                align_cell = "R"
-            else:
-                val = str(val)
-                align_cell = "C" if col in ["Kode Booking", "Durasi", "Rute"] else "L"
+            val_text = row_formatted[col]
+            align_cell = "R" if col == "Harga Jual" else ("C" if col in ["Kode Booking", "Durasi", "Rute", "Tgl Pemesanan", "Tgl Berangkat"] else "L")
 
-            # Gambar kotak border pembungkus terluar sel
+            # Gambar bingkai kotak sel terluar disamakan dengan warna pembatas rute
             pdf.rect(current_x, start_y, col_widths[col], row_h)
-            
-            # Set posisi kursor koordinat X,Y tepat di dalam kotak sel terkait
             pdf.set_xy(current_x, start_y)
             
-            # Eksekusi Multi-Cell Cerdas: memotong teks meluap otomatis turun ke bawah
-            # Beri padding vertical kecil jika baris teks hanya satu baris
-            if max_lines == 1:
-                pdf.cell(col_widths[col], row_h, val, border=0, align=align_cell)
-            else:
-                pdf.multi_cell(col_widths[col], 5, val, border=0, align=align_cell)
-                
+            # Hitung padding atas agar teks satu baris berada pas di tengah kotak (Vertical Centering)
+            string_width = pdf.get_string_width(val_text)
+            actual_lines = math.ceil(string_width / (col_widths[col] - 2))
+            
+            if actual_lines < max_lines:
+                # Tambahkan ruang kosong atas jika teks lebih pendek dari tinggi baris maksimal kotak
+                padding_top = ((max_lines - actual_lines) * 4.5) / 2
+                pdf.set_y(start_y + padding_top)
+
+            # Cetak teks tanpa merusak garis tepi menggunakan multi_cell border=0
+            pdf.multi_cell(col_widths[col], 4.2, val_text, border=0, align=align_cell)
             current_x += col_widths[col]
             
-        # Pindahkan kursor secara resmi ke baris baru setelah satu records selesai digambar
+        # Pindahkan koordinat kursor ke baris baru secara tegas di akhir baris
         pdf.set_xy(start_x, start_y + row_h)
 
     # =====================================================================
-    # LOGIKA PERHITUNGAN RINGKASAN DATA & KANAN BAWAH SUMMARY
+    # LOGIKA FINANSIAL RINGKASAN DATA KANAN BAWAH SUMMARY
     # =====================================================================
-    pdf.ln(5)
+    pdf.ln(4)
     if status_lunas.upper() == "LUNAS":
         terbayar = total_harga
         sisa_tagihan = total_harga - terbayar
@@ -314,12 +307,11 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         terbayar = 0
         sisa_tagihan = total_harga - terbayar
     
-    # Hitung ukuran koordinat blok kosong kiri
+    # Kalkulasi pembagian kolom summary kanan bawah
     left_blank_width = col_widths["No"] + sum(col_widths[col] for col in kolom_pdf if col not in ["Nama Customer", "Rute", "Harga Jual"])
     label_width = col_widths["Nama Customer"]
     value_width = col_widths["Rute"] + col_widths["Harga Jual"]
 
-    # Fungsi penata baris kesimpulan uang di pojok kanan bawah
     def summary_row_custom(label, value, bold=False, red=False):
         pdf.set_font("Arial", "B" if bold else "", 8)
         pdf.set_text_color(200, 0, 0) if red else pdf.set_text_color(0, 0, 0)
@@ -331,12 +323,11 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     summary_row_custom("Total Harga", total_harga, bold=True)
     summary_row_custom("Terbayar", terbayar)
     summary_row_custom("Sisa Tagihan", sisa_tagihan, bold=True, red=(sisa_tagihan > 0))
-    pdf.ln(4)
+    pdf.ln(3)
     
     # =====================================================================
-    # SEGMEN KALIMAT TERBILANG & DAFTAR REKENING BANK KAYYISA
+    # SEGMEN KALIMAT TERBILANG & DAFTAR REKENING BANK (ANTI-TUMPUG)
     # =====================================================================
-    # Fungsi Terbilang Rekursif bawaan Anda
     def terbilang(n):
         angka = ["Nol", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"]
         n = int(n)
@@ -346,15 +337,12 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         elif n < 100:
             sisa = n % 10
             return terbilang(n // 10) + " Puluh" + ("" if sisa == 0 else " " + terbilang(sisa))
-            
-        elif n < 200: 
-            return "Seratus" + ("" if n == 100 else " " + terbilang(n - 100))
-            
+        elif n < 200: return "Seratus" + ("" if n == 100 else " " + terbilang(n - 100))
         elif n < 1000:
             sisa = n % 100
             return terbilang(n // 100) + " Ratus" + ("" if sisa == 0 else " " + terbilang(sisa))
             
-        elif n < 2000: 
+        elif n < 2000:
             return "Seribu" + ("" if n == 1000 else " " + terbilang(n - 1000))
             
         elif n < 1_000_000:
@@ -365,13 +353,9 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
             sisa = n % 1_000_000
             return terbilang(n // 1_000_000) + " Juta" + ("" if sisa == 0 else " " + terbilang(sisa))
             
-        elif n < 1_000_000_000_000:
+        else:
             sisa = n % 1_000_000_000
             return terbilang(n // 1_000_000_000) + " Milyar" + ("" if sisa == 0 else " " + terbilang(sisa))
-            
-        else:
-            sisa = n % 1_000_000_000_000
-            return terbilang(n // 1_000_000_000_000) + " Triliun" + ("" if sisa == 0 else " " + terbilang(sisa))
 
     # --- CETAK TEKS TERBILANG ---
     pdf.set_font("Arial", "I", 8.5)
@@ -379,19 +363,17 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.multi_cell(0, 5, f"Terbilang: ({terbilang_text})", align="L")
     pdf.ln(4)
     
-    # Kunci batas vertikal dasar halaman
+    # Ambil batas vertikal Y akhir pasca kalimat terbilang dicetak
     y_setelah_terbilang = pdf.get_y()
     left_x = pdf.l_margin
     right_x = pdf.w - 80
 
-    # --- KIRI (INFORMASI BANK ATAU STATUS LUNAS) ---
-        # --- KIRI (INFORMASI BANK ATAU STATUS LUNAS) ---
+    # --- KIRI: CETAK DAFTAR REKENING BANK / STATUS LUNAS ---
     pdf.set_xy(left_x, y_setelah_terbilang)
     if status_lunas.upper() == "LUNAS":
         pdf.set_font("Arial", "B", 9)
         pdf.set_text_color(39, 174, 96)
-        # FIX: Mengganti simbol ✔ dengan teks biasa agar tidak memicu Unicode Error
-        pdf.cell(100, 6, "STATUS PEMBAYARAN: LUNAS (KUITANSI RESMI)", ln=True)
+        pdf.cell(100, 5, "- STATUS PEMBAYARAN: LUNAS (KUITANSI RESMI)", ln=True)
         pdf.set_text_color(0, 0, 0)
     else:
         pdf.set_font("Arial", "B", 8.5)
@@ -405,31 +387,31 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
             "Bank BSI - 2204899994"
         ]
         for bank in bank_list:
-            # FIX: Mengganti simbol peluru • menjadi tanda hubung - yang aman untuk font Arial
             pdf.cell(100, 4, f"- {bank} a.n Josirma Sari Pratiwi", ln=True)
 
-    # --- KANAN (TANDA TANGAN DIGITAL MANAJEMEN) ---
+    # --- KANAN: CETAK AREA TANDA TANGAN DIGITAL MANAJEMEN ---
     pdf.set_xy(right_x, y_setelah_terbilang)
     if not ttd_path or not os.path.exists(ttd_path):
         pdf.set_font("Arial", "I", 7)
         pdf.cell(70, 5, "Invoice sah diterbitkan secara elektronik oleh sistem.", align="C")
     else:
         try:
-            pdf.set_font("Arial", "", 9)
+            pdf.set_font("Arial", "", 8.5)
             pdf.cell(70, 5, "Hormat kami,", ln=True, align="C")
-            pdf.image(ttd_path, x=right_x + 15, y=pdf.get_y() + 1, w=35)
+            # Menurunkan posisi TTD sedikit agar menjauh dari teks "Hormat kami"
+            pdf.image(ttd_path, x=right_x + 17, y=pdf.get_y() + 2, w=35)
             pdf.ln(18)
-            pdf.set_font("Arial", "B", 9)
+            pdf.set_font("Arial", "B", 8.5)
             pdf.cell(70, 5, "Management Kayyisa", border="T", ln=True, align="C")
         except:
             pass
 
-    # --- CATATAN KAKI LAZIM (FOOTER) ---
-    pdf.ln(10)
+    # --- CATATAN KAKI / FOOTER DOKUMEN ---
+    pdf.ln(8)
     pdf.set_font("Arial", "I", 7.5)
     pdf.multi_cell(0, 4, "Invoice ini diterbitkan oleh sistem manajemen Kayyisa Tour & Travel dan sah tanpa tanda tangan fisik basah sesuai aturan transaksi elektronik.", align="C")
 
-    # Eksekusi tutup canvas halaman dan kembalikan file PDF
+    # Eksekusi simpan berkas fisik PDF final di server
     pdf.output(output_pdf_filename)
     return output_pdf_filename
 

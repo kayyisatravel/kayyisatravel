@@ -216,7 +216,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =====================================================================
     # ISI DATA TABEL (FIX METODE RENDER ADVANCED ROW HEIGHT SYNC)
     # =====================================================================
-        
+     
     pdf.set_font("Arial", "", 7.5)  
     total_harga = 0.0
     
@@ -224,6 +224,9 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         if isinstance(val, (int, float)): return float(val)
         digits = re.findall(r"\d+", str(val))
         return float("".join(digits)) if digits else 0.0
+
+    # FIX MUTLAK: Mengunci tinggi baris secara seragam sebesar 11 mm untuk estetika profesional
+    FIXED_ROW_H = 11.0 
 
     for i, row in enumerate(data, start=1):
         # Format nilai dan masukkan ke dalam dictionary baris sementara
@@ -240,21 +243,8 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
                 val_str = f"Rp {num_val:,.0f}".replace(',', '.')
             row_formatted[col] = val_str
 
-        # 1. FIX: Hitung jumlah baris teks terbanyak secara akurat
-        max_lines = 1
-        for col in kolom_pdf:
-            val_text = row_formatted[col]
-            string_width = pdf.get_string_width(val_text)
-            # Ditambahkan ruang margin padding sel 3mm agar pembagian kata aman
-            lines = math.ceil(string_width / (col_widths[col] - 3))
-            if lines > max_lines:
-                max_lines = lines
-                
-        # Tinggi base per baris teks adalah 5 mm
-        row_h = max_lines * 5 
-
-        # Jaring pengaman ganti halaman baru otomatis
-        if pdf.get_y() + row_h > pdf.page_break_trigger:
+        # Jaring pengaman ganti halaman baru otomatis berbasis tinggi seragam
+        if pdf.get_y() + FIXED_ROW_H > pdf.page_break_trigger:
             pdf.add_page()
             pdf.set_font("Arial", "B", 8)
             pdf.set_fill_color(224, 235, 255)
@@ -264,49 +254,51 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
             pdf.ln()
             pdf.set_font("Arial", "", 7.5)
 
-        # 2. FIX LOGIKA DRAW CELL: Kunci koordinat baris dasar
+        # Kunci koordinat baris dasar
         start_x = pdf.l_margin
         start_y = pdf.get_y()
         
-        # Gambar kotak luar nomor urut & isi teks nomor
-        pdf.rect(start_x, start_y, col_widths["No"], row_h)
+        # Gambar kotak luar nomor urut & isi teks nomor (Tinggi Seragam)
+        pdf.rect(start_x, start_y, col_widths["No"], FIXED_ROW_H)
         pdf.set_xy(start_x, start_y)
-        pdf.cell(col_widths["No"], row_h, str(i), border=0, align="C")
+        # Vertical centering untuk nomor urut tunggal (padding atas 3.5mm)
+        pdf.set_y(start_y + 3.5)
+        pdf.cell(col_widths["No"], 4, str(i), border=0, align="C")
         
         current_x = start_x + col_widths["No"]
         
-        # =====================================================================
-        # RENDER CELL DATA (FIX PERATAAN ARTIKULASI & SINKRONISASI COORD)
-        # =====================================================================
+        # Render cell data dengan tinggi seragam dan posisi vertikal pas di tengah
         for col in kolom_pdf:
             val_text = row_formatted[col]
-            
-            # --- PENYESUAIAN PERATAAN BARIS (ALIGNMENT) ---
-            if col == "Harga Jual":
-                align_cell = "R"  # Angka harga tetap kanan
-            elif col in ["No Penerbangan / Hotel / Kereta", "Kode Booking", "Durasi", "Rute", "Tgl Pemesanan", "Tgl Berangkat"]:
-                align_cell = "C"  # FIX: Item/Armada sekarang rata tengah agar simetris & indah
-            else:
-                align_cell = "L"  # Nama Customer tetap kiri agar huruf awalnya lurus vertikal
+            align_cell = "R" if col == "Harga Jual" else ("C" if col in ["Kode Booking", "Durasi", "Rute", "Tgl Pemesanan", "Tgl Berangkat"] else "L")
 
-            # Gambar bingkai kotak sel terluar disamakan dengan warna pembatas tabel
-            pdf.rect(current_x, start_y, col_widths[col], row_h)
-            pdf.set_xy(current_x, start_y)
+            # Gambar bingkai kotak sel terluar dengan tinggi seragam yang rapi
+            pdf.rect(current_x, start_y, col_widths[col], FIXED_ROW_H)
             
-            # Hitung padding atas agar teks pendek berada pas di tengah kotak secara vertikal
+            # Hitung jumlah baris teks sebenarnya untuk menentukan padding vertikal tengah
             string_width = pdf.get_string_width(val_text)
             actual_lines = math.ceil(string_width / (col_widths[col] - 3))
             
-            if actual_lines < max_lines:
-                padding_top = ((max_lines - actual_lines) * 5) / 2
-                pdf.set_xy(current_x, start_y + padding_top)
+            # --- LOGIKA OTOMATIS VERTICAL CENTERING (ANTI-GANTUNG) ---
+            if actual_lines == 1:
+                # Teks pendek 1 baris didorong turun 3.5 mm agar pas di tengah kotak
+                padding_top = 3.5
+            else:
+                # Teks panjang 2 baris didorong turun 1.3 mm agar seimbang
+                padding_top = 1.3
 
-            # Cetak teks menggunakan multi_cell dengan border 0
+            # Set koordinat presisi tepat di dalam kotak sel terkait
+            pdf.set_xy(current_x, start_y + padding_top)
+
+            # Cetak teks menggunakan multi_cell tanpa border (Kotak sudah diwakili pdf.rect)
             pdf.multi_cell(col_widths[col], 4.2, val_text, border=0, align=align_cell)
+            
+            # Geser koordinat X ke kanan untuk kolom berikutnya
             current_x += col_widths[col]
             
-        # Pindahkan kursor ke baris baru di bawah kotak yang baru selesai digambar
-        pdf.set_xy(start_x, start_y + row_h)
+        # Kembalikan posisi kursor ke baris baru paling kiri di bawah kotak yang seragam
+        pdf.set_xy(start_x, start_y + FIXED_ROW_H)
+
 
     # =====================================================================
     # LOGIKA FINANSIAL RINGKASAN DATA KANAN BAWAH SUMMARY

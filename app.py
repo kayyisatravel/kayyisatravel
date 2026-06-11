@@ -270,7 +270,13 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         # Render cell data dengan tinggi seragam dan posisi vertikal pas di tengah
         for col in kolom_pdf:
             val_text = row_formatted[col]
-            align_cell = "R" if col == "Harga Jual" else ("C" if col in ["Kode Booking", "Durasi", "Rute", "Tgl Pemesanan", "Tgl Berangkat"] else "L")
+            
+            if col == "Harga Jual":
+                align_cell = "R"  # Harga tetap kanan
+            elif col in ["No Penerbangan / Hotel / Kereta", "Kode Booking", "Durasi", "Rute", "Tgl Pemesanan", "Tgl Berangkat"]:
+                align_cell = "C"  # FIX: Item/Armada kembali dikunci rata tengah secara kuat
+            else:
+                align_cell = "L"  # Nama Customer tetap rata kiri agar lurus vertikal
 
             # Gambar bingkai kotak sel terluar dengan tinggi seragam yang rapi
             pdf.rect(current_x, start_y, col_widths[col], FIXED_ROW_H)

@@ -216,7 +216,8 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =====================================================================
     # ISI DATA TABEL (FIX METODE RENDER ADVANCED ROW HEIGHT SYNC)
     # =====================================================================
-    pdf.set_font("Arial", "", 7.5)  # Font disesuaikan ukuran 7.5 agar muat proporsional
+        
+    pdf.set_font("Arial", "", 7.5)  
     total_harga = 0.0
     
     def to_number(val):
@@ -239,19 +240,20 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
                 val_str = f"Rp {num_val:,.0f}".replace(',', '.')
             row_formatted[col] = val_str
 
-        # 1. Hitung baris teks terbanyak untuk baris ini (Menentukan tinggi dinamis)
+        # 1. FIX: Hitung jumlah baris teks terbanyak secara akurat
         max_lines = 1
         for col in kolom_pdf:
-            string_width = pdf.get_string_width(row_formatted[col])
-            # Perkiraan baris teks di dalam kotak sel
-            lines = math.ceil(string_width / (col_widths[col] - 2))
+            val_text = row_formatted[col]
+            string_width = pdf.get_string_width(val_text)
+            # Ditambahkan ruang margin padding sel 3mm agar pembagian kata aman
+            lines = math.ceil(string_width / (col_widths[col] - 3))
             if lines > max_lines:
                 max_lines = lines
                 
-        # Tinggi base per baris teks adalah 4.5 mm
-        row_h = max_lines * 4.5 
+        # Tinggi base per baris teks adalah 5 mm
+        row_h = max_lines * 5 
 
-        # Jaring pengaman otomatis ganti halaman baru agar tabel tidak terputus jelek
+        # Jaring pengaman ganti halaman baru otomatis
         if pdf.get_y() + row_h > pdf.page_break_trigger:
             pdf.add_page()
             pdf.set_font("Arial", "B", 8)
@@ -262,39 +264,45 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
             pdf.ln()
             pdf.set_font("Arial", "", 7.5)
 
-        # 2. LOGIKA UTAMA SINKRONISASI BINDING GARIS SEL (ANTI-RETAK)
-        start_x = pdf.get_x()
+        # 2. FIX LOGIKA DRAW CELL: Kunci koordinat baris dasar
+        start_x = pdf.l_margin
         start_y = pdf.get_y()
         
-        # Gambar kotak pembungkus nomor urut
+        # Gambar kotak luar nomor urut & isi teks nomor
         pdf.rect(start_x, start_y, col_widths["No"], row_h)
+        pdf.set_xy(start_x, start_y)
         pdf.cell(col_widths["No"], row_h, str(i), border=0, align="C")
+        
         current_x = start_x + col_widths["No"]
         
-        # Render cell data satu demi satu secara presisi lurus sebaris
+        # Render cell data satu per satu bergeser horizontal ke kanan (Anti-Tumpuk)
         for col in kolom_pdf:
             val_text = row_formatted[col]
             align_cell = "R" if col == "Harga Jual" else ("C" if col in ["Kode Booking", "Durasi", "Rute", "Tgl Pemesanan", "Tgl Berangkat"] else "L")
 
-            # Gambar bingkai kotak sel terluar disamakan dengan warna pembatas rute
+            # Gambar bingkai kotak sel terluar disamakan dengan warna pembatas tabel
             pdf.rect(current_x, start_y, col_widths[col], row_h)
+            
+            # FIX UTAMA: Kunci koordinat X dan Y tepat di dalam kotak sel terkait sebelum multi_cell jalan
             pdf.set_xy(current_x, start_y)
             
-            # Hitung padding atas agar teks satu baris berada pas di tengah kotak (Vertical Centering)
+            # Hitung padding atas agar teks pendek berada pas di tengah kotak secara vertikal
             string_width = pdf.get_string_width(val_text)
-            actual_lines = math.ceil(string_width / (col_widths[col] - 2))
+            actual_lines = math.ceil(string_width / (col_widths[col] - 3))
             
             if actual_lines < max_lines:
-                # Tambahkan ruang kosong atas jika teks lebih pendek dari tinggi baris maksimal kotak
-                padding_top = ((max_lines - actual_lines) * 4.5) / 2
-                pdf.set_y(start_y + padding_top)
+                padding_top = ((max_lines - actual_lines) * 5) / 2
+                pdf.set_xy(current_x, start_y + padding_top)
 
-            # Cetak teks tanpa merusak garis tepi menggunakan multi_cell border=0
+            # Cetak teks menggunakan multi_cell dengan border 0 (Garis sudah diwakili pdf.rect)
             pdf.multi_cell(col_widths[col], 4.2, val_text, border=0, align=align_cell)
+            
+            # Geser koordinat X ke kanan untuk kolom berikutnya
             current_x += col_widths[col]
             
-        # Pindahkan koordinat kursor ke baris baru secara tegas di akhir baris
+        # Kembalikan posisi kursor ke baris baru paling kiri di bawah kotak yang baru selesai digambar
         pdf.set_xy(start_x, start_y + row_h)
+
 
     # =====================================================================
     # LOGIKA FINANSIAL RINGKASAN DATA KANAN BAWAH SUMMARY

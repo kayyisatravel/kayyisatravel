@@ -275,15 +275,22 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         
         current_x = start_x + col_widths["No"]
         
-        # Render cell data satu per satu bergeser horizontal ke kanan (Anti-Tumpuk)
+        # =====================================================================
+        # RENDER CELL DATA (FIX PERATAAN ARTIKULASI & SINKRONISASI COORD)
+        # =====================================================================
         for col in kolom_pdf:
             val_text = row_formatted[col]
-            align_cell = "R" if col == "Harga Jual" else ("C" if col in ["Kode Booking", "Durasi", "Rute", "Tgl Pemesanan", "Tgl Berangkat"] else "L")
+            
+            # --- PENYESUAIAN PERATAAN BARIS (ALIGNMENT) ---
+            if col == "Harga Jual":
+                align_cell = "R"  # Angka harga tetap kanan
+            elif col in ["No Penerbangan / Hotel / Kereta", "Kode Booking", "Durasi", "Rute", "Tgl Pemesanan", "Tgl Berangkat"]:
+                align_cell = "C"  # FIX: Item/Armada sekarang rata tengah agar simetris & indah
+            else:
+                align_cell = "L"  # Nama Customer tetap kiri agar huruf awalnya lurus vertikal
 
             # Gambar bingkai kotak sel terluar disamakan dengan warna pembatas tabel
             pdf.rect(current_x, start_y, col_widths[col], row_h)
-            
-            # FIX UTAMA: Kunci koordinat X dan Y tepat di dalam kotak sel terkait sebelum multi_cell jalan
             pdf.set_xy(current_x, start_y)
             
             # Hitung padding atas agar teks pendek berada pas di tengah kotak secara vertikal
@@ -294,15 +301,12 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
                 padding_top = ((max_lines - actual_lines) * 5) / 2
                 pdf.set_xy(current_x, start_y + padding_top)
 
-            # Cetak teks menggunakan multi_cell dengan border 0 (Garis sudah diwakili pdf.rect)
+            # Cetak teks menggunakan multi_cell dengan border 0
             pdf.multi_cell(col_widths[col], 4.2, val_text, border=0, align=align_cell)
-            
-            # Geser koordinat X ke kanan untuk kolom berikutnya
             current_x += col_widths[col]
             
-        # Kembalikan posisi kursor ke baris baru paling kiri di bawah kotak yang baru selesai digambar
+        # Pindahkan kursor ke baris baru di bawah kotak yang baru selesai digambar
         pdf.set_xy(start_x, start_y + row_h)
-
 
     # =====================================================================
     # LOGIKA FINANSIAL RINGKASAN DATA KANAN BAWAH SUMMARY
@@ -315,7 +319,6 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         terbayar = 0
         sisa_tagihan = total_harga - terbayar
     
-    # Kalkulasi pembagian kolom summary kanan bawah
     left_blank_width = col_widths["No"] + sum(col_widths[col] for col in kolom_pdf if col not in ["Nama Customer", "Rute", "Harga Jual"])
     label_width = col_widths["Nama Customer"]
     value_width = col_widths["Rute"] + col_widths["Harga Jual"]
@@ -334,7 +337,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.ln(3)
     
     # =====================================================================
-    # SEGMEN KALIMAT TERBILANG & DAFTAR REKENING BANK (ANTI-TUMPUG)
+    # SEGMEN KALIMAT TERBILANG & DAFTAR REKENING BANK
     # =====================================================================
     def terbilang(n):
         angka = ["Nol", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"]
@@ -349,77 +352,78 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         elif n < 1000:
             sisa = n % 100
             return terbilang(n // 100) + " Ratus" + ("" if sisa == 0 else " " + terbilang(sisa))
-            
-        elif n < 2000:
-            return "Seribu" + ("" if n == 1000 else " " + terbilang(n - 1000))
-            
+        elif n < 2000: return "Seribu" + ("" if n == 1000 else " " + terbilang(n - 1000))
         elif n < 1_000_000:
             sisa = n % 1000
             return terbilang(n // 1000) + " Ribu" + ("" if sisa == 0 else " " + terbilang(sisa))
-            
         elif n < 1_000_000_000:
             sisa = n % 1_000_000
             return terbilang(n // 1_000_000) + " Juta" + ("" if sisa == 0 else " " + terbilang(sisa))
-            
         else:
             sisa = n % 1_000_000_000
             return terbilang(n // 1_000_000_000) + " Milyar" + ("" if sisa == 0 else " " + terbilang(sisa))
 
-    # --- CETAK TEKS TERBILANG ---
     pdf.set_font("Arial", "I", 8.5)
     terbilang_text = "Nol rupiah" if sisa_tagihan <= 0 else terbilang(sisa_tagihan).capitalize() + " rupiah"
     pdf.multi_cell(0, 5, f"Terbilang: ({terbilang_text})", align="L")
-    pdf.ln(4)
+    pdf.ln(3)
     
-    # Ambil batas vertikal Y akhir pasca kalimat terbilang dicetak
+    # Kunci koordinat vertikal mutlak setelah kalimat terbilang dicetak
     y_setelah_terbilang = pdf.get_y()
     left_x = pdf.l_margin
     right_x = pdf.w - 80
 
-    # --- KIRI: CETAK DAFTAR REKENING BANK / STATUS LUNAS ---
+    # --- BLOCK 1: SEBELAH KIRI (INFORMASI BANK / STATUS LUNAS) ---
     pdf.set_xy(left_x, y_setelah_terbilang)
     if status_lunas.upper() == "LUNAS":
         pdf.set_font("Arial", "B", 9)
         pdf.set_text_color(39, 174, 96)
-        pdf.cell(100, 5, "- STATUS PEMBAYARAN: LUNAS (KUITANSI RESMI)", ln=True)
+        pdf.cell(100, 5, "- STATUS PEMBAYARAN: LUNAS (KUITANSI RESMI)", ln=False) # Ganti ke ln=False agar kursor tidak jatuh ke bawah
         pdf.set_text_color(0, 0, 0)
     else:
         pdf.set_font("Arial", "B", 8.5)
         pdf.cell(100, 5, "Mohon Transfer Pembayaran Ke Rekening Resmi:", ln=True)
         pdf.set_font("Arial", "", 8)
         bank_list = [
-            "Bank BCA - 0881651041", 
-            "Bank Mandiri - 1420022043888",
-            "Bank BNI - 0197267094", 
-            "Bank BRI - 008601138769506", 
-            "Bank BSI - 2204899994"
-        ]
+            "Bank BCA - 0881651041", "Bank Mandiri - 1420022043888",
+            "Bank BNI - 0197267094", "Bank BRI - 008601138769506", "Bank BSI - 2204899994"
+        ]    
         for bank in bank_list:
-            pdf.cell(100, 4, f"- {bank} a.n Josirma Sari Pratiwi", ln=True)
+            pdf.set_x(left_x)
+            pdf.cell(100, 4, f"- {bank} a.n Josirma Sari Pratiwi", ln=True) # Menggunakan ln=True khusus di dalam loop bank
 
-    # --- KANAN: CETAK AREA TANDA TANGAN DIGITAL MANAJEMEN ---
+    # Kunci posisi Y paling bawah setelah daftar bank selesai digambar agar footer tidak tertabrak
+    y_maksimal_bank = pdf.get_y()
+
+    # --- BLOCK 2: SEBELAH KANAN (TANDA TANGAN ELEKTRONIK MANAJEMEN) ---
+    # Tarik koordinat kembali sejajar ke atas secara independen menggunakan set_xy
     pdf.set_xy(right_x, y_setelah_terbilang)
     if not ttd_path or not os.path.exists(ttd_path):
-        pdf.set_font("Arial", "I", 7)
-        pdf.cell(70, 5, "Invoice sah diterbitkan secara elektronik oleh sistem.", align="C")
+        pdf.set_font("Arial", "I", 7.5)
+        pdf.cell(70, 5, "Invoice sah diterbitkan secara elektronik oleh sistem.", align="C", ln=False)
     else:
         try:
             pdf.set_font("Arial", "", 8.5)
-            pdf.cell(70, 5, "Hormat kami,", ln=True, align="C")
-            # Menurunkan posisi TTD sedikit agar menjauh dari teks "Hormat kami"
-            pdf.image(ttd_path, x=right_x + 17, y=pdf.get_y() + 2, w=35)
-            pdf.ln(18)
+            pdf.cell(70, 5, "Hormat kami,", ln=False, align="C")
+            pdf.image(ttd_path, x=right_x + 17, y=y_setelah_terbilang + 6, w=35)
+            
+            # Gambar teks penutup di bawah gambar stempel tanda tangan digital
+            pdf.set_xy(right_x, y_setelah_terbilang + 25)
             pdf.set_font("Arial", "B", 8.5)
-            pdf.cell(70, 5, "Management Kayyisa", border="T", ln=True, align="C")
+            pdf.cell(70, 5, "Management Kayyisa", border="T", ln=False, align="C")
         except:
             pass
 
-    # --- CATATAN KAKI / FOOTER DOKUMEN ---
-    pdf.ln(8)
+    # Ambil titik koordinat Y terendah di antara TTD atau daftar Bank untuk menaruh footer
+    y_final_footer = max(y_maksimal_bank, pdf.get_y())
+
+    # --- BLOCK 3: FOOTER UTAMA (PAS DI BAGIAN PALING BAWAH KERTAS - ANTI TUMPUK) ---
+    pdf.set_xy(left_x, y_final_footer + 6)
     pdf.set_font("Arial", "I", 7.5)
+    pdf.set_text_color(100, 100, 100) # Warna abu-abu elegan untuk footer
     pdf.multi_cell(0, 4, "Invoice ini diterbitkan oleh sistem manajemen Kayyisa Tour & Travel dan sah tanpa tanda tangan fisik basah sesuai aturan transaksi elektronik.", align="C")
 
-    # Eksekusi simpan berkas fisik PDF final di server
+    # Output eksekusi simpan berkas fisik PDF final di server
     pdf.output(output_pdf_filename)
     return output_pdf_filename
 

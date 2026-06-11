@@ -389,7 +389,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     if status_lunas.upper() == "LUNAS":
         pdf.set_font("Arial", "B", 9)
         pdf.set_text_color(39, 174, 96)
-        pdf.cell(100, 6, "✔ PEMBAYARAN: LUNAS (KUITANSI RESMI)", ln=True)
+        pdf.cell(100, 6, "PEMBAYARAN: LUNAS (KUITANSI RESMI)", ln=True)
         pdf.set_text_color(0, 0, 0)
     else:
         pdf.set_font("Arial", "B", 8.5)

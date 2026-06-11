@@ -385,11 +385,13 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     right_x = pdf.w - 80
 
     # --- KIRI (INFORMASI BANK ATAU STATUS LUNAS) ---
+        # --- KIRI (INFORMASI BANK ATAU STATUS LUNAS) ---
     pdf.set_xy(left_x, y_setelah_terbilang)
     if status_lunas.upper() == "LUNAS":
         pdf.set_font("Arial", "B", 9)
         pdf.set_text_color(39, 174, 96)
-        pdf.cell(100, 6, "PEMBAYARAN: LUNAS (KUITANSI RESMI)", ln=True)
+        # FIX: Mengganti simbol ✔ dengan teks biasa agar tidak memicu Unicode Error
+        pdf.cell(100, 6, "STATUS PEMBAYARAN: LUNAS (KUITANSI RESMI)", ln=True)
         pdf.set_text_color(0, 0, 0)
     else:
         pdf.set_font("Arial", "B", 8.5)
@@ -403,7 +405,8 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
             "Bank BSI - 2204899994"
         ]
         for bank in bank_list:
-            pdf.cell(100, 4, f"• {bank} a.n Josirma Sari Pratiwi", ln=True)
+            # FIX: Mengganti simbol peluru • menjadi tanda hubung - yang aman untuk font Arial
+            pdf.cell(100, 4, f"- {bank} a.n Josirma Sari Pratiwi", ln=True)
 
     # --- KANAN (TANDA TANGAN DIGITAL MANAJEMEN) ---
     pdf.set_xy(right_x, y_setelah_terbilang)

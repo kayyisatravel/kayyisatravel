@@ -54,6 +54,13 @@ class AIKeretaMasterSchema(BaseModel):
     kelas: str = Field(description="Kelas kategori kereta api berformat Title Case, contoh: 'Ekonomi' atau 'Eksekutif'")
     penumpang: List[PenumpangKeretaSchema] = Field(default=[], description="Daftar array manifes seluruh penumpang")
 
+class DetailKamarDinamis(BaseModel):
+    nomor_urutan_kamar: int = Field(description="Nomor urut kamar, contoh: 1 atau 2")
+    nama_tamu_kamar: str = Field(description="Nama tamu spesifik di kamar ini (Title Case), hapus gelar")
+    tipe_kamar_nama: str = Field(description="Nama tipe kamar, contoh: 'Deluxe Non View Double'")
+    harga_kamar_per_malam: float = Field(description="Harga per malam untuk kamar ini saja, contoh: 750000 atau 500000")
+    fasilitas_kamar: str = Field(description="Fasilitas spesifik kamar ini, contoh: 'Sarapan (2 Pax)' atau 'Room Only'")
+    permintaan_khusus_kamar: str = Field(description="Permintaan khusus kamar ini, contoh: 'Twin Bed' atau '1 Large Bed'")
 
 class AIHotelMasterSchema(BaseModel):
     order_id: str = Field(description="ID Pesanan / Order ID dari platform OTA")
@@ -69,7 +76,14 @@ class AIHotelMasterSchema(BaseModel):
     total_malam: int = Field(description="AI wajib menghitung selisih hari check-in & check-out secara presisi sebagai Integer murni")
     tamu: List[str] = Field(default=[], description="Daftar nama-nama tamu menginap berformat EYD baku / Title Case tanpa gelar sapaan")
     permintaan_khusus: str = Field(description="Catatan permintaan khusus tamu, contoh: 'Non Smoking room, King Bed'")
-    
+    daftar_detail_kamar: List[DetailKamarDinamis] = Field(
+        default=[], 
+        description="""
+        WAJIB DIISI JIKA TERDETEKSI RESERVASI LEBIH DARI 1 KAMAR (MULTI-KAMAR). 
+        Pecah data manifes secara dinamis per objek kamar berdasarkan blok teks 'Tipe Kamar 1', 'Tipe Kamar 2', dst.
+        Masukkan nama tamu, harga kamar, fasilitas, dan permintaan khusus milik kamar tersebut secara spesifik.
+        """
+    )
     # 1. FIX: Struktur Fasilitas Gabungan Ber-bilingual Aman
     fasilitas: str = Field(description="""
         Fasilitas makan atau utama internal hotel. Contoh: 'Sarapan (2 Pax) per kamar' atau 'Wifi'.
@@ -116,13 +130,6 @@ class AIHotelMasterSchema(BaseModel):
         Jika tidak ada instruksi nominal harga paket wisata tambahan di teks masukan, wajib berikan nilai: 0.0
     """)
     
-class DetailKamarDinamis(BaseModel):
-    nomor_urutan_kamar: int = Field(description="Nomor urut kamar, contoh: 1 atau 2")
-    nama_tamu_kamar: str = Field(description="Nama tamu spesifik di kamar ini (Title Case), hapus gelar")
-    tipe_kamar_nama: str = Field(description="Nama tipe kamar, contoh: 'Deluxe Non View Double'")
-    harga_kamar_per_malam: float = Field(description="Harga per malam untuk kamar ini saja, contoh: 750000 atau 500000")
-    fasilitas_kamar: str = Field(description="Fasilitas spesifik kamar ini, contoh: 'Sarapan (2 Pax)' atau 'Room Only'")
-    permintaan_khusus_kamar: str = Field(description="Permintaan khusus kamar ini, contoh: 'Twin Bed' atau '1 Large Bed'")
 
 # =====================================================================
 # 2. FUNGSI PARSER KECERDASAN BUATAN GEMINI 3.1 FLASH-LITE

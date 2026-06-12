@@ -363,112 +363,49 @@ def generate_evoucher_html(data):
 
     # Format hitungan angka harga total
     # =====================================================================
-    # FIX ACUAN BARU: LOGIKA INTEGRASI MULTI-KAMAR DAN PAKET WISATA
+    # FIX TOTAL: KALKULATOR MULTI-BARIS & SINKRONISASI BILINGUAL LABEL
     # =====================================================================
-    # 1. Tarik daftar list detail kamar dinamis hasil tangkapan AI Gemini
-    list_kamar = data.get('daftar_detail_kamar', [])
-    tot_malam = int(data.get('total_malam', 1))
-    
     try:
+        hrg_per_malam = float(data.get('harga_per_malam', 0))
+        tot_malam = int(data.get('total_malam', 1))
+        jml_kamar = int(data.get('jumlah_kamar', 1))
+        # Mengambil angka hitungan murni dari internal otak AI Gemini
         hrg_paket_wisata = float(data.get('harga_paket_wisata_total', 0))
     except (ValueError, TypeError):
+        hrg_per_malam = 0.0
+        tot_malam = 1
+        jml_kamar = 1
         hrg_paket_wisata = 0.0
 
-    # =====================================================================
-    # 2. Loop matematika: Menghitung akumulasi harga riil dari tiap-tiap kamar
-    # =====================================================================
-    total_harga_hotel = 0.0
-    tabel_harga_rows = []
-    tamu_detail_rows = []
-    fasilitas_detail_rows = []
-
-    # JARING PENGAMAN UTAMA: Jika list kamar kosong (karena pakai format skema lama), 
-    # rakit secara otomatis dari variabel data tunggal agar sistem tidak Rp 0
-    if not list_kamar or len(list_kamar) == 0:
-        # Ambil daftar nama tamu global, bersihkan jika berbentuk list atau string
-        raw_tamu = data.get('tamu', ['Pelanggan'])
-        if isinstance(raw_tamu, str):
-            nama_tamu_fallback = raw_tamu
-        elif isinstance(raw_tamu, list) and len(raw_tamu) > 0:
-            nama_tamu_fallback = raw_tamu[0]
-        else:
-            nama_tamu_fallback = "Pelanggan"
-
-        # Masukkan data tunggal lama ke dalam struktur list virtual seolah-olah multi-kamar
-        list_kamar = [{
-            'nomor_urutan_kamar': 1,
-            'nama_tamu_kamar': nama_tamu_fallback,
-            'tipe_kamar_nama': data.get('kamar', 'Standard Room'),
-            'harga_kamar_per_malam': float(data.get('harga_per_malam', 0)),
-            'fasilitas_kamar': data.get('fasilitas', 'Room Only'),
-            'permintaan_khusus_kamar': data.get('permintaan_khusus', '-')
-        }]
-
-    # Jalankan perulangan secara aman (pasti terisi baik data tunggal maupun data massal)
-    for idx, kmr in enumerate(list_kamar, start=1):
-        nama_tamu = kmr.get('nama_tamu_kamar', '-')
-        tipe_kmr = kmr.get('tipe_kamar_nama', '-')
-        fasilitas_kmr = kmr.get('fasilitas_kamar', 'Room Only')
-        req_khusus = kmr.get('permintaan_khusus_kamar', '-')
-        
-        try:
-            harga_per_malam_kamar = float(kmr.get('harga_kamar_per_malam', 0))
-        except:
-            harga_per_malam_kamar = 0.0
-            
-        subtotal_kamar_ini = harga_per_malam_kamar * tot_malam
-        total_harga_hotel += subtotal_kamar_ini
-
-        rate_str = f"Rp {harga_per_malam_kamar:,.0f}".replace(',', '.')
-        subtotal_str = f"Rp {subtotal_kamar_ini:,.0f}".replace(',', '.')
-
-        # TITIK BARU 1: Membuat baris tabel harga dinamis per kamar
-        baris_harga_html = f"""
-        <tr>
-          <td style="text-align: left; padding: 10px 12px; font-size: 13.5px; color: #333; line-height: 1.4;">
-            <strong>Kamar {idx}: {tipe_kmr}</strong><br>
-            <span style="font-size: 11.5px; color: #666;">({nama_tamu} - {rate_str} x {tot_malam} malam)</span>
-          </td>
-          <td style="text-align: center; padding: 10px 12px; font-size: 13.5px; color: #333;">1 Kamar</td>
-          <td style="text-align: right; padding: 10px 12px; font-size: 13.5px; font-weight: 500; color: #333;">{subtotal_str}</td>
-        </tr>
-        """
-        tabel_harga_rows.append(baris_harga_html)
-
-        # TITIK BARU 2: Membuat daftar baris nama tamu kamar
-        baris_tamu_html = f"<p><strong>Kamar {idx} ({tipe_kmr}):</strong> {idx}. {nama_tamu}</p>"
-        tamu_detail_rows.append(baris_tamu_html)
-
-        # TITIK BARU 3: Membuat daftar baris fasilitas & request per kamar
-        baris_fasilitas_html = f"""
-        <p style="margin-bottom: 8px; border-bottom: 1px dashed #edf2f7; padding-bottom: 5px;">
-          <strong>Kamar {idx} ({nama_tamu}):</strong><br>
-          Fasilitas / Amenities: {fasilitas_kmr}<br>
-          Permintaan Khusus / Special Request: {req_khusus}
-        </p>
-        """
-        fasilitas_detail_rows.append(baris_fasilitas_html)
-
-    # 3. Rumus Hitungan Gabungan Akhir (Total Akumulasi Hotel + Paket Wisata)
+    # Rumus Hitungan Subtotal & Gabungan Grand Total Akhir
+    total_harga_hotel = hrg_per_malam * tot_malam * jml_kamar
     total_harga_gabungan = total_harga_hotel + hrg_paket_wisata
-    grand_total_str = f"Rp {total_harga_gabungan:,.0f}".replace(',', '.')
-    total_paket_str = f"Rp {hrg_paket_wisata:,.0f}".replace(',', '.')
 
-    # Logika string pembersihan paket wisata tambahan tetap aman terjaga
+    # Transformasi String Pecahan Mata Uang Rupiah yang Indah
+    rate_hotel_str = f"Rp {hrg_per_malam:,.0f}".replace(',', '.')
+    total_hotel_str = f"Rp {total_harga_hotel:,.0f}".replace(',', '.')
+    total_paket_str = f"Rp {hrg_paket_wisata:,.0f}".replace(',', '.')
+    grand_total_str = f"Rp {total_harga_gabungan:,.0f}".replace(',', '.')
+
+    # FIX LOGIKA STRING: Pembersihan nama paket wisata secara aman tanpa split crash
     nama_paket_raw = str(data.get('paket_wisata_tambahan', '-'))
     if nama_paket_raw and nama_paket_raw != '-':
+        # Bersihkan kata imbuhan pembuka agar manis ditaruh di dalam sel tabel kecil
         label_paket_wisata = nama_paket_raw.replace('Voucher Package Ticket', '').replace('Include Paket Wisata:', '').strip()
     else:
         label_paket_wisata = "Extra Ticket / Tiket Atraksi Tambahan"
 
+
+
+    # =====================================================================
+    # 2. PERBAIKAN: Menggabungkan jumlah kamar dan nama kamar secara lengkap
+    # =====================================================================
+    nama_kamar_raw = get('kamar')
+    teks_kamar_final = f"{jml_kamar} x Kamar {nama_kamar_raw}"
+    
     teks_paket_ai = get('paket_wisata_tambahan')
+    # Kotak emas hanya akan merender jika teks hasil AI bukan strip '-'
     is_ada_paket_wisata = teks_paket_ai != '-' and teks_paket_ai != ''
-
-    # Satukan string hasil join ke variabel luar f-string agar bebas dari Backslash Error
-    string_tabel_harga_final = "\n".join(tabel_harga_rows)
-    string_detail_tamu_final = "\n".join(tamu_detail_rows)
-    string_detail_fasilitas_final = "\n".join(fasilitas_detail_rows)
-
     
     html = f"""
     <style>
@@ -632,22 +569,29 @@ def generate_evoucher_html(data):
             </tr>
           </thead>
           <tbody>
-            <!-- PANGGIL KELOMPOK BARIS RINCIAN TIAP KAMAR SEARA DINAMIS -->
-            {string_tabel_harga_final}
-            
-            <!-- BONUS TIKET ATRAKSI WISATA (OTOMATIS MERENDER JIKA ADA BUNDLE HARGANYA) -->
-            {f'''<tr>
-              <td style="text-align: left; padding: 10px 12px; font-size: 13px; color: #333; line-height: 1.4;">
-                <strong>Extra Attraction Package / Paket Tiket Wisata</strong><br>
-                <span style="font-size: 11px; color: #666;">({label_paket_wisata})</span>
+            <!-- BARIS 1: AKOMODASI KAMAR HOTEL -->
+            <tr>
+              <td style="text-align: left; padding: 10px 12px; font-size: 13.5px; color: #333; line-height: 1.4;">
+                <strong>Room Reservation / Akseptasi Kamar Hotel</strong><br>
+                <span style="font-size: 11.5px; color: #666;">({rate_hotel_str} x {tot_malam} malam / night(s))</span>
               </td>
-              <td style="text-align: center; padding: 10px 12px;">1 Paket</td>
-              <td style="text-align: right; padding: 10px 12px; font-size: 13px; font-weight: 500; color: #333;">{total_paket_str}</td>
-            </tr>''' if hrg_paket_wisata > 0.0 else ""}
+              <td style="text-align: center; padding: 10px 12px; font-size: 13.5px; color: #333;">{jml_kamar} Kamar</td>
+              <td style="text-align: right; padding: 10px 12px; font-size: 13.5px; font-weight: 500; color: #333;">{total_hotel_str}</td>
+            </tr>
             
-            <!-- RINGKASAN GRAND TOTAL AKUMULASI GABUNGAN SECARA TEPAT -->
+            <!-- BARIS 2: BONUS TIKET ATRAKSI WISATA (OTOMATIS AKAN MERENDER JIKA INPUT ADADA DATA HARGANYA) -->
+            {f'''<tr>
+              <td style="text-align: left; padding: 10px 12px; font-size: 13.5px; color: #333; line-height: 1.4;">
+                <strong>Extra Attraction Package / Paket Tiket Wisata</strong><br>
+                <span style="font-size: 11.5px; color: #666;">({label_paket_wisata})</span>
+              </td>
+              <td style="text-align: center; padding: 10px 12px; font-size: 13.5px; color: #333;">1 Paket</td>
+              <td style="text-align: right; padding: 10px 12px; font-size: 13.5px; font-weight: 500; color: #333;">{total_paket_str}</td>
+            </tr>''' if hrg_paket_wisata > 0.0 or is_ada_paket_wisata else ""}
+            
+            <!-- BARIS 3: RINGKASAN GRAND TOTAL AKUMULASI GABUNGAN (HOTEL + WISATA) -->
             <tr style="background-color: #f0f4ff; font-weight: 700; border-top: 2px solid #004080;">
-              <td colspan="2" style="text-align: right; padding: 12px; font-size: 14px; color: #004080; text-transform: uppercase;">
+              <td colspan="2" style="text-align: right; padding: 12px; font-size: 14px; color: #004080; text-transform: uppercase; letter-spacing: 0.3px;">
                 GRAND TOTAL PRICE / <span style="font-size: 11.5px; font-weight:400; font-style:italic; text-transform: none;">Total Bayar</span> :
               </td>
               <td style="text-align: right; padding: 12px; font-size: 15.5px; color: #b30000;">
@@ -657,6 +601,7 @@ def generate_evoucher_html(data):
           </tbody>
         </table>
       </div>
+
 
       <!-- =====================================================================
            [BARU] PREMIUM HIGHLIGHT BADGE: KHUSUS BONUS TIKET COMPLEMENTARY
@@ -670,13 +615,15 @@ def generate_evoucher_html(data):
       </div>''' if is_ada_paket_wisata else ""}
         
       <div class="section">
-        <h3>Guest & Room Details <span>/ Detail Tamu & Kamar</span></h3>
-        {string_detail_tamu_final}
+        <h3>Guest & Room Details / Detail Tamu & Kamar</h3>
+        <strong>{tamu_html}</strong><br>
+        <p>{teks_kamar_final}</p>
       </div>
 
       <div class="section">
-        <h3>Amenities & Special Requests <span>/ Fasilitas & Permintaan</span></h3>
-        {string_detail_fasilitas_final}
+        <h3>Amenities & Requests / Fasilitas & Permintaan</h3>
+        <p><strong>Fasilitas:</strong> {get('fasilitas')}<br>
+           <strong>Permintaan Khusus:</strong> {get('permintaan_khusus')}</p>
       </div>
 
       <div class="footer">

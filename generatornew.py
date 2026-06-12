@@ -496,7 +496,7 @@ def generate_evoucher_html(data):
       </div>
 
       <div class="section">
-        <h3>Properti & Lokasi</h3>
+        <h3>Properti & Lokasi (Property & Location)</h3>
         <p><strong>{get('hotel_name')}</strong><br>
            {get('location')}<br>
            <strong>📞 Kontak Hotel:</strong> {get('hotel_phone')}
@@ -504,19 +504,19 @@ def generate_evoucher_html(data):
       </div>
 
       <div class="section">
-        <h3>Detail Reservasi</h3>
-        <p>Jumlah Kamar: {get('jumlah_kamar')}<br>
+        <h3>Detail Reservasi (Reservation Details)</h3>
+        <p>Jumlah Kamar (Room Count): {get('jumlah_kamar')}<br>
            Check-in: {get('tanggal_masuk')} – {get('jam_masuk')}<br>
            Check-out: {get('tanggal_keluar')} – {get('jam_keluar')}</p>
       </div>
 
       <div class="section">
-        <h3>Harga</h3>
+        <h3>Harga (Rates)</h3>
         <table class="price-table">
           <tr>
             <th>Rate per Malam</th>
             <th>Total Malam</th>
-            <th>Jumlah Kamar</th>
+            <th>Jumlah Kamar </th>
             <th>Total Harga</th>
           </tr>
           <tr>
@@ -539,13 +539,13 @@ def generate_evoucher_html(data):
       </div>''' if is_ada_paket_wisata else ""}
         
       <div class="section">
-        <h3>Detail Tamu & Kamar</h3>
+        <h3>Detail Tamu & Kamar (Guest & Room Details)</h3>
         <strong>{tamu_html}</strong><br>
         <p>{teks_kamar_final}</p>
       </div>
 
       <div class="section">
-        <h3>Fasilitas & Permintaan</h3>
+        <h3>Fasilitas & Permintaan (Amenities & Requests)</h3>
         <p>Fasilitas: {get('fasilitas')}<br>
            Permintaan Khusus: {get('permintaan_khusus')}</p>
       </div>

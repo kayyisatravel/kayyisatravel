@@ -932,6 +932,10 @@ def panggil_gemini_vision_parser(uploaded_file) -> list:
            - Langkah 3 (FALLBACK): Jika Langkah 1 dan 2 tidak ada, samakan nilai "harga_jual" dengan "harga_beli" per baris.
         
         ATURAN STRUKTUR DATA UTAMA (WAJIB DIPATUHI BAGAIMANAPUN INPUT TEKSNYA):
+        0. NAMA CUSTOMER: Wajib ubah ke format Title Case / Huruf Kapital di Awal Kata (EYD Baku). 
+           Wajib bersihkan dan balik total jika mendeteksi format nama maskapai/internasional (Last Name/First Name) serta hapus gelar sapaan seperti 'MR', 'MRS', 'MS', 'TN', 'NY'.
+           (Contoh: 'UTOMO/PRABOWO MR' -> Hasil: 'Prabowo Utomo').
+           (Contoh: 'SUTRISNO/DEWI MRS' -> Hasil: 'Dewi Sutrisno').
         1. Tipe PESAWAT: "item_name" berisi Nama Maskapai dan No Penerbangan (cth: "QG997-QG 174"). Durasi format 'HH:MM - HH:MM'. Rute HANYA kode bandara 3 huruf (cth: "TKG - SUB").
         2. Tipe HOTEL:
            - "item_name": Nama properti hotel bersih (Contoh: "Montana Hotel Syariah Banjarbaru").

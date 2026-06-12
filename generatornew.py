@@ -521,7 +521,7 @@ def generate_evoucher_html(data):
       {f'''<div class="badge-package" style="margin-top: 25px; background-color: #fff9e6; border: 2px solid #d4af37; border-radius: 8px; padding: 15px 18px; color: #856404; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
         <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #2c3e50;">
           <strong>Include Paket Wisata:</strong> <span style="font-weight: 700; color: #b30000; font-size: 14.5px;">{teks_paket_ai}</span><br>
-          <span style="font-size: 12px; font-style: italic; color: #555; display: block; margin-top: 6px;">*Petugas Loket Wisata Lapangan: Mohon lakukan validasi penukaran tiket fisik menggunakan nomor Itinerary ID atau Order ID resmi yang tertera di atas lembar voucher Kayyisa ini.</span>
+          <span style="font-size: 12px; font-style: italic; color: #555; display: block; margin-top: 6px;">*Petugas Loket Wisata: Mohon lakukan validasi penukaran tiket fisik menggunakan nomor Itinerary ID atau Order ID resmi yang tertera di atas lembar voucher ini.</span>
         </p>
       </div>''' if is_ada_paket_wisata else ""}
         

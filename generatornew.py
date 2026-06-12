@@ -364,12 +364,37 @@ def generate_evoucher_html(data):
     except (ValueError, TypeError):
         hrg_paket_wisata = 0.0
 
+    # =====================================================================
     # 2. Loop matematika: Menghitung akumulasi harga riil dari tiap-tiap kamar
+    # =====================================================================
     total_harga_hotel = 0.0
     tabel_harga_rows = []
     tamu_detail_rows = []
     fasilitas_detail_rows = []
 
+    # JARING PENGAMAN UTAMA: Jika list kamar kosong (karena pakai format skema lama), 
+    # rakit secara otomatis dari variabel data tunggal agar sistem tidak Rp 0
+    if not list_kamar or len(list_kamar) == 0:
+        # Ambil daftar nama tamu global, bersihkan jika berbentuk list atau string
+        raw_tamu = data.get('tamu', ['Pelanggan'])
+        if isinstance(raw_tamu, str):
+            nama_tamu_fallback = raw_tamu
+        elif isinstance(raw_tamu, list) and len(raw_tamu) > 0:
+            nama_tamu_fallback = raw_tamu[0]
+        else:
+            nama_tamu_fallback = "Pelanggan"
+
+        # Masukkan data tunggal lama ke dalam struktur list virtual seolah-olah multi-kamar
+        list_kamar = [{
+            'nomor_urutan_kamar': 1,
+            'nama_tamu_kamar': nama_tamu_fallback,
+            'tipe_kamar_nama': data.get('kamar', 'Standard Room'),
+            'harga_kamar_per_malam': float(data.get('harga_per_malam', 0)),
+            'fasilitas_kamar': data.get('fasilitas', 'Room Only'),
+            'permintaan_khusus_kamar': data.get('permintaan_khusus', '-')
+        }]
+
+    # Jalankan perulangan secara aman (pasti terisi baik data tunggal maupun data massal)
     for idx, kmr in enumerate(list_kamar, start=1):
         nama_tamu = kmr.get('nama_tamu_kamar', '-')
         tipe_kmr = kmr.get('tipe_kamar_nama', '-')
@@ -387,12 +412,12 @@ def generate_evoucher_html(data):
         rate_str = f"Rp {harga_per_malam_kamar:,.0f}".replace(',', '.')
         subtotal_str = f"Rp {subtotal_kamar_ini:,.0f}".replace(',', '.')
 
-        # TITIK BARU 1: Membuat baris tabel harga dinamis per kamar (Menggantikan baris tunggal)
+        # TITIK BARU 1: Membuat baris tabel harga dinamis per kamar
         baris_harga_html = f"""
         <tr>
           <td style="text-align: left; padding: 10px 12px; font-size: 13.5px; color: #333; line-height: 1.4;">
             <strong>Kamar {idx}: {tipe_kmr}</strong><br>
-            <span style="font-size: 11.5px; color: #666;">({nama_tamu} • {rate_str} x {tot_malam} malam)</span>
+            <span style="font-size: 11.5px; color: #666;">({nama_tamu} - {rate_str} x {tot_malam} malam)</span>
           </td>
           <td style="text-align: center; padding: 10px 12px; font-size: 13.5px; color: #333;">1 Kamar</td>
           <td style="text-align: right; padding: 10px 12px; font-size: 13.5px; font-weight: 500; color: #333;">{subtotal_str}</td>
@@ -400,7 +425,7 @@ def generate_evoucher_html(data):
         """
         tabel_harga_rows.append(baris_harga_html)
 
-        # TITIK BARU 2: Membuat daftar baris nama tamu kamar (Menggantikan teks_kamar_final)
+        # TITIK BARU 2: Membuat daftar baris nama tamu kamar
         baris_tamu_html = f"<p><strong>Kamar {idx} ({tipe_kmr}):</strong> {idx}. {nama_tamu}</p>"
         tamu_detail_rows.append(baris_tamu_html)
 
@@ -408,8 +433,8 @@ def generate_evoucher_html(data):
         baris_fasilitas_html = f"""
         <p style="margin-bottom: 8px; border-bottom: 1px dashed #edf2f7; padding-bottom: 5px;">
           <strong>Kamar {idx} ({nama_tamu}):</strong><br>
-          • Fasilitas / Amenities: {fasilitas_kmr}<br>
-          • Permintaan Khusus / Special Request: {req_khusus}
+          Fasilitas / Amenities: {fasilitas_kmr}<br>
+          Permintaan Khusus / Special Request: {req_khusus}
         </p>
         """
         fasilitas_detail_rows.append(baris_fasilitas_html)
@@ -429,9 +454,11 @@ def generate_evoucher_html(data):
     teks_paket_ai = get('paket_wisata_tambahan')
     is_ada_paket_wisata = teks_paket_ai != '-' and teks_paket_ai != ''
 
+    # Satukan string hasil join ke variabel luar f-string agar bebas dari Backslash Error
     string_tabel_harga_final = "\n".join(tabel_harga_rows)
     string_detail_tamu_final = "\n".join(tamu_detail_rows)
     string_detail_fasilitas_final = "\n".join(fasilitas_detail_rows)
+
     
     html = f"""
     <style>

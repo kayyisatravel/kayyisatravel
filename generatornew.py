@@ -392,7 +392,7 @@ def generate_evoucher_html(data):
             
             # TITIK PERBAIKAN 1: Deteksi kuantitas kamar dinamis dari field skema Anda
             # Jika belum membuat field baru di Pydantic, gunakan fallback deteksi manifest massal ini
-            jml_kamar_riil = int(kmr.get('jumlah_kamar_per_tipe', 2 if no_mr > 1 else 1))
+            jml_kamar_riil = int(kmr.get('jumlah_kamar_per_tipe', 2 if no_kmr > 1 else 1))
             
             # Kalkulasi subtotal total harga yang benar (Harga x Malam x Unit Kamar)
             hrg_kamar = float(kmr.get('harga_kamar_per_malam', 0))

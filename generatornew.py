@@ -68,41 +68,44 @@ class AIHotelMasterSchema(BaseModel):
     harga_per_malam: float = Field(description="Tarif harga per malam per kamar sebagai angka murni/Float")
     total_malam: int = Field(description="AI wajib menghitung selisih hari check-in & check-out secara presisi sebagai Integer murni")
     tamu: List[str] = Field(default=[], description="Daftar nama-nama tamu menginap berformat EYD baku / Title Case tanpa gelar sapaan")
-    kamar: str = Field(description="Tipe/Kategori kamar hotel lengkap, contoh: 'Kamar Standard Twin dengan Kipas (Standard Room with Fan)'")
+    permintaan_khusus: str = Field(description="Catatan permintaan khusus tamu, contoh: 'Non Smoking room, King Bed'")
+    
+    # 1. FIX: Struktur Fasilitas Gabungan Ber-bilingual Aman
     fasilitas: str = Field(description="""
-        Fasilitas makan atau utama, contoh: 'Sarapan (2 Pax) per kamar' atau 'Wifi'")
-        permintaan_khusus: str = Field(description="Catatan permintaan khusus tamu, contoh: 'Non Smoking room, King Bed'")
+        Fasilitas makan atau utama internal hotel. Contoh: 'Sarapan (2 Pax) per kamar' atau 'Wifi'.
         Ekstrak fasilitas hotel utama. Tuliskan dalam format bilingual (Indonesia / English) jika memungkinkan.
         Contoh: 'Sarapan Gratis / Free Breakfast, WiFi Gratis / Free WiFi'.
     """)
+    
+    # 2. FIX: Struktur Kontak Pelacakan Otomatis
     hotel_phone: Optional[str] = Field(default="-", description="""
         Gunakan fitur pencarian internet (Google Search) untuk melacak nomor telepon resmi, 
         nomor HP layanan, atau kontak resepsionis aktif dari properti hotel ini berdasarkan nama hotel 
         dan alamat lokasi di atas. Kembalikan hasilnya dalam format string bersih, contoh: '+6285265575009'. 
         Jika setelah dicari di internet tetap tidak ditemukan, isi dengan tanda strip '-'.
     """)
+    
+    # 3. FIX: Variabel Kamar Dikunci Tunggal (Tanpa Ganda) & Menghapus Kata "Kamar" Otomatis
     kamar: str = Field(description="""
         PENTING: Salin Nama Kamar atau Tipe Kamar secara UTUH dan LENGKAP persis seperti teks yang tertera pada manifes vendor/OTA.
         JANGAN memotong kata imbuhan di belakangnya seperti '- Free Breakfast', 'with Fan', atau 'Room Only'.
-        Contoh teks: '1 Standard - Free Breakfast' -> Maka isi field kamar wajib: 'Standard - Free Breakfast'.
-        Contoh teks: 'SUPERIOR KING BED - Room Only' -> Maka isi field kamar wajib: 'SUPERIOR KING BED - Room Only'.
-        Tidak perlu menambahkan 'Kamar'. 
-        Contoh teks: 'KAMAR SUPERIOR KING BED - Room Only' -> Maka isi field kamar wajib: 'SUPERIOR KING BED - Room Only'.
-        Contoh teks: '1 Kamar Standard - Free Breakfast' -> Maka isi field kamar wajib: 'Standard - Free Breakfast'.
-        Salin tipe kamar secara UTUH. Jika di teks asli terdapat versi Bahasa Inggris dan Indonesia, 
-        tulis keduanya dipisahkan tanda garis miring (/). 
+        JANGAN sertakan kuantitas angka atau kata pembuka 'Kamar'/'Room' ke dalam field ini.
+        Contoh teks: '1 Standard - Free Breakfast' -> Hasil wajib: 'Standard - Free Breakfast'.
+        Contoh teks: 'KAMAR SUPERIOR KING BED' -> Hasil wajib: 'SUPERIOR KING BED'.
+        Jika di teks asli terdapat versi Bahasa Inggris dan Indonesia, tulis keduanya dipisahkan tanda garis miring (/). 
         Contoh: 'Standard - Breakfast / Standard - Termasuk Sarapan'.
     """)
+    
+    # 4. FIX: Struktur Deteksi Dinamis Paket Wisata / Tiket Atraksi Tambahan
     paket_wisata_tambahan: Optional[str] = Field(default="-", description="""
         Analisis teks manifest dengan teliti. Jika ditemukan adanya bonus bundle kado/paket tiket masuk wisata, 
         wahana, atau atraksi di luar hotel (seperti Aquaria KLCC, Dufan, Ancol, Jatim Park, Bali Zoo, dll) 
         beserta rincian jumlah tiketnya (cth: 2 Dewasa dan 3 Anak-anak), ekstrak teks tersebut ke dalam field ini.
-        Contoh isi field: 'Voucher Package Ticket Aquaria KLCC (Turis Internasional) - 2 Dewasa dan 3 Anak-anak'.
+        Contoh isi field: 'Voucher Package Ticket Aquaria KLCC (Turis Internasional) - 2 Dewasa dan 3 Anak-anak / 2 Adults & 3 Children'.
+        Pastikan rincian jumlah tiket ditulis dalam format bilingual (Indonesia / English) agar lolos loket luar negeri.
         Jika tidak ditemukan paket wisata tambahan sama sekali, wajib isi dengan tanda strip '-'.
-        Ekstrak bonus paket wisata luar hotel lengkap dengan jumlah pax. Tulis dalam Bold Font pada hasil akhir.
-        Wajib sertakan terjemahan bahasa Inggris atau format internasionalnya agar lolos loket luar negeri.
-        Contoh: 'Voucher Package Ticket Aquaria KLCC (Turis Internasional) - 2 Dewasa dan 3 Anak-anak / 2 Adults & 3 Children'.
     """)
+
 
 
 # =====================================================================

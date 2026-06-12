@@ -142,6 +142,7 @@ def parse_input_dynamic(text):
     """
     JALUR AI TRANSPORTASI: Menggantikan fungsi regex lama Anda.
     Membaca teks manifes Kereta Api & Whoosh secara akurat dengan Gemini 3.1 Flash-Lite.
+    Sudah disesuaikan untuk mengekstrak Add-ons Kuliner dan Fasilitas per penumpang.
     """
     try:
         client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
@@ -149,6 +150,11 @@ def parse_input_dynamic(text):
         Kamu adalah sistem AI Parser Kereta Api milik Kayyisa Tour & Travel.
         Tugasmu mengekstrak teks input kasar hasil copas OTA menjadi format JSON terstruktur yang mematuhi skema secara mutlak.
         Konversi ejaan nama dan armada ke EYD Baku (Title Case) serta pembersihan gelar wajib dilakukan di internal kamu.
+        
+        ⚠️ ATURAN MUTLAK EKSTRAKSI ADD-ONS PENUMPANG (WAJIB DIPATUHI):
+        1. Analisis setiap blok data 'Penumpang' secara mandiri dan teliti. Jangan menggabungkan data antar penumpang!
+        2. Jika di bawah nama penumpang terdapat teks 'Fasilitas Tambahan' (seperti Free Mineral Water, Selimut, Bantal, dll), ekstrak data tersebut secara utuh ke dalam field 'fasilitas_tambahan' milik objek penumpang tersebut. Jika tidak ada, isi dengan tanda strip '-'.
+        3. Jika di bawah nama penumpang terdapat teks 'Pesanan Kuliner Kereta' atau menu makanan (seperti Nasi Goreng Parahyangan, Bakso, dll), ekstrak menu tersebut beserta kuantitasnya secara utuh (contoh: '1x Nasi Goreng Parahyangan + Teh Sosro') ke dalam field 'pesanan_kuliner' milik objek penumpang tersebut. Jika tidak ada, isi dengan tanda strip '-'.
         
         Teks Input Kasar:
         {text}
@@ -158,7 +164,7 @@ def parse_input_dynamic(text):
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                response_schema=AIKeretaMasterSchema,
+                response_schema=AIKeretaMasterSchema,  # Pastikan skema ini sudah memiliki field 'fasilitas_tambahan' dan 'pesanan_kuliner'
                 temperature=0.1
             ),
         )

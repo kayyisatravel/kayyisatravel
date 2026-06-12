@@ -625,17 +625,10 @@ def generate_evoucher_html(data):
             </tr>
           </thead>
           <tbody>
-            <!-- BARIS 1: AKOMODASI KAMAR HOTEL -->
-            <tr>
-              <td style="text-align: left; padding: 10px 12px; font-size: 13.5px; color: #333; line-height: 1.4;">
-                <strong>Room Reservation / Akseptasi Kamar Hotel</strong><br>
-                <span style="font-size: 11.5px; color: #666;">({rate_hotel_str} x {tot_malam} malam / night(s))</span>
-              </td>
-              <td style="text-align: center; padding: 10px 12px; font-size: 13.5px; color: #333;">{jml_kamar} Kamar</td>
-              <td style="text-align: right; padding: 10px 12px; font-size: 13.5px; font-weight: 500; color: #333;">{total_hotel_str}</td>
-            </tr>
+            <!-- PERBAIKAN: BARIS AKOMODASI SEKARANG BERSIFAT DINAMIS MULTI-BARIS -->
+            {baris_kamar_tabel_html}
             
-            <!-- BARIS 2: BONUS TIKET ATRAKSI WISATA (OTOMATIS AKAN MERENDER JIKA INPUT ADADA DATA HARGANYA) -->
+            <!-- BARIS 2: BONUS TIKET ATRAKSI WISATA -->
             {f'''<tr>
               <td style="text-align: left; padding: 10px 12px; font-size: 13.5px; color: #333; line-height: 1.4;">
                 <strong>Extra Attraction Package / Paket Tiket Wisata</strong><br>
@@ -645,7 +638,7 @@ def generate_evoucher_html(data):
               <td style="text-align: right; padding: 10px 12px; font-size: 13.5px; font-weight: 500; color: #333;">{total_paket_str}</td>
             </tr>''' if hrg_paket_wisata > 0.0 or is_ada_paket_wisata else ""}
             
-            <!-- BARIS 3: RINGKASAN GRAND TOTAL AKUMULASI GABUNGAN (HOTEL + WISATA) -->
+            <!-- BARIS 3: RINGKASAN GRAND TOTAL AKUMULASI GABUNGAN -->
             <tr style="background-color: #f0f4ff; font-weight: 700; border-top: 2px solid #004080;">
               <td colspan="2" style="text-align: right; padding: 12px; font-size: 14px; color: #004080; text-transform: uppercase; letter-spacing: 0.3px;">
                 GRAND TOTAL PRICE / <span style="font-size: 11.5px; font-weight:400; font-style:italic; text-transform: none;">Total Bayar</span> :
@@ -658,7 +651,6 @@ def generate_evoucher_html(data):
         </table>
       </div>
 
-
       <!-- =====================================================================
            [BARU] PREMIUM HIGHLIGHT BADGE: KHUSUS BONUS TIKET COMPLEMENTARY
            Mencolok, Berwarna Emas Teduh, dan Dijamin Langsung Terbaca Loket Wisata
@@ -670,16 +662,18 @@ def generate_evoucher_html(data):
         </p>
       </div>''' if is_ada_paket_wisata else ""}
         
+      <!-- PERBAIKAN: Menampilkan detail nama tamu & tipe kamar secara berurutan ke bawah -->
       <div class="section">
         <h3>Guest & Room Details / Detail Tamu & Kamar</h3>
-        <strong>{tamu_html}</strong><br>
+        <strong>{tamu_html}</strong>
         <p>{teks_kamar_final}</p>
       </div>
 
+      <!-- PERBAIKAN: Menampilkan fasilitas & special request modular (Contoh: Sarapan khusus kamar 1) -->
       <div class="section">
         <h3>Amenities & Requests / Fasilitas & Permintaan</h3>
-        <p><strong>Fasilitas:</strong> {get('fasilitas')}<br>
-           <strong>Permintaan Khusus:</strong> {get('permintaan_khusus')}</p>
+        <p><strong>Fasilitas:</strong> {teks_fasilitas_final}<br>
+           <strong>Permintaan Khusus:</strong> {teks_request_final}</p>
       </div>
 
       <div class="footer">

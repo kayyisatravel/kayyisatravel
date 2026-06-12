@@ -7,9 +7,9 @@ from google.genai import types
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
-# =====================================================================
-# 1. BLUEPRINT PYDANTIC SCHEMA (DISELARASKAN DENGAN KAMUS DATA LAMA ANDA)
-# =====================================================================
+# =============================
+# 1. BLUEPRINT PYDANTIC SCHEMA 
+# =============================
 
 class PenumpangKeretaSchema(BaseModel):
     nama: str = Field(description="""

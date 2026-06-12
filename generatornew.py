@@ -353,58 +353,114 @@ def generate_eticket(data):
 # Fungsi generate HTML voucher (disesuaikan dari kode kamu)
 def generate_evoucher_html(data):
     get = lambda k: data.get(k, '-') if data.get(k, '-') else '-'
+    tot_malam = int(data.get('total_malam', 1))
     
-    # 1. PERBAIKAN: Penomoran angka otomatis pada daftar tamu
-    tamu_list = data.get('tamu', [])
-    if tamu_list and tamu_list != '-':
-        tamu_html = "".join(f"<p>{idx}. {tamu}</p>" for idx, tamu in enumerate(tamu_list, start=1))
+    # =====================================================================
+    # LOGIKA BARU: OTOMATIS MEMECAH DATA BERDASARKAN INPUTAN TEKS GEMINI
+    # =====================================================================
+    daftar_kamar = data.get('daftar_detail_kamar', [])
+    
+    # 1. PERBAIKAN DESKRIPSI TABEL HARGA (MEMBAGI SESUAI INPUTAN)
+    baris_kamar_tabel_html = ""
+    total_harga_hotel = 0.0
+    
+    if daftar_kamar and isinstance(daftar_kamar, list):
+        baris_tabel_elements = []
+        for kmr in daftar_kamar:
+            no_kmr = kmr.get('nomor_urutan_kamar', 1)
+            hrg_kamar = float(kmr.get('harga_kamar_per_malam', 0))
+            subtotal_kamar = hrg_kamar * tot_malam
+            total_harga_hotel += subtotal_kamar
+            
+            hrg_str = f"Rp {hrg_kamar:,.0f}".replace(',', '.')
+            subtotal_str = f"Rp {subtotal_kamar:,.0f}".replace(',', '.')
+            tipe_kmr = kmr.get('tipe_kamar_nama', '-')
+            fas_kmr = kmr.get('fasilitas_kamar', '-')
+            
+            # Membelah baris deskripsi secara dinamis sesuai teks inputan
+            baris_tabel_elements.append(f"""
+            <tr>
+              <td style="text-align: left; padding: 10px 12px; font-size: 13.5px; color: #333; line-height: 1.4;">
+                <strong>Room Reservation / Akseptasi Kamar Hotel</strong><br>
+                <span style="font-size: 12px; color: #004080;">{tipe_kmr} ({fas_kmr})</span><br>
+                <span style="font-size: 11.5px; color: #666;">({hrg_str} x {tot_malam} malam / night(s))</span>
+              </td>
+              <td style="text-align: center; padding: 10px 12px; font-size: 13.5px; color: #333;">1 Kamar</td>
+              <td style="text-align: right; padding: 10px 12px; font-size: 13.5px; font-weight: 500; color: #333;">{subtotal_str}</td>
+            </tr>
+            """)
+        baris_kamar_tabel_html = "".join(baris_tabel_elements)
+        
+        # 2. PERBAIKAN FORMAT GUEST ROOM (CONTOH: 1. YELLENA \n DELUXE ROOM)
+        tamu_elements = []
+        teks_kamar_elements = []
+        for kmr in daftar_kamar:
+            no_kmr = kmr.get('nomor_urutan_kamar', 1)
+            nama_tamu = kmr.get('nama_tamu_kamar', '-')
+            tipe_kmr = kmr.get('tipe_kamar_nama', '-')
+            fas_kmr = kmr.get('fasilitas_kamar', '-')
+            
+            tamu_elements.append(f"<p>{no_kmr}. {nama_tamu}<br><span style='font-weight:normal; font-size:13.5px; color:#555;'>{tipe_kmr} - {fas_kmr}</span></p>")
+            teks_kamar_elements.append(f"1 x Kamar {tipe_kmr}")
+            
+        tamu_html = "".join(tamu_elements)
+        teks_kamar_final = "<br>".join(teks_kamar_elements)
+        
+        # 3. PERBAIKAN FASILITAS & PERMINTAAN KHUSUS (MEMBERIKAN KETERANGAN KHUSUS KAMAR 1)
+        fasilitas_list = []
+        request_list = []
+        for kmr in daftar_kamar:
+            no_kmr = kmr.get('nomor_urutan_kamar', 1)
+            fas_kmr = kmr.get('fasilitas_kamar', '-')
+            req_kmr = kmr.get('permintaan_khusus_kamar', '-')
+            
+            fasilitas_list.append(f"{fas_kmr} (Khusus Kamar {no_kmr})")
+            request_list.append(f"{req_kmr} (Kamar {no_kmr})")
+            
+        teks_fasilitas_final = ", ".join(fasilitas_list)
+        teks_request_final = "; ".join(request_list)
+        
     else:
-        tamu_html = "<p>-</p>"
+        # LOGIKA FALLBACK (JIKA HANYA 1 KAMAR / SISTEM LAMA)
+        try:
+            hrg_per_malam = float(data.get('harga_per_malam', 0))
+            jml_kamar = int(data.get('jumlah_kamar', 1))
+        except (ValueError, TypeError):
+            hrg_per_malam = 0.0
+            jml_kamar = 1
+            
+        total_harga_hotel = hrg_per_malam * tot_malam * jml_kamar
+        rate_hotel_str = f"Rp {hrg_per_malam:,.0f}".replace(',', '.')
+        total_hotel_str = f"Rp {total_harga_hotel:,.0f}".replace(',', '.')
+        nama_kamar_raw = get('kamar')
+        
+        baris_kamar_tabel_html = f"""
+        <tr>
+          <td style="text-align: left; padding: 10px 12px; font-size: 13.5px; color: #333; line-height: 1.4;">
+            <strong>Room Reservation / Akseptasi Kamar Hotel</strong><br>
+            <span style="font-size: 11.5px; color: #666;">({rate_hotel_str} x {tot_malam} malam / night(s))</span>
+          </td>
+          <td style="text-align: center; padding: 10px 12px; font-size: 13.5px; color: #333;">{jml_kamar} Kamar</td>
+          <td style="text-align: right; padding: 10px 12px; font-size: 13.5px; font-weight: 500; color: #333;">{total_hotel_str}</td>
+        </tr>
+        """
+        tamu_list = data.get('tamu', [])
+        tamu_html = "".join(f"<p>{idx}. {tamu}</p>" for idx, tamu in enumerate(tamu_list, start=1)) if tamu_list and tamu_list != '-' else "<p>-</p>"
+        teks_kamar_final = f"{jml_kamar} x Kamar {nama_kamar_raw}"
+        teks_fasilitas_final = get('fasilitas')
+        teks_request_final = get('permintaan_khusus')
 
-    # Format hitungan angka harga total
-    # =====================================================================
-    # FIX TOTAL: KALKULATOR MULTI-BARIS & SINKRONISASI BILINGUAL LABEL
-    # =====================================================================
+    # Perhitungan Paket Wisata Tambahan (Tetap Sama)
     try:
-        hrg_per_malam = float(data.get('harga_per_malam', 0))
-        tot_malam = int(data.get('total_malam', 1))
-        jml_kamar = int(data.get('jumlah_kamar', 1))
-        # Mengambil angka hitungan murni dari internal otak AI Gemini
         hrg_paket_wisata = float(data.get('harga_paket_wisata_total', 0))
     except (ValueError, TypeError):
-        hrg_per_malam = 0.0
-        tot_malam = 1
-        jml_kamar = 1
         hrg_paket_wisata = 0.0
-
-    # Rumus Hitungan Subtotal & Gabungan Grand Total Akhir
-    total_harga_hotel = hrg_per_malam * tot_malam * jml_kamar
     total_harga_gabungan = total_harga_hotel + hrg_paket_wisata
-
-    # Transformasi String Pecahan Mata Uang Rupiah yang Indah
-    rate_hotel_str = f"Rp {hrg_per_malam:,.0f}".replace(',', '.')
-    total_hotel_str = f"Rp {total_harga_hotel:,.0f}".replace(',', '.')
     total_paket_str = f"Rp {hrg_paket_wisata:,.0f}".replace(',', '.')
     grand_total_str = f"Rp {total_harga_gabungan:,.0f}".replace(',', '.')
-
-    # FIX LOGIKA STRING: Pembersihan nama paket wisata secara aman tanpa split crash
     nama_paket_raw = str(data.get('paket_wisata_tambahan', '-'))
-    if nama_paket_raw and nama_paket_raw != '-':
-        # Bersihkan kata imbuhan pembuka agar manis ditaruh di dalam sel tabel kecil
-        label_paket_wisata = nama_paket_raw.replace('Voucher Package Ticket', '').replace('Include Paket Wisata:', '').strip()
-    else:
-        label_paket_wisata = "Extra Ticket / Tiket Atraksi Tambahan"
-
-
-
-    # =====================================================================
-    # 2. PERBAIKAN: Menggabungkan jumlah kamar dan nama kamar secara lengkap
-    # =====================================================================
-    nama_kamar_raw = get('kamar')
-    teks_kamar_final = f"{jml_kamar} x Kamar {nama_kamar_raw}"
-    
+    label_paket_wisata = nama_paket_raw.replace('Voucher Package Ticket', '').replace('Include Paket Wisata:', '').strip() if nama_paket_raw and nama_paket_raw != '-' else "Extra Ticket / Tiket Atraksi Tambahan"
     teks_paket_ai = get('paket_wisata_tambahan')
-    # Kotak emas hanya akan merender jika teks hasil AI bukan strip '-'
     is_ada_paket_wisata = teks_paket_ai != '-' and teks_paket_ai != ''
     
     html = f"""

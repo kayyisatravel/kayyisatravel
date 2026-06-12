@@ -518,14 +518,10 @@ def generate_evoucher_html(data):
            [BARU] PREMIUM HIGHLIGHT BADGE: KHUSUS BONUS TIKET COMPLEMENTARY
            Mencolok, Berwarna Emas Teduh, dan Dijamin Langsung Terbaca Loket Wisata
            ===================================================================== -->
-      {f'''<div class="badge-package" style="margin-top: 20px; background-color: #fff9e6; border: 2px solid #d4af37; border-radius: 8px; padding: 15px 18px; color: #856404; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
-        <h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: #b8860b; display: flex; align-items: center; gap: 8px;">
-          
-        </h4>
-        <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #333;">
-          Voucher Package Ticket: <span style="font-weight: 700; color: #b30000; font-size: 15px;">Aquaria KLCC (Turis Internasional)</span><br>
-          Kuantitas Penukaran: <span style="font-weight: 700; color: #111;">2 Dewasa dan 3 Anak-anak</span><br>
-          <span style="font-size: 12px; font-style: italic; color: #666; display: block; margin-top: 5px;">*Petugas Loket Wisata: Mohon lakukan scan/validasi menggunakan nomor Itinerary ID atau Order ID yang tertera di atas kertas ini.</span>
+      {f'''<div class="badge-package" style="margin-top: 25px; background-color: #fff9e6; border: 2px solid #d4af37; border-radius: 8px; padding: 15px 18px; color: #856404; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+        <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #2c3e50;">
+          <strong>Detail Paket Wisata:</strong> <span style="font-weight: 700; color: #b30000; font-size: 14.5px;">{teks_paket_ai}</span><br>
+          <span style="font-size: 12px; font-style: italic; color: #555; display: block; margin-top: 6px;">*Petugas Loket Wisata Lapangan: Mohon lakukan validasi penukaran tiket fisik menggunakan nomor Itinerary ID atau Order ID resmi yang tertera di atas lembar voucher Kayyisa ini.</span>
         </p>
       </div>''' if is_ada_paket_wisata else ""}
         

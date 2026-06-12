@@ -336,14 +336,14 @@ def generate_evoucher_html(data):
         tamu_html = "<p>-</p>"
 
     # Format hitungan angka harga total
-    # =====================================================================
-    # FIX INDEPENDEN: KALKULATOR MULTI-BARIS (HOTEL + PAKET WISATA)
+        # =====================================================================
+    # FIX TOTAL: KALKULATOR MULTI-BARIS & SINKRONISASI BILINGUAL LABEL
     # =====================================================================
     try:
         hrg_per_malam = float(data.get('harga_per_malam', 0))
         tot_malam = int(data.get('total_malam', 1))
         jml_kamar = int(data.get('jumlah_kamar', 1))
-        # Tarik nominal angka hasil kalkulasi otomatis dari otak AI Gemini
+        # Mengambil angka hitungan murni dari internal otak AI Gemini
         hrg_paket_wisata = float(data.get('harga_paket_wisata_total', 0))
     except (ValueError, TypeError):
         hrg_per_malam = 0.0
@@ -351,23 +351,24 @@ def generate_evoucher_html(data):
         jml_kamar = 1
         hrg_paket_wisata = 0.0
 
-    # Rumus Hitungan Subtotal & Gabungan Grand Total
+    # Rumus Hitungan Subtotal & Gabungan Grand Total Akhir
     total_harga_hotel = hrg_per_malam * tot_malam * jml_kamar
     total_harga_gabungan = total_harga_hotel + hrg_paket_wisata
 
-    # Transformasi String Rupiah EYD Indah
+    # Transformasi String Pecahan Mata Uang Rupiah yang Indah
     rate_hotel_str = f"Rp {hrg_per_malam:,.0f}".replace(',', '.')
     total_hotel_str = f"Rp {total_harga_hotel:,.0f}".replace(',', '.')
     total_paket_str = f"Rp {hrg_paket_wisata:,.0f}".replace(',', '.')
     grand_total_str = f"Rp {total_harga_gabungan:,.0f}".replace(',', '.')
 
-    # Deteksi label nama paket atraksi secara dinamis untuk baris ke-2
+    # FIX LOGIKA STRING: Pembersihan nama paket wisata secara aman tanpa split crash
     nama_paket_raw = str(data.get('paket_wisata_tambahan', '-'))
     if nama_paket_raw and nama_paket_raw != '-':
-        # Ambil teks setelah tanda hubung agar lebih pendek dan manis di dalam tabel
-        label_paket_wisata = nama_paket_raw.split('/')[-1].replace('Voucher Package Ticket', '').strip()
+        # Bersihkan kata imbuhan pembuka agar manis ditaruh di dalam sel tabel kecil
+        label_paket_wisata = nama_paket_raw.replace('Voucher Package Ticket', '').replace('Include Paket Wisata:', '').strip()
     else:
         label_paket_wisata = "Extra Ticket / Tiket Atraksi Tambahan"
+
 
 
     # =====================================================================
@@ -529,22 +530,22 @@ def generate_evoucher_html(data):
       </div>
       
       <!-- =====================================================================
-           VISUALISASI BARU: TABEL DETAIL RINCIAN KOMPONEN BILINGUAL MULTI-BARIS
+           VISUALISASI TABEL DETAIL RINCIAN KOMPONEN BILINGUAL MULTI-BARIS
            ===================================================================== -->
       <div class="section">
         <h3>Pricing Details <span>/ Rincian Harga</span></h3>
         <table class="price-table" style="width: 100%; border-collapse: collapse; text-align: left;">
           <thead>
             <tr style="background-color: #c6d6ff;">
-              <th style="text-align: left; padding: 10px 12px; width: 50%;">Description / <span class="lang-en">Deskripsi Komponen</span></th>
+              <th style="text-align: left; padding: 10px 12px; width: 55%;">Description / <span class="lang-en">Deskripsi Komponen</span></th>
               <th style="text-align: center; padding: 10px 12px; width: 15%;">Qty / <span class="lang-en">Jumlah</span></th>
-              <th style="text-align: right; padding: 10px 12px; width: 35%;">Total / <span class="lang-en">Subtotal</span></th>
+              <th style="text-align: right; padding: 10px 12px; width: 30%;">Total / <span class="lang-en">Subtotal</span></th>
             </tr>
           </thead>
           <tbody>
             <!-- BARIS 1: AKOMODASI KAMAR HOTEL -->
             <tr>
-              <td style="text-align: left; padding: 10px 12px; font-size: 13.5px; color: #333;">
+              <td style="text-align: left; padding: 10px 12px; font-size: 13.5px; color: #333; line-height: 1.4;">
                 <strong>Room Reservation / Akseptasi Kamar Hotel</strong><br>
                 <span style="font-size: 11.5px; color: #666;">({rate_hotel_str} x {tot_malam} malam / night(s))</span>
               </td>
@@ -552,28 +553,29 @@ def generate_evoucher_html(data):
               <td style="text-align: right; padding: 10px 12px; font-size: 13.5px; font-weight: 500; color: #333;">{total_hotel_str}</td>
             </tr>
             
-            <!-- BARIS 2: BONUS TIKET ATRAKSI WISATA (OTOMATIS MUNCUL JIKA ADA BUNDLE HARGANYA) -->
+            <!-- BARIS 2: BONUS TIKET ATRAKSI WISATA (OTOMATIS AKAN MERENDER JIKA INPUT ADADA DATA HARGANYA) -->
             {f'''<tr>
-              <td style="text-align: left; padding: 10px 12px; font-size: 13.5px; color: #333;">
+              <td style="text-align: left; padding: 10px 12px; font-size: 13.5px; color: #333; line-height: 1.4;">
                 <strong>Extra Attraction Package / Paket Tiket Wisata</strong><br>
                 <span style="font-size: 11.5px; color: #666;">({label_paket_wisata})</span>
               </td>
               <td style="text-align: center; padding: 10px 12px; font-size: 13.5px; color: #333;">1 Paket</td>
               <td style="text-align: right; padding: 10px 12px; font-size: 13.5px; font-weight: 500; color: #333;">{total_paket_str}</td>
-            </tr>''' if hrg_paket_wisata > 0 else ""}
+            </tr>''' if hrg_paket_wisata > 0.0 or is_ada_paket_wisata else ""}
             
-            <!-- BARIS 3: RINGKASAN GRAND TOTAL AKUMULASI GABUNGAN -->
+            <!-- BARIS 3: RINGKASAN GRAND TOTAL AKUMULASI GABUNGAN (HOTEL + WISATA) -->
             <tr style="background-color: #f0f4ff; font-weight: 700; border-top: 2px solid #004080;">
-              <td colspan="2" style="text-align: right; padding: 12px; font-size: 14.5px; color: #004080; text-transform: uppercase;">
-                GRAND TOTAL PRICE / <span style="font-size: 12px; font-weight:400; font-style:italic; text-transform: none;">Total Bayar</span> :
+              <td colspan="2" style="text-align: right; padding: 12px; font-size: 14px; color: #004080; text-transform: uppercase; letter-spacing: 0.3px;">
+                GRAND TOTAL PRICE / <span style="font-size: 11.5px; font-weight:400; font-style:italic; text-transform: none;">Total Bayar</span> :
               </td>
-              <td style="text-align: right; padding: 12px; font-size: 16px; color: #b30000;">
-                {grand_total_str}
+              <td style="text-align: right; padding: 12px; font-size: 15.5px; color: #b30000;">
+                {total_harga_str}
               </td>
             </tr>
           </tbody>
         </table>
       </div>
+
 
       <!-- =====================================================================
            [BARU] PREMIUM HIGHLIGHT BADGE: KHUSUS BONUS TIKET COMPLEMENTARY

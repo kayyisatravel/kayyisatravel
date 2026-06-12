@@ -105,7 +105,16 @@ class AIHotelMasterSchema(BaseModel):
         Pastikan rincian jumlah tiket ditulis dalam format bilingual (Indonesia / English) agar lolos loket luar negeri.
         Jika tidak ditemukan paket wisata tambahan sama sekali, wajib isi dengan tanda strip '-'.
     """)
-
+    harga_paket_wisata_total: Optional[float] = Field(default=0.0, description="""
+        Analisis seluruh instruksi teks input di bagian bawah manifest dengan teliti untuk mencari nominal harga tiket masuk wisata tambahan.
+        Hitung total harga paket wisata tersebut dengan rumus matematika internal kamu:
+        Total = (Jumlah Pax Dewasa x Harga per Dewasa) + (Jumlah Pax Anak x Harga per Anak).
+        
+        Contoh instruksi teks: 'Harga Dewasa Rp 259.270/pax. Harga Anak-anak Rp 218.340/pax' dengan jumlah '2 Dewasa dan 3 Anak-anak'.
+        Maka kamu WAJIB menghitung di dalam otakmu: (2 x 259270) + (3 x 218340) = 518540 + 655020 = 1173560.
+        Kembalikan hasilnya murni berupa angka numerik Integer/Float tanpa tanda titik atau Rp: 1173560.
+        Jika tidak ada instruksi nominal harga paket wisata tambahan di teks masukan, wajib berikan nilai: 0.0
+    """)
 
 
 # =====================================================================

@@ -170,9 +170,15 @@ def parse_evoucher_text(text):
         Tugasmu mengekstrak teks input kasar hasil copas OTA menjadi format JSON terstruktur yang mematuhi skema secara mutlak.
         Hitung total malam menginap secara matematis dan bersihkan nama tamu sesuai kaidah EYD baku.
         PENTING UNTUK TEKS MULTI-KAMAR:
-        Jika dalam dokumen terdapat lebih dari 1 kamar (Kamar 1, Kamar 2, dst) yang memiliki perbedaan nama tamu, 
-        perbedaan harga, atau fasilitas/permintaan khusus, kamu WAJIB memecahnya ke dalam array 'daftar_detail_kamar' satu per satu secara lengkap!
-        Hitung selisih hari check-in & check-out sebagai total_malam secara matematis.
+        ⚠️ ATURAN MUTLAK MULTI-KAMAR (WAJIB DIPATUHI):
+        1. Analisis teks manifest dengan teliti. Jika tertulis kata 'Tipe Kamar 1', 'Tipe Kamar 2', dst., kamu WAJIB memecah data tersebut menjadi objek terpisah di dalam array 'daftar_detail_kamar'. Jangan pernah menggabungkannya menjadi 1 kamar saja!
+        2. Untuk field 'nama_tamu_kamar', ambil nama tamu spesifik yang berada di bawah blok 'Tipe Kamar' tersebut (Contoh: Kamar 1 = Yellena Bunga Casimira, Kamar 2 = Nabila Meinisya Sahira).
+        3. Kolom 'kamar' pada objek utama diisi dengan nama tipe kamar global.
+        
+        💰 ATURAN KALKULASI HARGA FALLBACK:
+        - Cari teks harga manual di bagian paling bawah teks seperti 'Harga Kamar 1 750.000/mlm'. Jika ada, gunakan angka tersebut untuk 'harga_kamar_per_malam' di masing-masing kamar.
+        - Jika teks harga per kamar tidak tertulis secara eksplisit, cari total harga 'IDR ...' di dalam teks (cth: IDR 769.448). Bagi nominal total tersebut dengan jumlah kamar keseluruhan, lalu masukkan hasilnya sebagai 'harga_kamar_per_malam'. Jangan biarkan nilainya 0 atau kosong!
+        
         
         Teks Input Kasar:
         {text}

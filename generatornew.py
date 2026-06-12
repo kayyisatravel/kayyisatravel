@@ -86,7 +86,13 @@ class AIHotelMasterSchema(BaseModel):
         Contoh teks: 'KAMAR SUPERIOR KING BED - Room Only' -> Maka isi field kamar wajib: 'SUPERIOR KING BED - Room Only'.
         Contoh teks: '1 Kamar Standard - Free Breakfast' -> Maka isi field kamar wajib: 'Standard - Free Breakfast'.
     """)
-    
+    paket_wisata_tambahan: Optional[str] = Field(default="-", description="""
+        Analisis teks manifest dengan teliti. Jika ditemukan adanya bonus bundle kado/paket tiket masuk wisata, 
+        wahana, atau atraksi di luar hotel (seperti Aquaria KLCC, Dufan, Ancol, Jatim Park, Bali Zoo, dll) 
+        beserta rincian jumlah tiketnya (cth: 2 Dewasa dan 3 Anak-anak), ekstrak teks tersebut ke dalam field ini.
+        Contoh isi field: 'Voucher Package Ticket Aquaria KLCC (Turis Internasional) - 2 Dewasa dan 3 Anak-anak'.
+        Jika tidak ditemukan paket wisata tambahan sama sekali, wajib isi dengan tanda strip '-'.
+    """)
 
 
 # =====================================================================
@@ -338,7 +344,11 @@ def generate_evoucher_html(data):
     # =====================================================================
     nama_kamar_raw = get('kamar')
     teks_kamar_final = f"{jml_kamar} x Kamar {nama_kamar_raw}"
-
+    
+    teks_paket_ai = get('paket_wisata_tambahan')
+    # Kotak emas hanya akan merender jika teks hasil AI bukan strip '-'
+    is_ada_paket_wisata = teks_paket_ai != '-' and teks_paket_ai != ''
+    
     html = f"""
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
@@ -504,7 +514,21 @@ def generate_evoucher_html(data):
           </tr>
         </table>
       </div>
-
+      <!-- =====================================================================
+           [BARU] PREMIUM HIGHLIGHT BADGE: KHUSUS BONUS TIKET COMPLEMENTARY
+           Mencolok, Berwarna Emas Teduh, dan Dijamin Langsung Terbaca Loket Wisata
+           ===================================================================== -->
+      {f'''<div class="badge-package" style="margin-top: 20px; background-color: #fff9e6; border: 2px solid #d4af37; border-radius: 8px; padding: 15px 18px; color: #856404; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+        <h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: #b8860b; display: flex; align-items: center; gap: 8px;">
+          🎟️ TIKET ATRAKSI TERMASUK (EXTRA BENEFIT)
+        </h4>
+        <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #333;">
+          Voucher Package Ticket: <span style="font-weight: 700; color: #b30000; font-size: 15px;">Aquaria KLCC (Turis Internasional)</span><br>
+          Kuantitas Penukaran: <span style="font-weight: 700; color: #111;">2 Dewasa dan 3 Anak-anak</span><br>
+          <span style="font-size: 12px; font-style: italic; color: #666; display: block; margin-top: 5px;">*Petugas Loket Wisata: Mohon lakukan scan/validasi menggunakan nomor Itinerary ID atau Order ID yang tertera di atas kertas ini.</span>
+        </p>
+      </div>''' if is_package_atraksi else ""}
+        
       <div class="section">
         <h3>Detail Tamu & Kamar</h3>
         <strong>{tamu_html}</strong><br>

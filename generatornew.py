@@ -527,7 +527,7 @@ def generate_evoucher_html(data):
           Kuantitas Penukaran: <span style="font-weight: 700; color: #111;">2 Dewasa dan 3 Anak-anak</span><br>
           <span style="font-size: 12px; font-style: italic; color: #666; display: block; margin-top: 5px;">*Petugas Loket Wisata: Mohon lakukan scan/validasi menggunakan nomor Itinerary ID atau Order ID yang tertera di atas kertas ini.</span>
         </p>
-      </div>''' if is_package_atraksi else ""}
+      </div>''' if is_ada_paket_wisata else ""}
         
       <div class="section">
         <h3>Detail Tamu & Kamar</h3>

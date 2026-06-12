@@ -55,12 +55,14 @@ class AIKeretaMasterSchema(BaseModel):
     penumpang: List[PenumpangKeretaSchema] = Field(default=[], description="Daftar array manifes seluruh penumpang")
 
 class DetailKamarDinamis(BaseModel):
-    nomor_urutan_kamar: int = Field(description="Nomor urut kamar, contoh: 1 atau 2")
-    nama_tamu_kamar: str = Field(description="Nama tamu spesifik di kamar ini (Title Case), hapus gelar")
-    tipe_kamar_nama: str = Field(description="Nama tipe kamar, contoh: 'Deluxe Non View Double'")
-    harga_kamar_per_malam: float = Field(description="Harga per malam untuk kamar ini saja, contoh: 750000 atau 500000")
-    fasilitas_kamar: str = Field(description="Fasilitas spesifik kamar ini, contoh: 'Sarapan (2 Pax)' atau 'Room Only'")
-    permintaan_khusus_kamar: str = Field(description="Permintaan khusus kamar ini, contoh: 'Twin Bed' atau '1 Large Bed'")
+    nomor_urutan_kamar: int = Field(description="Nomor urut blok tipe kamar, contoh: 1, 2, 3")
+    jumlah_kamar_per_tipe: int = Field(description="Jumlah kamar yang dipesan untuk tipe ini (ambil dari teks 'X Kamar')")
+    nama_tamu_kamar: List[str] = Field(description="Daftar nama semua tamu yang ada di blok tipe kamar ini")
+    tipe_kamar_nama: str = Field(description="Nama tipe kamar, contoh: 'Deluxe View Twin'")
+    harga_kamar_per_malam: float = Field(description="Harga per malam untuk 1 unit kamar ini")
+    fasilitas_kamar: str = Field(description="Fasilitas kamar ini, contoh: 'Sarapan (2 Pax)'")
+    permintaan_khusus_kamar: str = Field(description="Permintaan khusus")
+
 
 class AIHotelMasterSchema(BaseModel):
     order_id: str = Field(description="ID Pesanan / Order ID dari platform OTA")
@@ -368,7 +370,9 @@ def generate_evoucher_html(data):
 
     daftar_kamar = data.get('daftar_detail_kamar', [])
     
-    # 1. PERBAIKAN DESKRIPSI TABEL HARGA (MEMBAGI SESUAI INPUTAN)
+    # =====================================================================
+    # 1. PERBAIKAN DESKRIPSI TABEL HARGA (SINKRONISASI KUANTITAS DINAMIS)
+    # =====================================================================
     baris_kamar_tabel_html = ""
     total_harga_hotel = 0.0
     
@@ -377,7 +381,7 @@ def generate_evoucher_html(data):
         tamu_elements = []
         teks_kamar_elements = []
         request_list = []
-        fasilitas_set = set()  # Menggunakan set agar fasilitas global unik/tidak duplikat
+        fasilitas_set = set()  
         
         for kmr in daftar_kamar:
             no_kmr = kmr.get('nomor_urutan_kamar', 1)
@@ -386,15 +390,19 @@ def generate_evoucher_html(data):
             fas_kmr = kmr.get('fasilitas_kamar', '-')
             req_kmr = kmr.get('permintaan_khusus_kamar', '-')
             
-            # Perhitungan Subtotal Harga per Kamar
+            # TITIK PERBAIKAN 1: Deteksi kuantitas kamar dinamis dari field skema Anda
+            # Jika belum membuat field baru di Pydantic, gunakan fallback deteksi manifest massal ini
+            jml_kamar_riil = int(kmr.get('jumlah_kamar_per_tipe', 2 if no_mr > 1 else 1))
+            
+            # Kalkulasi subtotal total harga yang benar (Harga x Malam x Unit Kamar)
             hrg_kamar = float(kmr.get('harga_kamar_per_malam', 0))
-            subtotal_kamar = hrg_kamar * tot_malam
+            subtotal_kamar = hrg_kamar * tot_malam * jml_kamar_riil
             total_harga_hotel += subtotal_kamar
             
             hrg_str = f"Rp {hrg_kamar:,.0f}".replace(',', '.')
             subtotal_str = f"Rp {subtotal_kamar:,.0f}".replace(',', '.')
             
-            # BARIS TABEL DINAMIS
+            # TITIK PERBAIKAN 2: Mengubah teks statis '1 Kamar' menjadi '{jml_kamar_riil} Kamar'
             baris_tabel_elements.append(f"""
             <tr>
               <td style="text-align: left; padding: 10px 12px; font-size: 13.5px; color: #333; line-height: 1.4;">
@@ -402,38 +410,34 @@ def generate_evoucher_html(data):
                 <span style="font-size: 12px; color: #004080;">{tipe_kmr} ({fas_kmr})</span><br>
                 <span style="font-size: 11.5px; color: #666;">({hrg_str} x {tot_malam} malam / night(s))</span>
               </td>
-              <td style="text-align: center; padding: 10px 12px; font-size: 13.5px; color: #333;">1 Kamar</td>
+              <td style="text-align: center; padding: 10px 12px; font-size: 13.5px; color: #333;">{jml_kamar_riil} Kamar</td>
               <td style="text-align: right; padding: 10px 12px; font-size: 13.5px; font-weight: 500; color: #333;">{subtotal_str}</td>
             </tr>
             """)
             
-            # DETEKSI MEAL PLAN DINAMIS (Breakfast vs Room Only)
             if "sarapan" in fas_kmr.lower() or "breakfast" in fas_kmr.lower():
                 meal_plan = "Breakfast"
             else:
                 meal_plan = "Room Only"
             
-            # FORMAT TAMU & FORMAT TIAP KAMAR TERPISAH
             tamu_elements.append(f"<p>{no_kmr}. {nama_tamu}<br><span style='font-weight:normal; font-size:13.5px; color:#555;'>{tipe_kmr} - {fas_kmr}</span></p>")
-            teks_kamar_elements.append(f"1 x Kamar {tipe_kmr} - {meal_plan}")
             
-            # KUMPULKAN PERMINTAAN KHUSUS BERDASARKAN NOMOR KAMAR
+            # TITIK PERBAIKAN 3: Mengubah teks ringkasan statis '1 x Kamar' menjadi dinamis
+            teks_kamar_elements.append(f"{jml_kamar_riil} x Kamar {tipe_kmr} - {meal_plan}")
+            
             request_list.append(f"{req_kmr} (Kamar {no_kmr})")
             
-            # EKSTRAK TIAP ELEMEN FASILITAS KE SEBAGAI DATA UNIK GLOBAL
             for f in fas_kmr.split(','):
                 item_bersih = f.strip()
                 if item_bersih and item_bersih != '-':
                     fasilitas_set.add(item_bersih)
                     
-        # Pemetaan Variabel Akhir untuk Blok HTML
         baris_kamar_tabel_html = "".join(baris_tabel_elements)
         tamu_html = "".join(tamu_elements)
         teks_kamar_final = "<br>".join(teks_kamar_elements)
-        
-        # Output Bersih Sesuai Format Awal yang Diminta
         teks_fasilitas_final = ", ".join(sorted(list(fasilitas_set)))
         teks_request_final = "; ".join(request_list)
+
         
     else:
         # LOGIKA FALLBACK (JIKA HANYA 1 KAMAR / SISTEM LAMA)

@@ -420,7 +420,15 @@ def generate_evoucher_html(data):
             else:
                 meal_plan = "Room Only"
             
-            tamu_elements.append(f"<p>{no_kmr}. {nama_tamu}<br><span style='font-weight:normal; font-size:13.5px; color:#555;'>{tipe_kmr} - {fas_kmr}</span></p>")
+            # 1. Pastikan nama_tamu diurai menjadi teks biasa jika tipenya berupa List/Array
+            if isinstance(nama_tamu, list):
+                nama_tamu_bersih = ", ".join(nama_tamu)
+            else:
+                nama_tamu_bersih = str(nama_tamu)
+            
+            # 2. Cetak menggunakan variabel nama_tamu_bersih yang sudah di-join
+            tamu_elements.append(f"<p>{no_kmr}. {nama_tamu_bersih}<br><span style='font-weight:normal; font-size:13.5px; color:#555;'>{tipe_kmr} - {fas_kmr}</span></p>")
+
             
             # TITIK PERBAIKAN 3: Mengubah teks ringkasan statis '1 x Kamar' menjadi dinamis
             teks_kamar_elements.append(f"{jml_kamar_riil} x Kamar {tipe_kmr} - {meal_plan}")

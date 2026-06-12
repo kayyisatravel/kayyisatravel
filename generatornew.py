@@ -429,6 +429,9 @@ def generate_evoucher_html(data):
     teks_paket_ai = get('paket_wisata_tambahan')
     is_ada_paket_wisata = teks_paket_ai != '-' and teks_paket_ai != ''
 
+    string_tabel_harga_final = "\n".join(tabel_harga_rows)
+    string_detail_tamu_final = "\n".join(tamu_detail_rows)
+    string_detail_fasilitas_final = "\n".join(fasilitas_detail_rows)
     
     html = f"""
     <style>
@@ -593,7 +596,7 @@ def generate_evoucher_html(data):
           </thead>
           <tbody>
             <!-- PANGGIL KELOMPOK BARIS RINCIAN TIAP KAMAR SEARA DINAMIS -->
-            {"\n".join(tabel_harga_rows)}
+            {string_tabel_harga_final}
             
             <!-- BONUS TIKET ATRAKSI WISATA (OTOMATIS MERENDER JIKA ADA BUNDLE HARGANYA) -->
             {f'''<tr>
@@ -631,12 +634,12 @@ def generate_evoucher_html(data):
         
       <div class="section">
         <h3>Guest & Room Details <span>/ Detail Tamu & Kamar</span></h3>
-        {"\n".join(tamu_detail_rows)}
+        {string_detail_tamu_final}
       </div>
 
       <div class="section">
         <h3>Amenities & Special Requests <span>/ Fasilitas & Permintaan</span></h3>
-        {"\n".join(fasilitas_detail_rows)}
+        {string_detail_fasilitas_final}
       </div>
 
       <div class="footer">

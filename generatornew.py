@@ -31,7 +31,8 @@ class PenumpangKeretaSchema(BaseModel):
         - Contoh teks: 'Eksekutif 2 / 5A' -> Hasil output wajib: 'EKS 2/5A'.
     """)
     qr_placeholder_key: str = Field(description="Penanda urutan gambar khusus Whoosh: 'qr_penumpang_1', 'qr_penumpang_2', dst.")
-
+    fasilitas_tambahan: Optional[str] = Field(default="-", description="Fasilitas tambahan gratis bawaan tiket, contoh: 'Free Mineral Water 600ml'")
+    pesanan_kuliner: Optional[str] = Field(default="-", description="Pesanan makanan/minuman Reska, contoh: '1x Nasi Goreng Parahyangan + Teh Sosro'")
 
 class AIKeretaMasterSchema(BaseModel):
     kode_booking: str = Field(description="Kode booking / PNR / ID Pesanan utama dari vendor")
@@ -210,7 +211,8 @@ def parse_evoucher_text(text):
 def generate_eticket(data):
     """
     Fungsi render HTML E-Tiket Kereta Api & Whoosh bawaan Anda.
-    Sudah disesuaikan dinamis: Mengubah Logo KCIC, Judul Whoosh, dan menyalin data kursi utuh.
+    Sudah disesuaikan dinamis: Mengubah Logo KCIC, Judul Whoosh, menyalin data kursi utuh,
+    dan menampilkan Add-ons Kuliner/Fasilitas dengan sangat rapi di bawah nama penumpang.
     """
     # 1. Deteksi Otomatis Jenis Armada secara presisi dari output AI
     nama_kereta_raw = str(data.get('nama_kereta', '')).lower()
@@ -248,12 +250,32 @@ def generate_eticket(data):
             else:
                 qr_html_cell = '<br><span style="color:#e67e22; font-size:11px; font-weight:bold;">[QR Belum Diupload]</span>'
 
+        # =====================================================================
+        # SINKRONISASI BARU: INTEGRASI ADD-ONS KULINER & FASILITAS TAMBAHAN
+        # =====================================================================
+        fas_tambah = p.get('fasilitas_tambahan', '-')
+        kuliner_p = p.get('pesanan_kuliner', '-')
+        
+        addon_html = ""
+        # Hanya menggambar container abu-abu kecil jika data add-on terekstrak nyata oleh AI
+        if (fas_tambah and fas_tambah != '-') or (kuliner_p and kuliner_p != '-'):
+            addon_html += "<div style='font-size: 11.5px; color: #666; margin-top: 5px; font-weight: normal; line-height: 1.35;'>"
+            if fas_tambah and fas_tambah != '-':
+                addon_html += f"🎁 {fas_tambah}<br>"
+            if kuliner_p and kuliner_p != '-':
+                addon_html += f"🍱 <span style='color: #e65c00; font-weight: 500;'>{kuliner_p}</span>"
+            addon_html += "</div>"
+
+        # Gabungkan elemen data ke dalam sel Nama (Kolom Pertama)
         row_html = f"""
         <tr>
-          <td style="text-align: left; padding:12px 10px; border: 1px solid {color_table_border}; font-size: 14px; color:#222;">{p.get('nama', '-')}</td>
-          <td style="text-align: center; padding:12px 10px; border: 1px solid {color_table_border}; font-size: 14px; color:#444;">{p.get('tipe', '-')}</td>
-          <td style="text-align: center; padding:12px 10px; border: 1px solid {color_table_border}; font-size: 14px; color:#444;">{p.get('ktp', '-')}</td>
-          <td style="text-align: center; padding:12px 10px; border: 1px solid {color_table_border}; font-size: 14px; font-weight: 500; color:#111;">
+          <td style="text-align: left; padding:12px 10px; border: 1px solid {color_table_border}; font-size: 14px; color:#222; font-weight: 600; vertical-align: top;">
+             {p.get('nama', '-')}
+             {addon_html}
+          </td>
+          <td style="text-align: center; padding:12px 10px; border: 1px solid {color_table_border}; font-size: 14px; color:#444; vertical-align: top;">{p.get('tipe', '-')}</td>
+          <td style="text-align: center; padding:12px 10px; border: 1px solid {color_table_border}; font-size: 14px; color:#444; vertical-align: top;">{p.get('ktp', '-')}</td>
+          <td style="text-align: center; padding:12px 10px; border: 1px solid {color_table_border}; font-size: 14px; font-weight: 500; color:#111; vertical-align: top;">
              {p.get('kursi', '-')}
              {qr_html_cell}
           </td>
@@ -262,6 +284,7 @@ def generate_eticket(data):
         penumpang_rows.append(row_html)
 
     penumpang_rows_joined = "\n".join(penumpang_rows)
+
 
     # =====================================================================
     #3. Tatanan Template HTML Visual Utama Anda (Premium Professional Style)

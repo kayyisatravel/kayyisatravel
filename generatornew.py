@@ -169,6 +169,10 @@ def parse_evoucher_text(text):
         Kamu adalah sistem AI Parser Hotel milik Kayyisa Tour & Travel.
         Tugasmu mengekstrak teks input kasar hasil copas OTA menjadi format JSON terstruktur yang mematuhi skema secara mutlak.
         Hitung total malam menginap secara matematis dan bersihkan nama tamu sesuai kaidah EYD baku.
+        PENTING UNTUK TEKS MULTI-KAMAR:
+        Jika dalam dokumen terdapat lebih dari 1 kamar (Kamar 1, Kamar 2, dst) yang memiliki perbedaan nama tamu, 
+        perbedaan harga, atau fasilitas/permintaan khusus, kamu WAJIB memecahnya ke dalam array 'daftar_detail_kamar' satu per satu secara lengkap!
+        Hitung selisih hari check-in & check-out sebagai total_malam secara matematis.
         
         Teks Input Kasar:
         {text}

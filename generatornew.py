@@ -546,8 +546,8 @@ def generate_evoucher_html(data):
 
       <div class="section">
         <h3>Fasilitas & Permintaan (Amenities & Requests)</h3>
-        <p>Fasilitas: {get('fasilitas')}<br>
-           Permintaan Khusus: {get('permintaan_khusus')}</p>
+        <p><strong>Fasilitas:</strong> {get('fasilitas')}<br>
+           <strong>Permintaan Khusus:</strong> {get('permintaan_khusus')}</p>
       </div>
 
       <div class="footer">

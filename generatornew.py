@@ -569,7 +569,7 @@ def generate_evoucher_html(data):
                 GRAND TOTAL PRICE / <span style="font-size: 11.5px; font-weight:400; font-style:italic; text-transform: none;">Total Bayar</span> :
               </td>
               <td style="text-align: right; padding: 12px; font-size: 15.5px; color: #b30000;">
-                {total_harga_str}
+                {grand_total_str}
               </td>
             </tr>
           </tbody>

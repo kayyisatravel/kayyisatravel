@@ -14,32 +14,59 @@ def inisialisasi_gemini():
 
 def audit_forensik_dashboard(summary_text):
     """
-    Mengirimkan ringkasan data finansial yang padat (hemat token) ke Gemini 3.1 Flash Lite
-    untuk menghasilkan Laporan Hasil Penelaahan Audit otomatis yang interaktif.
+    Mengirimkan ringkasan data finansial ke Gemini 3.1 Flash Lite
+    untuk menghasilkan Laporan Keuangan Audit Formal (LHPA) yang berbasis data angka.
     """
     client = inisialisasi_gemini()
     if not client:
         return "Sistem AI gagal dimuat karena kendala autentikasi API Key."
         
     prompt = f"""
-    Anda adalah seorang Senior Financial Auditor dan Akuntan Forensik profesional yang bekerja khusus di industri keagenan travel (Pesawat, Hotel, Kereta).
-    Tugas Anda adalah memeriksa dokumen ringkasan indikator keuangan berikut untuk mencari risiko operasional, kebocoran margin, dan masalah likuiditas kas.
+    Anda adalah seorang Senior Financial Auditor, Akuntan Forensik, dan Konsultan Pajak bersertifikat khusus industri biro perjalanan (Travel Agent).
     
-    DATA RINGKASAN FINANSIAL:
+    Tugas Anda adalah menyusun "Laporan Hasil Penelaahan Audit (LHPA)" formal berdasarkan data indikator mentah berikut. 
+    Anda DILARANG HANYA BERBICARA TEORI. Anda WAJIB menyajikan ulang data angka dalam bentuk tabel komparasi akuntansi dan langsung menganalisis dampaknya terhadap kas perusahaan.
+    
+    DATA MENTAH DARI ENGINE:
     {summary_text}
     
-    Analisis data keuangan tersebut dengan sangat kritis dan susunlah Laporan Hasil Audit Eksklusif dalam format Markdown yang rapi dengan poin-poin wajib berikut:
+    Susunlah LHPA tersebut dengan format Markdown resmi mengikuti template struktur berikut:
     
-    1. 🎯 **Kesehatan Portofolio & Efisiensi Margin**: Evaluasi performa segmen Pesawat, Hotel, dan Kereta. Berikan opini produk mana yang kinerjanya sehat dan mana yang tidak efisien.
-    2. 🚨 **Analisis Kebocoran Dana & Transaksi Boncos**: Soroti secara tajam jika ditemukan transaksi yang menghasilkan laba negatif serta evaluasi apa penyebab mendasarnya.
-    3. ⏳ **Evaluasi Risiko Kredit (Piutang Menggantung)**: Analisis jumlah invoice yang berstatus Belum Lunas, terutama dana kritis yang sudah Overdue > 30 hari. Berapa tingkat ancamannya terhadap kelancaran kas perusahaan?
-    4. 💡 **Rekomendasi Taktis & Solutif**: Berikan 3 rekomendasi konkret yang dapat dieksekusi pemilik bisnis minggu ini untuk memperbaiki sistem kontrol harga dan mempercepat penagihan piutang pelanggan.
+    # 📝 LAPORAN HASIL PENELAAHAN AUDIT (LHPA) — REKONSILIASI KEUANGAN
     
-    Gunakan gaya bahasa Indonesia yang formal, berwibawa, tajam, dan langsung menusuk pada akar masalah bisnis operasional travel agen.
+    ### 📊 I. RINGKASAN EKSEKUTIF DATA AKTUAL
+    Sajikan ulang data dalam bentuk tabel Markdown berikut, hitung persentase rasionya secara matematis:
+
+    | Indikator Finansial | Nilai Nominal (Rupiah) | Persentase / Rasio Kontribusi | Status Audit |
+    | :--- | :--- | :--- | :--- |
+    | **Omzet Penjualan** | [Isi Angka] | 100% | [OK / Perlu Review] |
+    | **Harga Beli (HPP)** | [Isi Angka] | [HPP ÷ Omzet] % | [OK / Margin Tipis] |
+    | **Profit Bersih Buku**| [Isi Angka] | [Laba ÷ Omzet] % | [Sehat / Kritis] |
+    | **Total Piutang Mandek**| [Isi Angka] | [Piutang ÷ Omzet] % | [Aman / Bahaya Likuiditas] |
+    
+    ### ✈️ II. AUDIT PORTFOLIO PRODUK (PERFORMA MARGIN)
+    Buatlah tabel analisis performa produk berdasarkan data distribusi yang dikirimkan:
+
+    | Kategori Produk | Omzet | Laba Bersih | Realisasi Margin (%) | Peringkat Kontribusi |
+    | :--- | :--- | :--- | :--- | :--- |
+    | **PESAWAT** | [Isi Angka] | [Isi Angka] | [Margin %] | [Isi Peringkat] |
+    | **HOTEL** | [Isi Angka] | [Isi Angka] | [Margin %] | [Isi Peringkat] |
+    | **KERETA** | [Isi Angka] | [Isi Angka] | [Margin %] | [Isi Peringkat] |
+    
+    ### 🚨 III. TEMUAN FORENSIK ANOMALi & KEBOCORAN DANA
+    Berikan analisis tajam berbasis data angka mengenai dua poin kritis berikut:
+    1. **Kebocoran Harga (Transaksi Boncos)**: Sebutkan berapa kali terjadi transaksi laba negatif, berapa total kerugiannya, dan beri tahu manajemen mengapa ini bisa terjadi di sistem agen.
+    2. **Ancaman Piutang Overdue (>30 Hari)**: Sebutkan nominal dana kritis yang macet, bandingkan dengan profit bersih perusahaan saat ini. Apakah dana macet ini sanggup mematikan arus kas harian?
+    
+    ### 💡 IV. REKOMENDASI AUDIT YANG DAPAT DIEKSEKUSI
+    Berikan 3 rekomendasi taktis operasional (bukan teori kaku) khusus untuk bisnis Kayyisa Travel untuk:
+    - Cara memperketat kontrol selisih harga beli tiket maskapai/hotel agar tidak boncos.
+    - Strategi penagihan massal (*bulk collection*) untuk invoice yang berstatus Overdue.
+    
+    Gunakan gaya bahasa Indonesia Akuntan Publik yang formal, tajam, objektif, berpatokan penuh pada data angka, dan langsung menusuk pada solusi.
     """
     
     try:
-        # Menggunakan model Gemini 3.1 Flash Lite sesuai dengan alokasi Free Tier Anda
         response = client.models.generate_content(
             model='gemini-3.1-flash-lite',
             contents=prompt

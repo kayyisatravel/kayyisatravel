@@ -4931,7 +4931,7 @@ with st.expander("📘 Laporan Baru - AI Base"):
             st.markdown("---")
 
             # 🧮 Proses sisa perhitungan metrik, tabel aging, dan AI Auditor murni hanya dari df_filtered yang super ringan
-            metrics = finance_engine.hitung_performa_dan_aging(df_filtered)
+            metrics = finance_engine.hitung_performa_dan_aging_v4(df_filtered, df_cashflow_combined)
 
             # 5️⃣ TAMPILKAN INTERFACES TABS (Bersih, Rapi, & Padat di Dalam Expander)
             tab_ringkasan, tab_aging, tab_ai_audit = st.tabs([
@@ -5039,31 +5039,38 @@ with st.expander("📘 Laporan Baru - AI Base"):
 
             # --- TAB 2: AGING REPORT (OTOMATISASI STATUS BELUM LUNAS) ---
             with tab_aging:
-                st.subheader("⏳ Daftar Invoice Belum Pelunasan Klien")
+                st.subheader("⏳ Daftar Sisa Tagihan Invoice Klien (Hasil Rekonsiliasi)")
+                
                 col_a1, col_a2 = st.columns(2)
                 with col_a1:
-                    st.warning(f"🔴 Total Piutang: Rp {int(metrics['total_piutang']):,}".replace(",", ".") + f" ({metrics['jumlah_invoice_piutang']} Invoice)")
+                    st.warning(f"🔴 Total Sisa Piutang: Rp {int(metrics['total_piutang']):,}".replace(",", ".") + f" ({metrics['jumlah_invoice_piutang']} Invoice)")
                 with col_a2:
                     st.error(f"⚠️ Kritis (Overdue > 30 Hari): Rp {int(metrics['overdue_lebih_30_hari']):,}".replace(",", "."))
                 st.markdown("---")
                 
                 df_aging = metrics["df_aging_report"]
                 if df_aging.empty:
-                    st.success("🎉 Luar biasa! Seluruh tagihan invoice pada rentang filter ini sudah Lunas.")
+                    st.success("🎉 Luar biasa! Seluruh tagihan invoice berdasarkan transaksi masuk dan keluar sudah Lunas.")
                 else:
+                    # Fungsi inline styling warna merah muda milik Anda
                     def style_row_overdue(row):
                         return ["background-color: #FF9999" if row.Overdue else "" for _ in row]
                     
                     df_display_aging = df_aging.copy()
-                    df_display_aging["Harga Jual (Num)"] = df_display_aging["Harga Jual (Num)"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
-                    df_display_aging = df_display_aging.rename(columns={"Harga Jual (Num)": "Nilai Tagihan"})
+                    
+                    # Format Tanggal agar rapi tanpa jam jam 00:00:00
+                    df_display_aging["Tanggal Pemesanan"] = df_display_aging["Tanggal Pemesanan"].dt.strftime('%Y-%m-%d')
+                    
+                    # Format nominal sisa piutang ke mata uang rupiah
+                    df_display_aging["Piutang"] = df_display_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
+                    df_display_aging = df_display_aging.rename(columns={"Piutang": "Sisa Tagihan"})
                     
                     st.dataframe(
                         df_display_aging.style.apply(style_row_overdue, axis=1), 
                         use_container_width=True, 
-                        height=350
+                        height=400
                     )
-                    st.caption("💡 Baris berwarna merah muda menandakan invoice menunggak melewati batas aman 30 hari.")
+                    st.caption("💡 Info Visual: Baris berwarna merah muda menandakan sisa tagihan telah menunggak parah melebihi 30 hari sejak nota dibuat.")
 
             # --- TAB 3: AUDIT FORENSIK OTOMATIS GEMINI 3.1 FLASH LITE ---
             with tab_ai_audit:

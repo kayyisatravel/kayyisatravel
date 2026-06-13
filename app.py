@@ -5139,27 +5139,108 @@ with st.expander("📘 Laporan Baru - AI Base"):
                     st.markdown("---")
                     st.markdown(st.session_state.response_audit_ai)
 
-                    st.markdown("---")
+                    import re
                 
-                    # Tambahkan header judul resmi di bagian atas dokumen unduhan agar rapi saat dibuka
-                    judul_dokumen = f"""# 🏛️ REKOMENDASI CFO & LAPORAN AUDIT STRATEGIS
-                    **Kayyisa Tour & Travel — Business Management System**
-                    *Tanggal Cetak Laporan: {date.today().strftime('%d %B %Y')}*
+                    # 🛠️ Mesin Mini Pengubah Otomatis: Mengubah Tabel Markdown Gemini Menjadi Tabel HTML Word Resmi
+                    def markdown_to_html_word(md_text):
+                        lines = md_text.strip().split("\n")
+                        html_output = []
+                        in_table = False
+                        
+                        for line in lines:
+                            # Deteksi baris tabel markdown
+                            if line.strip().startswith("|"):
+                                if not in_table:
+                                    html_output.append('<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse; font-family:Arial; font-size:11pt; width:100%; margin-bottom:14px;">')
+                                    in_table = True
+                                
+                                # Abaikan baris pembatas tabel | :--- | :--- |
+                                if "---" in line:
+                                    continue
+                                    
+                                cells = [c.strip() for c in line.split("|")[1:-1]]
+                                tag = "th" if html_output[-1].endswith("</table>") or html_output[-1].strip() == '<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse; font-family:Arial; font-size:11pt; width:100%; margin-bottom:14px;">' else "td"
+                                
+                                # Deteksi apakah ini baris header pertama
+                                if html_output[-1].strip().startswith('<table'):
+                                    tag = "th"
+                                    bg_style = ' style="background-color:#f2f2f2; font-weight:bold; text-align:left;"'
+                                else:
+                                    tag = "td"
+                                    bg_style = ''
+                                    
+                                row_html = "  <tr>"
+                                for cell in cells:
+                                    # Jika sel bertuliskan tebal **teks**, bersihkan tanda bintangnya
+                                    cell_clean = cell.replace("**", "")
+                                    row_html += f'<{tag}{bg_style}>{cell_clean}</{tag}>'
+                                row_html += "</tr>"
+                                html_output.append(row_html)
+                            else:
+                                if in_table:
+                                    html_output.append("</table>")
+                                    in_table = False
+                                
+                                # Konversi format penulisan judul standar markdown ke HTML
+                                if line.strip().startswith("###"):
+                                    html_output.append(f'<h3 style="font-family:Arial; color:#1b5e20; margin-top:18px;">{line.replace("###", "").strip()}</h3>')
+                                elif line.strip().startswith("##"):
+                                    html_output.append(f'<h2 style="font-family:Arial; color:#2e7d32; margin-top:22px;">{line.replace("##", "").strip()}</h2>')
+                                elif line.strip().startswith("#"):
+                                    html_output.append(f'<h1 style="font-family:Arial; color:#111111; text-align:center;">{line.replace("#", "").strip()}</h1>')
+                                elif line.strip().startswith("-") or line.strip().startswith("*"):
+                                    # Bersihkan tanda bintang tebal di list poin
+                                    bullet_text = line.strip()[1:].strip().replace("**", "")
+                                    html_output.append(f'<li style="font-family:Arial; font-size:11pt; margin-left:20px; margin-bottom:6px;">{bullet_text}</li>')
+                                else:
+                                    # Bersihkan teks paragraf biasa dari bintang-bintang tebal markdown
+                                    clean_line = line.replace("**", "")
+                                    html_output.append(f'<p style="font-family:Arial; font-size:11pt; line-height:1.5;">{clean_line}</p>')
+                                    
+                        if in_table:
+                            html_output.append("</table>")
+                            
+                        return "\n".join(html_output)
+    
+                    # Jalankan mesin konversi terhadap teks Gemini
+                    html_body_content = markdown_to_html_word(st.session_state.response_audit_ai)
                     
-                    ---
+                    # Bungkus ke dalam template dokumen resmi Microsoft Word (MIME type HTML)
+                    word_html_template = f"""
+                    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://w3.org'>
+                    <head>
+                        <title>Laporan Audit Finansial Kayyisa Travel</title>
+                        <!--[if gte mso 9]>
+                        <xml>
+                            <w:WordDocument>
+                                <w:View>Print</w:View>
+                                <w:Zoom>100</w:Zoom>
+                            </w:WordDocument>
+                        </xml>
+                        <![endif]-->
+                    </head>
+                    <body style="font-family:Arial; padding:40px;">
+                        <div style="text-align:center; margin-bottom:30px;">
+                            <h1 style="font-family:Arial; margin-bottom:4px; color:#111111;">🏛️ REKOMENDASI CFO & LAPORAN AUDIT STRATEGIS</h1>
+                            <p style="font-family:Arial; font-size:10pt; color:#666666; margin-top:0px;">
+                                <b>Kayyisa Tour & Travel — Business Management System</b><br>
+                                Tanggal Cetak Dokumen: {date.today().strftime('%d %B %Y')}
+                            </p>
+                        </div>
+                        <hr style="border:1px solid #cccccc; margin-bottom:24px;">
+                        {html_body_content}
+                    </body>
+                    </html>
                     """
                     
-                    # Gabungkan judul resmi dengan isi teks rekomendasi dari Gemini
-                    dokumen_bersih_text = judul_dokumen + st.session_state.response_audit_ai
-                    
-                    # Gunakan st.download_button bawaan pabrik Streamlit agar 100% aman dan terisolasi
+                    # Sediakan tombol unduh Word pintar yang dijamin rapi kotak-kotaknya
                     st.download_button(
-                        label="📄 Unduh Dokumen Laporan Audit (.doc / .txt)",
-                        data=dokumen_bersih_text,
+                        label="📝 Unduh Dokumen Laporan Word Resmi (.doc)",
+                        data=word_html_template,
                         file_name=f"Laporan_Audit_Kayyisa_Travel_{date.today().strftime('%Y%m%d')}.doc",
-                        mime="text/plain",
+                        mime="application/msword",
                         type="primary",
-                        key="btn_download_pdf_resmi_v2"
+                        key="btn_download_word_html_v3"
                     )
 
 

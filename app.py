@@ -5141,36 +5141,26 @@ with st.expander("📘 Laporan Baru - AI Base"):
 
                     st.markdown("---")
                 
-                    import streamlit.components.v1 as components
+                    # Tambahkan header judul resmi di bagian atas dokumen unduhan agar rapi saat dibuka
+                    judul_dokumen = f"""# 🏛️ REKOMENDASI CFO & LAPORAN AUDIT STRATEGIS
+                    **Kayyisa Tour & Travel — Business Management System**
+                    *Tanggal Cetak Laporan: {date.today().strftime('%d %B %Y')}*
                     
-                    html_print_component = """
-                    <style>
-                    .btn-print {
-                        background-color: #2e7d32;
-                        color: white !important;
-                        padding: 10px 24px;
-                        border-radius: 8px;
-                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                        font-size: 15px;
-                        font-weight: 600;
-                        border: none;
-                        cursor: pointer;
-                        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-                        display: inline-block;
-                        width: 100%;
-                        text-align: center;
-                    }
-                    .btn-print:hover {
-                        background-color: #1b5e20;
-                    }
-                    </style>
-                    
-                    <!-- Perintah parent.window.print() memaksa JavaScript menembus dinding pertahanan Streamlit -->
-                    <button class="btn-print" onclick="window.parent.print()">🖨️ Cetak Laporan Ke PDF Resmi</button>
+                    ---
                     """
                     
-                    # Render komponen HTML mandiri dengan tinggi 60 pixel agar pas di layar dashboard
-                    components.html(html_print_component, height=60)
+                    # Gabungkan judul resmi dengan isi teks rekomendasi dari Gemini
+                    dokumen_bersih_text = judul_dokumen + st.session_state.response_audit_ai
+                    
+                    # Gunakan st.download_button bawaan pabrik Streamlit agar 100% aman dan terisolasi
+                    st.download_button(
+                        label="📄 Unduh Dokumen Laporan Audit (.doc / .txt)",
+                        data=dokumen_bersih_text,
+                        file_name=f"Laporan_Audit_Kayyisa_Travel_{date.today().strftime('%Y%m%d')}.doc",
+                        mime="text/plain",
+                        type="primary",
+                        key="btn_download_pdf_resmi_v2"
+                    )
 
 
 

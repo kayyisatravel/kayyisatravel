@@ -5139,7 +5139,39 @@ with st.expander("📘 Laporan Baru - AI Base"):
                     st.markdown("---")
                     st.markdown(st.session_state.response_audit_ai)
 
-
+                    st.markdown("---")
+                
+                    # Desain tombol cetak yang cantik, rapi, dan responsif
+                    tombol_print_html = """
+                    <style>
+                    .btn-print {
+                        background-color: #2e7d32;
+                        color: white !important;
+                        padding: 10px 20px;
+                        border-radius: 8px;
+                        text-decoration: none;
+                        font-weight: 600;
+                        display: inline-block;
+                        border: none;
+                        cursor: pointer;
+                        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                    }
+                    .btn-print:hover {
+                        background-color: #1b5e20;
+                    }
+                    /* Sembunyikan semua elemen dashboard Streamlit saat dicetak, HANYA sisakan teks laporan audit */
+                    @media print {
+                        header, footer, .stSidebar, .stButton, .btn-print, .stTabs, .stExpander, hr {
+                            display: none !important;
+                        }
+                        .main .block-container {
+                            padding-top: 0px !important;
+                        }
+                    }
+                    </style>
+                    <button class="btn-print" onclick="window.print()">🖨️ Cetak Laporan ke PDF</button>
+                    """
+                    st.markdown(tombol_print_html, unsafe_allow_html=True)
 
 
 

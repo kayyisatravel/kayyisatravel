@@ -4934,7 +4934,7 @@ with st.expander("📘 Laporan Baru - AI Base"):
                     df_daily_chart = df_daily_chart.groupby("Tgl Pemesanan_Parsed")["Harga Jual (Num)"].sum().reset_index()
                     visualizer.render_grafik_tren_harian(df_daily_chart)
                 with col_g2:
-                    visualizer.render_segmentasi_profit_margin(df_filtered)
+                    visualizer.render_grafik_margin_aman(df_filtered)
 
             # --- TAB 2: AGING REPORT (OTOMATISASI STATUS BELUM LUNAS) ---
             with tab_aging:

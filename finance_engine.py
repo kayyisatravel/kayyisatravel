@@ -44,8 +44,8 @@ def bersihkan_angka(val):
 
 def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
     """
-    Engine Finansial v4 Resmi: Memperbaiki bug tumpang tindih df_sales,
-    menghilangkan kesalahan indentasi, dan menjamin 100% bebas dari KeyError.
+    Engine Finansial v4 Resmi: Menghitung piutang riil dengan fitur 
+    Auto-Detect Nama Kolom untuk mencegah KeyError 'Keterangan'.
     """
     # 🛡️ 1. TAMENG PROTEKSI OBJEK KOSONG / NONE
     if df_data_raw is None or (not isinstance(df_data_raw, pd.DataFrame)) or df_data_raw.empty:
@@ -57,6 +57,17 @@ def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
     # 🏗️ 2. AMBIL DAN AMANKAN DATA PENJUALAN (SALES JOURNAL)
     df_sales = df_data_raw.copy()
     
+    # 🔍 AUTO-DETECT & STANDARDISASI NAMA KOLOM "Keterangan"
+    # Menghapus spasi di awal/akhir nama kolom dan mengubahnya ke huruf kecil untuk dicocokkan
+    kolom_mapping = {str(col).strip().lower(): col for col in df_sales.columns}
+    
+    if "keterangan" in kolom_mapping:
+        # Pindahkan isi kolom asli ke nama standar "Keterangan"
+        df_sales["Keterangan"] = df_sales[kolom_mapping["keterangan"]].fillna("Belum Lunas")
+    else:
+        # Jika benar-benar tidak ada di Google Sheets, buatkan kolom tiruan default
+        df_sales["Keterangan"] = "Belum Lunas"
+
     # Deteksi & Normalisasi Kolom Wajib Invoice_Key agar anti-KeyError
     if "Invoice_Key" not in df_sales.columns:
         df_sales["Invoice_Key"] = "N/A"
@@ -64,28 +75,18 @@ def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
         df_sales["Invoice_Key"] = df_sales["Invoice_Key"].fillna("N/A").astype(str).str.strip()
         df_sales.loc[df_sales["Invoice_Key"] == "", "Invoice_Key"] = "N/A"
 
-    # Proteksi tambahan untuk kolom opsional yang dipanggil di akhir fungsi
-    if "Admin" not in df_sales.columns:
-        df_sales["Admin"] = "N/A"
-    if "Kode Booking" not in df_sales.columns:
-        df_sales["Kode Booking"] = "N/A"
-    if "Tipe" not in df_sales.columns:
-        df_sales["Tipe"] = "Umum"
-
     # Bersihkan Data Nominal Angka & Tanggal Penjualan
-        
-    df_sales["Harga Beli (Num)"] = pd.to_numeric(df_sales["Harga Beli"].apply(bersihkan_angka), errors="coerce").fillna(0)
-    df_sales["Harga Jual (Num)"] = pd.to_numeric(df_sales["Harga Jual"].apply(bersihkan_angka), errors="coerce").fillna(0)
+    df_sales["Harga Beli (Num)"] = df_sales["Harga Beli"].apply(bersihkan_angka)
+    df_sales["Harga Jual (Num)"] = df_sales["Harga Jual"].apply(bersihkan_angka)
     df_sales["Laba (Num)"] = df_sales["Harga Jual (Num)"] - df_sales["Harga Beli (Num)"]
-    df_sales["Tgl Pemesanan_Parsed"] = pd.to_datetime(df_sales["Tgl Pemesanan"], format="mixed", dayfirst=True, errors="coerce")
-
+    df_sales["Tgl Pemesanan_Parsed"] = pd.to_datetime(df_sales["Tgl Pemesanan"], dayfirst=True, errors="coerce")
     
     # Hitung Perhitungan Finansial Makro (Accrual Basis)
     total_pendapatan = df_sales["Harga Jual (Num)"].sum()
     total_hpp = df_sales["Harga Beli (Num)"].sum()
     total_laba_buku = df_sales["Laba (Num)"].sum()
 
-    # 📋 3. PROSES REKONSILIASI KAS MASUK
+    # 📋 3. PROSES REKONSILIASI KAS MASUK (ALUR PIUTANG LAMA ANDA)
     total_piutang = 0.0
     overdue_lebih_30 = 0.0
     jumlah_invoice_piutang = 0
@@ -115,19 +116,17 @@ def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
     )
     
     # Gabungkan data penjualan dengan data pembayaran cicilan kas masuk
-    df_invoice = df_sales[["Invoice_Key", "Nama Pemesan", "No Invoice", "Harga Jual (Num)", "Tgl Pemesanan_Parsed"]].copy()
+    df_invoice = df_sales[["Invoice_Key", "Nama Pemesan", "No Invoice", "Harga Jual (Num)", "Tgl Pemesanan_Parsed", "Keterangan"]].copy()
     df_invoice = df_invoice.merge(df_payments, on="Invoice_Key", how="left")
     df_invoice["Jumlah Masuk"] = df_invoice["Jumlah Masuk"].fillna(0)
     
     # Rumus Hitung Sisa Piutang Aktual
     df_invoice["Piutang"] = df_invoice["Harga Jual (Num)"] - df_invoice["Jumlah Masuk"]
-    # Langkah A: Tangkap status default bawaan sistem ("Belum Lunas")
-    is_belum_lunas = df_invoice["Keterangan"].astype(str).str.contains("Belum Lunas", case=False, na=False)
     
-    # Langkah B: Tangkap status pelunasan massal tim Anda yang mengandung kata "Lunas" (Tetapi BUKAN "Belum Lunas")
+    # 🛡️ PENERAPAN LOGIKA SEPARASI REGEX YANG SUDAH KORREK
+    is_belum_lunas = df_invoice["Keterangan"].astype(str).str.contains("Belum Lunas", case=False, na=False)
     is_sudah_lunas = df_invoice["Keterangan"].astype(str).str.contains(r'(?<!belum\s)lunas', case=False, na=False, regex=True)
     
-    # LOGIKA AKHIR: Invoice dinyatakan MENUNGGAK jika (Sisa uang > 1000 ATAU berstatus Belum Lunas) DAN statusnya TIDAK boleh Sudah Lunas
     mask_piutang_aktif = (df_invoice["Piutang"] > 1000) | is_belum_lunas
     df_unpaid = df_invoice[mask_piutang_aktif & (~is_sudah_lunas)].copy()
     
@@ -144,7 +143,7 @@ def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
         df_agg["Aging (hari)"] = (hari_ini - df_agg["Tanggal Pemesanan"].dt.normalize()).dt.days
         df_agg["Overdue"] = df_agg["Aging (hari)"] > 30
         
-        # Rekap indikator makro risiko kredit (Indentasi Sudah Diperbaiki)
+        # Rekap indikator makro risiko kredit
         total_piutang = df_agg["Piutang"].sum()
         jumlah_invoice_piutang = df_agg["No Invoice"].nunique()
         overdue_lebih_30 = df_agg[df_agg["Overdue"] == True]["Piutang"].sum()

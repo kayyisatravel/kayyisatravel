@@ -44,88 +44,93 @@ def bersihkan_angka(val):
 
 def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
     """
-    Engine Finansial v4: Mengadopsi 100% alur hitung sisa piutang (Harga Jual - Jumlah Masuk)
-    dari skrip lama Anda, lengkap dengan Arsenal Rasio Keuangan untuk AI.
+    Engine Finansial v4 Resmi: Memperbaiki bug tumpang tindih df_sales
+    dan menjamin 100% bebas dari KeyError 'Invoice_Key'.
     """
+    # 🛡️ 1. TAMENG PROTEKSI OBJEK KOSONG / NONE
     if df_data_raw is None or (not isinstance(df_data_raw, pd.DataFrame)) or df_data_raw.empty:
         return {}
         
     if df_cashflow_raw is None or (not isinstance(df_cashflow_raw, pd.DataFrame)) or df_cashflow_raw.empty:
-        # Jika data cashflow kosong atau error, buatkan dataframe tiruan 
-        # berisi kolom wajib agar proses merge() ke bawah tidak crash memicu AttributeError
         df_cashflow_raw = pd.DataFrame(columns=["Invoice_Key", "Jumlah", "Tipe", "Kategori"])
-    # ----------------------------------------------------------------------
 
-    # Bersihkan Data Penjualan Utama
+    # 🏗️ 2. AMBIL DAN AMANKAN DATA PENJUALAN (SALES JOURNAL)
     df_sales = df_data_raw.copy()
     
-    # Pastikan kolom Invoice_Key tersedia di data penjualan agar tidak mamicu KeyError saat merge
+    # Deteksi & Normalisasi Kolom Wajib Invoice_Key agar anti-KeyError
     if "Invoice_Key" not in df_sales.columns:
         df_sales["Invoice_Key"] = "N/A"
+    else:
+        # Jika kolom ada, pastikan baris kosong diisi nilai default teks string
+        df_sales["Invoice_Key"] = df_sales["Invoice_Key"].fillna("N/A").astype(str).str.strip()
+        df_sales.loc[df_sales["Invoice_Key"] == "", "Invoice_Key"] = "N/A"
 
-    # 1. Bersihkan Data Penjualan Utama
-    df_sales = df_data_raw.copy()
+    # Bersihkan Data Nominal Angka & Tanggal Penjualan
     df_sales["Harga Beli (Num)"] = df_sales["Harga Beli"].apply(bersihkan_angka)
     df_sales["Harga Jual (Num)"] = df_sales["Harga Jual"].apply(bersihkan_angka)
     df_sales["Laba (Num)"] = df_sales["Harga Jual (Num)"] - df_sales["Harga Beli (Num)"]
     df_sales["Tgl Pemesanan_Parsed"] = pd.to_datetime(df_sales["Tgl Pemesanan"], dayfirst=True, errors="coerce")
     
-    # Perhitungan Makro (Accrual Basis)
+    # Hitung Perhitungan Finansial Makro (Accrual Basis)
     total_pendapatan = df_sales["Harga Jual (Num)"].sum()
     total_hpp = df_sales["Harga Beli (Num)"].sum()
     total_laba_buku = df_sales["Laba (Num)"].sum()
 
-    # 2. SEPERTI ALUR LAMA ANDA: Proses Data Cashflow untuk Hitung Sisa Piutang
+    # 📋 3. PROSES REKONSILIASI KAS MASUK (ALUR PIUTANG LAMA ANDA)
     total_piutang = 0.0
     overdue_lebih_30 = 0.0
     jumlah_invoice_piutang = 0
     text_top_debitur = "- (Bersih, tidak ada piutang aktif)\n"
     df_display_aging = pd.DataFrame()
 
-    if not df_cashflow_raw.empty:
-        df_cf = df_cashflow_raw.copy()
+    df_cf = df_cashflow_raw.copy()
+    
+    # Normalisasi struktur kolom wajib tabel cashflow
+    if "Invoice_Key" not in df_cf.columns:
+        df_cf["Invoice_Key"] = "N/A"
+    else:
+        df_cf["Invoice_Key"] = df_cf["Invoice_Key"].fillna("N/A").astype(str).str.strip()
+        df_cf.loc[df_cf["Invoice_Key"] == "", "Invoice_Key"] = "N/A"
         
-        # --- Normalisasi Invoice_Key
-        df_sales["Invoice_Key"] = df_sales["Invoice_Key"].astype(str).str.strip()
-        df_cf["Invoice_Key"] = df_cf["Invoice_Key"].astype(str).str.strip()
+    if "Jumlah" not in df_cf.columns: df_cf["Jumlah"] = 0
+    if "Tipe" not in df_cf.columns: df_cf["Tipe"] = "Masuk"
+    
+    # Total akumulasi cicilan pembayaran per invoice (Hanya tipe Masuk)
+    df_cf["Jumlah"] = pd.to_numeric(df_cf["Jumlah"], errors="coerce").fillna(0)
+    df_payments = (
+        df_cf[df_cf["Tipe"] == "Masuk"]
+        .groupby("Invoice_Key")["Jumlah"]
+        .sum()
+        .reset_index()
+        .rename(columns={"Jumlah": "Jumlah Masuk"})
+    )
+    
+    # Gabungkan data penjualan dengan data pembayaran cicilan kas masuk
+    df_invoice = df_sales[["Invoice_Key", "Nama Pemesan", "No Invoice", "Harga Jual (Num)", "Tgl Pemesanan_Parsed"]].copy()
+    df_invoice = df_invoice.merge(df_payments, on="Invoice_Key", how="left")
+    df_invoice["Jumlah Masuk"] = df_invoice["Jumlah Masuk"].fillna(0)
+    
+    # Rumus Hitung Sisa Piutang Aktual
+    df_invoice["Piutang"] = df_invoice["Harga Jual (Num)"] - df_invoice["Jumlah Masuk"]
+    df_unpaid = df_invoice[df_invoice["Piutang"] > 1000].copy()
+    
+    if not df_unpaid.empty:
+        # Agregasi data per nota tunggal
+        df_agg = df_unpaid.groupby(["Invoice_Key", "Nama Pemesan", "No Invoice"], as_index=False).agg({
+            "Piutang": "sum",
+            "Tgl Pemesanan_Parsed": "min"
+        })
         
-        # --- Total pembayaran per invoice (Hanya yang bertipe Masuk)
-        df_cf["Jumlah"] = pd.to_numeric(df_cf["Jumlah"], errors="coerce").fillna(0)
-        df_payments = (
-            df_cf[df_cf["Tipe"] == "Masuk"]
-            .groupby("Invoice_Key")["Jumlah"]
-            .sum()
-            .reset_index()
-            .rename(columns={"Jumlah": "Jumlah Masuk"})
-        )
+        # Hitung Selisih Hari Penuaan Piutang (Aging)
+        hari_ini = pd.Timestamp.today().normalize()
+        df_agg["Tanggal Pemesanan"] = df_agg["Tgl Pemesanan_Parsed"].fillna(hari_ini)
+        df_agg["Aging (hari)"] = (hari_ini - df_agg["Tanggal Pemesanan"].dt.normalize()).dt.days
+        df_agg["Overdue"] = df_agg["Aging (hari)"] > 30
         
-        # --- Gabungkan dengan data penjualan
-        df_invoice = df_sales[["Invoice_Key", "Nama Pemesan", "No Invoice", "Harga Jual (Num)", "Tgl Pemesanan_Parsed"]].copy()
-        df_invoice = df_invoice.merge(df_payments, on="Invoice_Key", how="left")
-        df_invoice["Jumlah Masuk"] = df_invoice["Jumlah Masuk"].fillna(0)
-        
-        # --- Hitung Sisa Piutang Riil
-        df_invoice["Piutang"] = df_invoice["Harga Jual (Num)"] - df_invoice["Jumlah Masuk"]
-        
-        # --- Filter yang belum lunas (Sisa utang di atas Rp 1.000)
-        df_unpaid = df_invoice[df_invoice["Piutang"] > 1000].copy()
-        
-        if not df_unpaid.empty:
-            # --- AGGREGATE PER INVOICE (Mencegah Double Counting Bug)
-            df_agg = df_unpaid.groupby(["Invoice_Key", "Nama Pemesan", "No Invoice"], as_index=False).agg({
-                "Piutang": "sum",
-                "Tgl Pemesanan_Parsed": "min"
-            })
-            
-            # --- Hitung Usia Aging Jurnal terhadap Hari Ini
-            hari_ini = pd.Timestamp.today().normalize()
-            df_agg["Tanggal Pemesanan"] = df_agg["Tgl Pemesanan_Parsed"].fillna(hari_ini)
-            df_agg["Aging (hari)"] = (hari_ini - df_agg["Tanggal Pemesanan"].dt.normalize()).dt.days
-            df_agg["Overdue"] = df_agg["Aging (hari)"] > 30
-            
-            # Ekstrak Angka untuk Indikator Ringkasan
-            total_piutang = df_agg["Piutang"].sum()
-            jumlah_invoice_piutang = df_agg["No Invoice"].nunique()
+        # Rekap indikator makro risiko kredit
+        total_piutang = df_agg["Piutang"].sum()
+        jumlah_invoice_piutang = df_agg["No Invoice"].nunique()
+        overdue_lebih_30 = df_agg[df_agg["Overdue"] == True]["Piutang"].sum()
             overdue_lebih_30 = df_agg[df_agg["Overdue"] == True]["Piutang"].sum()
             
             # 🕵️ Forensik Top 3 Pembawa Piutang Terbesar berdasarkan Alur Riil

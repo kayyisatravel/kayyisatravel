@@ -5141,37 +5141,36 @@ with st.expander("📘 Laporan Baru - AI Base"):
 
                     st.markdown("---")
                 
-                    # Desain tombol cetak yang cantik, rapi, dan responsif
-                    tombol_print_html = """
+                    import streamlit.components.v1 as components
+                    
+                    html_print_component = """
                     <style>
                     .btn-print {
                         background-color: #2e7d32;
                         color: white !important;
-                        padding: 10px 20px;
+                        padding: 10px 24px;
                         border-radius: 8px;
-                        text-decoration: none;
+                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                        font-size: 15px;
                         font-weight: 600;
-                        display: inline-block;
                         border: none;
                         cursor: pointer;
                         box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                        display: inline-block;
+                        width: 100%;
+                        text-align: center;
                     }
                     .btn-print:hover {
                         background-color: #1b5e20;
                     }
-                    /* Sembunyikan semua elemen dashboard Streamlit saat dicetak, HANYA sisakan teks laporan audit */
-                    @media print {
-                        header, footer, .stSidebar, .stButton, .btn-print, .stTabs, .stExpander, hr {
-                            display: none !important;
-                        }
-                        .main .block-container {
-                            padding-top: 0px !important;
-                        }
-                    }
                     </style>
-                    <button class="btn-print" onclick="window.print()">🖨️ Cetak Laporan ke PDF</button>
+                    
+                    <!-- Perintah parent.window.print() memaksa JavaScript menembus dinding pertahanan Streamlit -->
+                    <button class="btn-print" onclick="window.parent.print()">🖨️ Cetak Laporan Ke PDF Resmi</button>
                     """
-                    st.markdown(tombol_print_html, unsafe_allow_html=True)
+                    
+                    # Render komponen HTML mandiri dengan tinggi 60 pixel agar pas di layar dashboard
+                    components.html(html_print_component, height=60)
 
 
 

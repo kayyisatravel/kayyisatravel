@@ -73,7 +73,7 @@ def audit_forensik_dashboard(summary_text):
     
     Gunakan gaya bahasa mentor bisnis yang merangkul, memberi semangat, solutif, jujur apa adanya, namun tetap tegas terhadap resiko bisnis kedepan dan fokus pada bagaimana memulihkan uang tunai bisnis secepatnya.
     Juga anda bisa berikan insight tren model bisnis terbaru yang bisa dijajaki namun tetap inline dengan core bisnis utama.
-    Buat dalam format laporan siap cetak yang akan digunakan sebagai acuan dan petunjuk pelaksanaan bagi perusahaan.
+    Buat dalam format laporan siap cetak yang akan digunakan sebagai acuan dan petunjuk pelaksanaan bagi perusahaan. Termasuk periode laporan berdasarkan data yang diambil.
     """
     
     try:

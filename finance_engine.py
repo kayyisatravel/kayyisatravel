@@ -3,14 +3,46 @@ import pandas as pd
 import numpy as np
 
 def bersihkan_angka(val):
-    """Membersihkan format Rp, titik, koma, dan spasi dari Google Sheets menjadi Float murni."""
-    if pd.isna(val): return 0.0
-    s = str(val).replace("Rp", "").replace(".", "").replace(" ", "").strip()
-    s = s.replace(",", "")
-    try: 
-        return float(s)
-    except: 
+    """
+    Algoritma baru cerdas untuk mengekstrak angka murni.
+    Aman dari jebakan desimal sen (,00) maupun titik koma mata uang.
+    """
+    if pd.isna(val) or val == "": 
         return 0.0
+    
+    # Ubah ke string dan buang lambang mata uang serta spasi
+    s = str(val).replace("Rp", "").replace(" ", "").strip()
+    
+    if not s:
+        return 0.0
+
+    try:
+        # LOGIKA PERBAIKAN: Deteksi format desimal khas Indonesia (Uang diakhiri ,00 atau ,xx)
+        # Jika ada tanda koma, dan koma tersebut berada di posisi pecahan sen belakang
+        if "," in s and "." in s:
+            # Format campuran, bersihkan titik ribuan, ubah koma desimal menjadi titik Python
+            s = s.replace(".", "").replace(",", ".")
+        elif "," in s and "." not in s:
+            # Format Indonesia murni (misal: 583114415,00 atau 583.114.415,00 setelah titik hilang)
+            # Cek apakah koma berfungsi sebagai pemisah desimal di 2 digit terakhir
+            bagian = s.split(",")
+            if len(bagian[-1]) <= 2:  # Ini adalah pecahan sen (,00)
+                s = "".join(bagian[:-1]) + "." + bagian[-1]
+            else:
+                # Koma ternyata berfungsi sebagai pemisah ribuan (Format US)
+                s = s.replace(",", "")
+        else:
+            # Jika hanya mengandung titik (Format standar Indonesia tanpa sen)
+            s = s.replace(".", "")
+            
+        return float(s)
+    except:
+        # Jika gagal total karena teks rusak, coba bersihkan karakter non-numerik kasar
+        import re
+        s_clean = re.sub(r'[^\d.]', '', str(val).replace(",", "."))
+        try: return float(s_clean)
+        except: return 0.0
+
 
 def hitung_performa_dan_aging(df):
     """

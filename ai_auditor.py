@@ -1,5 +1,5 @@
 # ai_auditor.py
-import streamlit st
+import streamlit as st
 from google import genai
 
 def inisialisasi_gemini():

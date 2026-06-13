@@ -1,47 +1,45 @@
 # finance_engine.py
+# finance_engine.py
 import pandas as pd
 import numpy as np
+import re
 
 def bersihkan_angka(val):
     """
-    Algoritma baru cerdas untuk mengekstrak angka murni.
-    Aman dari jebakan desimal sen (,00) maupun titik koma mata uang.
+    Algoritma V3 Cerdas: Menangani data angka murni (Float/Int) 
+    maupun teks mata uang (String) dari Google Sheets tanpa merusak desimal.
     """
+    # 1. Jika data kosong, langsung kembalikan 0.0
     if pd.isna(val) or val == "": 
         return 0.0
     
-    # Ubah ke string dan buang lambang mata uang serta spasi
+    # 2. JIKA data dari Google Sheets sudah berupa tipe ANGKA murni (Float/Int)
+    if isinstance(val, (int, float)):
+        return float(val)
+        
+    # 3. JIKA data bertipe STRING (Teks seperti 'Rp 583.114.415,00')
     s = str(val).replace("Rp", "").replace(" ", "").strip()
-    
     if not s:
         return 0.0
 
     try:
-        # LOGIKA PERBAIKAN: Deteksi format desimal khas Indonesia (Uang diakhiri ,00 atau ,xx)
-        # Jika ada tanda koma, dan koma tersebut berada di posisi pecahan sen belakang
-        if "," in s and "." in s:
-            # Format campuran, bersihkan titik ribuan, ubah koma desimal menjadi titik Python
-            s = s.replace(".", "").replace(",", ".")
-        elif "," in s and "." not in s:
-            # Format Indonesia murni (misal: 583114415,00 atau 583.114.415,00 setelah titik hilang)
-            # Cek apakah koma berfungsi sebagai pemisah desimal di 2 digit terakhir
-            bagian = s.split(",")
-            if len(bagian[-1]) <= 2:  # Ini adalah pecahan sen (,00)
-                s = "".join(bagian[:-1]) + "." + bagian[-1]
-            else:
-                # Koma ternyata berfungsi sebagai pemisah ribuan (Format US)
-                s = s.replace(",", "")
-        else:
-            # Jika hanya mengandung titik (Format standar Indonesia tanpa sen)
-            s = s.replace(".", "")
-            
+        # A. Buang ekor pecahan sen rupiah (,00) di paling belakang string jika ada
+        s = re.sub(r',(\d{2})$', '', s)
+        
+        # B. Buang ekor pecahan sen internasional (.00) di paling belakang string jika ada
+        s = re.sub(r'\.(\d{2})$', '', s)
+        
+        # C. Sapu bersih semua tanda titik ribuan atau koma ribuan yang tersisa
+        s = re.sub(r'[.,]', '', s)
+        
         return float(s)
     except:
-        # Jika gagal total karena teks rusak, coba bersihkan karakter non-numerik kasar
-        import re
+        # Pilihan cadangan darurat jika teks rusak parah
         s_clean = re.sub(r'[^\d.]', '', str(val).replace(",", "."))
-        try: return float(s_clean)
-        except: return 0.0
+        try: 
+            return float(s_clean)
+        except: 
+            return 0.0
 
 
 def hitung_performa_dan_aging(df):

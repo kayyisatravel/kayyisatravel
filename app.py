@@ -4915,26 +4915,101 @@ with st.expander("📘 Laporan Baru - AI Base"):
             ])
             
             # --- TAB 1: RINGKASAN DATA ANGKA & GRAFIK INTERAKTIF ---
-            with tab_ringkasan:
-                st.subheader("📌 Indikator Utama Kinerja Keuangan")
-                col_m1, col_m2, col_m3 = st.columns(3)
-                with col_m1:
-                    st.metric("💰 Total Omzet Penjualan", f"Rp {int(metrics['pendapatan']):,}".replace(",", "."))
-                with col_m2:
-                    st.metric("💸 Total Pengeluaran Modal (HPP)", f"Rp {int(metrics['hpp']):,}".replace(",", "."))
-                with col_m3:
-                    st.metric("📈 Profit Bersih Buku", f"Rp {int(metrics['laba_bersih']):,}".replace(",", "."), 
-                              delta=f"Margin {metrics['margin_laba_bersih']:.2f}%")
-                st.markdown("---")
+                    # --- TAB 1: RINGKASAN DATA ANGKA & GRAFIK INTERAKTIF ---
+        with tab_ringkasan:
+            st.subheader("📌 Indikator Utama Kinerja Keuangan")
+            
+            # 🎨 1. SUNTIKAN CSS UNTUK STYLE KARTU METRIK KUSTOM (EFEK BAYANGAN & SUDUT TUMPUL)
+            card_style = """
+            <style>
+            .fin-card {
+                background-color: #ffffff;
+                padding: 24px;
+                border-radius: 14px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+                border: 1px solid #f0f0f0;
+                text-align: center;
+                margin-bottom: 16px;
+            }
+            .fin-title {
+                font-size: 16px;
+                color: #555555;
+                font-weight: 500;
+                margin-bottom: 12px;
+            }
+            .fin-value {
+                font-size: 26px;
+                font-weight: 700;
+                color: #111111;
+            }
+            .fin-delta {
+                font-size: 14px;
+                color: #2e7d32;
+                background-color: #e8f5e9;
+                padding: 4px 10px;
+                border-radius: 20px;
+                display: inline-block;
+                margin-top: 8px;
+                font-weight: 600;
+            }
+            </style>
+            """
+            st.markdown(card_style, unsafe_allow_html=True)
+
+            # 🧮 Ambil dan format angka nominal dari mesin hitung
+            txt_pendapatan = f"Rp {int(metrics['pendapatan']):,}".replace(",", ".")
+            txt_hpp = f"Rp {int(metrics['hpp']):,}".replace(",", ".")
+            txt_laba = f"Rp {int(metrics['laba_bersih']):,}".replace(",", ".")
+            txt_margin = f"↑ Margin {metrics['margin_laba_bersih']:.2f}%"
+
+            # 🏗️ 2. RENDER LAYOUT KARTU METRIK KUSTOM HINGGA 2 BARIS (PERSIS SEPERTI GAMBAR)
+            # Baris 1: Total Penjualan & Total Pembelian (Berdampingan)
+            col_m1, col_m2 = st.columns(2)
+            with col_m1:
+                st.markdown(f"""
+                <div class="fin-card">
+                    <div class="fin-title">💰 Total Penjualan</div>
+                    <div class="fin-value">{txt_pendapatan}</div>
+                </div>
+                """, unsafe_allow_html=True)
                 
-                col_g1, col_g2 = st.columns(2)
-                with col_g1:
-                    df_daily_chart = df_filtered.copy()
-                    df_daily_chart["Harga Jual (Num)"] = df_daily_chart["Harga Jual"].apply(finance_engine.bersihkan_angka)
-                    df_daily_chart = df_daily_chart.groupby("Tgl Pemesanan_Parsed")["Harga Jual (Num)"].sum().reset_index()
-                    visualizer.render_grafik_tren_harian(df_daily_chart)
-                with col_g2:
-                    visualizer.render_grafik_margin_aman(df_filtered)
+            with col_m2:
+                st.markdown(f"""
+                <div class="fin-card">
+                    <div class="fin-title">💸 Total Pembelian</div>
+                    <div class="fin-value">{txt_hpp}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # Baris 2: Profit Bersih Buku (Ukuran Penuh / Full Width)
+            st.markdown(f"""
+            <div class="fin-card">
+                <div class="fin-title">📈 Profit Bersih Buku</div>
+                <div class="fin-value">{txt_laba}</div>
+                <div class="fin-delta">{txt_margin}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            st.markdown("---")
+            
+            # 📊 3. BAGIAN GRAFIK INTERAKTIF
+            col_g1, col_g2 = st.columns(2)
+            with col_g1:
+                df_daily_chart = df_filtered.copy()
+                def _clean_chart_num(val):
+                    if pd.isna(val): return 0.0
+                    try: return float(str(val).replace("Rp", "").replace(".", "").replace(" ", "").replace(",", ""))
+                    except: return 0.0
+                df_daily_chart["Harga Jual (Num)"] = df_daily_chart["Harga Jual"].apply(_clean_chart_num)
+                df_daily_grouped = df_daily_chart.groupby("Tgl Pemesanan_Parsed")["Harga Jual (Num)"].sum().reset_index()
+                
+                # Panggil grafik harian Plotly Express
+                visualizer.render_grafik_tren_harian(df_daily_grouped)
+                
+            with col_g2:
+                # Panggil grafik batang murni versi aman tanpa update_layout sensitif
+                visualizer.render_grafik_margin_aman(df_filtered)
+
 
             # --- TAB 2: AGING REPORT (OTOMATISASI STATUS BELUM LUNAS) ---
             with tab_aging:

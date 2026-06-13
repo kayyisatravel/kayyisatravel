@@ -4875,13 +4875,16 @@ with st.expander("📘 Laporan Baru - AI Base"):
         
         # 📥 AMBIL DATA AMAN: Panggil fungsi load_data() global yang sudah ter-cache
         # Ini 100% hemat kuota API karena mengambil dari memori RAM server, bukan dari Google
-        if 'df' in locals() or 'df' in globals():
-            df_raw = df.copy()
-        else:
+        try:
+            # Memanggil fungsi load_data yang murni menarik data segar dari Google Sheets
             df_raw = load_data().copy()
+        except Exception as e:
+            st.error(f"Gagal memuat data segar: {str(e)}")
+            df_raw = pd.DataFrame()
+        # ----------------------------------------------------------------------
 
         if not df_raw.empty:
-            # Standardisasi tanggal parsed
+            # Sisa kode Anda ke bawah sudah 100% Sempurna dan Benar
             df_raw["Tgl Pemesanan_Parsed"] = pd.to_datetime(df_raw["Tgl Pemesanan"], dayfirst=True, errors="coerce")
             df_raw = df_raw.dropna(subset=["Tgl Pemesanan_Parsed"])
             

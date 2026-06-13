@@ -42,67 +42,98 @@ def bersihkan_angka(val):
             return 0.0
 
 
-def hitung_performa_dan_aging(df):
+def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
     """
-    Engine Finansial v3: Menghitung Arsenal Rasio Lengkap, Top Debitur, 
-    dan data penuaan piutang untuk asupan data analitik AI.
+    Engine Finansial v4: Mengadopsi 100% alur hitung sisa piutang (Harga Jual - Jumlah Masuk)
+    dari skrip lama Anda, lengkap dengan Arsenal Rasio Keuangan untuk AI.
     """
-    if df.empty:
+    if df_data_raw.empty:
         return {}
 
-    df_clean = df.copy()
+    # 1. Bersihkan Data Penjualan Utama
+    df_sales = df_data_raw.copy()
+    df_sales["Harga Beli (Num)"] = df_sales["Harga Beli"].apply(bersihkan_angka)
+    df_sales["Harga Jual (Num)"] = df_sales["Harga Jual"].apply(bersihkan_angka)
+    df_sales["Laba (Num)"] = df_sales["Harga Jual (Num)"] - df_sales["Harga Beli (Num)"]
+    df_sales["Tgl Pemesanan_Parsed"] = pd.to_datetime(df_sales["Tgl Pemesanan"], dayfirst=True, errors="coerce")
     
-    # 1. Pembersihan Angka & Tanggal
-    df_clean["Harga Beli (Num)"] = df_clean["Harga Beli"].apply(bersihkan_angka)
-    df_clean["Harga Jual (Num)"] = df_clean["Harga Jual"].apply(bersihkan_angka)
-    df_clean["Laba (Num)"] = df_clean["Harga Jual (Num)"] - df_clean["Harga Beli (Num)"]
-    df_clean["Tgl Pemesanan_Parsed"] = pd.to_datetime(df_clean["Tgl Pemesanan"], dayfirst=True, errors="coerce")
-    
-    # 2. Perhitungan Finansial Makro Base
-    total_pendapatan = df_clean["Harga Jual (Num)"].sum()
-    total_hpp = df_clean["Harga Beli (Num)"].sum()
-    total_laba_buku = df_clean["Laba (Num)"].sum()
-    
-    # 3. Penyaringan & Perhitungan Aging Piutang ("Belum Lunas")
-    is_unpaid = df_clean["Keterangan"].str.contains("Belum Lunas", na=False, case=False)
-    df_piutang = df_clean[is_unpaid].copy()
-    hari_ini = pd.Timestamp.now().normalize()
-    
-    if not df_piutang.empty:
-        df_piutang["Aging (hari)"] = (hari_ini - df_piutang["Tgl Pemesanan_Parsed"]).dt.days
-        df_piutang["No Invoice"] = df_piutang["No Invoice"].fillna("").astype(str)
-        df_piutang.loc[df_piutang["No Invoice"] == "", "No Invoice"] = "INV-N/A-" + df_piutang["Kode Booking"].astype(str)
-        df_piutang["Overdue"] = df_piutang["Aging (hari)"] > 30
-        
-        total_piutang = df_piutang["Harga Jual (Num)"].sum()
-        jumlah_invoice_piutang = df_piutang["No Invoice"].nunique()
-        overdue_lebih_30 = df_piutang[df_piutang["Aging (hari)"] > 30]["Harga Jual (Num)"].sum()
-        
-        # 🕵️ Forensik Top 3 Debitur Penyumbang Piutang Terbesar
-        top_debitur = df_piutang.groupby("Nama Pemesan")["Harga Jual (Num)"].sum().reset_index()
-        top_debitur = top_debitur.sort_values("Harga Jual (Num)", ascending=False).head(3)
-        text_top_debitur = ""
-        for _, row in top_debitur.iterrows():
-            text_top_debitur += f"- 👥 {row['Nama Pemesan']}: Menunggak Tagihan Sebesar Rp {int(row['Harga Jual (Num)']):,}\n"
-    else:
-        total_piutang = 0.0
-        jumlah_invoice_piutang = 0
-        overdue_lebih_30 = 0.0
-        text_top_debitur = "- (Bersih, Tidak ada piutang menggantung)\n"
-        df_piutang["Aging (hari)"] = 0
-        df_piutang["Overdue"] = False
+    # Perhitungan Makro (Accrual Basis)
+    total_pendapatan = df_sales["Harga Jual (Num)"].sum()
+    total_hpp = df_sales["Harga Beli (Num)"].sum()
+    total_laba_buku = df_sales["Laba (Num)"].sum()
 
-    # 4. ARSENAL RASIO KEUANGAN & AUDIT (Kunci Utama AI Jenius)
+    # 2. SEPERTI ALUR LAMA ANDA: Proses Data Cashflow untuk Hitung Sisa Piutang
+    total_piutang = 0.0
+    overdue_lebih_30 = 0.0
+    jumlah_invoice_piutang = 0
+    text_top_debitur = "- (Bersih, tidak ada piutang aktif)\n"
+    df_display_aging = pd.DataFrame()
+
+    if not df_cashflow_raw.empty:
+        df_cf = df_cashflow_raw.copy()
+        
+        # --- Normalisasi Invoice_Key
+        df_sales["Invoice_Key"] = df_sales["Invoice_Key"].astype(str).str.strip()
+        df_cf["Invoice_Key"] = df_cf["Invoice_Key"].astype(str).str.strip()
+        
+        # --- Total pembayaran per invoice (Hanya yang bertipe Masuk)
+        df_cf["Jumlah"] = pd.to_numeric(df_cf["Jumlah"], errors="coerce").fillna(0)
+        df_payments = (
+            df_cf[df_cf["Tipe"] == "Masuk"]
+            .groupby("Invoice_Key")["Jumlah"]
+            .sum()
+            .reset_index()
+            .rename(columns={"Jumlah": "Jumlah Masuk"})
+        )
+        
+        # --- Gabungkan dengan data penjualan
+        df_invoice = df_sales[["Invoice_Key", "Nama Pemesan", "No Invoice", "Harga Jual (Num)", "Tgl Pemesanan_Parsed"]].copy()
+        df_invoice = df_invoice.merge(df_payments, on="Invoice_Key", how="left")
+        df_invoice["Jumlah Masuk"] = df_invoice["Jumlah Masuk"].fillna(0)
+        
+        # --- Hitung Sisa Piutang Riil
+        df_invoice["Piutang"] = df_invoice["Harga Jual (Num)"] - df_invoice["Jumlah Masuk"]
+        
+        # --- Filter yang belum lunas (Sisa utang di atas Rp 1.000)
+        df_unpaid = df_invoice[df_invoice["Piutang"] > 1000].copy()
+        
+        if not df_unpaid.empty:
+            # --- AGGREGATE PER INVOICE (Mencegah Double Counting Bug)
+            df_agg = df_unpaid.groupby(["Invoice_Key", "Nama Pemesan", "No Invoice"], as_index=False).agg({
+                "Piutang": "sum",
+                "Tgl Pemesanan_Parsed": "min"
+            })
+            
+            # --- Hitung Usia Aging Jurnal terhadap Hari Ini
+            hari_ini = pd.Timestamp.today().normalize()
+            df_agg["Tanggal Pemesanan"] = df_agg["Tgl Pemesanan_Parsed"].fillna(hari_ini)
+            df_agg["Aging (hari)"] = (hari_ini - df_agg["Tanggal Pemesanan"].dt.normalize()).dt.days
+            df_agg["Overdue"] = df_agg["Aging (hari)"] > 30
+            
+            # Ekstrak Angka untuk Indikator Ringkasan
+            total_piutang = df_agg["Piutang"].sum()
+            jumlah_invoice_piutang = df_agg["No Invoice"].nunique()
+            overdue_lebih_30 = df_agg[df_agg["Overdue"] == True]["Piutang"].sum()
+            
+            # 🕵️ Forensik Top 3 Pembawa Piutang Terbesar berdasarkan Alur Riil
+            top_debitur = df_agg.groupby("Nama Pemesan")["Piutang"].sum().reset_index()
+            top_debitur = top_debitur.sort_values("Piutang", ascending=False).head(3)
+            text_top_debitur = ""
+            for _, row in top_debitur.iterrows():
+                text_top_debitur += f"- 👥 {row['Nama Pemesan']}: Menunggak Sisa Dana Selesai Rp {int(row['Piutang']):,}\n"
+                
+            # Siapkan Dataframe Hasil Akhir untuk Tampilan UI
+            df_display_aging = df_agg[["Nama Pemesan", "No Invoice", "Tanggal Pemesanan", "Piutang", "Aging (hari)", "Overdue"]].copy()
+
+    # 3. KANTONG PERSENJATAAN RASIO FINANSIAL (UNTUK CFO AI)
     net_profit_margin = (total_laba_buku / total_pendapatan * 100) if total_pendapatan > 0 else 0.0
     roi = (total_laba_buku / total_hpp * 100) if total_hpp > 0 else 0.0
-    
-    # Rasio Likuiditas Jangka Pendek (Cash diestimasikan dari Laba Buku + HPP dikurangi piutang berjalan)
     estimasi_kas_riil = (total_pendapatan - total_piutang) - total_hpp
     rasio_keterikatan_modal = (total_piutang / total_pendapatan * 100) if total_pendapatan > 0 else 0.0
     rasio_kerentanan_laba = (total_piutang / total_laba_buku * 100) if total_laba_buku > 0 else 0.0
     
-    # 5. Segmentasi Kinerja Berbasis Tipe Produk
-    segmentasi = df_clean.groupby("Tipe").agg(
+    # 4. Segmentasi Profitabilitas per Kategori Tiket/Hotel
+    segmentasi = df_sales.groupby("Tipe").agg(
         Omzet=("Harga Jual (Num)", "sum"),
         Laba=("Laba (Num)", "sum"),
         Count=("Kode Booking", "count")
@@ -112,17 +143,13 @@ def hitung_performa_dan_aging(df):
         margin_seg = (row['Laba'] / row['Omzet'] * 100) if row['Omzet'] > 0 else 0
         text_segmentasi += f"- Produk [{row['Tipe']}]: Omzet Rp {int(row['Omzet']):,}, Laba Rp {int(row['Laba']):,}, Margin {margin_seg:.2f}%, Vol: {row['Count']} Tiket\n"
 
-    # 6. Deteksi Kebocoran Transaksi Minus
-    transaksi_boncos = df_clean[df_clean["Laba (Num)"] < 0]
+    # 5. Deteksi Kebocoran Transaksi Rugi
+    transaksi_boncos = df_sales[df_sales["Laba (Num)"] < 0]
     jumlah_boncos = len(transaksi_boncos)
     total_kerugian = transaksi_boncos["Laba (Num)"].sum()
-    
-    # 7. Efisiensi Kerja Admin
-    admin_perf = df_clean.groupby("Admin")["Harga Jual (Num)"].sum().reset_index()
-    top_admin = admin_perf.loc[admin_perf["Harga Jual (Num)"].idxmax()]["Admin"] if not admin_perf.empty else "N/A"
 
     return {
-        "total_transaksi": len(df_clean),
+        "total_transaksi": len(df_sales),
         "pendapatan": total_pendapatan,
         "hpp": total_hpp,
         "laba_bersih": total_laba_buku,
@@ -138,6 +165,6 @@ def hitung_performa_dan_aging(df):
         "text_segmentasi": text_segmentasi,
         "jumlah_transaksi_rugi": jumlah_boncos,
         "total_kerugian": abs(total_kerugian),
-        "top_admin": top_admin,
-        "df_aging_report": df_piutang[["No Invoice", "Nama Pemesan", "Tgl Pemesanan", "Harga Jual (Num)", "Aging (hari)", "Overdue"]]
+        "top_admin": df_sales["Admin"].mode()[0] if not df_sales["Admin"].empty else "N/A",
+        "df_aging_report": df_display_aging
     }

@@ -40,7 +40,7 @@ now = datetime.now(ZoneInfo("Asia/Jakarta"))
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="OCR & Dashboard Tiket", layout="centered", initial_sidebar_state="expanded")
 
-# --- CACHE RESOURCES ---
+# --- CACHE RESOURCES ----
 @st.cache_resource
 def get_ocr_reader():
     return easyocr.Reader(['en', 'id'], gpu=False)

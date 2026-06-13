@@ -30,14 +30,12 @@ def render_grafik_tren_harian(df_daily):
 
 def render_grafik_margin_aman(df_raw_input):
     """
-    Fungsi grafik batang baru dengan proteksi super ketat.
-    Membuat data agregat secara independen tanpa bergantung pada finance_engine.
+    Fungsi grafik batang baru dengan proteksi super ketat dari ValueError layout.
     """
     if df_raw_input.empty:
         st.info("Data kosong, tidak bisa membuat grafik segmentasi.")
         return
         
-    # Salin data agar tidak merusak dataframe asli aplikasi
     df_local = df_raw_input.copy()
     
     # Fungsi pembersih angka internal yang sangat aman
@@ -79,11 +77,11 @@ def render_grafik_margin_aman(df_raw_input):
         color_discrete_sequence=px.colors.qualitative.Pastel
     )
     
+    # Perbaikan: Hanya update texttemplate dan hapus properti margin yang memicu ValueError
     fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
     fig.update_layout(
         yaxis_suffix="%", 
         plot_bgcolor='rgba(0,0,0,0)', 
-        showlegend=False,
-        margin=dict(t=50, b=20, l=20, r=20)
+        showlegend=False
     )
     st.plotly_chart(fig, use_container_width=True)

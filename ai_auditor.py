@@ -30,7 +30,7 @@ def audit_forensik_dashboard(summary_text):
     DATA ARSENAL KEUANGAN AKTUAL PERUSAHAAN:
     {summary_text}
     
-    TUGAS INTEGRASI INTERNET (GOOGLE SEARCH GROUNDING):
+    TUGAS INTEGRASI INTERNET (GOOGLE SEARCH GROUNDING) TERUPDATE:
     Sebelum memberikan opini, analisis pasar, dan rekomendasi pricing, Anda WAJIB melakukan penelusuran di internet menggunakan Google Search tools untuk memantau:
     1. Tren harga tiket pesawat domestik dan okupansi hotel di Indonesia saat ini (apakah sedang high season, low season, atau efek liburan tertentu).
     2. Kebijakan biaya admin, komisi maskapai terbaru, atau besaran service fee yang saat ini umum dan rasional diterapkan oleh Online Travel Agent (OTA) besar di Indonesia (seperti Traveloka, Tiket.com) agar margin perusahaan tetap kompetitif namun menguntungkan.
@@ -50,11 +50,11 @@ def audit_forensik_dashboard(summary_text):
 
     | Senjata / Indikator Finansial | Nilai Aktual Perusahaan | Rasio Realisasi | Batas Sehat Industri BPW | Status Penilaian CFO |
     | :--- | :--- | :--- | :--- | :--- |
-    | **Net Profit Margin (NPM)** | [Isi Nominal] | [Isi % Realisasi]% | 4% - 15% | [Over-performed / Under-performed] |
-    | **Return on Investment (ROI)**| [Isi Nominal] | [Isi % Realisasi]% | 12% - 18% | [Efisien / Pemborosan Modal] |
-    | **Estimasi Kas Riil Lapangan**| [Isi Nominal] | Rp [Isi Kas Riil] | Harus Positif | [Arus Kas Sehat / Defisit Modal Kerja] |
-    | **Rasio Keterikatan Piutang**| [Isi Nominal] | [Isi % Realisasi]% | Maksimal 10% | [Aman / Lampu Merah Kritis] |
-    | **Rasio Kerentanan Laba**   | [Isi Nominal] | [Isi % Realisasi]% | Maksimal 50% | [Kertas Kosong / Uang Riil] |
+    | **Net Profit Margin (NPM)** | [Isi Nominal] | [Isi % Realisasi]% | [Isi aturan terbaru industri yang sama] | [Over-performed / Under-performed] |
+    | **Return on Investment (ROI)**| [Isi Nominal] | [Isi % Realisasi]% | [Isi aturan terbaru industri yang sama] | [Efisien / Pemborosan Modal] |
+    | **Estimasi Kas Riil Lapangan**| [Isi Nominal] | Rp [Isi Kas Riil] | [Isi aturan terbaru industri yang sama] | [Arus Kas Sehat / Defisit Modal Kerja] |
+    | **Rasio Keterikatan Piutang**| [Isi Nominal] | [Isi % Realisasi]% | [Isi aturan terbaru industri yang sama] | [Aman / Lampu Merah Kritis] |
+    | **Rasio Kerentanan Laba**   | [Isi Nominal] | [Isi % Realisasi]% | [Isi aturan terbaru industri yang sama] | [Kertas Kosong / Uang Riil] |
     
     ### 👥 II. AUDIT KONSENTRASI KREDIT: SIAPA PENYUMBANG PIUTANG TERBESAR?
     Berdasarkan data *Laporan Piutang Macet (Top Debitur)* yang dikirimkan, sebutkan nama-nama pemesan/klien tersebut secara spesifik satu per satu beserta nominal utangnya. Jelaskan risiko apa yang dihadapi perusahaan jika nama tersebut menunda pembayaran, dan berikan **instruksi kerja hukum/operasional konkret** untuk menindak nama tersebut minggu ini.
@@ -71,7 +71,8 @@ def audit_forensik_dashboard(summary_text):
     - Aturan penguncian sistem tiket (*System Hard-Stop Auto Block*) jika ditemukan harga modal vendor naik tiba-tiba di atas harga jual pelanggan.
     - Taktik penagihan massal (*Bulk Debt Collection*) dengan insentif pelunasan cepat.
     
-    Gunakan gaya bahasa Indonesia profesional yang tegas, objektif, berwibawa, berpatokan mutlak pada angka, dan berorientasi pada pemulihan dana tunai (*Cash Recovery*).
+    Gunakan gaya bahasa mentor bisnis yang merangkul, memberi semangat, solutif, jujur apa adanya, namun tetap tegas terhadap resiko bisnis kedepan dan fokus pada bagaimana memulihkan uang tunai bisnis secepatnya.
+    Juga anda bisa berikan insight tren model bisnis terbaru yang bisa dijajaki namun tetap inline dengan core bisnis utama.
     """
     
     try:

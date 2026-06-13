@@ -44,8 +44,8 @@ def bersihkan_angka(val):
 
 def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
     """
-    Engine Finansial v4 Resmi: Memperbaiki bug tumpang tindih df_sales
-    dan menjamin 100% bebas dari KeyError 'Invoice_Key'.
+    Engine Finansial v4 Resmi: Memperbaiki bug tumpang tindih df_sales,
+    menghilangkan kesalahan indentasi, dan menjamin 100% bebas dari KeyError.
     """
     # 🛡️ 1. TAMENG PROTEKSI OBJEK KOSONG / NONE
     if df_data_raw is None or (not isinstance(df_data_raw, pd.DataFrame)) or df_data_raw.empty:
@@ -61,9 +61,16 @@ def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
     if "Invoice_Key" not in df_sales.columns:
         df_sales["Invoice_Key"] = "N/A"
     else:
-        # Jika kolom ada, pastikan baris kosong diisi nilai default teks string
         df_sales["Invoice_Key"] = df_sales["Invoice_Key"].fillna("N/A").astype(str).str.strip()
         df_sales.loc[df_sales["Invoice_Key"] == "", "Invoice_Key"] = "N/A"
+
+    # Proteksi tambahan untuk kolom opsional yang dipanggil di akhir fungsi
+    if "Admin" not in df_sales.columns:
+        df_sales["Admin"] = "N/A"
+    if "Kode Booking" not in df_sales.columns:
+        df_sales["Kode Booking"] = "N/A"
+    if "Tipe" not in df_sales.columns:
+        df_sales["Tipe"] = "Umum"
 
     # Bersihkan Data Nominal Angka & Tanggal Penjualan
     df_sales["Harga Beli (Num)"] = df_sales["Harga Beli"].apply(bersihkan_angka)
@@ -76,7 +83,7 @@ def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
     total_hpp = df_sales["Harga Beli (Num)"].sum()
     total_laba_buku = df_sales["Laba (Num)"].sum()
 
-    # 📋 3. PROSES REKONSILIASI KAS MASUK (ALUR PIUTANG LAMA ANDA)
+    # 📋 3. PROSES REKONSILIASI KAS MASUK
     total_piutang = 0.0
     overdue_lebih_30 = 0.0
     jumlah_invoice_piutang = 0
@@ -127,21 +134,20 @@ def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
         df_agg["Aging (hari)"] = (hari_ini - df_agg["Tanggal Pemesanan"].dt.normalize()).dt.days
         df_agg["Overdue"] = df_agg["Aging (hari)"] > 30
         
-        # Rekap indikator makro risiko kredit
+        # Rekap indikator makro risiko kredit (Indentasi Sudah Diperbaiki)
         total_piutang = df_agg["Piutang"].sum()
         jumlah_invoice_piutang = df_agg["No Invoice"].nunique()
         overdue_lebih_30 = df_agg[df_agg["Overdue"] == True]["Piutang"].sum()
-            overdue_lebih_30 = df_agg[df_agg["Overdue"] == True]["Piutang"].sum()
+        
+        # 🕵️ Forensik Top 3 Pembawa Piutang Terbesar berdasarkan Alur Riil
+        top_debitur = df_agg.groupby("Nama Pemesan")["Piutang"].sum().reset_index()
+        top_debitur = top_debitur.sort_values("Piutang", ascending=False).head(3)
+        text_top_debitur = ""
+        for _, row in top_debitur.iterrows():
+            text_top_debitur += f"- 👥 {row['Nama Pemesan']}: Menunggak Sisa Dana Selesai Rp {int(row['Piutang']):,}\n"
             
-            # 🕵️ Forensik Top 3 Pembawa Piutang Terbesar berdasarkan Alur Riil
-            top_debitur = df_agg.groupby("Nama Pemesan")["Piutang"].sum().reset_index()
-            top_debitur = top_debitur.sort_values("Piutang", ascending=False).head(3)
-            text_top_debitur = ""
-            for _, row in top_debitur.iterrows():
-                text_top_debitur += f"- 👥 {row['Nama Pemesan']}: Menunggak Sisa Dana Selesai Rp {int(row['Piutang']):,}\n"
-                
-            # Siapkan Dataframe Hasil Akhir untuk Tampilan UI
-            df_display_aging = df_agg[["Nama Pemesan", "No Invoice", "Tanggal Pemesanan", "Piutang", "Aging (hari)", "Overdue"]].copy()
+        # Siapkan Dataframe Hasil Akhir untuk Tampilan UI
+        df_display_aging = df_agg[["Nama Pemesan", "No Invoice", "Tanggal Pemesanan", "Piutang", "Aging (hari)", "Overdue"]].copy()
 
     # 3. KANTONG PERSENJATAAN RASIO FINANSIAL (UNTUK CFO AI)
     net_profit_margin = (total_laba_buku / total_pendapatan * 100) if total_pendapatan > 0 else 0.0
@@ -166,6 +172,10 @@ def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
     jumlah_boncos = len(transaksi_boncos)
     total_kerugian = transaksi_boncos["Laba (Num)"].sum()
 
+    # Mengambil mode admin dengan aman jika kolom kosong/isi NA
+    mode_admin = df_sales["Admin"].dropna().mode()
+    top_admin = mode_admin[0] if not mode_admin.empty else "N/A"
+
     return {
         "total_transaksi": len(df_sales),
         "pendapatan": total_pendapatan,
@@ -183,6 +193,7 @@ def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
         "text_segmentasi": text_segmentasi,
         "jumlah_transaksi_rugi": jumlah_boncos,
         "total_kerugian": abs(total_kerugian),
-        "top_admin": df_sales["Admin"].mode()[0] if not df_sales["Admin"].empty else "N/A",
+        "top_admin": top_admin,
         "df_aging_report": df_display_aging
     }
+

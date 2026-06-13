@@ -4873,46 +4873,61 @@ with st.expander("📘 Laporan Baru - AI Base"):
     with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=True):
         st.markdown("### 🔧 Filter Cashflow & Transaksi")
         
-        # Pastikan data mentah penjualan (df_data) tersedia
-        if 'df_data' in locals() or 'df_data' in globals():
-            df_raw = df_data.copy()
+        # 📥 AMBIL DATA AMAN: Panggil fungsi load_data() global yang sudah ter-cache
+        # Ini 100% hemat kuota API karena mengambil dari memori RAM server, bukan dari Google
+        if 'df' in locals() or 'df' in globals():
+            df_raw = df.copy()
         else:
-            st.error("❌ Variabel data utama 'df_data' tidak ditemukan. Pastikan data dari Google Sheets sudah termuat di atas.")
-            df_raw = pd.DataFrame()
+            df_raw = load_data().copy()
 
         if not df_raw.empty:
-            # 1️⃣ Standardisasi format tanggal untuk filter internal
-            df_raw["Tgl Pemesanan_Parsed"] = pd.to_datetime(df_raw["Tgl Pemesanan"], format="%d-%m-%Y", errors="coerce")
+            # Standardisasi tanggal parsed
+            df_raw["Tgl Pemesanan_Parsed"] = pd.to_datetime(df_raw["Tgl Pemesanan"], dayfirst=True, errors="coerce")
             df_raw = df_raw.dropna(subset=["Tgl Pemesanan_Parsed"])
             
-            # 2️⃣ Layout filter horizontal menggunakan st.columns agar hemat ruang di dalam expander
+            # ----------------------------------------------------------------------
+            # 💡 OPTIMASI DEFAULT FILTER: Setel dari Tanggal 1 Bulan Berjalan s/d Hari Ini
+            # ----------------------------------------------------------------------
+            hari_ini = date.today()
+            awal_bulan_berjalan = hari_ini.replace(day=1)
+            
             col_filt1, col_filt2 = st.columns(2)
             
             with col_filt1:
-                min_date = df_raw["Tgl Pemesanan_Parsed"].min().date()
-                max_date = df_raw["Tgl Pemesanan_Parsed"].max().date()
-                tgl_pilihan = st.date_input("Rentang Tanggal", [min_date, max_date], key="v2_date_filter")
+                # Set default start ke tanggal 1 bulan ini agar pembacaan Pandas sangat ringan dan instan!
+                tgl_pilihan = st.date_input(
+                    "Rentang Tanggal", 
+                    [awal_bulan_berjalan, hari_ini], 
+                    key="v2_date_filter"
+                )
             
             with col_filt2:
                 list_admin = ["(Semua)"] + sorted(df_raw["Admin"].dropna().unique().tolist())
                 selected_admin = st.selectbox("Saring Berdasarkan Admin", list_admin, key="v2_admin_filter")
+            # ----------------------------------------------------------------------
             
-            # 3️⃣ Proses penyaringan data berdasarkan input pengguna
+            # Eksekusi pemotongan data berdasarkan rentang waktu yang diperketat
             if len(tgl_pilihan) == 2:
                 tgl_mulai, tgl_akhir = tgl_pilihan
+                
+                # Normalisasi jam transaksional demi akurasi 100%
+                ts_mulai = pd.Timestamp(tgl_mulai).normalize()
+                ts_akhir = pd.Timestamp(tgl_akhir).normalize() + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
+                
                 df_filtered = df_raw[
-                    (df_raw["Tgl Pemesanan_Parsed"].dt.date >= tgl_mulai) &
-                    (df_raw["Tgl Pemesanan_Parsed"].dt.date <= tgl_akhir)
+                    (df_raw["Tgl Pemesanan_Parsed"] >= ts_mulai) &
+                    (df_raw["Tgl Pemesanan_Parsed"] <= ts_akhir)
                 ].copy()
             else:
-                df_filtered = df_raw.copy()
+                # Jika user mengosongkan tanggal, amankan dengan mengunci bulan berjalan saja
+                df_filtered = df_raw[df_raw["Tgl Pemesanan_Parsed"].dt.month == hari_ini.month].copy()
                 
             if selected_admin != "(Semua)":
                 df_filtered = df_filtered[df_filtered["Admin"] == selected_admin]
 
             st.markdown("---")
 
-            # 4️⃣ EKSEKUSI DATA (FINANCE ENGINE V2)
+            # 🧮 Proses sisa perhitungan metrik, tabel aging, dan AI Auditor murni hanya dari df_filtered yang super ringan
             metrics = finance_engine.hitung_performa_dan_aging(df_filtered)
 
             # 5️⃣ TAMPILKAN INTERFACES TABS (Bersih, Rapi, & Padat di Dalam Expander)

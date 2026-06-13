@@ -121,7 +121,15 @@ def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
     
     # Rumus Hitung Sisa Piutang Aktual
     df_invoice["Piutang"] = df_invoice["Harga Jual (Num)"] - df_invoice["Jumlah Masuk"]
-    df_unpaid = df_invoice[df_invoice["Piutang"] > 1000].copy()
+    # Langkah A: Tangkap status default bawaan sistem ("Belum Lunas")
+    is_belum_lunas = df_invoice["Keterangan"].astype(str).str.contains("Belum Lunas", case=False, na=False)
+    
+    # Langkah B: Tangkap status pelunasan massal tim Anda yang mengandung kata "Lunas" (Tetapi BUKAN "Belum Lunas")
+    is_sudah_lunas = df_invoice["Keterangan"].astype(str).str.contains(r'(?<!belum\s)lunas', case=False, na=False, regex=True)
+    
+    # LOGIKA AKHIR: Invoice dinyatakan MENUNGGAK jika (Sisa uang > 1000 ATAU berstatus Belum Lunas) DAN statusnya TIDAK boleh Sudah Lunas
+    mask_piutang_aktif = (df_invoice["Piutang"] > 1000) | is_belum_lunas
+    df_unpaid = df_invoice[mask_piutang_aktif & (~is_sudah_lunas)].copy()
     
     if not df_unpaid.empty:
         # Agregasi data per nota tunggal

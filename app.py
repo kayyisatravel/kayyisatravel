@@ -29,6 +29,9 @@ from typing import List
 from tqdm import tqdm  # hanya dipakai untuk progress (bisa dihapus kalau tidak ingin)
 import itertools
 from streamlit_mic_recorder import speech_to_text
+import finance_engine
+import visualizer
+import ai_auditor
 
 now = datetime.now(ZoneInfo("Asia/Jakarta"))
 
@@ -4842,6 +4845,171 @@ with st.expander("📘 Laporan - laporan"):
         ax3.legend()
         ax3.grid(True)
         st.pyplot(fig3)
+
+
+
+#======================================================================================================================================
+#                                                        LAPORAN KEUANGAN BARU
+#======================================================================================================================================
+
+# Pindahkan baris import ini ke bagian paling atas file app.py Anda
+import finance_engine
+import visualizer
+import ai_auditor
+
+# =========================================================================
+# ISI KODE DI BAWAH INI UNTUK MENGGANTIKAN ISI EXPANDER LAMA DI app.py ANDA
+# =========================================================================
+
+with st.expander("📘 Laporan Baru - AI Base"):
+    with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=True):
+        st.markdown("### 🔧 Filter Cashflow & Transaksi")
+        
+        # Pastikan data mentah penjualan (df_data) tersedia
+        if 'df_data' in locals() or 'df_data' in globals():
+            df_raw = df_data.copy()
+        else:
+            st.error("❌ Variabel data utama 'df_data' tidak ditemukan. Pastikan data dari Google Sheets sudah termuat di atas.")
+            df_raw = pd.DataFrame()
+
+        if not df_raw.empty:
+            # 1️⃣ Standardisasi format tanggal untuk filter internal
+            df_raw["Tgl Pemesanan_Parsed"] = pd.to_datetime(df_raw["Tgl Pemesanan"], format="%d-%m-%Y", errors="coerce")
+            df_raw = df_raw.dropna(subset=["Tgl Pemesanan_Parsed"])
+            
+            # 2️⃣ Layout filter horizontal menggunakan st.columns agar hemat ruang di dalam expander
+            col_filt1, col_filt2 = st.columns(2)
+            
+            with col_filt1:
+                min_date = df_raw["Tgl Pemesanan_Parsed"].min().date()
+                max_date = df_raw["Tgl Pemesanan_Parsed"].max().date()
+                tgl_pilihan = st.date_input("Rentang Tanggal", [min_date, max_date], key="v2_date_filter")
+            
+            with col_filt2:
+                list_admin = ["(Semua)"] + sorted(df_raw["Admin"].dropna().unique().tolist())
+                selected_admin = st.selectbox("Saring Berdasarkan Admin", list_admin, key="v2_admin_filter")
+            
+            # 3️⃣ Proses penyaringan data berdasarkan input pengguna
+            if len(tgl_pilihan) == 2:
+                tgl_mulai, tgl_akhir = tgl_pilihan
+                df_filtered = df_raw[
+                    (df_raw["Tgl Pemesanan_Parsed"].dt.date >= tgl_mulai) &
+                    (df_raw["Tgl Pemesanan_Parsed"].dt.date <= tgl_akhir)
+                ].copy()
+            else:
+                df_filtered = df_raw.copy()
+                
+            if selected_admin != "(Semua)":
+                df_filtered = df_filtered[df_filtered["Admin"] == selected_admin]
+
+            st.markdown("---")
+
+            # 4️⃣ EKSEKUSI DATA (FINANCE ENGINE V2)
+            metrics = finance_engine.hitung_performa_dan_aging(df_filtered)
+
+            # 5️⃣ TAMPILKAN INTERFACES TABS (Bersih, Rapi, & Padat di Dalam Expander)
+            tab_ringkasan, tab_aging, tab_ai_audit = st.tabs([
+                "📊 Ringkasan Keuangan", 
+                "⏳ Aging Report Piutang", 
+                "🕵️‍♂️ AI Real-time Auditor"
+            ])
+            
+            # --- TAB 1: RINGKASAN DATA ANGKA & GRAFIK INTERAKTIF ---
+            with tab_ringkasan:
+                st.subheader("📌 Indikator Utama Kinerja Keuangan")
+                col_m1, col_m2, col_m3 = st.columns(3)
+                with col_m1:
+                    st.metric("💰 Total Omzet Penjualan", f"Rp {int(metrics['pendapatan']):,}".replace(",", "."))
+                with col_m2:
+                    st.metric("💸 Total Pengeluaran Modal (HPP)", f"Rp {int(metrics['hpp']):,}".replace(",", "."))
+                with col_m3:
+                    st.metric("📈 Profit Bersih Buku", f"Rp {int(metrics['laba_bersih']):,}".replace(",", "."), 
+                              delta=f"Margin {metrics['margin_laba_bersih']:.2f}%")
+                st.markdown("---")
+                
+                col_g1, col_g2 = st.columns(2)
+                with col_g1:
+                    df_daily_chart = df_filtered.copy()
+                    df_daily_chart["Harga Jual (Num)"] = df_daily_chart["Harga Jual"].apply(finance_engine.bersihkan_angka)
+                    df_daily_chart = df_daily_chart.groupby("Tgl Pemesanan_Parsed")["Harga Jual (Num)"].sum().reset_index()
+                    visualizer.render_grafik_tren_harian(df_daily_chart)
+                with col_g2:
+                    visualizer.render_segmentasi_profit_margin(df_filtered)
+
+            # --- TAB 2: AGING REPORT (OTOMATISASI STATUS BELUM LUNAS) ---
+            with tab_aging:
+                st.subheader("⏳ Daftar Invoice Belum Pelunasan Klien")
+                col_a1, col_a2 = st.columns(2)
+                with col_a1:
+                    st.warning(f"🔴 Total Piutang: Rp {int(metrics['total_piutang']):,}".replace(",", ".") + f" ({metrics['jumlah_invoice_piutang']} Invoice)")
+                with col_a2:
+                    st.error(f"⚠️ Kritis (Overdue > 30 Hari): Rp {int(metrics['overdue_lebih_30_hari']):,}".replace(",", "."))
+                st.markdown("---")
+                
+                df_aging = metrics["df_aging_report"]
+                if df_aging.empty:
+                    st.success("🎉 Luar biasa! Seluruh tagihan invoice pada rentang filter ini sudah Lunas.")
+                else:
+                    def style_row_overdue(row):
+                        return ["background-color: #FF9999" if row.Overdue else "" for _ in row]
+                    
+                    df_display_aging = df_aging.copy()
+                    df_display_aging["Harga Jual (Num)"] = df_display_aging["Harga Jual (Num)"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
+                    df_display_aging = df_display_aging.rename(columns={"Harga Jual (Num)": "Nilai Tagihan"})
+                    
+                    st.dataframe(
+                        df_display_aging.style.apply(style_row_overdue, axis=1), 
+                        use_container_width=True, 
+                        height=350
+                    )
+                    st.caption("💡 Baris berwarna merah muda menandakan invoice menunggak melewati batas aman 30 hari.")
+
+            # --- TAB 3: AUDIT FORENSIK OTOMATIS GEMINI 3.1 FLASH LITE ---
+            with tab_ai_audit:
+                st.subheader("🕵️‍♂️ Laporan Hasil Penelaahan Audit Forensik AI")
+                st.info("Fitur ini meringkas data indikator keuangan Anda lalu mengirimkannya ke Gemini 3.1 Flash Lite untuk di-audit secara berkala.")
+                
+                text_payload_ai = f"""
+                DATA UTAMA:
+                - Total Transaksi: {metrics['total_transaksi']} baris data
+                - Omzet Penjualan: Rp {int(metrics['pendapatan']):,}
+                - Total Pengeluaran Modal (HPP): Rp {int(metrics['hpp']):,}
+                - Laba Bersih Buku: Rp {int(metrics['laba_bersih']):,}
+                - Persentase Margin Laba: {metrics['margin_laba_bersih']:.2f}%
+                - Admin Paling Aktif: {metrics['top_admin']}
+                
+                DISTRIBUSI PRODUK:
+                {metrics['text_segmentasi']}
+                
+                RISIKO OPERASIONAL & KREDIT:
+                - Total Invoice Belum Lunas: {metrics['jumlah_invoice_piutang']} buah nota
+                - Nilai Total Piutang Klien: Rp {int(metrics['total_piutang']):,}
+                - Dana Piutang Macet (>30 Hari): Rp {int(metrics['overdue_lebih_30_hari']):,}
+                - Kebocoran Harga (Transaksi Rugi/Minus): {metrics['jumlah_transaksi_rugi']} kali transaksi, dengan total nilai boncos Rp {int(metrics['total_kerugian']):,}
+                """
+                
+                if "response_audit_ai" not in st.session_state:
+                    st.session_state.response_audit_ai = None
+                    
+                if st.button("🔍 Mulai Jalankan Audit Finansial Sekarang", type="primary", key="btn_audit_keuangan_v2"):
+                    with st.spinner("Gemini AI sedang meneliti struktur pembukuan dan mengalkulasi risiko keuangan Anda..."):
+                        hasil_lhpa = ai_auditor.audit_forensik_dashboard(text_payload_ai)
+                        st.session_state.response_audit_ai = hasil_lhpa
+                        
+                if st.session_state.response_audit_ai:
+                    st.markdown("---")
+                    st.markdown(st.session_state.response_audit_ai)
+
+
+
+
+
+
+
+
+
+
+
 #======================================================================================================================================
 #from streamlit_option_menu import option_menu
 #import streamlit as st

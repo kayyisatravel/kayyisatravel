@@ -73,10 +73,12 @@ def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
         df_sales["Tipe"] = "Umum"
 
     # Bersihkan Data Nominal Angka & Tanggal Penjualan
-    df_sales["Harga Beli (Num)"] = df_sales["Harga Beli"].apply(bersihkan_angka)
-    df_sales["Harga Jual (Num)"] = df_sales["Harga Jual"].apply(bersihkan_angka)
+        
+    df_sales["Harga Beli (Num)"] = pd.to_numeric(df_sales["Harga Beli"].apply(bersihkan_angka), errors="coerce").fillna(0)
+    df_sales["Harga Jual (Num)"] = pd.to_numeric(df_sales["Harga Jual"].apply(bersihkan_angka), errors="coerce").fillna(0)
     df_sales["Laba (Num)"] = df_sales["Harga Jual (Num)"] - df_sales["Harga Beli (Num)"]
-    df_sales["Tgl Pemesanan_Parsed"] = pd.to_datetime(df_sales["Tgl Pemesanan"], dayfirst=True, errors="coerce")
+    df_sales["Tgl Pemesanan_Parsed"] = pd.to_datetime(df_sales["Tgl Pemesanan"], format="mixed", dayfirst=True, errors="coerce")
+
     
     # Hitung Perhitungan Finansial Makro (Accrual Basis)
     total_pendapatan = df_sales["Harga Jual (Num)"].sum()

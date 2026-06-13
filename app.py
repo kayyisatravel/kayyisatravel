@@ -5071,24 +5071,33 @@ with st.expander("📘 Laporan Baru - AI Base"):
                 st.info("Fitur ini meringkas data indikator keuangan Anda lalu mengirimkannya ke Gemini 3.1 Flash Lite untuk di-audit secara berkala.")
                 
                 text_payload_ai = f"""
-                DATA UTAMA:
-                - Total Transaksi: {metrics['total_transaksi']} baris data
-                - Omzet Penjualan: Rp {int(metrics['pendapatan']):,}
+                INDIKATOR UTAMA AKUNTANSI:
+                - Total Baris Transaksi Terproses: {metrics['total_transaksi']} baris
+                - Omzet Penjualan Kotor: Rp {int(metrics['pendapatan']):,}
                 - Total Pengeluaran Modal (HPP): Rp {int(metrics['hpp']):,}
-                - Laba Bersih Buku: Rp {int(metrics['laba_bersih']):,}
-                - Persentase Margin Laba: {metrics['margin_laba_bersih']:.2f}%
-                - Admin Paling Aktif: {metrics['top_admin']}
+                - Laba Bersih Buku (Paper Profit): Rp {int(metrics['laba_bersih']):,}
                 
-                DISTRIBUSI PRODUK:
+                ARSENAL RASIO FINANSIAL (REALISASI AKTUAL):
+                - Realisasi Net Profit Margin (NPM): {metrics['margin_laba_bersih']:.2f}%
+                - Realisasi Return on Investment (ROI): {metrics['roi']:.2f}%
+                - Estimasi Sisa Kas Riil Lapangan: Rp {int(metrics['kas_riil']):,}
+                - Rasio Keterikatan Modal dalam Piutang: {metrics['rasio_keterikatan_modal']:.2f}%
+                - Rasio Kerentanan Laba terhadap Piutang: {metrics['rasio_kerentanan_laba']:.2f}%
+                - Admin dengan Penjualan Tertinggi: Admin [{metrics['top_admin']}]
+                
+                DISTRIBUSI KINERJA SEGMEN PRODUK:
                 {metrics['text_segmentasi']}
                 
-                RISIKO OPERASIONAL & KREDIT:
-                - Total Invoice Belum Lunas: {metrics['jumlah_invoice_piutang']} buah nota
-                - Nilai Total Piutang Klien: Rp {int(metrics['total_piutang']):,}
-                - Dana Piutang Macet (>30 Hari): Rp {int(metrics['overdue_lebih_30_hari']):,}
-                - Kebocoran Harga (Transaksi Rugi/Minus): {metrics['jumlah_transaksi_rugi']} kali transaksi, dengan total nilai boncos Rp {int(metrics['total_kerugian']):,}
-                """
+                🚨 LAPORAN FORENSIK PIUTANG MACET & KEBOCORAN DANA:
+                - Total Nilai Piutang Klien Keseluruhan: Rp {int(metrics['total_piutang']):,}
+                - Jumlah Invoice Menggantung: {metrics['jumlah_invoice_piutang']} nota belum lunas
+                - Dana Piutang Macet Kritis Jangka Panjang (>30 Hari): Rp {int(metrics['overdue_lebih_30_hari']):,}
+                - Kebocoran Harga (Transaksi Rugi/Minus): {metrics['jumlah_transaksi_rugi']} kali transaksi, total kerugian riil Rp {int(metrics['total_kerugian']):,}
                 
+                DAFTAR NAMA PENGUTANG (TOP DEBITUR TERBESAR):
+                {metrics['text_top_debitur']}
+                """
+                    
                 if "response_audit_ai" not in st.session_state:
                     st.session_state.response_audit_ai = None
                     

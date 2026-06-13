@@ -47,8 +47,21 @@ def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
     Engine Finansial v4: Mengadopsi 100% alur hitung sisa piutang (Harga Jual - Jumlah Masuk)
     dari skrip lama Anda, lengkap dengan Arsenal Rasio Keuangan untuk AI.
     """
-    if df_data_raw.empty:
+    if df_data_raw is None or (not isinstance(df_data_raw, pd.DataFrame)) or df_data_raw.empty:
         return {}
+        
+    if df_cashflow_raw is None or (not isinstance(df_cashflow_raw, pd.DataFrame)) or df_cashflow_raw.empty:
+        # Jika data cashflow kosong atau error, buatkan dataframe tiruan 
+        # berisi kolom wajib agar proses merge() ke bawah tidak crash memicu AttributeError
+        df_cashflow_raw = pd.DataFrame(columns=["Invoice_Key", "Jumlah", "Tipe", "Kategori"])
+    # ----------------------------------------------------------------------
+
+    # Bersihkan Data Penjualan Utama
+    df_sales = df_data_raw.copy()
+    
+    # Pastikan kolom Invoice_Key tersedia di data penjualan agar tidak mamicu KeyError saat merge
+    if "Invoice_Key" not in df_sales.columns:
+        df_sales["Invoice_Key"] = "N/A"
 
     # 1. Bersihkan Data Penjualan Utama
     df_sales = df_data_raw.copy()

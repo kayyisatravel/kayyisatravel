@@ -1,15 +1,23 @@
 # ai_auditor.py
 import streamlit as st
 from google import genai
+from google.genai import types  # Wajib di-import untuk mendukung konfigurasi tools
 
 def inisialisasi_gemini():
+    """Mengaktifkan client Google GenAI secara aman menggunakan API Key dari secrets."""
     try:
-        return genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+        api_key = st.secrets["GEMINI_API_KEY"]
+        return genai.Client(api_key=api_key)
     except Exception as e:
-        st.error(f"❌ Kunci API Gemini tidak ditemukan: {str(e)}")
+        st.error(f"❌ Kunci API Gemini tidak ditemukan di Secrets: {str(e)}")
         return None
 
 def audit_forensik_dashboard(summary_text):
+    """
+    Mengirimkan rangkuman arsenal rasio keuangan ke model Gemini 2.5 Flash
+    yang terhubung ke internet via Google Search Grounding untuk menghasilkan
+    Laporan Audit Strategis yang kontekstual dengan dunia nyata.
+    """
     client = inisialisasi_gemini()
     if not client:
         return "Sistem AI Auditor tidak aktif karena kendala API Key."
@@ -22,6 +30,11 @@ def audit_forensik_dashboard(summary_text):
     DATA ARSENAL KEUANGAN AKTUAL PERUSAHAAN:
     {summary_text}
     
+    TUGAS INTEGRASI INTERNET (GOOGLE SEARCH GROUNDING):
+    Sebelum memberikan opini, analisis pasar, dan rekomendasi pricing, Anda WAJIB melakukan penelusuran di internet menggunakan Google Search tools untuk memantau:
+    1. Tren harga tiket pesawat domestik dan okupansi hotel di Indonesia saat ini (apakah sedang high season, low season, atau efek liburan tertentu).
+    2. Kebijakan biaya admin, komisi maskapai terbaru, atau besaran service fee yang saat ini umum dan rasional diterapkan oleh Online Travel Agent (OTA) besar di Indonesia (seperti Traveloka, Tiket.com) agar margin perusahaan tetap kompetitif namun menguntungkan.
+    
     STANDAR KESEHATAN (BENCHMARK) INDUSTRI TRAVEL AGENT INDONESIA:
     - Net Profit Margin (NPM) Sehat: 4% - 6% (Segmen Korporat/B2B Bervolume Tinggi), 8% - 15% (Segmen Retail/Leisure).
     - ROI Finansial Sehat: 12% - 18% dari perputaran modal tiket maskapai/hotel.
@@ -30,12 +43,12 @@ def audit_forensik_dashboard(summary_text):
     
     Susunlah dokumen LHPA formal dengan format Markdown mengikuti struktur wajib di bawah ini:
     
-    # 🏛️ REKOMENDASI CFO STRATEGIS & AUDIT FORENSIK — KAYYISA TRAVEL
+    # 🏛️ REKOMENDASI CFO STRATEGIS & AUDIT FORENSIK (INTERNET CONNECTED) — KAYYISA TRAVEL
     
     ### 📊 I. MATRIKS EVALUASI RASIO KEUANGAN & KEPATUHAN INDUSTRI
-    Sajikan kembali data angka ke dalam format tabel Markdown berikut, hitung selisih deviasinya dengan standar industri:
+    Sajikan kembali data angka ke dalam format tabel Markdown berikut, hitung selisih deviasinya dengan standar industri serta hubungkan analisisnya dengan kondisi ekonomi riil Indonesia hasil pencarian internet Anda:
 
-    | Senjata / Indikator Finansial | Nilai Aktual Perusahaan | Rasio Realisasi | Batas Sehat IndustriBPW | Status Penilaian CFO |
+    | Senjata / Indikator Finansial | Nilai Aktual Perusahaan | Rasio Realisasi | Batas Sehat Industri BPW | Status Penilaian CFO |
     | :--- | :--- | :--- | :--- | :--- |
     | **Net Profit Margin (NPM)** | [Isi Nominal] | [Isi % Realisasi]% | 4% - 15% | [Over-performed / Under-performed] |
     | **Return on Investment (ROI)**| [Isi Nominal] | [Isi % Realisasi]% | 12% - 18% | [Efisien / Pemborosan Modal] |
@@ -46,11 +59,11 @@ def audit_forensik_dashboard(summary_text):
     ### 👥 II. AUDIT KONSENTRASI KREDIT: SIAPA PENYUMBANG PIUTANG TERBESAR?
     Berdasarkan data *Laporan Piutang Macet (Top Debitur)* yang dikirimkan, sebutkan nama-nama pemesan/klien tersebut secara spesifik satu per satu beserta nominal utangnya. Jelaskan risiko apa yang dihadapi perusahaan jika nama tersebut menunda pembayaran, dan berikan **instruksi kerja hukum/operasional konkret** untuk menindak nama tersebut minggu ini.
     
-    ### 💼 III. PENILAIAN STRATEGI PRICING & TARGET PROFIT YANG SEMESTINYA
+    ### 💼 III. PENILAIAN STRATEGI PRICING & TARGET PROFIT YANG SEMESTINYA (BERDASARKAN RISET PASAR GOOGLE)
     Berdasarkan tabel distribusi produk travel (Pesawat, Hotel, Kereta):
-    1. Analisis mengapa produk dengan omzet terbesar (Pesawat) justru menghasilkan margin yang tipis, dan produk hotel mencetak margin paling tebal. Apakah persentase profit saat ini sudah logis secara bisnis?
+    1. Analisis mengapa produk dengan omzet terbesar (Pesawat) justru menghasilkan margin yang tipis, dan produk hotel mencetak margin paling tebal. Hubungkan dengan dinamika sistem sub-agent/NTA maskapai di Indonesia saat ini. Apakah persentase profit saat ini sudah kompetitif dibanding pasar luar?
     2. Hitung secara matematis berapa total nominal rupiah profit yang **seharusnya masuk kantong secara tunai** jika seluruh piutang macet berhasil ditagih lunas.
-    3. Berikan rumus strategi penetapan harga (*Mark-up Pricing* atau *Service Fee* per pax) yang tepat untuk mendongkrak margin keuntungan tanpa membuat harga kalah saing dengan OTA (Online Travel Agent) besar.
+    3. Berikan rumus strategi penetapan harga (*Mark-up Pricing* atau *Service Fee* per pax) yang tepat untuk mendongkrak margin keuntungan tanpa membuat harga kalah saing dengan OTA besar hasil riset internet Anda.
     
     ### ⚡ IV. EXECUTIVE ACTION PLAN (SOP OPERASIONAL UNTUK ADMIN & FINANCE)
     Berikan 3 perintah kerja yang tegas, lugas, dan taktis untuk langsung dijalankan oleh Admin (seperti Admin PA) dan tim finance Anda:
@@ -62,7 +75,14 @@ def audit_forensik_dashboard(summary_text):
     """
     
     try:
-        response = client.models.generate_content(model='gemini-3.1-flash-lite', contents=prompt)
+        # 🚀 EKSEKUSI PEMBARUAN: Menggunakan model Gemini 2.5 Flash & Mengaktifkan Google Search Grounding
+        response = client.models.generate_content(
+            model='gemini-2.5-flash', 
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                tools=[types.Tool(google_search=types.GoogleSearch())]
+            )
+        )
         return response.text
     except Exception as e:
-        return f"⚠️ Gagal memproses data audit: {str(e)}"
+        return f"⚠️ Gagal memproses data audit bertenaga internet: {str(e)}"

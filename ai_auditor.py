@@ -1,76 +1,68 @@
 # ai_auditor.py
-import streamlit as st
+import streamlit st
 from google import genai
-from google.genai import types
 
 def inisialisasi_gemini():
-    """Mengaktifkan client Google GenAI secara aman menggunakan API Key dari secrets."""
     try:
-        api_key = st.secrets["GEMINI_API_KEY"]
-        return genai.Client(api_key=api_key)
+        return genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
     except Exception as e:
-        st.error(f"❌ Kunci API Gemini tidak ditemukan di Secrets: {str(e)}")
+        st.error(f"❌ Kunci API Gemini tidak ditemukan: {str(e)}")
         return None
 
 def audit_forensik_dashboard(summary_text):
-    """
-    Mengirimkan ringkasan data finansial ke Gemini 3.1 Flash Lite
-    untuk menghasilkan Laporan Keuangan Audit Formal (LHPA) yang berbasis data angka.
-    """
     client = inisialisasi_gemini()
     if not client:
-        return "Sistem AI gagal dimuat karena kendala autentikasi API Key."
+        return "Sistem AI Auditor tidak aktif karena kendala API Key."
         
     prompt = f"""
-    Anda adalah seorang Senior Financial Auditor, Akuntan Forensik, dan Konsultan Pajak bersertifikat khusus industri biro perjalanan (Travel Agent).
+    Anda adalah seorang Chief Financial Officer (CFO) Korporat, Konsultan Bisnis Internasional Senior, dan Akuntan Forensik bersertifikat yang ahli dalam industri Biro Perjalanan Wisata (Travel Agent) Indonesia.
     
-    Tugas Anda adalah menyusun "Laporan Hasil Penelaahan Audit (LHPA)" formal berdasarkan data indikator mentah berikut. 
-    Anda DILARANG HANYA BERBICARA TEORI. Anda WAJIB menyajikan ulang data angka dalam bentuk tabel komparasi akuntansi dan langsung menganalisis dampaknya terhadap kas perusahaan.
+    Tugas Anda adalah membedah dokumen persenjataan rasio keuangan [Kayyisa Travel] di bawah ini untuk merumuskan Laporan Audit Strategis & Rencana Aksi Pemulihan Modal. Anda DILARANG berbicara teori kaku atau asumsi verbal. Anda WAJIB menggunakan analisis angka aktual dari data penunjang.
     
-    DATA MENTAH DARI ENGINE:
+    DATA ARSENAL KEUANGAN AKTUAL PERUSAHAAN:
     {summary_text}
     
-    Susunlah LHPA tersebut dengan format Markdown resmi mengikuti template struktur berikut:
+    STANDAR KESEHATAN (BENCHMARK) INDUSTRI TRAVEL AGENT INDONESIA:
+    - Net Profit Margin (NPM) Sehat: 4% - 6% (Segmen Korporat/B2B Bervolume Tinggi), 8% - 15% (Segmen Retail/Leisure).
+    - ROI Finansial Sehat: 12% - 18% dari perputaran modal tiket maskapai/hotel.
+    - Rasio Keterikatan Modal dalam Piutang: Maksimal 10% dari total omzet bulanan.
+    - Rasio Kerentanan Laba terhadap Piutang: Maksimal 50% (Jika nilai piutang > 100% dari laba bersih, perusahaan berada dalam kondisi "Kritis Lampu Merah/Insolvensi Teknis").
     
-    # 📝 LAPORAN HASIL PENELAAHAN AUDIT (LHPA) — REKONSILIASI KEUANGAN
+    Susunlah dokumen LHPA formal dengan format Markdown mengikuti struktur wajib di bawah ini:
     
-    ### 📊 I. RINGKASAN EKSEKUTIF DATA AKTUAL
-    Sajikan ulang data dalam bentuk tabel Markdown berikut, hitung persentase rasionya secara matematis:
+    # 🏛️ REKOMENDASI CFO STRATEGIS & AUDIT FORENSIK — KAYYISA TRAVEL
+    
+    ### 📊 I. MATRIKS EVALUASI RASIO KEUANGAN & KEPATUHAN INDUSTRI
+    Sajikan kembali data angka ke dalam format tabel Markdown berikut, hitung selisih deviasinya dengan standar industri:
 
-    | Indikator Finansial | Nilai Nominal (Rupiah) | Persentase / Rasio Kontribusi | Status Audit |
-    | :--- | :--- | :--- | :--- |
-    | **Omzet Penjualan** | [Isi Angka] | 100% | [OK / Perlu Review] |
-    | **Harga Beli (HPP)** | [Isi Angka] | [HPP ÷ Omzet] % | [OK / Margin Tipis] |
-    | **Profit Bersih Buku**| [Isi Angka] | [Laba ÷ Omzet] % | [Sehat / Kritis] |
-    | **Total Piutang Mandek**| [Isi Angka] | [Piutang ÷ Omzet] % | [Aman / Bahaya Likuiditas] |
-    
-    ### ✈️ II. AUDIT PORTFOLIO PRODUK (PERFORMA MARGIN)
-    Buatlah tabel analisis performa produk berdasarkan data distribusi yang dikirimkan:
-
-    | Kategori Produk | Omzet | Laba Bersih | Realisasi Margin (%) | Peringkat Kontribusi |
+    | Senjata / Indikator Finansial | Nilai Aktual Perusahaan | Rasio Realisasi | Batas Sehat IndustriBPW | Status Penilaian CFO |
     | :--- | :--- | :--- | :--- | :--- |
-    | **PESAWAT** | [Isi Angka] | [Isi Angka] | [Margin %] | [Isi Peringkat] |
-    | **HOTEL** | [Isi Angka] | [Isi Angka] | [Margin %] | [Isi Peringkat] |
-    | **KERETA** | [Isi Angka] | [Isi Angka] | [Margin %] | [Isi Peringkat] |
+    | **Net Profit Margin (NPM)** | [Isi Nominal] | [Isi % Realisasi]% | 4% - 15% | [Over-performed / Under-performed] |
+    | **Return on Investment (ROI)**| [Isi Nominal] | [Isi % Realisasi]% | 12% - 18% | [Efisien / Pemborosan Modal] |
+    | **Estimasi Kas Riil Lapangan**| [Isi Nominal] | Rp [Isi Kas Riil] | Harus Positif | [Arus Kas Sehat / Defisit Modal Kerja] |
+    | **Rasio Keterikatan Piutang**| [Isi Nominal] | [Isi % Realisasi]% | Maksimal 10% | [Aman / Lampu Merah Kritis] |
+    | **Rasio Kerentanan Laba**   | [Isi Nominal] | [Isi % Realisasi]% | Maksimal 50% | [Kertas Kosong / Uang Riil] |
     
-    ### 🚨 III. TEMUAN FORENSIK ANOMALi & KEBOCORAN DANA
-    Berikan analisis tajam berbasis data angka mengenai dua poin kritis berikut:
-    1. **Kebocoran Harga (Transaksi Boncos)**: Sebutkan berapa kali terjadi transaksi laba negatif, berapa total kerugiannya, dan beri tahu manajemen mengapa ini bisa terjadi di sistem agen.
-    2. **Ancaman Piutang Overdue (>30 Hari)**: Sebutkan nominal dana kritis yang macet, bandingkan dengan profit bersih perusahaan saat ini. Apakah dana macet ini sanggup mematikan arus kas harian?
+    ### 👥 II. AUDIT KONSENTRASI KREDIT: SIAPA PENYUMBANG PIUTANG TERBESAR?
+    Berdasarkan data *Laporan Piutang Macet (Top Debitur)* yang dikirimkan, sebutkan nama-nama pemesan/klien tersebut secara spesifik satu per satu beserta nominal utangnya. Jelaskan risiko apa yang dihadapi perusahaan jika nama tersebut menunda pembayaran, dan berikan **instruksi kerja hukum/operasional konkret** untuk menindak nama tersebut minggu ini.
     
-    ### 💡 IV. REKOMENDASI AUDIT YANG DAPAT DIEKSEKUSI
-    Berikan 3 rekomendasi taktis operasional (bukan teori kaku) khusus untuk bisnis Kayyisa Travel untuk:
-    - Cara memperketat kontrol selisih harga beli tiket maskapai/hotel agar tidak boncos.
-    - Strategi penagihan massal (*bulk collection*) untuk invoice yang berstatus Overdue.
+    ### 💼 III. PENILAIAN STRATEGI PRICING & TARGET PROFIT YANG SEMESTINYA
+    Berdasarkan tabel distribusi produk travel (Pesawat, Hotel, Kereta):
+    1. Analisis mengapa produk dengan omzet terbesar (Pesawat) justru menghasilkan margin yang tipis, dan produk hotel mencetak margin paling tebal. Apakah persentase profit saat ini sudah logis secara bisnis?
+    2. Hitung secara matematis berapa total nominal rupiah profit yang **seharusnya masuk kantong secara tunai** jika seluruh piutang macet berhasil ditagih lunas.
+    3. Berikan rumus strategi penetapan harga (*Mark-up Pricing* atau *Service Fee* per pax) yang tepat untuk mendongkrak margin keuntungan tanpa membuat harga kalah saing dengan OTA (Online Travel Agent) besar.
     
-    Gunakan gaya bahasa Indonesia Akuntan Publik yang formal, tajam, objektif, berpatokan penuh pada data angka, dan langsung menusuk pada solusi.
+    ### ⚡ IV. EXECUTIVE ACTION PLAN (SOP OPERASIONAL UNTUK ADMIN & FINANCE)
+    Berikan 3 perintah kerja yang tegas, lugas, dan taktis untuk langsung dijalankan oleh Admin (seperti Admin PA) dan tim finance Anda:
+    - Kebijakan batas kredit maksimal (*Credit Limit Control*) per nama pemesan korporat.
+    - Aturan penguncian sistem tiket (*System Hard-Stop Auto Block*) jika ditemukan harga modal vendor naik tiba-tiba di atas harga jual pelanggan.
+    - Taktik penagihan massal (*Bulk Debt Collection*) dengan insentif pelunasan cepat.
+    
+    Gunakan gaya bahasa Indonesia profesional yang tegas, objektif, berwibawa, berpatokan mutlak pada angka, dan berorientasi pada pemulihan dana tunai (*Cash Recovery*).
     """
     
     try:
-        response = client.models.generate_content(
-            model='gemini-3.1-flash-lite',
-            contents=prompt
-        )
+        response = client.models.generate_content(model='gemini-3.1-flash-lite', contents=prompt)
         return response.text
     except Exception as e:
-        return f"⚠️ Gagal mendapatkan respons analisis dari AI Auditor: {str(e)}"
+        return f"⚠️ Gagal memproses data audit: {str(e)}"

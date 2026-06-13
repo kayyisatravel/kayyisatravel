@@ -1651,6 +1651,13 @@ with st.expander("💾 Database Pemesan", expanded=False):
         if "Tgl Pemesanan" not in df.columns:
             st.error("❌ Kolom 'Tgl Pemesanan' tidak ditemukan.")
             st.stop()
+            
+        # ----------------------------------------------------------------------
+        # 🛡️ FIX DUPLIKASI: Hapus baris yang kembar identik agar tidak terhitung ganda
+        # ----------------------------------------------------------------------
+        df = df.dropna(how="all") # Hapus jika ada baris kosongan di GSheets
+        df = df.drop_duplicates(keep="first") # Buang 7 duplikat, sisakan 1 data utama yang sah
+        # ----------------------------------------------------------------------
     
         # FIX 1: Parsing Tanggal Satu Pintu yang Ketat (DD-MM-YYYY)
         df["Tgl Pemesanan_Parsed"] = pd.to_datetime(df["Tgl Pemesanan"], format="%d-%m-%Y", errors="coerce")
@@ -1712,6 +1719,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
         filter_belum_lunas = st.checkbox("Tampilkan hanya yang Belum Lunas", key="db_lama_unpaid")
         if filter_belum_lunas:
             df_filtered = df_filtered[df_filtered["Keterangan"].str.contains("Belum Lunas", case=False, na=False)]
+
 
 
     # === Filter Tambahan ===
@@ -2170,15 +2178,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
                     except Exception as e:
                         st.error(f"❌ Gagal update massal: {e}")
 
-        # === Total Harga ===
-        def parse_harga(harga_str):
-            if pd.isna(harga_str):
-                return 0
-            s = str(harga_str).replace('Rp', '').replace('.', '').replace(',', '').strip()
-            try:
-                return float(s)
-            except:
-                return 0
+        
     
         total_harga_jual = df_filtered['Harga Jual'].apply(finance_engine.bersihkan_angka).sum()
         total_laba = df_filtered['Laba'].apply(finance_engine.bersihkan_angka).sum()

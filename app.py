@@ -2183,36 +2183,55 @@ with st.expander("💾 Database Pemesan", expanded=False):
         total_harga_jual = df_filtered['Harga Jual'].apply(finance_engine.bersihkan_angka).sum()
         total_laba = df_filtered['Laba'].apply(finance_engine.bersihkan_angka).sum()
         
+                # === Kode Cetak Total & Sukses Anda yang Sudah Berjalan Lancar ===
         st.markdown(f"**Total Harga Jual Hasil Filter: Rp {total_harga_jual:,.0f}**.af".replace(",", ".").replace(".af", ""))
         st.markdown(f"**Total Laba Hasil Filter: Rp {total_laba:,.0f}**.af".replace(",", ".").replace(".af", ""))
-        if total_harga_jual >= MAX_TOTAL:
-            st.success(f"✅ Total penjualan mencapai Rp {total_harga_jual:,.0f} (batas 25 juta tercapai)")
-        elif total_harga_jual >= MAX_TOTAL * 0.99:
-            st.warning(f"⚠️ Total penjualan mendekati batas: Rp {total_harga_jual:,.0f}")
         
-        # === Hitung total harga jual data yang belum punya invoice ===
+        if total_harga_jual >= MAX_TOTAL:
+            st.success(f"✅ Total penjualan mencapai Rp {total_harga_jual:,.0f} (batas 25 juta tercapai)".replace(",", "."))
+        elif total_harga_jual >= MAX_TOTAL * 0.99:
+            st.warning(f"⚠️ Total penjualan mendekati batas: Rp {total_harga_jual:,.0f}".replace(",", "."))
+        
+        # =========================================================================
+        # 🔧 FIX LOGIKA: Menghitung Data yang Belum Punya Invoice Menggunakan Variabel V2
+        # =========================================================================
+        
+        # 1. Pastikan rentang waktu terdefinisi dengan aman baik untuk mode Rentang, Bulanan, maupun Tahunan
+        if filter_mode == "📆 Rentang Tanggal":
+            tgl_awal_calc = pd.Timestamp(tgl_awal).normalize()
+            tgl_akhir_calc = pd.Timestamp(tgl_akhir).normalize() + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
+        elif filter_mode == "🗓️ Bulanan":
+            # Jika memilih bulanan, kunci batas dari tanggal 1 hingga akhir bulan yang dipilih
+            tgl_awal_calc = pd.Timestamp(year=tahun_bulan, month=bulan_nama[bulan_pilihan], day=1)
+            tgl_akhir_calc = (tgl_awal_calc + pd.offsets.MonthEnd(1)) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
+        else:
+            # Jika tahunan, kunci dari 1 Januari hingga 31 Desember
+            tgl_awal_calc = pd.Timestamp(year=tahun_pilihan, month=1, day=1)
+            tgl_akhir_calc = pd.Timestamp(year=tahun_pilihan, month=12, day=31, hour=23, minute=59, second=59)
+
+        # 2. Saring dataframe master (df) menggunakan kolom 'Tgl Pemesanan_Parsed' yang sudah aman dan seragam
         uninvoice_df = df[
-            (df["Tgl Pemesanan"] >= tanggal_range[0]) &
-            (df["Tgl Pemesanan"] <= tanggal_range[1]) &
+            (df["Tgl Pemesanan_Parsed"] >= tgl_awal_calc) &
+            (df["Tgl Pemesanan_Parsed"] <= tgl_akhir_calc) &
             (
                 df["No Invoice"].isna() |
-                (df["No Invoice"].astype(str).str.strip() == "")
+                (df["No Invoice"].astype(str).str.strip() == "") |
+                (df["No Invoice"].astype(str).str.lower() == "nan")
             )
         ]
-        if nama_filter:
-            uninvoice_df = uninvoice_df[uninvoice_df["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
         
-        # Fungsi bantu parsing harga jual
-        def parse_harga(harga_str):
-            if pd.isna(harga_str):
-                return 0
-            s = str(harga_str).replace('Rp', '').replace('.', '').replace(',', '').strip()
-            try:
-                return float(s)
-            except:
-                return 0
+        # 3. Jalankan filter pencarian nama jika parameter nama_filter aktif di sistem Anda
+        if 'nama_filter' in locals() or 'nama_filter' in globals():
+            if nama_filter:
+                uninvoice_df = uninvoice_df[uninvoice_df["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
         
-        total_uninvoice = uninvoice_df["Harga Jual"].apply(parse_harga).sum()
+        # 4. Gunakan mesin pembersih angka dari finance_engine agar hitungan uninvoice akurat 100%
+        total_uninvoice = uninvoice_df["Harga Jual"].apply(finance_engine.bersihkan_angka).sum()
+        
+        # Cetak info uninvoice jika diperlukan di UI Anda
+        if total_uninvoice > 0:
+            st.info(f"📋 Terdeteksi total nilai penjualan tanpa nomor invoice sebesar: Rp {total_uninvoice:,.0f}".replace(",", "."))
+
         
         # Tampilkan notifikasi di sidebar
         with st.sidebar:

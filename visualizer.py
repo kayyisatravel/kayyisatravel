@@ -21,25 +21,16 @@ def render_grafik_tren_harian(df_daily):
 
 
 def render_grafik_margin_aman(df_raw_input):
-    """
-    Fungsi grafik batang dengan konfigurasi standar pabrik untuk menghindari ValueError.
-    """
     if df_raw_input.empty:
         st.info("Data kosong, tidak bisa membuat grafik segmentasi.")
         return
         
     df_local = df_raw_input.copy()
     
-    # Fungsi pembersih angka internal yang aman
-    def _bersihkan_ke_float(val):
-        if pd.isna(val): return 0.0
-        s = str(val).replace("Rp", "").replace(".", "").replace(" ", "").strip().replace(",", "")
-        try: return float(s)
-        except: return 0.0
-
-    # Pastikan kolom kalkulasi terbuat secara independen
-    df_local["Harga Jual (Num)"] = df_local["Harga Jual"].apply(_bersihkan_ke_float)
-    df_local["Harga Beli (Num)"] = df_local["Harga Beli"].apply(_bersihkan_ke_float)
+    # 💥 Mengubungkan langsung ke engine utama agar hitungan sinkron 100%
+    import finance_engine
+    df_local["Harga Jual (Num)"] = df_local["Harga Jual"].apply(finance_engine.bersihkan_angka)
+    df_local["Harga Beli (Num)"] = df_local["Harga Beli"].apply(finance_engine.bersihkan_angka)
     df_local["Laba (Num)"] = df_local["Harga Jual (Num)"] - df_local["Harga Beli (Num)"]
     
     kolom_tipe = "Tipe" if "Tipe" in df_local.columns else None

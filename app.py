@@ -1629,6 +1629,9 @@ with st.expander("💾 Database Pemesan", expanded=False):
     SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
     WORKSHEET_NAME = "Data"
 
+    # Hubungkan langsung ke finance_engine untuk standarisasi angka
+    import finance_engine
+
     def connect_to_gsheet(SHEET_ID, worksheet_name="Data"):
         scope = [
             "https://spreadsheets.google.com/feeds",
@@ -1645,83 +1648,68 @@ with st.expander("💾 Database Pemesan", expanded=False):
         ws = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
         df = pd.DataFrame(ws.get_all_records())
     
-        # Wajib ada
         if "Tgl Pemesanan" not in df.columns:
             st.error("❌ Kolom 'Tgl Pemesanan' tidak ditemukan.")
             st.stop()
     
-        # Normalisasi tanggal (logika sama)
-        for col in ["Tgl Pemesanan", "Tgl Berangkat"]:
-            if col in df.columns:
-                df[col] = pd.to_datetime(df[col], dayfirst=True, errors="coerce")
-    
-        # Hanya Tgl Pemesanan yang wajib
-        df = df.dropna(subset=["Tgl Pemesanan"])
+        # FIX 1: Parsing Tanggal Satu Pintu yang Ketat (DD-MM-YYYY)
+        df["Tgl Pemesanan_Parsed"] = pd.to_datetime(df["Tgl Pemesanan"], format="%d-%m-%Y", errors="coerce")
+        df = df.dropna(subset=["Tgl Pemesanan_Parsed"])
     
         return df
 
-
-    if st.button("🔄 Refresh Data"):
+    if st.button("🔄 Refresh Data", key="btn_refresh_db_lama"):
         st.cache_data.clear()
         df = load_data()
     else:
         df = load_data()
 
-    # === Filter Utama ===
     st.markdown("### 📊 Filter Data")
-    df_filtered = df.copy()
-    df["Tgl Pemesanan"] = pd.to_datetime(df["Tgl Pemesanan"], errors='coerce')
-    
-    # Inisialisasi default tanggal_range supaya selalu ada
-    today = date.today()
-    awal_bulan = today.replace(day=1)
-    tanggal_range = [pd.Timestamp(awal_bulan), pd.Timestamp(today)]
     
     filter_mode = st.radio(
         "Pilih Jenis Filter Tanggal",
         ["📆 Rentang Tanggal", "🗓️ Bulanan", "📅 Tahunan"],
         horizontal=True,
-        key="filter_mode_radio"
+        key="filter_mode_radio_db_lama"
     )
     
+    # Ambil tanggal hari ini mengacu waktu operasional Juni 2026
+    today = date.today()
+    
     if filter_mode == "📆 Rentang Tanggal":
-        today = date.today()
         default_start = today - timedelta(days=30)
+        tgl_awal = st.date_input("Tanggal Awal", default_start, key="db_lama_start")
+        tgl_akhir = st.date_input("Tanggal Akhir", today, key="db_lama_end")
     
-        tgl_awal = st.date_input("Tanggal Awal", default_start)
-        tgl_akhir = st.date_input("Tanggal Akhir", today)
-    
-        # Swap jika user memasukkan terbalik
         if tgl_awal > tgl_akhir:
             tgl_awal, tgl_akhir = tgl_akhir, tgl_awal
+            
+        # FIX 2: Normalisasi jam agar presisi menyapu hingga akhir hari 23:59:59
+        ts_mulai = pd.Timestamp(tgl_awal).normalize()
+        ts_akhir = pd.Timestamp(tgl_akhir).normalize() + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
     
-        df_filtered = df[
-            (df["Tgl Pemesanan"] >= pd.to_datetime(tgl_awal)) &
-            (df["Tgl Pemesanan"] <= pd.to_datetime(tgl_akhir))
-        ]
-
+        df_filtered = df[(df["Tgl Pemesanan_Parsed"] >= ts_mulai) & (df["Tgl Pemesanan_Parsed"] <= ts_akhir)]
 
     elif filter_mode == "🗓️ Bulanan":
         bulan_nama = {
-            "Januari": 1, "Februari": 2, "Maret": 3, "April": 4,
-            "Mei": 5, "Juni": 6, "Juli": 7, "Agustus": 8,
-            "September": 9, "Oktober": 10, "November": 11, "Desember": 12
+            "Januari": 1, "Februari": 2, "Maret": 3, "April": 4, "Mei": 5, "Juni": 6,
+            "Juli": 7, "Agustus": 8, "September": 9, "Oktober": 10, "November": 11, "Desember": 12
         }
         bulan_label = list(bulan_nama.keys())
-        bulan_pilihan = st.selectbox("Pilih Bulan", bulan_label, index=date.today().month - 1)
-        tahun_bulan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True))
+        bulan_pilihan = st.selectbox("Pilih Bulan", bulan_label, index=today.month - 1, key="db_lama_month")
+        tahun_bulan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan_Parsed"].dt.year.dropna().unique(), reverse=True), key="db_lama_year_m")
+        
         df_filtered = df[
-            (df["Tgl Pemesanan"].dt.month == bulan_nama[bulan_pilihan]) &
-            (df["Tgl Pemesanan"].dt.year == tahun_bulan)
+            (df["Tgl Pemesanan_Parsed"].dt.month == bulan_nama[bulan_pilihan]) &
+            (df["Tgl Pemesanan_Parsed"].dt.year == tahun_bulan)
         ]
 
     elif filter_mode == "📅 Tahunan":
-        tahun_pilihan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan"].dt.year.dropna().unique(), reverse=True))
-        df_filtered = df[df["Tgl Pemesanan"].dt.year == tahun_pilihan]
+        tahun_pilihan = st.selectbox("Pilih Tahun", sorted(df["Tgl Pemesanan_Parsed"].dt.year.dropna().unique(), reverse=True), key="db_lama_year_y")
+        df_filtered = df[df["Tgl Pemesanan_Parsed"].dt.year == tahun_pilihan]
 
-    # Tambahan filter untuk "Belum Lunas"
-    if "Keterangan" in df.columns:
-        filter_belum_lunas = st.checkbox("Tampilkan hanya yang Belum Lunas")
+    if "Keterangan" in df_filtered.columns:
+        filter_belum_lunas = st.checkbox("Tampilkan hanya yang Belum Lunas", key="db_lama_unpaid")
         if filter_belum_lunas:
             df_filtered = df_filtered[df_filtered["Keterangan"].str.contains("Belum Lunas", case=False, na=False)]
 
@@ -2192,10 +2180,11 @@ with st.expander("💾 Database Pemesan", expanded=False):
             except:
                 return 0
     
-        total_harga_jual = selected_data['Harga Jual'].apply(parse_harga).sum()
-        total_laba = selected_data['Laba'].apply(parse_harga).sum()
-        st.markdown(f"**Total Harga Jual yang dipilih: Rp {total_harga_jual:,.0f}**")
-        st.markdown(f"**Total Laba yang dipilih: Rp {total_laba:,.0f}**")
+        total_harga_jual = df_filtered['Harga Jual'].apply(finance_engine.bersihkan_angka).sum()
+        total_laba = df_filtered['Laba'].apply(finance_engine.bersihkan_angka).sum()
+        
+        st.markdown(f"**Total Harga Jual Hasil Filter: Rp {total_harga_jual:,.0f}**.af".replace(",", ".").replace(".af", ""))
+        st.markdown(f"**Total Laba Hasil Filter: Rp {total_laba:,.0f}**.af".replace(",", ".").replace(".af", ""))
         if total_harga_jual >= MAX_TOTAL:
             st.success(f"✅ Total penjualan mencapai Rp {total_harga_jual:,.0f} (batas 25 juta tercapai)")
         elif total_harga_jual >= MAX_TOTAL * 0.99:

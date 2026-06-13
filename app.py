@@ -5070,32 +5070,54 @@ with st.expander("📘 Laporan Baru - AI Base"):
                 st.subheader("🕵️‍♂️ Laporan Hasil Penelaahan Audit Forensik AI")
                 st.info("Fitur ini meringkas data indikator keuangan Anda lalu mengirimkannya ke Gemini 3.1 Flash Lite untuk di-audit secara berkala.")
                 
+                val_total_transaksi = metrics.get('total_transaksi', len(df_filtered))
+                val_pendapatan = metrics.get('pendapatan', 0.0)
+                val_hpp = metrics.get('hpp', 0.0)
+                val_laba_bersih = metrics.get('laba_bersih', 0.0)
+                val_margin = metrics.get('margin_laba_bersih', 0.0)
+                val_top_admin = metrics.get('top_admin', 'N/A')
+                val_text_segmentasi = metrics.get('text_segmentasi', '- Data distribusi belum siap\n')
+                val_total_piutang = metrics.get('total_piutang', 0.0)
+                val_jumlah_invoice = metrics.get('jumlah_invoice_piutang', 0)
+                val_overdue_30 = metrics.get('overdue_lebih_30_hari', 0.0)
+                val_jumlah_boncos = metrics.get('jumlah_transaksi_rugi', 0)
+                val_total_kerugian = metrics.get('total_kerugian', 0.0)
+                val_text_debitur = metrics.get('text_top_debitur', '- Belum ada data debitur\n')
+    
+                # 🧮 KALKULASI ARSENAL RASIO DARURAT (Mencegah KeyError di app.py)
+                val_roi = metrics.get('roi', (val_laba_bersih / val_hpp * 100) if val_hpp > 0 else 0.0)
+                val_kas_riil = metrics.get('kas_riil', (val_pendapatan - val_total_piutang) - val_hpp)
+                val_keterikatan_modal = metrics.get('rasio_keterikatan_modal', (val_total_piutang / val_pendapatan * 100) if val_pendapatan > 0 else 0.0)
+                val_kerentanan_laba = metrics.get('rasio_kerentanan_laba', (val_total_piutang / val_laba_bersih * 100) if val_laba_bersih > 0 else 0.0)
+                # ----------------------------------------------------------------------
+    
+                # Merakit Paket Payload Senjata Lengkap ke Gemini (100% Bebas Crash KeyError!)
                 text_payload_ai = f"""
                 INDIKATOR UTAMA AKUNTANSI:
-                - Total Baris Transaksi Terproses: {metrics['total_transaksi']} baris
-                - Omzet Penjualan Kotor: Rp {int(metrics['pendapatan']):,}
-                - Total Pengeluaran Modal (HPP): Rp {int(metrics['hpp']):,}
-                - Laba Bersih Buku (Paper Profit): Rp {int(metrics['laba_bersih']):,}
+                - Total Baris Transaksi Terproses: {val_total_transaksi} baris
+                - Omzet Penjualan Kotor: Rp {int(val_pendapatan):,}
+                - Total Pengeluaran Modal (HPP): Rp {int(val_hpp):,}
+                - Laba Bersih Buku (Paper Profit): Rp {int(val_laba_bersih):,}
                 
                 ARSENAL RASIO FINANSIAL (REALISASI AKTUAL):
-                - Realisasi Net Profit Margin (NPM): {metrics['margin_laba_bersih']:.2f}%
-                - Realisasi Return on Investment (ROI): {metrics['roi']:.2f}%
-                - Estimasi Sisa Kas Riil Lapangan: Rp {int(metrics['kas_riil']):,}
-                - Rasio Keterikatan Modal dalam Piutang: {metrics['rasio_keterikatan_modal']:.2f}%
-                - Rasio Kerentanan Laba terhadap Piutang: {metrics['rasio_kerentanan_laba']:.2f}%
-                - Admin dengan Penjualan Tertinggi: Admin [{metrics['top_admin']}]
+                - Realisasi Net Profit Margin (NPM): {val_margin:.2f}%
+                - Realisasi Return on Investment (ROI): {val_roi:.2f}%
+                - Estimasi Sisa Kas Riil Lapangan: Rp {int(val_kas_riil):,}
+                - Rasio Keterikatan Modal dalam Piutang: {val_keterikatan_modal:.2f}%
+                - Rasio Kerentanan Laba terhadap Piutang: {val_kerentanan_laba:.2f}%
+                - Admin dengan Penjualan Tertinggi: Admin [{val_top_admin}]
                 
                 DISTRIBUSI KINERJA SEGMEN PRODUK:
-                {metrics['text_segmentasi']}
+                {val_text_segmentasi}
                 
                 🚨 LAPORAN FORENSIK PIUTANG MACET & KEBOCORAN DANA:
-                - Total Nilai Piutang Klien Keseluruhan: Rp {int(metrics['total_piutang']):,}
-                - Jumlah Invoice Menggantung: {metrics['jumlah_invoice_piutang']} nota belum lunas
-                - Dana Piutang Macet Kritis Jangka Panjang (>30 Hari): Rp {int(metrics['overdue_lebih_30_hari']):,}
-                - Kebocoran Harga (Transaksi Rugi/Minus): {metrics['jumlah_transaksi_rugi']} kali transaksi, total kerugian riil Rp {int(metrics['total_kerugian']):,}
+                - Total Nilai Piutang Klien Keseluruhan: Rp {int(val_total_piutang):,}
+                - Jumlah Invoice Menggantung: {val_jumlah_invoice} nota belum lunas
+                - Dana Piutang Macet Kritis Jangka Panjang (>30 Hari): Rp {int(val_overdue_30):,}
+                - Kebocoran Harga (Transaksi Rugi/Minus): {val_jumlah_boncos} kali transaksi, total kerugian riil Rp {int(val_total_kerugian):,}
                 
                 DAFTAR NAMA PENGUTANG (TOP DEBITUR TERBESAR):
-                {metrics['text_top_debitur']}
+                {val_text_debitur}
                 """
                     
                 if "response_audit_ai" not in st.session_state:

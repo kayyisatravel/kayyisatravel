@@ -12,10 +12,20 @@ tgl_sekarang_str = datetime.today().strftime("%Y-%m-%d")
 # =====================================================================
 # 1. SKEMA DATA PYDANTIC
 # =====================================================================
+from pydantic import BaseModel, Field
+from typing import List
+from datetime import datetime
+
+# Ambil tanggal hari ini secara real-time dari komputer sistem
+tgl_sekarang_str = datetime.today().strftime("%Y-%m-%d")
+
+# =====================================================================
+# 1. SKEMA DATA PYDANTIC (SUDAH DISESUAIKAN SINKRON)
+# =====================================================================
 class AIUniversalEntry(BaseModel):
     Is_Bisnis: bool = Field(description="True jika transaksi tiket/hotel pelanggan. False jika pengeluaran pribadi/operasional rumah-kantor.")
     Tabel_Tujuan: str = Field(description="Wajib diisi 'DATA' jika Is_Bisnis true, atau 'PRIBADI' jika Is_Bisnis false.")
-    tgl_pemesanan: str = Field(description="Format YYYY-MM-DD. Jika ragu/tidak terdeteksi, gunakan tanggal hari ini yaitu: {tgl_sekarang_str} atau samakan dengan tgl berangkat.")
+    tgl_pemesanan: str = Field(description=f"Format YYYY-MM-DD. Jika ragu/tidak terdeteksi, gunakan tanggal hari ini yaitu: {tgl_sekarang_str} atau samakan dengan tgl berangkat.")
     tgl_berangkat: str = Field(description="Format YYYY-MM-DD. WAJIB kosongkan '' jika Is_Bisnis adalah false.")
     kode_booking: str = Field(description="Teks string kapital (PNR/ID Pesanan). WAJIB kosongkan '' jika Is_Bisnis adalah false.")
     item_name: str = Field(description="Nama properti hotel, detail penerbangan/kereta, atau nama barang belanjaan pribadi sesuai aturan format ketat.")
@@ -25,15 +35,16 @@ class AIUniversalEntry(BaseModel):
     harga_beli: int = Field(description="Angka murni integer modal per unit (pax/kamar). Jika kondisi ANTI-SPLIT DATA aktif (nama tamu sama/tunggal), gunakan nominal TOTAL keseluruhan vendor secara utuh tanpa dibagi rata. Set 0 jika transaksi pribadi.")
     harga_jual: int = Field(description="Angka murni integer jual per unit (pax/kamar). Sesuai urutan prioritas: 1) Manual admin 'Jual/Harga', 2) Tabel internal itinerary. Jika kondisi ANTI-SPLIT DATA aktif (nama tamu sama/tunggal), gunakan nominal TOTAL keseluruhan internal secara utuh tanpa dibagi rata. Untuk pribadi: isi nominal total belanja.")
     tipe: str = Field(description="Jika Is_Bisnis true, wajib pilih: 'PESAWAT', 'HOTEL', atau 'KERETA'. Jika Is_Bisnis false, wajib kosongkan ''.")
-    bf_status: str = Field(description="Khusus HOTEL bisnis: isi 'BF' atau 'NBF'. Transportasi atau pribadi wajib kosongkan ''.")
+    bf_status: str = Field(description="Khusus HOTEL bisnis: isi 'BF' or 'NBF'. Transportasi atau pribadi wajib kosongkan ''.")
     platform: str = Field(description="Nama vendor/platform booking. Set 'Lainnya' jika transaksi pribadi.")
     no_rekening: str = Field(description="Wajib pilih salah satu jika Is_Bisnis false: 'Aset Kantor', 'Rumah Tangga', 'Lifestyle', 'Investasi', 'Cadangan Bisnis', 'Dana Sosial / Titipan'. Jika Is_Bisnis true: wajib kosongkan ''.")
     keterangan_tambahan: str = Field(description="Catatan ringkas pendukung transaksi atau nama paket wisata tambahan (add-on promo).")
-    detail_dana: str = Field(alias="Detail Dana", description="Jika terdapat text nama bank, maka WAJIB ekstrak nama bank yang tertulis di teks secara tepat. Contoh: 'Mandiri', 'BSI', 'BCA', 'BNI', 'BRI', 'OVO', 'DANA', atau 'SeaBank'")
+    detail_dana: str = Field(description="Jika terdapat text nama bank, maka WAJIB ekstrak nama bank yang tertulis di teks secara tepat. Contoh: 'Mandiri', 'BSI', 'BCA', 'BNI', 'BRI', 'OVO', 'DANA', atau 'SeaBank'")
     Kategori: str = Field(description="Wajib pilih salah satu: 'Pemasukan' jika uang masuk/saldo bertambah, atau 'Pengeluaran' jika ada uang keluar/pembayaran belanja/biaya operasional.")
 
 class AIUniversalParserResult(BaseModel):
     entries: List[AIUniversalEntry]
+
 
 
 # =====================================================================

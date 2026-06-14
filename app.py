@@ -1156,37 +1156,32 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
 
             st.session_state.bulk_parsed = pd.DataFrame(ai_entries)
             # =========================================================================
-            # 🛡️ FIX AKUNTANSI: PAKSA STERILKAN KOLOM PRIBADI SEBELUM RENDER TABLE
+            # 🛡️ FIX AKUNTANSI FINAL: PAKSA STERILKAN DATAFRAME SEBELUM MASUK MEMORI UI
             # =========================================================================
-            df_parsed_clean = pd.DataFrame(ai_entries)
+            # 1. Bentuk Dataframe awal dari hasil loop ai_entries Anda
+            df_mentah_ai = pd.DataFrame(ai_entries)
             
-            if not df_parsed_clean.empty:
-                # Ambil indeks baris yang merupakan milik Owner (Jalur Pribadi)
-                mask_pribadi = df_parsed_clean["Pemesan"] == "OWNER"
+            if not df_mentah_ai.empty:
+                # Buat masker pengenal: baris mana yang merupakan transaksi pribadi milik Owner
+                masker_pribadi = df_mentah_ai["Pemesan"] == "OWNER"
                 
-                # 1. Paksa Tanggal Berangkat untuk jalur pribadi menjadi Kosong Murni
-                df_parsed_clean.loc[mask_pribadi, "Tgl Berangkat"] = ""
-                
-                # 2. Paksa Harga Beli untuk jalur pribadi menjadi 0
-                df_parsed_clean.loc[mask_pribadi, "Harga Beli"] = 0
-                
-                # 3. Paksa Laba untuk jalur pribadi menjadi 0 (Mencegah penggelembungan laba palsu)
-                df_parsed_clean.loc[mask_pribadi, "Laba"] = 0
-                
-                # 4. Paksa % Laba untuk jalur pribadi menjadi 0.0%
-                df_parsed_clean.loc[mask_pribadi, " % Laba"] = "0.0%"
+                # Paksa bersihkan kolom-kolom pribadi agar patuh hukum akuntansi (Mencegah Laba Palsu)
+                df_mentah_ai.loc[masker_pribadi, "Tgl Berangkat"] = ""
+                df_mentah_ai.loc[masker_pribadi, "Harga Beli"] = 0
+                df_mentah_ai.loc[masker_pribadi, "Laba"] = 0
+                df_mentah_ai.loc[masker_pribadi, " % Laba"] = "0.0%"
             
-            # Masukkan dataframe yang sudah suci dan steril ke dalam memori screen
-            st.session_state.bulk_parsed = df_parsed_clean
+            # 2. Kunci DataFrame yang SUDAH SUCI DAN STERIL ini ke dalam session_state utama Anda
+            st.session_state.bulk_parsed = df_mentah_ai
             # =========================================================================
             
             st.session_state.edit_mode_bulk = True
-            
             if pemberitahuan_masalah_data:
                 st.session_state.peringatan_admin_ai = "⚠️ **Peringatan Validasi Entri!** Ditemukan beberapa kolom wajib masih kosong:\n\n" + "\n".join([f"- {e}" for e in pemberitahuan_masalah_data]) + "\n\n**Mohon lengkapi data kosong tersebut** pada menu edit manual di bawah ini sebelum disimpan!"
             else:
                 if "peringatan_admin_ai" in st.session_state: del st.session_state["peringatan_admin_ai"]
             st.rerun()
+
         else:
             st.error("⚠️ AI gagal mengekstrak data. Pastikan teks berisi data valid atau kualitas gambar/suara cukup jelas.")
 

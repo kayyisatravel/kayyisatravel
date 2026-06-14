@@ -119,7 +119,7 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
     6. KETERANGAN PAKET TAMBAHAN: Jika di dalam teks input terdapat informasi paket wisata tambahan (add-on promo ticket seperti Dufan, Ancol, Jatim Park, dll), kamu WAJIB menuliskan nama paket tersebut secara ringkas ke dalam field "keterangan_tambahan" agar datanya tidak hilang."""
     7. ATURAN AKUMULASI NOTA TUNGGAL (ANTi-SPLIT DATA):
        Jika di dalam dokumen tertulis pemesanan untuk beberapa kamar sekaligus (Contoh: 2 Kamar, 3 Kamar, dst) dengan KODE BOOKING DAN NAMA TAMU YANG SAMA, Anda DILARANG keras memecahnya menjadi beberapa baris data. Anda WAJIB menyatukannya ke dalam 1 BARIS ENTRI TUNGGAL dengan nominal Harga Beli dan Harga Jual yang sudah diakumulasikan secara total keseluruhan.
-    
+    """
     content_payload = [prompt_rules]
     
     if text_input:

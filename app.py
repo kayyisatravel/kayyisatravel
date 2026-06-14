@@ -3655,379 +3655,379 @@ import ai_auditor
 # ISI KODE DI BAWAH INI UNTUK MENGGANTIKAN ISI EXPANDER LAMA DI app.py ANDA
 # =========================================================================
 
-with st.expander("📘 Laporan Baru - AI Base"):
-    with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=True):
-        st.markdown("### 🔧 Filter Cashflow & Transaksi")
+#with st.expander("📘 Laporan Baru - AI Base"):
+with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=True):
+    st.markdown("### 🔧 Filter Cashflow & Transaksi")
+    
+    # 📥 AMBIL DATA AMAN: Panggil fungsi load_data() global yang sudah ter-cache
+    # Ini 100% hemat kuota API karena mengambil dari memori RAM server, bukan dari Google
+    try:
+        # Memanggil fungsi load_data yang murni menarik data segar dari Google Sheets
+        df_raw = load_data().copy()
+    except Exception as e:
+        st.error(f"Gagal memuat data segar: {str(e)}")
+        df_raw = pd.DataFrame()
+    # ----------------------------------------------------------------------
+
+    if not df_raw.empty:
+        # Sisa kode Anda ke bawah sudah 100% Sempurna dan Benar
+        df_raw["Tgl Pemesanan_Parsed"] = pd.to_datetime(df_raw["Tgl Pemesanan"], dayfirst=True, errors="coerce")
+        df_raw = df_raw.dropna(subset=["Tgl Pemesanan_Parsed"])
         
-        # 📥 AMBIL DATA AMAN: Panggil fungsi load_data() global yang sudah ter-cache
-        # Ini 100% hemat kuota API karena mengambil dari memori RAM server, bukan dari Google
-        try:
-            # Memanggil fungsi load_data yang murni menarik data segar dari Google Sheets
-            df_raw = load_data().copy()
-        except Exception as e:
-            st.error(f"Gagal memuat data segar: {str(e)}")
-            df_raw = pd.DataFrame()
         # ----------------------------------------------------------------------
+        # 💡 OPTIMASI DEFAULT FILTER: Setel dari Tanggal 1 Bulan Berjalan s/d Hari Ini
+        # ----------------------------------------------------------------------
+        hari_ini = date.today()
+        awal_bulan_berjalan = hari_ini.replace(day=1)
+        
+        col_filt1, col_filt2 = st.columns(2)
+        
+        with col_filt1:
+            # Set default start ke tanggal 1 bulan ini agar pembacaan Pandas sangat ringan dan instan!
+            tgl_pilihan = st.date_input(
+                "Rentang Tanggal", 
+                [awal_bulan_berjalan, hari_ini], 
+                key="v2_date_filter"
+            )
+        
+        with col_filt2:
+            list_admin = ["(Semua)"] + sorted(df_raw["Admin"].dropna().unique().tolist())
+            selected_admin = st.selectbox("Saring Berdasarkan Admin", list_admin, key="v2_admin_filter")
+        # ----------------------------------------------------------------------
+        
+        # Eksekusi pemotongan data berdasarkan rentang waktu yang diperketat
+        if len(tgl_pilihan) == 2:
+            tgl_mulai, tgl_akhir = tgl_pilihan
+            
+            # Normalisasi jam transaksional demi akurasi 100%
+            ts_mulai = pd.Timestamp(tgl_mulai).normalize()
+            ts_akhir = pd.Timestamp(tgl_akhir).normalize() + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
+            
+            df_filtered = df_raw[
+                (df_raw["Tgl Pemesanan_Parsed"] >= ts_mulai) &
+                (df_raw["Tgl Pemesanan_Parsed"] <= ts_akhir)
+            ].copy()
+        else:
+            # Jika user mengosongkan tanggal, amankan dengan mengunci bulan berjalan saja
+            df_filtered = df_raw[df_raw["Tgl Pemesanan_Parsed"].dt.month == hari_ini.month].copy()
+            
+        if selected_admin != "(Semua)":
+            df_filtered = df_filtered[df_filtered["Admin"] == selected_admin]
 
-        if not df_raw.empty:
-            # Sisa kode Anda ke bawah sudah 100% Sempurna dan Benar
-            df_raw["Tgl Pemesanan_Parsed"] = pd.to_datetime(df_raw["Tgl Pemesanan"], dayfirst=True, errors="coerce")
-            df_raw = df_raw.dropna(subset=["Tgl Pemesanan_Parsed"])
-            
-            # ----------------------------------------------------------------------
-            # 💡 OPTIMASI DEFAULT FILTER: Setel dari Tanggal 1 Bulan Berjalan s/d Hari Ini
-            # ----------------------------------------------------------------------
-            hari_ini = date.today()
-            awal_bulan_berjalan = hari_ini.replace(day=1)
-            
-            col_filt1, col_filt2 = st.columns(2)
-            
-            with col_filt1:
-                # Set default start ke tanggal 1 bulan ini agar pembacaan Pandas sangat ringan dan instan!
-                tgl_pilihan = st.date_input(
-                    "Rentang Tanggal", 
-                    [awal_bulan_berjalan, hari_ini], 
-                    key="v2_date_filter"
-                )
-            
-            with col_filt2:
-                list_admin = ["(Semua)"] + sorted(df_raw["Admin"].dropna().unique().tolist())
-                selected_admin = st.selectbox("Saring Berdasarkan Admin", list_admin, key="v2_admin_filter")
-            # ----------------------------------------------------------------------
-            
-            # Eksekusi pemotongan data berdasarkan rentang waktu yang diperketat
-            if len(tgl_pilihan) == 2:
-                tgl_mulai, tgl_akhir = tgl_pilihan
-                
-                # Normalisasi jam transaksional demi akurasi 100%
-                ts_mulai = pd.Timestamp(tgl_mulai).normalize()
-                ts_akhir = pd.Timestamp(tgl_akhir).normalize() + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
-                
-                df_filtered = df_raw[
-                    (df_raw["Tgl Pemesanan_Parsed"] >= ts_mulai) &
-                    (df_raw["Tgl Pemesanan_Parsed"] <= ts_akhir)
-                ].copy()
-            else:
-                # Jika user mengosongkan tanggal, amankan dengan mengunci bulan berjalan saja
-                df_filtered = df_raw[df_raw["Tgl Pemesanan_Parsed"].dt.month == hari_ini.month].copy()
-                
-            if selected_admin != "(Semua)":
-                df_filtered = df_filtered[df_filtered["Admin"] == selected_admin]
+        st.markdown("---")
 
-            st.markdown("---")
+        # 🧮 Proses sisa perhitungan metrik, tabel aging, dan AI Auditor murni hanya dari df_filtered yang super ringan
+        metrics = finance_engine.hitung_performa_dan_aging_v4(df_filtered, df_cashflow_combined)
 
-            # 🧮 Proses sisa perhitungan metrik, tabel aging, dan AI Auditor murni hanya dari df_filtered yang super ringan
-            metrics = finance_engine.hitung_performa_dan_aging_v4(df_filtered, df_cashflow_combined)
+        # 5️⃣ TAMPILKAN INTERFACES TABS (Bersih, Rapi, & Padat di Dalam Expander)
+        tab_ringkasan, tab_aging, tab_ai_audit = st.tabs([
+            "📊 Ringkasan Keuangan", 
+            "⏳ Aging Report Piutang", 
+            "🕵️‍♂️ AI Real-time Auditor"
+        ])
+        
+        # --- TAB 1: RINGKASAN DATA ANGKA & GRAFIK INTERAKTIF ---
+                # --- TAB 1: RINGKASAN DATA ANGKA & GRAFIK INTERAKTIF ---
+    with tab_ringkasan:
+        st.subheader("📌 Indikator Utama Kinerja Keuangan")
+        
+        # 🎨 1. SUNTIKAN CSS UNTUK STYLE KARTU METRIK KUSTOM (EFEK BAYANGAN & SUDUT TUMPUL)
+        card_style = """
+        <style>
+        .fin-card {
+            background-color: #ffffff;
+            padding: 24px;
+            border-radius: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            border: 1px solid #f0f0f0;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .fin-title {
+            font-size: 16px;
+            color: #555555;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+        .fin-value {
+            font-size: 26px;
+            font-weight: 700;
+            color: #111111;
+        }
+        .fin-delta {
+            font-size: 14px;
+            color: #2e7d32;
+            background-color: #e8f5e9;
+            padding: 4px 10px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-top: 8px;
+            font-weight: 600;
+        }
+        </style>
+        """
+        st.markdown(card_style, unsafe_allow_html=True)
 
-            # 5️⃣ TAMPILKAN INTERFACES TABS (Bersih, Rapi, & Padat di Dalam Expander)
-            tab_ringkasan, tab_aging, tab_ai_audit = st.tabs([
-                "📊 Ringkasan Keuangan", 
-                "⏳ Aging Report Piutang", 
-                "🕵️‍♂️ AI Real-time Auditor"
-            ])
-            
-            # --- TAB 1: RINGKASAN DATA ANGKA & GRAFIK INTERAKTIF ---
-                    # --- TAB 1: RINGKASAN DATA ANGKA & GRAFIK INTERAKTIF ---
-        with tab_ringkasan:
-            st.subheader("📌 Indikator Utama Kinerja Keuangan")
-            
-            # 🎨 1. SUNTIKAN CSS UNTUK STYLE KARTU METRIK KUSTOM (EFEK BAYANGAN & SUDUT TUMPUL)
-            card_style = """
-            <style>
-            .fin-card {
-                background-color: #ffffff;
-                padding: 24px;
-                border-radius: 14px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-                border: 1px solid #f0f0f0;
-                text-align: center;
-                margin-bottom: 16px;
-            }
-            .fin-title {
-                font-size: 16px;
-                color: #555555;
-                font-weight: 500;
-                margin-bottom: 12px;
-            }
-            .fin-value {
-                font-size: 26px;
-                font-weight: 700;
-                color: #111111;
-            }
-            .fin-delta {
-                font-size: 14px;
-                color: #2e7d32;
-                background-color: #e8f5e9;
-                padding: 4px 10px;
-                border-radius: 20px;
-                display: inline-block;
-                margin-top: 8px;
-                font-weight: 600;
-            }
-            </style>
-            """
-            st.markdown(card_style, unsafe_allow_html=True)
+        # 🧮 Ambil dan format angka nominal dari mesin hitung
+        txt_pendapatan = f"Rp {int(metrics['pendapatan']):,}".replace(",", ".")
+        txt_hpp = f"Rp {int(metrics['hpp']):,}".replace(",", ".")
+        txt_laba = f"Rp {int(metrics['laba_bersih']):,}".replace(",", ".")
+        txt_margin = f"↑ Margin {metrics['margin_laba_bersih']:.2f}%"
 
-            # 🧮 Ambil dan format angka nominal dari mesin hitung
-            txt_pendapatan = f"Rp {int(metrics['pendapatan']):,}".replace(",", ".")
-            txt_hpp = f"Rp {int(metrics['hpp']):,}".replace(",", ".")
-            txt_laba = f"Rp {int(metrics['laba_bersih']):,}".replace(",", ".")
-            txt_margin = f"↑ Margin {metrics['margin_laba_bersih']:.2f}%"
-
-            # 🏗️ 2. RENDER LAYOUT KARTU METRIK KUSTOM HINGGA 2 BARIS (PERSIS SEPERTI GAMBAR)
-            # Baris 1: Total Penjualan & Total Pembelian (Berdampingan)
-            col_m1, col_m2 = st.columns(2)
-            with col_m1:
-                st.markdown(f"""
-                <div class="fin-card">
-                    <div class="fin-title">💰 Total Penjualan</div>
-                    <div class="fin-value">{txt_pendapatan}</div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-            with col_m2:
-                st.markdown(f"""
-                <div class="fin-card">
-                    <div class="fin-title">💸 Total Pembelian</div>
-                    <div class="fin-value">{txt_hpp}</div>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            # Baris 2: Profit Bersih Buku (Ukuran Penuh / Full Width)
+        # 🏗️ 2. RENDER LAYOUT KARTU METRIK KUSTOM HINGGA 2 BARIS (PERSIS SEPERTI GAMBAR)
+        # Baris 1: Total Penjualan & Total Pembelian (Berdampingan)
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
             st.markdown(f"""
             <div class="fin-card">
-                <div class="fin-title">📈 Profit Bersih Buku</div>
-                <div class="fin-value">{txt_laba}</div>
-                <div class="fin-delta">{txt_margin}</div>
+                <div class="fin-title">💰 Total Penjualan</div>
+                <div class="fin-value">{txt_pendapatan}</div>
             </div>
             """, unsafe_allow_html=True)
+            
+        with col_m2:
+            st.markdown(f"""
+            <div class="fin-card">
+                <div class="fin-title">💸 Total Pembelian</div>
+                <div class="fin-value">{txt_hpp}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Baris 2: Profit Bersih Buku (Ukuran Penuh / Full Width)
+        st.markdown(f"""
+        <div class="fin-card">
+            <div class="fin-title">📈 Profit Bersih Buku</div>
+            <div class="fin-value">{txt_laba}</div>
+            <div class="fin-delta">{txt_margin}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
+        st.markdown("---")
+        
+        # 📊 3. BAGIAN GRAFIK INTERAKTIF
+        col_g1, col_g2 = st.columns(2)
+        with col_g1:
+            df_daily_chart = df_filtered.copy()
+            def _clean_chart_num(val):
+                if pd.isna(val): return 0.0
+                try: return float(str(val).replace("Rp", "").replace(".", "").replace(" ", "").replace(",", ""))
+                except: return 0.0
+            df_daily_chart["Harga Jual (Num)"] = df_daily_chart["Harga Jual"].apply(_clean_chart_num)
+            df_daily_grouped = df_daily_chart.groupby("Tgl Pemesanan_Parsed")["Harga Jual (Num)"].sum().reset_index()
+            
+            # Panggil grafik harian Plotly Express
+            visualizer.render_grafik_tren_harian(df_daily_grouped)
+            
+        with col_g2:
+            # Panggil grafik batang murni versi aman tanpa update_layout sensitif
+            visualizer.render_grafik_margin_aman(df_filtered)
+
+
+        # --- TAB 2: AGING REPORT (OTOMATISASI STATUS BELUM LUNAS) ---
+        with tab_aging:
+            st.subheader("⏳ Daftar Sisa Tagihan Invoice Klien (Hasil Rekonsiliasi)")
+            
+            col_a1, col_a2 = st.columns(2)
+            with col_a1:
+                st.warning(f"🔴 Total Sisa Piutang: Rp {int(metrics['total_piutang']):,}".replace(",", ".") + f" ({metrics['jumlah_invoice_piutang']} Invoice)")
+            with col_a2:
+                st.error(f"⚠️ Kritis (Overdue > 30 Hari): Rp {int(metrics['overdue_lebih_30_hari']):,}".replace(",", "."))
             st.markdown("---")
             
-            # 📊 3. BAGIAN GRAFIK INTERAKTIF
-            col_g1, col_g2 = st.columns(2)
-            with col_g1:
-                df_daily_chart = df_filtered.copy()
-                def _clean_chart_num(val):
-                    if pd.isna(val): return 0.0
-                    try: return float(str(val).replace("Rp", "").replace(".", "").replace(" ", "").replace(",", ""))
-                    except: return 0.0
-                df_daily_chart["Harga Jual (Num)"] = df_daily_chart["Harga Jual"].apply(_clean_chart_num)
-                df_daily_grouped = df_daily_chart.groupby("Tgl Pemesanan_Parsed")["Harga Jual (Num)"].sum().reset_index()
+            df_aging = metrics["df_aging_report"]
+            if df_aging.empty:
+                st.success("🎉 Luar biasa! Seluruh tagihan invoice berdasarkan transaksi masuk dan keluar sudah Lunas.")
+            else:
+                # Fungsi inline styling warna merah muda milik Anda
+                def style_row_overdue(row):
+                    return ["background-color: #FF9999" if row.Overdue else "" for _ in row]
                 
-                # Panggil grafik harian Plotly Express
-                visualizer.render_grafik_tren_harian(df_daily_grouped)
+                df_display_aging = df_aging.copy()
                 
-            with col_g2:
-                # Panggil grafik batang murni versi aman tanpa update_layout sensitif
-                visualizer.render_grafik_margin_aman(df_filtered)
+                # Format Tanggal agar rapi tanpa jam jam 00:00:00
+                df_display_aging["Tanggal Pemesanan"] = df_display_aging["Tanggal Pemesanan"].dt.strftime('%Y-%m-%d')
+                
+                # Format nominal sisa piutang ke mata uang rupiah
+                df_display_aging["Piutang"] = df_display_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
+                df_display_aging = df_display_aging.rename(columns={"Piutang": "Sisa Tagihan"})
+                
+                st.dataframe(
+                    df_display_aging.style.apply(style_row_overdue, axis=1), 
+                    use_container_width=True, 
+                    height=400
+                )
+                st.caption("💡 Info Visual: Baris berwarna merah muda menandakan sisa tagihan telah menunggak parah melebihi 30 hari sejak nota dibuat.")
 
+        # --- TAB 3: AUDIT FORENSIK OTOMATIS GEMINI 3.1 FLASH LITE ---
+        with tab_ai_audit:
+            st.subheader("🕵️‍♂️ Laporan Hasil Penelaahan Audit Forensik AI")
+            st.info("Fitur ini meringkas data indikator keuangan Anda lalu mengirimkannya ke Gemini 3.1 Flash Lite untuk di-audit secara berkala.")
+            
+            val_total_transaksi = metrics.get('total_transaksi', len(df_filtered))
+            val_pendapatan = metrics.get('pendapatan', 0.0)
+            val_hpp = metrics.get('hpp', 0.0)
+            val_laba_bersih = metrics.get('laba_bersih', 0.0)
+            val_margin = metrics.get('margin_laba_bersih', 0.0)
+            val_top_admin = metrics.get('top_admin', 'N/A')
+            val_text_segmentasi = metrics.get('text_segmentasi', '- Data distribusi belum siap\n')
+            val_total_piutang = metrics.get('total_piutang', 0.0)
+            val_jumlah_invoice = metrics.get('jumlah_invoice_piutang', 0)
+            val_overdue_30 = metrics.get('overdue_lebih_30_hari', 0.0)
+            val_jumlah_boncos = metrics.get('jumlah_transaksi_rugi', 0)
+            val_total_kerugian = metrics.get('total_kerugian', 0.0)
+            val_text_debitur = metrics.get('text_top_debitur', '- Belum ada data debitur\n')
 
-            # --- TAB 2: AGING REPORT (OTOMATISASI STATUS BELUM LUNAS) ---
-            with tab_aging:
-                st.subheader("⏳ Daftar Sisa Tagihan Invoice Klien (Hasil Rekonsiliasi)")
+            # 🧮 KALKULASI ARSENAL RASIO DARURAT (Mencegah KeyError di app.py)
+            val_roi = metrics.get('roi', (val_laba_bersih / val_hpp * 100) if val_hpp > 0 else 0.0)
+            val_kas_riil = metrics.get('kas_riil', (val_pendapatan - val_total_piutang) - val_hpp)
+            val_keterikatan_modal = metrics.get('rasio_keterikatan_modal', (val_total_piutang / val_pendapatan * 100) if val_pendapatan > 0 else 0.0)
+            val_kerentanan_laba = metrics.get('rasio_kerentanan_laba', (val_total_piutang / val_laba_bersih * 100) if val_laba_bersih > 0 else 0.0)
+            # ----------------------------------------------------------------------
+
+            # Merakit Paket Payload Senjata Lengkap ke Gemini (100% Bebas Crash KeyError!)
+            text_payload_ai = f"""
+            INDIKATOR UTAMA AKUNTANSI:
+            - Total Baris Transaksi Terproses: {val_total_transaksi} baris
+            - Omzet Penjualan Kotor: Rp {int(val_pendapatan):,}
+            - Total Pengeluaran Modal (HPP): Rp {int(val_hpp):,}
+            - Laba Bersih Buku (Paper Profit): Rp {int(val_laba_bersih):,}
+            
+            ARSENAL RASIO FINANSIAL (REALISASI AKTUAL):
+            - Realisasi Net Profit Margin (NPM): {val_margin:.2f}%
+            - Realisasi Return on Investment (ROI): {val_roi:.2f}%
+            - Estimasi Sisa Kas Riil Lapangan: Rp {int(val_kas_riil):,}
+            - Rasio Keterikatan Modal dalam Piutang: {val_keterikatan_modal:.2f}%
+            - Rasio Kerentanan Laba terhadap Piutang: {val_kerentanan_laba:.2f}%
+            - Admin dengan Penjualan Tertinggi: Admin [{val_top_admin}]
+            
+            DISTRIBUSI KINERJA SEGMEN PRODUK:
+            {val_text_segmentasi}
+            
+            🚨 LAPORAN FORENSIK PIUTANG MACET & KEBOCORAN DANA:
+            - Total Nilai Piutang Klien Keseluruhan: Rp {int(val_total_piutang):,}
+            - Jumlah Invoice Menggantung: {val_jumlah_invoice} nota belum lunas
+            - Dana Piutang Macet Kritis Jangka Panjang (>30 Hari): Rp {int(val_overdue_30):,}
+            - Kebocoran Harga (Transaksi Rugi/Minus): {val_jumlah_boncos} kali transaksi, total kerugian riil Rp {int(val_total_kerugian):,}
+            
+            DAFTAR NAMA PENGUTANG (TOP DEBITUR TERBESAR):
+            {val_text_debitur}
+            """
                 
-                col_a1, col_a2 = st.columns(2)
-                with col_a1:
-                    st.warning(f"🔴 Total Sisa Piutang: Rp {int(metrics['total_piutang']):,}".replace(",", ".") + f" ({metrics['jumlah_invoice_piutang']} Invoice)")
-                with col_a2:
-                    st.error(f"⚠️ Kritis (Overdue > 30 Hari): Rp {int(metrics['overdue_lebih_30_hari']):,}".replace(",", "."))
+            if "response_audit_ai" not in st.session_state:
+                st.session_state.response_audit_ai = None
+                
+            if st.button("🔍 Mulai Jalankan Audit Finansial Sekarang", type="primary", key="btn_audit_keuangan_v2"):
+                with st.spinner("Gemini AI sedang meneliti struktur pembukuan dan mengalkulasi risiko keuangan Anda..."):
+                    hasil_lhpa = ai_auditor.audit_forensik_dashboard(text_payload_ai)
+                    st.session_state.response_audit_ai = hasil_lhpa
+                    
+            if st.session_state.response_audit_ai:
                 st.markdown("---")
-                
-                df_aging = metrics["df_aging_report"]
-                if df_aging.empty:
-                    st.success("🎉 Luar biasa! Seluruh tagihan invoice berdasarkan transaksi masuk dan keluar sudah Lunas.")
-                else:
-                    # Fungsi inline styling warna merah muda milik Anda
-                    def style_row_overdue(row):
-                        return ["background-color: #FF9999" if row.Overdue else "" for _ in row]
-                    
-                    df_display_aging = df_aging.copy()
-                    
-                    # Format Tanggal agar rapi tanpa jam jam 00:00:00
-                    df_display_aging["Tanggal Pemesanan"] = df_display_aging["Tanggal Pemesanan"].dt.strftime('%Y-%m-%d')
-                    
-                    # Format nominal sisa piutang ke mata uang rupiah
-                    df_display_aging["Piutang"] = df_display_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
-                    df_display_aging = df_display_aging.rename(columns={"Piutang": "Sisa Tagihan"})
-                    
-                    st.dataframe(
-                        df_display_aging.style.apply(style_row_overdue, axis=1), 
-                        use_container_width=True, 
-                        height=400
-                    )
-                    st.caption("💡 Info Visual: Baris berwarna merah muda menandakan sisa tagihan telah menunggak parah melebihi 30 hari sejak nota dibuat.")
+                st.markdown(st.session_state.response_audit_ai)
 
-            # --- TAB 3: AUDIT FORENSIK OTOMATIS GEMINI 3.1 FLASH LITE ---
-            with tab_ai_audit:
-                st.subheader("🕵️‍♂️ Laporan Hasil Penelaahan Audit Forensik AI")
-                st.info("Fitur ini meringkas data indikator keuangan Anda lalu mengirimkannya ke Gemini 3.1 Flash Lite untuk di-audit secara berkala.")
-                
-                val_total_transaksi = metrics.get('total_transaksi', len(df_filtered))
-                val_pendapatan = metrics.get('pendapatan', 0.0)
-                val_hpp = metrics.get('hpp', 0.0)
-                val_laba_bersih = metrics.get('laba_bersih', 0.0)
-                val_margin = metrics.get('margin_laba_bersih', 0.0)
-                val_top_admin = metrics.get('top_admin', 'N/A')
-                val_text_segmentasi = metrics.get('text_segmentasi', '- Data distribusi belum siap\n')
-                val_total_piutang = metrics.get('total_piutang', 0.0)
-                val_jumlah_invoice = metrics.get('jumlah_invoice_piutang', 0)
-                val_overdue_30 = metrics.get('overdue_lebih_30_hari', 0.0)
-                val_jumlah_boncos = metrics.get('jumlah_transaksi_rugi', 0)
-                val_total_kerugian = metrics.get('total_kerugian', 0.0)
-                val_text_debitur = metrics.get('text_top_debitur', '- Belum ada data debitur\n')
-    
-                # 🧮 KALKULASI ARSENAL RASIO DARURAT (Mencegah KeyError di app.py)
-                val_roi = metrics.get('roi', (val_laba_bersih / val_hpp * 100) if val_hpp > 0 else 0.0)
-                val_kas_riil = metrics.get('kas_riil', (val_pendapatan - val_total_piutang) - val_hpp)
-                val_keterikatan_modal = metrics.get('rasio_keterikatan_modal', (val_total_piutang / val_pendapatan * 100) if val_pendapatan > 0 else 0.0)
-                val_kerentanan_laba = metrics.get('rasio_kerentanan_laba', (val_total_piutang / val_laba_bersih * 100) if val_laba_bersih > 0 else 0.0)
-                # ----------------------------------------------------------------------
-    
-                # Merakit Paket Payload Senjata Lengkap ke Gemini (100% Bebas Crash KeyError!)
-                text_payload_ai = f"""
-                INDIKATOR UTAMA AKUNTANSI:
-                - Total Baris Transaksi Terproses: {val_total_transaksi} baris
-                - Omzet Penjualan Kotor: Rp {int(val_pendapatan):,}
-                - Total Pengeluaran Modal (HPP): Rp {int(val_hpp):,}
-                - Laba Bersih Buku (Paper Profit): Rp {int(val_laba_bersih):,}
-                
-                ARSENAL RASIO FINANSIAL (REALISASI AKTUAL):
-                - Realisasi Net Profit Margin (NPM): {val_margin:.2f}%
-                - Realisasi Return on Investment (ROI): {val_roi:.2f}%
-                - Estimasi Sisa Kas Riil Lapangan: Rp {int(val_kas_riil):,}
-                - Rasio Keterikatan Modal dalam Piutang: {val_keterikatan_modal:.2f}%
-                - Rasio Kerentanan Laba terhadap Piutang: {val_kerentanan_laba:.2f}%
-                - Admin dengan Penjualan Tertinggi: Admin [{val_top_admin}]
-                
-                DISTRIBUSI KINERJA SEGMEN PRODUK:
-                {val_text_segmentasi}
-                
-                🚨 LAPORAN FORENSIK PIUTANG MACET & KEBOCORAN DANA:
-                - Total Nilai Piutang Klien Keseluruhan: Rp {int(val_total_piutang):,}
-                - Jumlah Invoice Menggantung: {val_jumlah_invoice} nota belum lunas
-                - Dana Piutang Macet Kritis Jangka Panjang (>30 Hari): Rp {int(val_overdue_30):,}
-                - Kebocoran Harga (Transaksi Rugi/Minus): {val_jumlah_boncos} kali transaksi, total kerugian riil Rp {int(val_total_kerugian):,}
-                
-                DAFTAR NAMA PENGUTANG (TOP DEBITUR TERBESAR):
-                {val_text_debitur}
-                """
+                import re
+            
+                # 🛠️ Mesin Mini Pengubah Otomatis: Mengubah Tabel Markdown Gemini Menjadi Tabel HTML Word Resmi
+                def markdown_to_html_word(md_text):
+                    lines = md_text.strip().split("\n")
+                    html_output = []
+                    in_table = False
                     
-                if "response_audit_ai" not in st.session_state:
-                    st.session_state.response_audit_ai = None
-                    
-                if st.button("🔍 Mulai Jalankan Audit Finansial Sekarang", type="primary", key="btn_audit_keuangan_v2"):
-                    with st.spinner("Gemini AI sedang meneliti struktur pembukuan dan mengalkulasi risiko keuangan Anda..."):
-                        hasil_lhpa = ai_auditor.audit_forensik_dashboard(text_payload_ai)
-                        st.session_state.response_audit_ai = hasil_lhpa
-                        
-                if st.session_state.response_audit_ai:
-                    st.markdown("---")
-                    st.markdown(st.session_state.response_audit_ai)
-
-                    import re
-                
-                    # 🛠️ Mesin Mini Pengubah Otomatis: Mengubah Tabel Markdown Gemini Menjadi Tabel HTML Word Resmi
-                    def markdown_to_html_word(md_text):
-                        lines = md_text.strip().split("\n")
-                        html_output = []
-                        in_table = False
-                        
-                        for line in lines:
-                            # Deteksi baris tabel markdown
-                            if line.strip().startswith("|"):
-                                if not in_table:
-                                    html_output.append('<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse; font-family:Arial; font-size:11pt; width:100%; margin-bottom:14px;">')
-                                    in_table = True
-                                
-                                # Abaikan baris pembatas tabel | :--- | :--- |
-                                if "---" in line:
-                                    continue
-                                    
-                                cells = [c.strip() for c in line.split("|")[1:-1]]
-                                tag = "th" if html_output[-1].endswith("</table>") or html_output[-1].strip() == '<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse; font-family:Arial; font-size:11pt; width:100%; margin-bottom:14px;">' else "td"
-                                
-                                # Deteksi apakah ini baris header pertama
-                                if html_output[-1].strip().startswith('<table'):
-                                    tag = "th"
-                                    bg_style = ' style="background-color:#f2f2f2; font-weight:bold; text-align:left;"'
-                                else:
-                                    tag = "td"
-                                    bg_style = ''
-                                    
-                                row_html = "  <tr>"
-                                for cell in cells:
-                                    # Jika sel bertuliskan tebal **teks**, bersihkan tanda bintangnya
-                                    cell_clean = cell.replace("**", "")
-                                    row_html += f'<{tag}{bg_style}>{cell_clean}</{tag}>'
-                                row_html += "</tr>"
-                                html_output.append(row_html)
-                            else:
-                                if in_table:
-                                    html_output.append("</table>")
-                                    in_table = False
-                                
-                                # Konversi format penulisan judul standar markdown ke HTML
-                                if line.strip().startswith("###"):
-                                    html_output.append(f'<h3 style="font-family:Arial; color:#1b5e20; margin-top:18px;">{line.replace("###", "").strip()}</h3>')
-                                elif line.strip().startswith("##"):
-                                    html_output.append(f'<h2 style="font-family:Arial; color:#2e7d32; margin-top:22px;">{line.replace("##", "").strip()}</h2>')
-                                elif line.strip().startswith("#"):
-                                    html_output.append(f'<h1 style="font-family:Arial; color:#111111; text-align:center;">{line.replace("#", "").strip()}</h1>')
-                                elif line.strip().startswith("-") or line.strip().startswith("*"):
-                                    # Bersihkan tanda bintang tebal di list poin
-                                    bullet_text = line.strip()[1:].strip().replace("**", "")
-                                    html_output.append(f'<li style="font-family:Arial; font-size:11pt; margin-left:20px; margin-bottom:6px;">{bullet_text}</li>')
-                                else:
-                                    # Bersihkan teks paragraf biasa dari bintang-bintang tebal markdown
-                                    clean_line = line.replace("**", "")
-                                    html_output.append(f'<p style="font-family:Arial; font-size:11pt; line-height:1.5;">{clean_line}</p>')
-                                    
-                        if in_table:
-                            html_output.append("</table>")
+                    for line in lines:
+                        # Deteksi baris tabel markdown
+                        if line.strip().startswith("|"):
+                            if not in_table:
+                                html_output.append('<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse; font-family:Arial; font-size:11pt; width:100%; margin-bottom:14px;">')
+                                in_table = True
                             
-                        return "\n".join(html_output)
-    
-                    # Jalankan mesin konversi terhadap teks Gemini
-                    html_body_content = markdown_to_html_word(st.session_state.response_audit_ai)
-                    
-                    # Bungkus ke dalam template dokumen resmi Microsoft Word (MIME type HTML)
-                    word_html_template = f"""
-                    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://w3.org'>
-                    <head>
-                        <title>Laporan Audit Finansial Kayyisa Travel</title>
-                        <!--[if gte mso 9]>
-                        <xml>
-                            <w:WordDocument>
-                                <w:View>Print</w:View>
-                                <w:Zoom>100</w:Zoom>
-                            </w:WordDocument>
-                        </xml>
-                        <![endif]-->
-                    </head>
-                    <body style="font-family:Arial; padding:40px;">
-                        <div style="text-align:center; margin-bottom:30px;">
-                            <h1 style="font-family:Arial; margin-bottom:4px; color:#111111;">🏛️ REKOMENDASI CFO & LAPORAN AUDIT STRATEGIS</h1>
-                            <p style="font-family:Arial; font-size:10pt; color:#666666; margin-top:0px;">
-                                <b>Kayyisa Tour & Travel — Business Management System</b><br>
-                                Tanggal Cetak Dokumen: {date.today().strftime('%d %B %Y')}
-                            </p>
-                        </div>
-                        <hr style="border:1px solid #cccccc; margin-bottom:24px;">
-                        {html_body_content}
-                    </body>
-                    </html>
-                    """
-                    
-                    # Sediakan tombol unduh Word pintar yang dijamin rapi kotak-kotaknya
-                    st.download_button(
-                        label="📝 Unduh Dokumen Laporan Word Resmi (.doc)",
-                        data=word_html_template,
-                        file_name=f"Laporan_Audit_Kayyisa_Travel_{date.today().strftime('%Y%m%d')}.doc",
-                        mime="application/msword",
-                        type="primary",
-                        key="btn_download_word_html_v3"
-                    )
+                            # Abaikan baris pembatas tabel | :--- | :--- |
+                            if "---" in line:
+                                continue
+                                
+                            cells = [c.strip() for c in line.split("|")[1:-1]]
+                            tag = "th" if html_output[-1].endswith("</table>") or html_output[-1].strip() == '<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse; font-family:Arial; font-size:11pt; width:100%; margin-bottom:14px;">' else "td"
+                            
+                            # Deteksi apakah ini baris header pertama
+                            if html_output[-1].strip().startswith('<table'):
+                                tag = "th"
+                                bg_style = ' style="background-color:#f2f2f2; font-weight:bold; text-align:left;"'
+                            else:
+                                tag = "td"
+                                bg_style = ''
+                                
+                            row_html = "  <tr>"
+                            for cell in cells:
+                                # Jika sel bertuliskan tebal **teks**, bersihkan tanda bintangnya
+                                cell_clean = cell.replace("**", "")
+                                row_html += f'<{tag}{bg_style}>{cell_clean}</{tag}>'
+                            row_html += "</tr>"
+                            html_output.append(row_html)
+                        else:
+                            if in_table:
+                                html_output.append("</table>")
+                                in_table = False
+                            
+                            # Konversi format penulisan judul standar markdown ke HTML
+                            if line.strip().startswith("###"):
+                                html_output.append(f'<h3 style="font-family:Arial; color:#1b5e20; margin-top:18px;">{line.replace("###", "").strip()}</h3>')
+                            elif line.strip().startswith("##"):
+                                html_output.append(f'<h2 style="font-family:Arial; color:#2e7d32; margin-top:22px;">{line.replace("##", "").strip()}</h2>')
+                            elif line.strip().startswith("#"):
+                                html_output.append(f'<h1 style="font-family:Arial; color:#111111; text-align:center;">{line.replace("#", "").strip()}</h1>')
+                            elif line.strip().startswith("-") or line.strip().startswith("*"):
+                                # Bersihkan tanda bintang tebal di list poin
+                                bullet_text = line.strip()[1:].strip().replace("**", "")
+                                html_output.append(f'<li style="font-family:Arial; font-size:11pt; margin-left:20px; margin-bottom:6px;">{bullet_text}</li>')
+                            else:
+                                # Bersihkan teks paragraf biasa dari bintang-bintang tebal markdown
+                                clean_line = line.replace("**", "")
+                                html_output.append(f'<p style="font-family:Arial; font-size:11pt; line-height:1.5;">{clean_line}</p>')
+                                
+                    if in_table:
+                        html_output.append("</table>")
+                        
+                    return "\n".join(html_output)
+
+                # Jalankan mesin konversi terhadap teks Gemini
+                html_body_content = markdown_to_html_word(st.session_state.response_audit_ai)
+                
+                # Bungkus ke dalam template dokumen resmi Microsoft Word (MIME type HTML)
+                word_html_template = f"""
+                <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://w3.org'>
+                <head>
+                    <title>Laporan Audit Finansial Kayyisa Travel</title>
+                    <!--[if gte mso 9]>
+                    <xml>
+                        <w:WordDocument>
+                            <w:View>Print</w:View>
+                            <w:Zoom>100</w:Zoom>
+                        </w:WordDocument>
+                    </xml>
+                    <![endif]-->
+                </head>
+                <body style="font-family:Arial; padding:40px;">
+                    <div style="text-align:center; margin-bottom:30px;">
+                        <h1 style="font-family:Arial; margin-bottom:4px; color:#111111;">🏛️ REKOMENDASI CFO & LAPORAN AUDIT STRATEGIS</h1>
+                        <p style="font-family:Arial; font-size:10pt; color:#666666; margin-top:0px;">
+                            <b>Kayyisa Tour & Travel — Business Management System</b><br>
+                            Tanggal Cetak Dokumen: {date.today().strftime('%d %B %Y')}
+                        </p>
+                    </div>
+                    <hr style="border:1px solid #cccccc; margin-bottom:24px;">
+                    {html_body_content}
+                </body>
+                </html>
+                """
+                
+                # Sediakan tombol unduh Word pintar yang dijamin rapi kotak-kotaknya
+                st.download_button(
+                    label="📝 Unduh Dokumen Laporan Word Resmi (.doc)",
+                    data=word_html_template,
+                    file_name=f"Laporan_Audit_Kayyisa_Travel_{date.today().strftime('%Y%m%d')}.doc",
+                    mime="application/msword",
+                    type="primary",
+                    key="btn_download_word_html_v3"
+                )
 
 # ---------------------------
 # Streamlit UI

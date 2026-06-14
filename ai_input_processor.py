@@ -88,7 +88,7 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
     🧮 ATURAN MATEMATIKA PECAH BARIS & HARGA ECERAN:
     1. UNTUK JALUR BISNIS: Periksa nama penumpang atau tamu terlebih dahulu.
        - JIKA nama tamu/penumpang BERBEDA-BEDA (cth: Jane Susanna & Gascha Firga), Anda WAJIB memecah data menjadi beberapa baris entri, lalu bagi rata nominal total vendor/internal dengan jumlah pax/kamar tersebut.
-       - JIKA nama tamu/penumpang SAMA TUNGGAL namun memesan beberapa kamar/tiket sekaligus (ANTI-SPLIT DATA), Anda DILARANG keras memecahnya. Satukan menjadi 1 BARIS ENTRI TUNGGAL dan gunakan nominal total keseluruhan secara utuh (JANGAN dibagi rata).
+       - JIKA nama tamu/penumpang YANG SAMA/NAMA TUNGGAL, memesan lebih dari 1 kamar/tiket sekaligus (ANTI-SPLIT DATA), Anda DILARANG keras memecahnya. Satukan menjadi 1 BARIS ENTRI TUNGGAL dan gunakan nominal total keseluruhan secara utuh (JANGAN dibagi rata).
 
     2. Perhitungan "harga_beli" (MODAL PER KAMAR / PER PAX):
        - Cari teks nominal modal yang dibayarkan ke pihak vendor/OTA. Kata kuncinya wajib berada di dekat kata 'JUMLAH PEMBAYARAN', 'TOTAL', atau 'Dibayar Hari Ini' pada rincian kuitansi vendor (Contoh pada teks: 'JUMLAH PEMBAYARAN 1.596.000').

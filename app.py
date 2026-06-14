@@ -1393,22 +1393,24 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
                     nama_cust_pribadi = df_save_pribadi["Nama Customer"] if "Nama Customer" in df_save_pribadi.columns else "Owner"
 
                     # Deteksi kolom Kategori secara fleksibel (Aman dari perbedaan huruf besar/kecil dari AI)
-                    if "Kategori" in df_save_pribadi.columns:
-                        kategori_final = df_save_pribadi["Kategori"]
-                    elif "kategori" in df_save_pribadi.columns:
+                    if "kategori" in df_save_pribadi.columns:
                         kategori_final = df_save_pribadi["kategori"]
+                    elif "Kategori" in df_save_pribadi.columns:
+                        kategori_final = df_save_pribadi["Kategori"]
                     else:
-                        kategori_final = "Pengeluaran" # Nilai fallback jika kolom belum diproduksi AI
+                        kategori_final = "Pengeluaran"
+
+                    # Ambil bank sumber secara fleksibel dari kolom detail_dana
+                    bank_final = df_save_pribadi["detail_dana"] if "detail_dana" in df_save_pribadi.columns else "BCA"
 
                     df_pribadi_structured = pd.DataFrame({
-                        "Tanggal": df_save_pribadi["Tgl Pemesanan"] if "Tgl Pemesanan" in df_save_pribadi.columns else df_save_pribadi.get("tgl_pemesanan", tgl_sekarang_str),
-                        "Bank_Sumber": df_save_pribadi["Detail Dana"] if "Detail Dana" in df_save_pribadi.columns else df_save_pribadi.get("platform", "BCA"), 
-                        "No_Rekening_AI": df_save_pribadi["No Rekening"] if "No Rekening" in df_save_pribadi.columns else df_save_pribadi.get("no_rekening", "Rumah Tangga"),
+                        "Tanggal": df_save_pribadi["tgl_pemesanan"] if "tgl_pemesanan" in df_save_pribadi.columns else tgl_sekarang_str,
+                        "Bank_Sumber": bank_final, 
+                        "No_Rekening_AI": df_save_pribadi["no_rekening"] if "no_rekening" in df_save_pribadi.columns else "Rumah Tangga",
                         "Kategori": kategori_final,
-                        "Nominal": df_save_pribadi["Harga Jual"] if "Harga Jual" in df_save_pribadi.columns else df_save_pribadi.get("harga_jual", 0),
+                        "Nominal": df_save_pribadi["harga_jual"] if "harga_jual" in df_save_pribadi.columns else 0,
                         "Keterangan": item_name_pribadi.astype(str) + " - " + nama_cust_pribadi.astype(str)
                     })
-
                     
                     # Eksekusi Tembak Massal ke GSheets dengan Konversi Tipe Data String Bersih
                     try:

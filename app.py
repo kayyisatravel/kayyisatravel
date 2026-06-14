@@ -1204,15 +1204,37 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
                                 updated_row[col] = ""
                             continue
                             
-                        # ========== HANDLE TANGGAL ==========
-                        elif col in ["Tgl Pemesanan", "Tgl Berangkat"]:
-                            try: 
-                                val = pd.to_datetime(val).date()
-                            except: 
-                                val = pd.Timestamp.today().date()
-                            new_val = st.date_input(f"{col} (Baris {i})", value=val, key=f"{col}_{i}")
+                        # ========== HANDLE TANGGAL (FIX VALUEERROR) ==========
+                        if col in ["Tgl Pemesanan", "Tgl Berangkat"]:
+                            import datetime
+                            
+                            # Logika Normalisasi: Paksa string dari AI menjadi objek date resmi Python
+                            if isinstance(val, str) and val.strip() != "":
+                                try:
+                                    # Coba tebak jika formatnya DD-MM-YYYY (Bawaan Prompt AI kita)
+                                    val_date = pd.to_datetime(val, dayfirst=True).date()
+                                except:
+                                    try:
+                                        # Cadangan jika formatnya YYYY-MM-DD
+                                        val_date = pd.to_datetime(val).date()
+                                    except:
+                                        val_date = datetime.date.today()
+                            elif isinstance(val, (pd.Timestamp, datetime.datetime)):
+                                val_date = val.date()
+                            elif isinstance(val, datetime.date):
+                                val_date = val
+                            else:
+                                # Jika data kosong/NaT, setel otomatis ke tanggal hari ini
+                                val_date = datetime.date.today()
+                                
+                            new_val = st.date_input(
+                                f"{col} (Baris {i})", 
+                                value=val_date, 
+                                key=f"{col}_{i}"
+                            )
                             updated_row[col] = new_val
                             continue
+
                             
                         # ========== HANDLE NUMERIC REAKTIF LIVE UPDATE ==========
                         elif col in ["Harga Beli", "Harga Jual", "Laba", " % Laba"]:

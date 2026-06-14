@@ -3721,7 +3721,24 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
 
         st.markdown("---")
 
-        # 🧮 Proses sisa perhitungan metrik, tabel aging, dan AI Auditor murni hanya dari df_filtered yang super ringan
+        if 'df_cashflow_combined' not in locals() and 'df_cashflow_combined' not in globals():
+            df_cashflow_combined = pd.DataFrame(columns=["Invoice_Key", "Jumlah", "Tipe"])
+            
+        # paksa sistem memanggil fungsi load_data_all_tabs() untuk menyedot data segar dari GSheets
+        if 'df_pribadi' in locals() or 'df_pribadi' in globals():
+            df_pribadi_current = df_pribadi
+        else:
+            try:
+                # Panggil fungsi penarik multi-tab global milik Anda
+                _, df_pribadi_fresh = load_data_all_tabs()
+                df_pribadi_current = df_pribadi_fresh
+            except:
+                # Jika fungsi load gagal/belum terbaca di scope ini, buatkan DataFrame cadangan agar anti-crash
+                df_pribadi_current = pd.DataFrame(columns=["Tanggal", "Bank_Sumber", "No_Rekening_AI", "Kategori", "Nominal", "Keterangan"])
+
+        # =========================================================================
+        # 🚀 EKSEKUSI ENGINE V5: Panggil dengan 3 Parameter Data yang Sudah Steril
+        # =========================================================================
         metrics = finance_engine.hitung_performa_dan_reconciliation_v5(
             df_filtered, 
             df_pribadi_current, 

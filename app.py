@@ -1154,9 +1154,9 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
                     if hj <= 0:
                         pemberitahuan_masalah_data.append(f"Entri ke-{idx} (Pribadi: {item.get('item_name')}) ➔ Nominal belanja kosong!")
 
-                    # 🛡️ FIX URUTAN: Deklarasikan variabel penangkap AI ini di ATAS append dictionary
-                    bank_terdeteksi_ai = item.get("Detail Dana", "BCA") if item.get("detail_dana") else "BCA"
-                    sumber_dana_ai = item.get("sumber_dana", "Dana Tunai/Cash") if item.get("sumber_dana") else "Dana Tunai/Cash"
+                    # Mengambil properti bank dan kategori secara presisi menggunakan key huruf kecil hasil output Pydantic
+                    bank_terdeteksi_ai = item.get("detail_dana") if item.get("detail_dana") else "BCA"
+                    kategori_terdeteksi_ai = item.get("kategori") if item.get("kategori") else "Pengeluaran"
 
                     ai_entries.append({
                         'Tgl Pemesanan': tgl_final_pilihan, 
@@ -1169,16 +1169,20 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
                         'Harga Beli': 0, 
                         'Harga Jual': hj, 
                         'Laba': 0,
-                        'Tipe': '', 'BF/NBF': '', 'No Invoice': '', 
+                        'Tipe': '', 
+                        'BF/NBF': '', 
+                        'No Invoice': '', 
                         'Keterangan': item.get("keterangan_tambahan", "Mutasi Pribadi"),
                         'Pemesan': 'OWNER', 
                         'Admin': 'PA', 
                         ' % Laba': '0.0%',
-                        'Sumber Dana': sumber_dana_ai, 
+                        'Sumber Dana': 'Dana Tunai/Cash', 
                         'Detail Dana': bank_terdeteksi_ai, 
                         'Platform': 'Lainnya',
-                        'No Rekening': item.get("no_rekening", "Rumah Tangga")
+                        'No Rekening': item.get("no_rekening", "Rumah Tangga"),
+                        'Kategori': kategori_terdeteksi_ai # Menyuntikkan kolom Kategori resmi ke dalam dictionary tabel data Anda
                     })
+
 
             # =========================================================================
             # 🛡️ TRIK PAMUNGKAS: FORCE OVERWRITE DATAFRAME LEVEL (ANTI-BOCOR DATA)

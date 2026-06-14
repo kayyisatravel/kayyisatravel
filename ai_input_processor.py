@@ -5,7 +5,7 @@ from google.genai import types
 from pydantic import BaseModel, Field
 from typing import Optional, List
 import json
-import datetime
+from datetime import datetime
 
 
 tgl_sekarang_str = datetime.date.today().strftime("%Y-%m-%d")
@@ -69,7 +69,7 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
         return None
 
     # Teks prompt murni (Kurung kurawal tunggal karena tidak menggunakan f-string)
-    prompt_rules = """
+    prompt_rules = f"""
     Anda adalah sistem kecerdasan buatan entri data akuntansi profesional terpadu untuk Kayyisa Tour & Travel.
     Tugas Anda adalah mengekstrak data input (teks chat WA, rekaman suara dikte, atau foto nota/struk) menjadi struktur data JSON secara presisi.
     
@@ -118,7 +118,9 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
        - "bf_status": Isi 'BF' (jika ada sarapan) atau 'NBF' (jika tanpa sarapan/Room Only).
     3. Tipe KERETA (Termasuk Whoosh): "item_name" format penulisan WAJIB: [Nama Kereta] [Singkatan Kelas] [Nomor Gerbong]/[Nomor Kursi] (Contoh: "Sembrani Eks 4/5D"). Durasi format 'HH:MM - HH:MM'. Rute berisi kode stasiun asal - tujuan (cth: "GMR - SBI").
        INGAT: Jika kelasnya 'Business Class', singkatan kelasnya adalah 'Bis' (Contoh: "Whoosh Bis 2/4A"). JANGAN PERNAH menulis kata "Bus"!
-    4. TANGGAL: Format standar ISO 'YYYY-MM-DD'. Jika tanggal pemesanan ragu, samakan dengan tgl berangkat.
+    4. TANGGAL: Format standar ISO 'YYYY-MM-DD'. 
+       - Jika teks menyebutkan kata 'Hari ini', 'Sekarang', atau tanggal tidak terdeteksi, Anda WAJIB menggunakan tanggal acuan ini: {tgl_sekarang_str}.
+       - Untuk JALUR PRIBADI (Is_Bisnis: false), kolom "tgl_berangkat" WAJIB hukumnya diisi string kosong "" tanpa pengecualian, jangan pernah memasukkan tanggal apa pun di sana.
     5. PLATFORM: Pilih salah satu dari: "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin", "KAI Access", "RedDoorz", "Lainnya".
     6. KETERANGAN PAKET TAMBAHAN: Jika di dalam teks input terdapat informasi paket wisata tambahan (add-on promo ticket seperti Dufan, Ancol, Jatim Park, dll), kamu WAJIB menuliskan nama paket tersebut secara ringkas ke dalam field "keterangan_tambahan" agar datanya tidak hilang.
        

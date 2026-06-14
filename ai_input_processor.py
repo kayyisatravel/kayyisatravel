@@ -29,6 +29,7 @@ class AIUniversalEntry(BaseModel):
     platform: str = Field(description="Nama vendor/platform booking. Set 'Lainnya' jika transaksi pribadi.")
     no_rekening: str = Field(description="Wajib pilih salah satu jika Is_Bisnis false: 'Aset Kantor', 'Rumah Tangga', 'Lifestyle', 'Investasi', 'Cadangan Bisnis', 'Dana Sosial / Titipan'. Jika Is_Bisnis true: wajib kosongkan ''.")
     keterangan_tambahan: str = Field(description="Catatan ringkas pendukung transaksi atau nama paket wisata tambahan (add-on promo).")
+    detail_dana: str = Field(alias="Detail Dana", description="Jika terdapat tulisan nama bank, maka WAJIB ekstrak nama bank yang tertulis di teks secara tepat: 'Mandiri', 'BSI', 'BCA', 'BNI', 'BRI', 'OVO', 'DANA', atau 'SeaBank'")
 
 class AIUniversalParserResult(BaseModel):
     entries: List[AIUniversalEntry]

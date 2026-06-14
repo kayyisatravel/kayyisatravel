@@ -19,8 +19,8 @@ class AIUniversalEntry(BaseModel):
     durasi: str = Field(description="Durasi menginap hotel atau jam perjalanan transportasi. WAJIB kosongkan '' jika Is_Bisnis adalah false.")
     nama_customer: str = Field(description="Nama penumpang/tamu yang sudah dibersihkan sesuai EYD baku, atau nama toko belanja pribadi.")
     rute: str = Field(description="Kode bandara 3 huruf, stasiun, atau nama kota hotel. WAJIB kosongkan '' jika Is_Bisnis adalah false.")
-    harga_beli: int = Field(description="Harga modal/beli total dibagi rata per kamar/pax (integer bersih). Set 0 jika pribadi atau bisnis via redeem point.")
-    harga_jual: int = Field(description="Harga jual ke pembeli total dibagi rata per kamar/pax (integer bersih) atau nominal total uang belanja jika transaksi pribadi.")
+    harga_beli: int = Field(description="Angka murni integer modal per unit (pax/kamar). Jika kondisi ANTI-SPLIT DATA aktif (nama tamu sama/tunggal), gunakan nominal TOTAL keseluruhan vendor secara utuh tanpa dibagi rata. Set 0 jika transaksi pribadi.")
+    harga_jual: int = Field(description="Angka murni integer jual per unit (pax/kamar). Sesuai urutan prioritas: 1) Manual admin 'Jual/Harga', 2) Tabel internal itinerary. Jika kondisi ANTI-SPLIT DATA aktif (nama tamu sama/tunggal), gunakan nominal TOTAL keseluruhan internal secara utuh tanpa dibagi rata. Untuk pribadi: isi nominal total belanja.")
     tipe: str = Field(description="Jika Is_Bisnis true, wajib pilih: 'PESAWAT', 'HOTEL', atau 'KERETA'. Jika Is_Bisnis false, wajib kosongkan ''.")
     bf_status: str = Field(description="Khusus HOTEL bisnis: isi 'BF' atau 'NBF'. Transportasi atau pribadi wajib kosongkan ''.")
     platform: str = Field(description="Nama vendor/platform booking. Set 'Lainnya' jika transaksi pribadi.")
@@ -90,10 +90,9 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
        - JIKA nama tamu/penumpang BERBEDA-BEDA (cth: Jane Susanna & Gascha Firga), Anda WAJIB memecah data menjadi beberapa baris entri, lalu bagi rata nominal total vendor/internal dengan jumlah pax/kamar tersebut.
        - JIKA nama tamu/penumpang YANG SAMA/NAMA TUNGGAL, memesan lebih dari 1 kamar/tiket sekaligus (ANTI-SPLIT DATA), Anda DILARANG keras memecahnya. Satukan menjadi 1 BARIS ENTRI TUNGGAL dan gunakan nominal total keseluruhan secara utuh (JANGAN dibagi rata).
 
-    2. Perhitungan "harga_beli" (MODAL PER KAMAR / PER PAX):
-       - Cari teks nominal modal yang dibayarkan ke pihak vendor/OTA. Kata kuncinya wajib berada di dekat kata 'JUMLAH PEMBAYARAN', 'TOTAL', atau 'Dibayar Hari Ini' pada rincian kuitansi vendor (Contoh pada teks: 'JUMLAH PEMBAYARAN 1.596.000').
-       - Kamu WAJIB membagi rata nominal total vendor tersebut dengan jumlah kamar atau jumlah penumpang (Contoh: 1.596.000 / 2 kamar = 798000).
-       - Masukkan hasil pembagian bersih per kamar/per pax ini sebagai "harga_beli". Set 0 jika bisnis via redeem point.
+    2.     2. Perhitungan "harga_beli" (MODAL):
+       - Cari teks nominal modal yang dibayarkan ke pihak vendor/OTA (di dekat kata 'JUMLAH PEMBAYARAN', 'TOTAL', atau 'Dibayar Hari Ini'). 
+       - Ikuti aturan nama tamu: Jika nama tamu berbeda-beda, bagi rata nominal tersebut dengan jumlah kamar/pax. Jika nama tamu tunggal (ANTI-SPLIT DATA), ambil nominal total tersebut secara utuh (2.608.500) tanpa pembagian. Masukkan hasilnya ke field "harga_beli". Set 0 jika bisnis via redeem point atau transaksi pribadi.
     3. Perhitungan "harga_jual" (HARGA TOKO PER KAMAR / PER PAX):
        - Langkah 1: Jika admin mengetik kata manual (cth: 'Jual 950000'), gunakan angka itu. Atau (ATURAN SHORTCUT): Jika admin mengetik manual kata 'Harga' diikuti nominal angka (Contoh: 'Harga Rp 1.000.000' atau 'Harga 1000000'), maka nominal tersebut WAJIB kamu tetapkan sebagai "harga_jual".
        - Langkah 2: Jika tidak ada input manual, cari teks nominal yang ditawarkan ke konsumen di dalam tabel itinerary internal Kayyisa. Kata kuncinya berada di dekat label 'Total Harga' atau 'Rate per Malam' (Contoh pada teks: 'Total Harga Rp 1.860.000').

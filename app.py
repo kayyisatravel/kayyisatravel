@@ -4004,7 +4004,7 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
         # --- TAB 3: AUDIT FORENSIK OTOMATIS GEMINI 3.1 FLASH LITE ---
         with tab_ai_audit:
             st.subheader("🕵️‍♂️ Laporan Hasil Penelaahan Audit Forensik AI")
-            st.info("Fitur ini meringkas data indikator keuangan Anda lalu mengirimkannya ke Gemini 3.1 Flash Lite untuk di-audit secara berkala.")
+            st.info("Fitur ini meringkas data indikator keuangan Anda lalu mengirimkannya ke Gemini 2.5 Flash untuk di-audit secara berkala.")
             
             val_total_transaksi = metrics.get('total_transaksi', len(df_filtered))
             val_pendapatan = metrics.get('pendapatan', 0.0)
@@ -4025,11 +4025,25 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
             val_kas_riil = metrics.get('kas_riil', (val_pendapatan - val_total_piutang) - val_hpp)
             val_keterikatan_modal = metrics.get('rasio_keterikatan_modal', (val_total_piutang / val_pendapatan * 100) if val_pendapatan > 0 else 0.0)
             val_kerentanan_laba = metrics.get('rasio_kerentanan_laba', (val_total_piutang / val_laba_bersih * 100) if val_laba_bersih > 0 else 0.0)
+            
+            # 🏦 SUNTIKAN INTEGRASI JALUR KAS PRIBADI & ATM NYATA (RULES BARU)
+            saldo_bank_map = metrics.get("saldo_bank_riil", {})
+            alokasi_ai_map = metrics.get("alokasi_ai", {})
+            
+            # Forensik otomatis mencari apakah ada rekening ATM aktif yang minus/defisit
+            list_bank_defisit = [f"Bank {b_k} (Minus Rp {int(abs(b_v)):,})" for b_k, b_v in saldo_bank_map.items() if b_v < 0]
+            text_status_defisit_atm = ", ".join(list_bank_defisit) if list_bank_defisit else "Semua Rekening Bank Normal/Positif"
+            
+            # Format teks rincian saldo fisik ATM
+            text_rincian_atm_riil = ""
+            for b_name, b_val in saldo_bank_map.items():
+                text_rincian_atm_riil += f"  * Saldo {b_name}: Rp {int(b_val):,}\n"
+
             # ----------------------------------------------------------------------
 
-            # Merakit Paket Payload Senjata Lengkap ke Gemini (100% Bebas Crash KeyError!)
+            # Merakit Paket Payload Senjata Lengkap dengan Tambahan Sektor Dompet Pribadi
             text_payload_ai = f"""
-            INDIKATOR UTAMA AKUNTANSI:
+            INDIKATOR UTAMA AKUNTANSI BISNIS TRAVEL:
             - Total Baris Transaksi Terproses: {val_total_transaksi} baris
             - Omzet Penjualan Kotor: Rp {int(val_pendapatan):,}
             - Total Pengeluaran Modal (HPP): Rp {int(val_hpp):,}
@@ -4054,6 +4068,14 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
             
             DAFTAR NAMA PENGUTANG (TOP DEBITUR TERBESAR):
             {val_text_debitur}
+            
+            🏦 INTEGRASI MUTASI KAS NYATA & DOMPET PRIBADI (REAL-TIME ATM):
+            - Temuan Status Krisis Defisit ATM: {text_status_defisit_atm}
+            - Posisi Saldo Fisik Buku Tabungan Aktif:
+            {text_rincian_atm_riil}
+            - Alokasi Plafon Anggaran AI Rumah Tangga & KPR (Porsi 50%): Rp {int(alokasi_ai_map.get("rumah_tangga", 0)):,}
+            - Alokasi Plafon Anggaran AI Investasi Masa Depan (Porsi 30%): Rp {int(alokasi_ai_map.get("investasi", 0)):,}
+            - Alokasi Plafon Anggaran AI Lifestyle / Jajan (Porsi 20%): Rp {int(alokasi_ai_map.get("lifestyle", 0)):,}
             """
                 
             if "response_audit_ai" not in st.session_state:
@@ -4061,6 +4083,7 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
                 
             if st.button("🔍 Mulai Jalankan Audit Finansial Sekarang", type="primary", key="btn_audit_keuangan_v2"):
                 with st.spinner("Gemini AI sedang meneliti struktur pembukuan dan mengalkulasi risiko keuangan Anda..."):
+                    # Ganti parameter pemanggilan di file ai_auditor.py Anda
                     hasil_lhpa = ai_auditor.audit_forensik_dashboard(text_payload_ai)
                     st.session_state.response_audit_ai = hasil_lhpa
                     
@@ -4069,6 +4092,7 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
                 st.markdown(st.session_state.response_audit_ai)
 
                 import re
+
             
                 # 🛠️ Mesin Mini Pengubah Otomatis: Mengubah Tabel Markdown Gemini Menjadi Tabel HTML Word Resmi
                 def markdown_to_html_word(md_text):

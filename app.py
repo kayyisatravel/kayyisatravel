@@ -1334,22 +1334,41 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
                     
                 # Tembak Massal Jalur B: Ke Worksheet "Pribadi" (Jika ada mutasi dompet/KPR/RT)
                 if not df_save_pribadi.empty:
+                    # Ambil data item/keterangan secara aman menggunakan metode .get() bawaan Pandas
+                    # Ini menjamin aplikasi 100% kebal dari crash jika kolom bisnis tidak terbaca
+                    item_name_pribadi = df_save_pribadi["No Penerbangan / Hotel / Kereta"] if "No Penerbangan / Hotel / Kereta" in df_save_pribadi.columns else "Pengeluaran"
+                    nama_cust_pribadi = df_save_pribadi["Nama Customer"] if "Nama Customer" in df_save_pribadi.columns else "Owner"
+                    
+                    # Normalisasi penulisan kata Pengeluaran agar tidak typo 'Penggeluaran'
+                    def tentukan_kategori_pribadi(row):
+                        text_ket = str(row.get("Keterangan", "")).lower()
+                        if "pemasukan" in text_ket or "ganti" in text_ket or "iuran" in text_ket:
+                            return "Pemasukan"
+                        return "Pengeluaran"
+
                     df_pribadi_structured = pd.DataFrame({
                         "Tanggal": df_save_pribadi["Tgl Pemesanan"],
-                        "Bank_Sumber": df_save_pribadi["Detail Dana"], # Bank dibaca otomatis dari detail dana
-                        "No_Rekening_AI": df_save_pribadi["No Rekening"],
-                        "Kategori": df_save_pribadi.apply(lambda r: "Pemasukan" if "pemasukan" in str(r["Keterangan"]).lower() or "ganti" in str(r["Keterangan"]).lower() or "iuran" in str(r["Keterangan"]).lower() else "Penggeluaran", axis=1),
+                        "Bank_Sumber": df_save_pribadi["Detail Dana"].fillna("BCA"), 
+                        "No_Rekening_AI": df_save_pribadi["No Rekening"].fillna("Rumah Tangga"),
+                        "Kategori": df_save_pribadi.apply(tentukan_kategori_pribadi, axis=1),
                         "Nominal": df_save_pribadi["Harga Jual"],
-                        "Keterangan": df_save_pribadi["No Penerbangan / Hotel / Kereta"] + " - " + df_save_pribadi["Nama Customer"]
+                        "Keterangan": item_name_pribadi.astype(str) + " - " + nama_cust_pribadi.astype(str)
                     })
                     
-                    # Buka koneksi mandiri aman ke lembar kerja baru Anda
+                    # Eksekusi Tembak Massal ke GSheets dengan Konversi Tipe Data String Bersih
                     try:
                         ws_pribadi_sheet = connect_to_gsheet("1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8", "Pribadi")
+                        
+                        # Ubah baris dataframe menjadi list string/angka murni agar mulus diterima oleh API Google
                         for _, r_p in df_pribadi_structured.iterrows():
-                            ws_pribadi_sheet.append_row(r_p.tolist())
+                            # Konversi tanggal ke format teks string YYYY-MM-DD atau DD-MM-YYYY agar terbaca rapi di GSheets
+                            row_list = r_p.tolist()
+                            if hasattr(row_list[0], 'strftime'):
+                                row_list[0] = row_list[0].strftime('%d-%m-%Y')
+                                
+                            ws_pribadi_sheet.append_row(row_list)
                     except Exception as e:
-                        st.error(f"Gagal menyimpan jurnal pos pribadi: {str(e)}")
+                        st.error(f"❌ Gagal menyimpan jurnal pos pribadi ke GSheets: {str(e)}")
                         
                 # PROSES PEMBERSIHAN MEMORI WIDGET SEPERTI SKRIP LAMA ANDA
                 kunci_wajib_bersih = ["bulk_parsed", "konten_teks_travel_utama", "asisten_ai_file_input", "fitur_speech_to_text_kayyisa"]

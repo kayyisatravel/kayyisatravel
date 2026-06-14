@@ -1409,13 +1409,14 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
                     bank_final = df_save_pribadi["detail_dana"] if "detail_dana" in df_save_pribadi.columns else "BCA"
 
                     df_pribadi_structured = pd.DataFrame({
-                        "Tanggal": df_save_pribadi["tgl_pemesanan"] if "tgl_pemesanan" in df_save_pribadi.columns else tgl_sekarang_str,
-                        "Bank_Sumber": bank_final, 
-                        "No_Rekening_AI": df_save_pribadi["no_rekening"] if "no_rekening" in df_save_pribadi.columns else "Rumah Tangga",
-                        "Kategori": kategori_final,
-                        "Nominal": df_save_pribadi["harga_jual"] if "harga_jual" in df_save_pribadi.columns else 0,
+                        "Tanggal": df_save_pribadi["Tgl Pemesanan"] if "Tgl Pemesanan" in df_save_pribadi.columns else tgl_sekarang_str,
+                        "Bank_Sumber": df_save_pribadi["Detail Dana"] if "Detail Dana" in df_save_pribadi.columns else "BCA", 
+                        "No_Rekening_AI": df_save_pribadi["No Rekening"] if "No Rekening" in df_save_pribadi.columns else "Rumah Tangga",
+                        "Kategori": df_save_pribadi["Kategori"] if "Kategori" in df_save_pribadi.columns else "Pengeluaran",
+                        "Nominal": df_save_pribadi["Harga Jual"] if "Harga Jual" in df_save_pribadi.columns else 0,
                         "Keterangan": item_name_pribadi.astype(str) + " - " + nama_cust_pribadi.astype(str)
                     })
+
                     
                     # Eksekusi Tembak Massal ke GSheets dengan Konversi Tipe Data String Bersih
                     try:

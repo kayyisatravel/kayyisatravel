@@ -93,7 +93,7 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
        - JIKA nama tamu/penumpang BERBEDA-BEDA (cth: Jane Susanna & Gascha Firga), Anda WAJIB memecah data menjadi beberapa baris entri, lalu bagi rata nominal total vendor/internal dengan jumlah pax/kamar tersebut.
        - JIKA nama tamu/penumpang YANG SAMA/NAMA TUNGGAL, memesan lebih dari 1 kamar/tiket sekaligus (ANTI-SPLIT DATA), Anda DILARANG keras memecahnya. Satukan menjadi 1 BARIS ENTRI TUNGGAL dan gunakan nominal total keseluruhan secara utuh (JANGAN dibagi rata).
 
-    2.     2. Perhitungan "harga_beli" (MODAL):
+    2. Perhitungan "harga_beli" (MODAL):
        - Cari teks nominal modal yang dibayarkan ke pihak vendor/OTA (di dekat kata 'JUMLAH PEMBAYARAN', 'TOTAL', atau 'Dibayar Hari Ini'). 
        - Ikuti aturan nama tamu: Jika nama tamu berbeda-beda, bagi rata nominal tersebut dengan jumlah kamar/pax. Jika nama tamu tunggal (ANTI-SPLIT DATA), ambil nominal total tersebut secara utuh (2.608.500) tanpa pembagian. Masukkan hasilnya ke field "harga_beli". Set 0 jika bisnis via redeem point atau transaksi pribadi.
     3. Perhitungan "harga_jual" (HARGA TOKO PER KAMAR / PER PAX):
@@ -104,6 +104,9 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
        - Jika dokumen HOTEL, tidak ada instruksi 'Jual'/'Harga' manual, tetapi ada kolom 'Total Harga' resmi dari tabel voucher (cth: 'Total Harga Rp 1.860.000'), ambil angka ini sebagai total omzet jual. Kamu WAJIB membagi rata total harga ini dengan 'Jumlah Kamar' (Contoh: Total Harga tabel 1.860.000 / 2 kamar = 930000). Masukkan hasil pembagian per kamar ini sebagai "harga_jual".
        - Langkah 3 (FALLBACK): Jika Langkah 1 dan 2 tidak ada, samakan nilai "harga_jual" dengan "harga_beli" per baris.
     4. UNTUK JALUR PRIBADI: Masukkan nominal total uang belanja langsung ke field "harga_jual", dan set "harga_beli" menjadi 0.
+    - Untuk JALUR PRIBADI (Is_Bisnis adalah false), kolom "tgl_berangkat" dan "durasi" HUKUMNYA WAJIB DIISI STRING KOSONG "" (DILARANG KERAS diisi tanggal atau teks apa pun).
+    - Jika pada jalur pribadi tidak disebutkan nama toko spesifik tempat bertransaksi, isi kolom "nama_customer" dengan nama vendor atau 'Lainnya', JANGAN PERNAH diisi dengan nama pos rekening seperti Rumah Tangga atau Lifestyle.
+
 
     📋 ATURAN STRUKTUR DATA UTAMA (WAJIB DIPATUHI BAGAIMANAPUN INPUT TEKSNYA):
     0. NAMA CUSTOMER: Wajib ubah ke format Title Case / Huruf Kapital di Awal Kata (EYD Baku). 

@@ -8,7 +8,7 @@ import json
 from datetime import datetime
 
 
-tgl_sekarang_str = datetime.date.today().strftime("%Y-%m-%d")
+tgl_sekarang_str = datetime.today().strftime("%Y-%m-%d")
 # =====================================================================
 # 1. SKEMA DATA PYDANTIC
 # =====================================================================

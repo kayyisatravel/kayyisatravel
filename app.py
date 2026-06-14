@@ -4160,7 +4160,11 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
                     key="btn_download_word_html_v3"
                 )
 
-#=============================================================================
+metrics = finance_engine.hitung_performa_dan_reconciliation_v5(
+            df_filtered, 
+            df_pribadi_current, 
+            df_cashflow_combined
+        )
 # =========================================================================
 # 🎨 TAHAP VISUALISASI: RENDER KARTU SALDO MULTI-BANK & ANGGARAN DIGITAL AI
 # =========================================================================

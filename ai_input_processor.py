@@ -7,7 +7,7 @@ from typing import Optional, List
 import json
 
 # =====================================================================
-# 1. SKEMA DATA PYDANTIC (Mengunci Output & Struktur Kolom Database)
+# 1. SKEMA DATA PYDANTIC
 # =====================================================================
 class AIUniversalEntry(BaseModel):
     Is_Bisnis: bool = Field(description="True jika transaksi tiket/hotel pelanggan. False jika pengeluaran pribadi/operasional rumah-kantor.")
@@ -32,7 +32,7 @@ class AIUniversalParserResult(BaseModel):
 
 
 # =====================================================================
-# 2. LOGIKA PYTHON KONVENSIONAL (MAPPING BANK DARI SKRIP LAMA)
+# 2. LOGIKA PYTHON KONVENSIONAL
 # =====================================================================
 def inisialisasi_gemini_client():
     """Mengaktifkan koneksi ke Google GenAI SDK menggunakan API Key dari secrets."""
@@ -51,7 +51,7 @@ def terapkan_otomatisasi_bank(platform_name: str) -> str:
     elif any(x in p_lower for x in ["agoda", "book cabin"]):
         return "BNI"
     else:
-        return "UOB"  # Default fallback dari skrip lama
+        return "UOB"
 
 
 # =====================================================================
@@ -60,13 +60,12 @@ def terapkan_otomatisasi_bank(platform_name: str) -> str:
 def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audio_input=None):
     """
     Core Engine Universal: Membaca teks, gambar, atau audio.
-    Menerapkan aturan perutean baru dengan akurasi hitungan matematika dan pembersihan data dari skrip lama.
     """
     client = inisialisasi_gemini_client()
     if not client:
         return None
 
-    # PROMPT GABUNGAN SEMPURNA: 100% Memasukkan Aturan Struktur Data Utama Anda
+    # Teks prompt murni (Kurung kurawal tunggal karena tidak menggunakan f-string)
     prompt_rules = """
     Anda adalah sistem kecerdasan buatan entri data akuntansi profesional terpadu untuk Kayyisa Tour & Travel.
     Tugas Anda adalah mengekstrak data input (teks chat WA, rekaman suara dikte, atau foto nota/struk) menjadi struktur data JSON secara presisi.
@@ -82,7 +81,7 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
          * 'Aset Kantor' : Untuk cicilan KPR rumah kantor kosong atau perbaikan properti kantor tersebut.
          * 'Rumah Tangga' : Untuk belanja dapur, listrik/air rumah tinggal, gaji ART, atau bensin harian mobil istri.
          * 'Lifestyle' : Untuk makan di mall (Trans Studio), jajan kopi, liburan keluarga, atau belanja konsumtif pribadi.
-         * 'Investasi' : For emas logam mulia, reksa dana, saham, atau tabungan masa depan mandiri.
+         * 'Investasi' : Untuk emas logam mulia, reksa dana, saham, atau tabungan masa depan mandiri.
          * 'Cadangan Bisnis' : Untuk setoran tabungan 40% laba toko atau penarikan dana darurat modal.
          * 'Dana Sosial / Titipan' : Khusus untuk iuran keamanan/RT titipan warga perumahan (Uang Sosial).
 
@@ -116,3 +115,43 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
     3. Tipe KERETA (Termasuk Whoosh): "item_name" format penulisan WAJIB: [Nama Kereta] [Singkatan Kelas] [Nomor Gerbong]/[Nomor Kursi] (Contoh: "Sembrani Eks 4/5D"). Durasi format 'HH:MM - HH:MM'. Rute berisi kode stasiun asal - tujuan (cth: "GMR - SBI").
        INGAT: Jika kelasnya 'Business Class', singkatan kelasnya adalah 'Bis' (Contoh: "Whoosh Bis 2/4A"). JANGAN PERNAH menulis kata "Bus"!
     4. TANGGAL: Format standar ISO 'YYYY-MM-DD'. Jika tanggal pemesanan ragu, samakan dengan tgl berangkat.
+    5. PLATFORM: Pilih salah satu dari: "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin", "KAI Access", "RedDoorz", "Lainnya".
+    6. KETERANGAN PAKET TAMBAHAN: Jika di dalam teks input terdapat informasi paket wisata tambahan (add-on promo ticket seperti Dufan, Ancol, Jatim Park, dll), kamu WAJIB menuliskan nama paket tersebut secara ringkas ke dalam field "keterangan_tambahan" agar datanya tidak hilang."""
+
+    content_payload = [prompt_rules]
+    
+    if text_input:
+        content_payload.append(f"INPUT TEKS/SUARA USER: {text_input}")
+    
+    if file_input:
+        content_payload.append(types.Part.from_bytes(data=file_input.getvalue(), mime_type=file_input.type))
+    
+    if audio_input:
+        content_payload.append(types.Part.from_bytes(data=audio_input.getvalue(), mime_type=audio_input.type))
+    
+    try:
+        response = client.models.generate_content(
+            model='gemini-3.1-flash-lite',
+            contents=content_payload,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=AIUniversalParserResult,
+                temperature=0.1
+            ),
+        )
+        
+        parsed_json = json.loads(response.text)
+        entries = parsed_json.get("entries", [])
+        
+        for entry in entries:
+            if entry.get("Is_Bisnis") is True:
+                bank_rekomendasi = terapkan_otomatisasi_bank(entry.get("platform", ""))
+                if bank_rekomendasi:
+                    entry["keterangan_tambahan"] = f"[{bank_rekomendasi}] {entry.get('keterangan_tambahan', '')}".strip()
+                    
+        return entries
+    
+    except Exception as e:
+        st.error(f"⚠️ Gagal mengekstrak dokumen melalui AI Engine Terpadu: {str(e)}")
+        return None
+

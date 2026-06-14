@@ -4101,7 +4101,7 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
 # =========================================================================
 # 🎨 TAHAP VISUALISASI: RENDER KARTU SALDO MULTI-BANK & ANGGARAN DIGITAL AI
 # =========================================================================
-with st.expander("✏️ Input Data Cashflow Manual"):
+with st.expander("Laporan Saldo Rekening Real Time"):
     st.markdown("### 🏦 I. Posisi Saldo Riil di Rekening Bank (Sesuai ATM)")
     st.caption("Angka di bawah dihitung otomatis dari akumulasi seluruh mutasi masuk dan keluar.")
     

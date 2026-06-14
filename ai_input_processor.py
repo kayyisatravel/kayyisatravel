@@ -2,8 +2,38 @@
 import streamlit as st
 from google import genai
 from google.genai import types
+from pydantic import BaseModel, Field
+from typing import Optional, List
 import json
 
+# =====================================================================
+# 1. SKEMA DATA PYDANTIC (Mengunci Output & Struktur Kolom Database)
+# =====================================================================
+class AIUniversalEntry(BaseModel):
+    Is_Bisnis: bool = Field(description="True jika transaksi tiket/hotel pelanggan. False jika pengeluaran pribadi/operasional rumah-kantor.")
+    Tabel_Tujuan: str = Field(description="Wajib diisi 'DATA' jika Is_Bisnis true, atau 'PRIBADI' jika Is_Bisnis false.")
+    tgl_pemesanan: str = Field(description="Format YYYY-MM-DD. Jika ragu/tidak terdeteksi, gunakan tanggal hari ini atau samakan dengan tgl berangkat.")
+    tgl_berangkat: str = Field(description="Format YYYY-MM-DD. WAJIB kosongkan '' jika Is_Bisnis adalah false.")
+    kode_booking: str = Field(description="Teks string kapital (PNR/ID Pesanan). WAJIB kosongkan '' jika Is_Bisnis adalah false.")
+    item_name: str = Field(description="Nama properti hotel, detail penerbangan/kereta, atau nama barang belanjaan pribadi sesuai aturan format ketat.")
+    durasi: str = Field(description="Durasi menginap hotel atau jam perjalanan transportasi. WAJIB kosongkan '' jika Is_Bisnis adalah false.")
+    nama_customer: str = Field(description="Nama penumpang/tamu yang sudah dibersihkan sesuai EYD baku, atau nama toko belanja pribadi.")
+    rute: str = Field(description="Kode bandara 3 huruf, stasiun, atau nama kota hotel. WAJIB kosongkan '' jika Is_Bisnis adalah false.")
+    harga_beli: int = Field(description="Angka murni integer modal per unit (pax/kamar). Set 0 jika pribadi atau bisnis via redeem point.")
+    harga_jual: int = Field(description="Angka murni integer jual per unit (pax/kamar) atau nominal total uang belanja jika transaksi pribadi.")
+    tipe: str = Field(description="Jika Is_Bisnis true, wajib pilih: 'PESAWAT', 'HOTEL', atau 'KERETA'. Jika Is_Bisnis false, wajib kosongkan ''.")
+    bf_status: str = Field(description="Khusus HOTEL bisnis: isi 'BF' atau 'NBF'. Transportasi atau pribadi wajib kosongkan ''.")
+    platform: str = Field(description="Nama vendor/platform booking. Set 'Lainnya' jika transaksi pribadi.")
+    no_rekening: str = Field(description="Wajib pilih salah satu jika Is_Bisnis false: 'Aset Kantor', 'Rumah Tangga', 'Lifestyle', 'Investasi', 'Cadangan Bisnis', 'Dana Sosial / Titipan'. Jika Is_Bisnis true: wajib kosongkan ''.")
+    keterangan_tambahan: str = Field(description="Catatan ringkas pendukung transaksi atau nama paket wisata tambahan (add-on promo).")
+
+class AIUniversalParserResult(BaseModel):
+    entries: List[AIUniversalEntry]
+
+
+# =====================================================================
+# 2. LOGIKA PYTHON KONVENSIONAL (MAPPING BANK DARI SKRIP LAMA)
+# =====================================================================
 def inisialisasi_gemini_client():
     """Mengaktifkan koneksi ke Google GenAI SDK menggunakan API Key dari secrets."""
     try:
@@ -13,83 +43,76 @@ def inisialisasi_gemini_client():
         st.error(f"❌ Autentikasi Gemini API Gagal: {str(e)}")
         return None
 
+def terapkan_otomatisasi_bank(platform_name: str) -> str:
+    """Mengakomodasi 100% aturan pembagian bank dari skrip lama Part 2"""
+    p_lower = platform_name.lower()
+    if any(x in p_lower for x in ["traveloka", "tiket", "kai", "access"]):
+        return "UOB"
+    elif any(x in p_lower for x in ["agoda", "book cabin"]):
+        return "BNI"
+    else:
+        return "UOB"  # Default fallback dari skrip lama
+
+
+# =====================================================================
+# 3. CORE ENGINE MULTIMODAL TERPADU
+# =====================================================================
 def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audio_input=None):
     """
-    Core Engine Input Universal: Membaca teks area, rekaman suara dikte, atau foto struk.
-    Otomatis mendeteksi parameter 'Is_Bisnis' dan 'Tabel_Tujuan' (DATA atau PRIBADI).
-    Mendukung kasus khusus Redeem Point (Harga Beli = 0) dan Uang Sosial RT.
+    Core Engine Universal: Membaca teks, gambar, atau audio.
+    Menerapkan aturan perutean baru dengan akurasi hitungan matematika dan pembersihan data dari skrip lama.
     """
     client = inisialisasi_gemini_client()
     if not client:
         return None
 
-    # INSTRUKSI KETAT PROMPT: Mengunci kecerdasan buatan agar patuh pada rules Kayyisa Travel
+    # PROMPT GABUNGAN SEMPURNA: 100% Memasukkan Aturan Struktur Data Utama Anda
     prompt_rules = """
-    Anda adalah sistem kecerdasan buatan entri data akuntansi profesional untuk Kayyisa Tour & Travel.
-    Tugas Anda adalah membaca data input (bisa berupa teks salinan chat WA, rekaman suara dikte, atau foto nota/struk pengeluaran).
-    
-    Ekstrak data tersebut secara objektif menjadi LIST OF DICTIONARIES dalam format JSON bersih.
+    Anda adalah sistem kecerdasan buatan entri data akuntansi profesional terpadu untuk Kayyisa Tour & Travel.
+    Tugas Anda adalah mengekstrak data input (teks chat WA, rekaman suara dikte, atau foto nota/struk) menjadi struktur data JSON secara presisi.
     
     🛡️ GERBANG ATURAN PENGALIHAN DATA (ROUTING RULES):
     1. Transaksi JALUR BISNIS (Set properti "Is_Bisnis": true, "Tabel_Tujuan": "DATA"):
        Jika input berisi manifes pemesanan tiket pesawat, booking hotel, atau tiket kereta api milik customer/klien.
-       - Tentukan kolom "tipe" dengan nilai wajib CAPITAL: 'PESAWAT', 'HOTEL', atau 'KERETA'.
-       - JIKALAU ada pembelian bisnis menggunakan poin reward/diskon poin, set kolom "harga_beli" menjadi 0 dan berikan keterangan 'Redeem Point' di bagian platform.
        
     2. Transaksi JALUR PRIBADI DOMPET KELUARGA (Set properti "Is_Bisnis": false, "Tabel_Tujuan": "PRIBADI"):
-       Jika input berisi pengeluaran operasional rumah merangkap kantor, belanja bulanan sembako, uang jajan, bensin istri, cicilan KPR, transit antar-bank, atau titipan iuran RT perumahan.
-       - Kosongkan kolom "tipe" (set nilainya menjadi string kosong "").
-       - Pilih pos "no_rekening" secara cerdas berdasarkan aturan berikut:
+       Jika input berisi pengeluaran operasional rumah/kantor, belanja bulanan sembako, uang jajan, bensin istri, cicilan KPR, iuran RT perumahan (Uang Sosial).
+       - Kosongkan kolom "tipe", "bf_status", "kode_booking", "durasi", "rute", "tgl_berangkat".
+       - Pilih pos "no_rekening" secara cerdas wajib salah satu dari:
          * 'Aset Kantor' : Untuk cicilan KPR rumah kantor kosong atau perbaikan properti kantor tersebut.
          * 'Rumah Tangga' : Untuk belanja dapur, listrik/air rumah tinggal, gaji ART, atau bensin harian mobil istri.
          * 'Lifestyle' : Untuk makan di mall (Trans Studio), jajan kopi, liburan keluarga, atau belanja konsumtif pribadi.
          * 'Investasi' : For emas logam mulia, reksa dana, saham, atau tabungan masa depan mandiri.
          * 'Cadangan Bisnis' : Untuk setoran tabungan 40% laba toko atau penarikan dana darurat modal.
          * 'Dana Sosial / Titipan' : Khusus untuk iuran keamanan/RT titipan warga perumahan (Uang Sosial).
-    
-    STRUKTUR KELUARAN JSON WAJIB (Harus seragam agar dibaca mulus oleh Pandas DataFrame):
-    [
-        {
-            "Is_Bisnis": true atau false (Boolean),
-            "Tabel_Tujuan": "DATA" atau "PRIBADI" (String),
-            "tgl_pemesanan": "Format DD-MM-YYYY, jika tidak terdeteksi gunakan tanggal hari ini",
-            "tgl_berangkat": "Format DD-MM-YYYY, kosongkan "" jika transaksi pribadi",
-            "kode_booking": "Teks string kapital, kosongkan "" jika transaksi pribadi",
-            "item_name": "Nama penerbangan/hotel/kereta ATAU nama barang belanjaan pribadi",
-            "durasi": "Durasi penerbangan/menginap, kosongkan "" jika transaksi pribadi",
-            "nama_customer": "Nama penumpang/tamu ATAU nama toko tempat belanja pribadi",
-            "rute": "Rute kota asal-tujuan, kosongkan "" jika transaksi pribadi",
-            "harga_beli": Angka murni integer. Set 0 jika transaksi pribadi atau bisnis via redeem point,
-            "harga_jual": Angka murni integer. Isi dengan nominal uang belanja jika ini transaksi pribadi,
-            "tipe": "PESAWAT / HOTEL / KERETA atau kosongkan "" jika transaksi pribadi",
-            "bf_status": "BF atau NBF, kosongkan "" jika transaksi pribadi",
-            "platform": "Nama vendor/platform booking (Tiket.com, Traveloka, Agoda, KAI Access, dll), set 'Lainnya' jika pribadi",
-            "no_rekening": "Isi salah satu dari 6 pos rekening pribadi di atas jika Is_Bisnis adalah false, kosongkan "" jika bisnis",
-            "keterangan_tambahan": "Catatan ringkas pendukung transaksi"
-        }
-    ]
-    
-    Kembalikan HANYA string teks JSON murni yang valid tanpa dibungkus kode markdown ```json dan tanpa teks basa-basi pembuka/penutup apa pun.
-    """
 
-    content_payload = [prompt_rules]
+    🧮 ATURAN MATEMATIKA PECAH BARIS & HARGA ECERAN:
+    1. UNTUK JALUR BISNIS: Tentukan "Jumlah Kamar" (untuk Hotel) atau "Jumlah Penumpang" (untuk Transportasi) terlebih dahulu.
+       (Contoh pada teks: 'Jumlah Kamar: 2' dan terdapat 2 nama tamu: Jane Susanna & Gascha Firga Prananda, maka data wajib dipecah menjadi 2 baris entri).
+    2. Perhitungan "harga_beli" (MODAL PER KAMAR / PER PAX):
+       - Cari teks nominal modal yang dibayarkan ke pihak vendor/OTA. Kata kuncinya wajib berada di dekat kata 'JUMLAH PEMBAYARAN', 'TOTAL', atau 'Dibayar Hari Ini' pada rincian kuitansi vendor (Contoh pada teks: 'JUMLAH PEMBAYARAN 1.596.000').
+       - Kamu WAJIB membagi rata nominal total vendor tersebut dengan jumlah kamar atau jumlah penumpang (Contoh: 1.596.000 / 2 kamar = 798000).
+       - Masukkan hasil pembagian bersih per kamar/per pax ini sebagai "harga_beli". Set 0 jika bisnis via redeem point.
+    3. Perhitungan "harga_jual" (HARGA TOKO PER KAMAR / PER PAX):
+       - Langkah 1: Jika admin mengetik kata manual (cth: 'Jual 950000'), gunakan angka itu. Atau (ATURAN SHORTCUT): Jika admin mengetik manual kata 'Harga' diikuti nominal angka (Contoh: 'Harga Rp 1.000.000' atau 'Harga 1000000'), maka nominal tersebut WAJIB kamu tetapkan sebagai "harga_jual".
+       - Langkah 2: Jika tidak ada input manual, cari teks nominal yang ditawarkan ke konsumen di dalam tabel itinerary internal Kayyisa. Kata kuncinya berada di dekat label 'Total Harga' atau 'Rate per Malam' (Contoh pada teks: 'Total Harga Rp 1.860.000').
+       - Kamu WAJIB membagi rata nominal total internal tersebut dengan jumlah kamar atau jumlah penumpang (Contoh: 1.860.000 / 2 kamar = 930000).
+       - Masukkan hasil pembagian bersih per kamar/per pax ini sebagai "harga_jual".
+       - Jika dokumen HOTEL, tidak ada instruksi 'Jual'/'Harga' manual, tetapi ada kolom 'Total Harga' resmi dari tabel voucher (cth: 'Total Harga Rp 1.860.000'), ambil angka ini sebagai total omzet jual. Kamu WAJIB membagi rata total harga ini dengan 'Jumlah Kamar' (Contoh: Total Harga tabel 1.860.000 / 2 kamar = 930000). Masukkan hasil pembagian per kamar ini sebagai "harga_jual".
+       - Langkah 3 (FALLBACK): Jika Langkah 1 dan 2 tidak ada, samakan nilai "harga_jual" dengan "harga_beli" per baris.
+    4. UNTUK JALUR PRIBADI: Masukkan nominal total uang belanja langsung ke field "harga_jual", dan set "harga_beli" menjadi 0.
 
-    # Menyuntikkan media secara dinamis sesuai apa yang diinput oleh user di UI screen
-    if text_input:
-        content_payload.append(f"INPUT TEKS/SUARA USER: {text_input}")
-    if file_input:
-        content_payload.append(types.Part.from_bytes(data=file_input.getvalue(), mime_type=file_input.type))
-    if audio_input:
-        content_payload.append(types.Part.from_bytes(data=audio_input.getvalue(), mime_type=audio_input.type))
-
-    try:
-        # Mengeksekusi model Gemini 2.5 Flash yang sangat tajam dan cepat memproses visual nota & suara
-        response = client.models.generate_content(
-            model='gemini-3.1-flash-lite',
-            contents=content_payload
-        )
-        json_clean_text = response.text.strip()
-        return json.loads(json_clean_text)
-    except Exception as e:
-        st.error(f"⚠️ Gagal mengekstrak dokumen melalui AI Engine: {str(e)}")
-        return None
+    📋 ATURAN STRUKTUR DATA UTAMA (WAJIB DIPATUHI BAGAIMANAPUN INPUT TEKSNYA):
+    0. NAMA CUSTOMER: Wajib ubah ke format Title Case / Huruf Kapital di Awal Kata (EYD Baku). 
+       Wajib bersihkan dan balik total jika mendeteksi format nama maskapai/internasional (Last Name/First Name) serta hapus gelar sapaan seperti 'MR', 'MRS', 'MS', 'TN', 'NY'.
+       (Contoh: 'UTOMO/PRABOWO MR' -> Hasil: 'Prabowo Utomo').
+       (Contoh: 'SUTRISNO/DEWI MRS' -> Hasil: 'Dewi Sutrisno').
+    1. Tipe PESAWAT: "item_name" berisi Nama Maskapai dan No Penerbangan (cth: "QG997-QG 174"). Durasi format 'HH:MM - HH:MM'. Rute HANYA kode bandara 3 huruf (cth: "TKG - SUB").
+    2. Tipe HOTEL:
+       - "item_name": Nama properti hotel bersih (Contoh: "Montana Hotel Syariah Banjarbaru").
+       - "durasi": Jumlah malam + kata 'mlm' (Contoh: "2 mlm").
+       - "rute": HANYA nama kota/kabupaten lokasi hotel (Contoh: "Banjarbaru").
+       - "bf_status": Isi 'BF' (jika ada sarapan) atau 'NBF' (jika tanpa sarapan/Room Only).
+    3. Tipe KERETA (Termasuk Whoosh): "item_name" format penulisan WAJIB: [Nama Kereta] [Singkatan Kelas] [Nomor Gerbong]/[Nomor Kursi] (Contoh: "Sembrani Eks 4/5D"). Durasi format 'HH:MM - HH:MM'. Rute berisi kode stasiun asal - tujuan (cth: "GMR - SBI").
+       INGAT: Jika kelasnya 'Business Class', singkatan kelasnya adalah 'Bis' (Contoh: "Whoosh Bis 2/4A"). JANGAN PERNAH menulis kata "Bus"!
+    4. TANGGAL: Format standar ISO 'YYYY-MM-DD'. Jika tanggal pemesanan ragu, samakan dengan tgl berangkat.

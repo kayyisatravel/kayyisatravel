@@ -13,8 +13,8 @@ def inisialisasi_gemini():
 
 def audit_forensik_dashboard(hasil_v5):
     """
-    Engine AI Auditor berbasis Gemini 2.5 Flash + Google Search Grounding.
-    Menerima dictionary hasil rekonsiliasi v5 dan menghasilkan laporan audit mendalam.
+    Engine AI Auditor Eksekutif untuk Bahan Rapat Kinerja Harian/Bulanan.
+    Menghasilkan laporan komprehensif berbasis tabel Markdown yang matang dan berbobot.
     """
     client = inisialisasi_gemini()
     if client is None:
@@ -58,21 +58,41 @@ def audit_forensik_dashboard(hasil_v5):
     - Pos Lifestyle Keluarga (20% dari Gaji): Rp {int(alokasi.get('lifestyle', 0)):,}
     """
 
-    # 🧠 2. PROMPT FORENSIK TAJAM & SPESIFIK
+    # 🧠 2. PROMPT FORENSIK BERBASIS STRUKTUR TABEL RAPAT
     prompt = f"""
     Anda adalah seorang Senior Financial Auditor, Fraud Investigator, dan CFO AI bersertifikasi (CPA/CIA).
-    Tugas Anda adalah melakukan audit forensik mendalam dan memberikan Executive Advisory Report berdasarkan data bisnis dan data pribadi owner berikut:
+    Tugas Anda adalah menyusun Laporan Dokumen Acuan Resmi Rapat Kinerja Finansial (Harian/Bulanan) berdasarkan data berikut:
 
     {summary_text}
 
-    Berikan hasil analisis Anda yang terintegrasi dalam format Markdown yang rapi dengan poin-poin berikut:
-    1. **Executive Risk Score & Status Summary**: Berikan rating risiko (LOW/MEDIUM/HIGH) beserta ringkasan kondisi kesehatan gabungan (bisnis & pribadi).
-    2. **Investigasi & Temuan Kritis**: Deteksi kejanggalan kas, gap antara Laba Buku vs Kas Riil (apakah mengalami 'Profit Rich, Cash Poor'?), transaksi boncos oleh admin, serta saldo bank yang minus/overdraft.
-    3. **Analisis Risiko Kredit (Bad Debt Risk)**: Bedah rasio kerentanan laba terhadap piutang yang macet, serta analisis top debitur yang menunggak.
-    4. **Audit Kepatuhan Anggaran Digital Owner**: Evaluasi apakah alokasi gaya hidup (Lifestyle) atau kantong pribadi menggerogoti stabilitas dana cadangan bisnis.
-    5. **Rekomendasi Taktis Berbasis Tren Bisnis Travel Terkini**: Gunakan keahlian Anda dan akses pencarian internet untuk memberikan rekomendasi taktis atau strategi pricing/manajemen kas khusus untuk industri keagenan tiket travel di tahun berjalan ini.
+    Wajib sajikan analisis Anda ke dalam format Markdown dengan struktur tabel komprehensif berikut:
 
-    Gunakan gaya bahasa profesional, lugas, kritis, dan solutif. Jangan memuji data yang buruk.
+    # 📋 LAPORAN AUDIT FORENSIK & KINERJA FINANSIAL (BAHAN ADVISORY RAPAT)
+    *Gunakan dokumen ini sebagai acuan evaluasi kebijakan operasional, kontrol risiko, dan penyesuaian porsi modal kerja.*
+
+    ### 1. RINGKASAN EKSEKUTIF & SKOR RISIKO GABUNGAN
+    Sajikan tabel parameter risiko (LOW/MEDIUM/HIGH) yang menggabungkan aspek profitabilitas bisnis dan kepatuhan dompet pribadi owner beserta catatan evaluasi kilat untuk direksi.
+
+    ### 2. TABEL FORENSIK KEBOCORAN KAS & MATRIKS PROFITABILITAS
+    Buat tabel yang membandingkan metrik akuntansi, seperti:
+    - Selisih Laba Buku vs Estimasi Kas Riil Lapangan (Sorot isu 'Profit Rich, Cash Poor' jika ada).
+    - Kebocoran transaksi boncos dari sistem pricing/promo beserta performa pengawasan Admin.
+    - Distribusi margin kontribusi laba per segmen produk travel.
+
+    ### 3. TABEL MANAJEMEN RISIKO KREDIT & PENAGIHAN PIUTANG (BAD DEBT ACCRUAL)
+    Buat tabel penuaan piutang (aging report) yang memuat:
+    - Rasio Keterikatan Modal & Rasio Kerentanan Laba terhadap piutang.
+    - Pemetaan prioritas penagihan untuk daftar debitur penunggak terbesar (Top Debitur) berdasarkan tingkat kedaruratan (Overdue >30 Hari).
+
+    ### 4. TABEL EVALUASI KEPATUHAN KANTONG DIGITAL OWNER & BANK MUTASI
+    Buat tabel yang menyoroti:
+    - Akun kas bank fisik yang mengalami defisit/overdraft terhadap pembukuan.
+    - Kepatuhan pengeluaran pos pribadi owner (Gaya Hidup/Lifestyle) dibandingkan dengan batas aman pembiayaan pos Cadangan Bisnis.
+
+    ### 5. ADVISORY STRATEGIS & PROYEKSI EVALUASI KERJA (BERDASARKAN TREN TRAVEL TAHUN INI)
+    Gunakan kapabilitas internet search Anda untuk mengecek kondisi keagenan tiket travel/maskapai/wisata di tahun berjalan ini. Berikan rekomendasi kebijakan bisnis nyata, bukan teori kaku (misal: strategi deposit, kebijakan kredit klien, atau efisiensi biaya operasional).
+
+    *Aturan Penulisan:* Gunakan gaya bahasa profesional, dingin, tegas, dan berbasis data objektif. Pastikan format tabel Markdown rapi dan mudah dibaca di layar proyektor rapat.
     """
 
     # 🚀 3. EKSEKUSI PEMBARUAN DENGAN GROUNDING INTERNET

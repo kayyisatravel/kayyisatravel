@@ -1155,17 +1155,25 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
 
                     ai_entries.append({
                         'Tgl Pemesanan': tgl_final_pilihan, 
-                        'Tgl Berangkat': '',  # Paksa kosong dari hulu loop
-                        'Kode Booking': '', 'No Penerbangan / Hotel / Kereta': item.get("item_name", ""),
-                        'Durasi': '', 'Nama Customer': item.get("nama_customer", ""), 'Rute': '',
+                        'Tgl Berangkat': '',
+                        'Kode Booking': '', 
+                        'No Penerbangan / Hotel / Kereta': item.get("item_name", ""),
+                        'Durasi': '', 
+                        'Nama Customer': item.get("nama_customer", ""), 
+                        'Rute': '',
                         'Harga Beli': 0, 
                         'Harga Jual': hj, 
-                        'Laba': 0,            # Paksa 0 mutlak secara legal di scope lokal
+                        'Laba': 0,
                         'Tipe': '', 'BF/NBF': '', 'No Invoice': '', 
                         'Keterangan': item.get("keterangan_tambahan", "Mutasi Pribadi"),
-                        'Pemesan': 'OWNER', 'Admin': 'PA', 
-                        ' % Laba': '0.0%',    # Paksa 0.0% mutlak
-                        'Sumber Dana': 'Dana Tunai/Cash', 'Detail Dana': 'BCA', 'Platform': 'Lainnya',
+                        'Pemesan': 'OWNER', 
+                        'Admin': 'PA', 
+                        ' % Laba': '0.0%',
+    
+                        'Sumber Dana': sumber_dana_ai, 
+                        'Detail Dana': bank_terdeteksi_ai, 
+                        
+                        'Platform': 'Lainnya',
                         'No Rekening': item.get("no_rekening", "Rumah Tangga")
                     })
 

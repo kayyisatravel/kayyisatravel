@@ -1153,6 +1153,10 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
                     if hj <= 0:
                         pemberitahuan_masalah_data.append(f"Entri ke-{idx} (Pribadi: {item.get('item_name')}) ➔ Nominal belanja kosong!")
 
+                    # 🛡️ FIX URUTAN: Deklarasikan variabel penangkap AI ini di ATAS append dictionary
+                    bank_terdeteksi_ai = item.get("detail_dana", "BCA") if item.get("detail_dana") else "BCA"
+                    sumber_dana_ai = item.get("sumber_dana", "Dana Tunai/Cash") if item.get("sumber_dana") else "Dana Tunai/Cash"
+
                     ai_entries.append({
                         'Tgl Pemesanan': tgl_final_pilihan, 
                         'Tgl Berangkat': '',
@@ -1169,10 +1173,8 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
                         'Pemesan': 'OWNER', 
                         'Admin': 'PA', 
                         ' % Laba': '0.0%',
-    
                         'Sumber Dana': sumber_dana_ai, 
                         'Detail Dana': bank_terdeteksi_ai, 
-                        
                         'Platform': 'Lainnya',
                         'No Rekening': item.get("no_rekening", "Rumah Tangga")
                     })

@@ -4106,7 +4106,7 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
                         pass
                     
                     # 🚀 EKSEKUSI OPSI B
-                    if Corporate_request and lanjutkan_request: # Pastikan variabel kontrol Anda benar (misal: lanjutkan_request)
+                    if lanjutkan_request:
                         try:
                             # PERBAIKAN UTAMA: Masukkan variabel 'metrics' atau 'hasil_v5' (berupa DICTIONARY objek)
                             # Sesuaikan nama variabel dictionary hasil keluaran fungsi v5 Anda di app.py

@@ -86,8 +86,10 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
          * 'Dana Sosial / Titipan' : Khusus untuk iuran keamanan/RT titipan warga perumahan (Uang Sosial).
 
     🧮 ATURAN MATEMATIKA PECAH BARIS & HARGA ECERAN:
-    1. UNTUK JALUR BISNIS: Tentukan "Jumlah Kamar" (untuk Hotel) atau "Jumlah Penumpang" (untuk Transportasi) terlebih dahulu.
-       (Contoh pada teks: 'Jumlah Kamar: 2' dan terdapat 2 nama tamu: Jane Susanna & Gascha Firga Prananda, maka data wajib dipecah menjadi 2 baris entri).
+    1. UNTUK JALUR BISNIS: Periksa nama penumpang atau tamu terlebih dahulu.
+       - JIKA nama tamu/penumpang BERBEDA-BEDA (cth: Jane Susanna & Gascha Firga), Anda WAJIB memecah data menjadi beberapa baris entri, lalu bagi rata nominal total vendor/internal dengan jumlah pax/kamar tersebut.
+       - JIKA nama tamu/penumpang SAMA TUNGGAL namun memesan beberapa kamar/tiket sekaligus (ANTI-SPLIT DATA), Anda DILARANG keras memecahnya. Satukan menjadi 1 BARIS ENTRI TUNGGAL dan gunakan nominal total keseluruhan secara utuh (JANGAN dibagi rata).
+
     2. Perhitungan "harga_beli" (MODAL PER KAMAR / PER PAX):
        - Cari teks nominal modal yang dibayarkan ke pihak vendor/OTA. Kata kuncinya wajib berada di dekat kata 'JUMLAH PEMBAYARAN', 'TOTAL', atau 'Dibayar Hari Ini' pada rincian kuitansi vendor (Contoh pada teks: 'JUMLAH PEMBAYARAN 1.596.000').
        - Kamu WAJIB membagi rata nominal total vendor tersebut dengan jumlah kamar atau jumlah penumpang (Contoh: 1.596.000 / 2 kamar = 798000).
@@ -117,8 +119,7 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
     4. TANGGAL: Format standar ISO 'YYYY-MM-DD'. Jika tanggal pemesanan ragu, samakan dengan tgl berangkat.
     5. PLATFORM: Pilih salah satu dari: "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin", "KAI Access", "RedDoorz", "Lainnya".
     6. KETERANGAN PAKET TAMBAHAN: Jika di dalam teks input terdapat informasi paket wisata tambahan (add-on promo ticket seperti Dufan, Ancol, Jatim Park, dll), kamu WAJIB menuliskan nama paket tersebut secara ringkas ke dalam field "keterangan_tambahan" agar datanya tidak hilang.
-    7. ATURAN AKUMULASI NOTA TUNGGAL (ANTi-SPLIT DATA):
-       Jika di dalam dokumen tertulis pemesanan untuk beberapa kamar sekaligus (Contoh: 2 Kamar, 3 Kamar, dst) dengan KODE BOOKING DAN NAMA TAMU YANG SAMA, Anda DILARANG keras memecahnya menjadi beberapa baris data. Anda WAJIB menyatukannya ke dalam 1 BARIS ENTRI TUNGGAL dengan nominal Harga Beli dan Harga Jual yang sudah diakumulasikan secara total keseluruhan.
+       
     """
     content_payload = [prompt_rules]
     

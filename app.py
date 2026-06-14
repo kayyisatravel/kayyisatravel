@@ -1276,18 +1276,29 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
                                 new_val = st.text_input(f"{col} (Baris {i})", value=str(val_num), key=f"{col}_{i}")
                                 updated_row[col] = int(new_val) if new_val.isdigit() else 0
                             elif col == "Laba":
-                                hb_live = st.session_state.get(f"Harga Beli_{i}", str(df.at[i, "Harga Beli"]))
-                                hj_live = st.session_state.get(f"Harga Jual_{i}", str(df.at[i, "Harga Jual"]))
-                                laba_live = (int(hj_live) if str(hj_live).isdigit() else 0) - (int(hb_live) if str(hb_live).isdigit() else 0)
-                                st.markdown(f"💵 Laba Terkini (Baris {i}): Rp {laba_live:,}")
+                                # Periksa apakah baris data ini milik Owner (Pribadi)
+                                if str(df.at[i, "Pemesan"]) == "OWNER":
+                                    laba_live = 0
+                                else:
+                                    # Jika bisnis travel, jalankan rumus pengurangan harga jual - beli harian
+                                    hb_live = st.session_state.get(f"Harga Beli_{i}", str(df.at[i, "Harga Beli"]))
+                                    hj_live = st.session_state.get(f"Harga Jual_{i}", str(df.at[i, "Harga Jual"]))
+                                    laba_live = (int(hj_live) if str(hj_live).isdigit() else 0) - (int(hb_live) if str(hb_live).isdigit() else 0)
+                                
+                                st.markdown(f"💵 **Laba Terkini (Baris {i}):** Rp {laba_live:,}")
                                 updated_row["Laba"] = laba_live
+                                
                             elif col == " % Laba":
-                                hb_live = st.session_state.get(f"Harga Beli_{i}", str(df.at[i, "Harga Beli"]))
-                                hj_live = st.session_state.get(f"Harga Jual_{i}", str(df.at[i, "Harga Jual"]))
-                                hb_int = int(hb_live) if str(hb_live).isdigit() else 0
-                                laba_live = (int(hj_live) if str(hj_live).isdigit() else 0) - hb_int
-                                persen_live = f"{round((laba_live / hb_int) * 100, 2)}%" if hb_int > 0 else "0.0%"
-                                st.markdown(f"📈 % Laba Terkini (Baris {i}): {persen_live}")
+                                if str(df.at[i, "Pemesan"]) == "OWNER":
+                                    persen_live = "0.0%"
+                                else:
+                                    hb_live = st.session_state.get(f"Harga Beli_{i}", str(df.at[i, "Harga Beli"]))
+                                    hj_live = st.session_state.get(f"Harga Jual_{i}", str(df.at[i, "Harga Jual"]))
+                                    hb_int = int(hb_live) if str(hb_live).isdigit() else 0
+                                    laba_live = (int(hj_live) if str(hj_live).isdigit() else 0) - hb_int
+                                    persen_live = f"{round((laba_live / hb_int) * 100, 2)}%" if hb_int > 0 else "0.0%"
+                                
+                                st.markdown(f"📈 **% Laba Terkini (Baris {i}):** {persen_live}")
                                 updated_row[" % Laba"] = persen_live
                             continue
                             

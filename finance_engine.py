@@ -1,5 +1,4 @@
 # finance_engine.py
-# finance_engine.py
 import pandas as pd
 import numpy as np
 import re
@@ -9,15 +8,12 @@ def bersihkan_angka(val):
     Algoritma V3 Cerdas: Menangani data angka murni (Float/Int) 
     maupun teks mata uang (String) dari Google Sheets tanpa merusak desimal.
     """
-    # 1. Jika data kosong, langsung kembalikan 0.0
     if pd.isna(val) or val == "": 
         return 0.0
     
-    # 2. JIKA data dari Google Sheets sudah berupa tipe ANGKA murni (Float/Int)
     if isinstance(val, (int, float)):
         return float(val)
         
-    # 3. JIKA data bertipe STRING (Teks seperti 'Rp 583.114.415,00')
     s = str(val).replace("Rp", "").replace(" ", "").strip()
     if not s:
         return 0.0
@@ -34,7 +30,6 @@ def bersihkan_angka(val):
         
         return float(s)
     except:
-        # Pilihan cadangan darurat jika teks rusak parah
         s_clean = re.sub(r'[^\d.]', '', str(val).replace(",", "."))
         try: 
             return float(s_clean)
@@ -42,30 +37,30 @@ def bersihkan_angka(val):
             return 0.0
 
 
-def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
+def hitung_performa_dan_reconciliation_v5(df_sales_raw, df_pribadi_raw, df_cashflow_raw):
     """
-    Engine Finansial v4 Resmi: Menghitung piutang riil dengan fitur 
-    Auto-Detect Nama Kolom untuk mencegah KeyError 'Keterangan'.
+    Engine Finansial v5 Resmi: Mengalkulasi Akrual Komersial, Multi-Bank Riil, 
+    Sisa Piutang Berbasis Kas, Bagi Hasil Investor 7.5%, serta Alokasi Porsi 
+    Kantong Anggaran Digital AI untuk Toko & Dompet Keluarga Owner.
     """
     # 🛡️ 1. TAMENG PROTEKSI OBJEK KOSONG / NONE
-    if df_data_raw is None or (not isinstance(df_data_raw, pd.DataFrame)) or df_data_raw.empty:
+    if df_sales_raw is None or (not isinstance(df_sales_raw, pd.DataFrame)) or df_sales_raw.empty:
         return {}
         
-    if df_cashflow_raw is None or (not isinstance(df_cashflow_raw, pd.DataFrame)) or df_cashflow_raw.empty:
+    if df_pribadi_raw is None or (not isinstance(df_pribadi_raw, pd.DataFrame)):
+        df_pribadi_raw = pd.DataFrame(columns=["Tanggal", "Bank_Sumber", "No_Rekening_AI", "Kategori", "Nominal", "Keterangan"])
+        
+    if df_cashflow_raw is None or (not isinstance(df_cashflow_raw, pd.DataFrame)):
         df_cashflow_raw = pd.DataFrame(columns=["Invoice_Key", "Jumlah", "Tipe", "Kategori"])
 
-    # 🏗️ 2. AMBIL DAN AMANKAN DATA PENJUALAN (SALES JOURNAL)
-    df_sales = df_data_raw.copy()
+    # 🏗️ 2. AMBIL DAN AMANKAN DATA PENJUALAN (SALES JOURNAL - ACCRUAL BASE)
+    df_sales = df_sales_raw.copy()
     
     # 🔍 AUTO-DETECT & STANDARDISASI NAMA KOLOM "Keterangan"
-    # Menghapus spasi di awal/akhir nama kolom dan mengubahnya ke huruf kecil untuk dicocokkan
     kolom_mapping = {str(col).strip().lower(): col for col in df_sales.columns}
-    
     if "keterangan" in kolom_mapping:
-        # Pindahkan isi kolom asli ke nama standar "Keterangan"
         df_sales["Keterangan"] = df_sales[kolom_mapping["keterangan"]].fillna("Belum Lunas")
     else:
-        # Jika benar-benar tidak ada di Google Sheets, buatkan kolom tiruan default
         df_sales["Keterangan"] = "Belum Lunas"
 
     # Deteksi & Normalisasi Kolom Wajib Invoice_Key agar anti-KeyError
@@ -81,12 +76,12 @@ def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
     df_sales["Laba (Num)"] = df_sales["Harga Jual (Num)"] - df_sales["Harga Beli (Num)"]
     df_sales["Tgl Pemesanan_Parsed"] = pd.to_datetime(df_sales["Tgl Pemesanan"], dayfirst=True, errors="coerce")
     
-    # Hitung Perhitungan Finansial Makro (Accrual Basis)
+    # Perhitungan Finansial Makro (Accrual Basis)
     total_pendapatan = df_sales["Harga Jual (Num)"].sum()
     total_hpp = df_sales["Harga Beli (Num)"].sum()
     total_laba_buku = df_sales["Laba (Num)"].sum()
 
-    # 📋 3. PROSES REKONSILIASI KAS MASUK (ALUR PIUTANG LAMA ANDA)
+    # 📋 3. PROSES REKONSILIASI KAS MASUK & AGING REPORT POIN PIUTANG
     total_piutang = 0.0
     overdue_lebih_30 = 0.0
     jumlah_invoice_piutang = 0
@@ -123,7 +118,7 @@ def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
     # Rumus Hitung Sisa Piutang Aktual
     df_invoice["Piutang"] = df_invoice["Harga Jual (Num)"] - df_invoice["Jumlah Masuk"]
     
-    # 🛡️ PENERAPAN LOGIKA SEPARASI REGEX YANG SUDAH KORREK
+    # 🛡️ PENERAPAN LOGIKA SEPARASI REGEX NEGATIVE LOOKBEHIND
     is_belum_lunas = df_invoice["Keterangan"].astype(str).str.contains("Belum Lunas", case=False, na=False)
     is_sudah_lunas = df_invoice["Keterangan"].astype(str).str.contains(r'(?<!belum\s)lunas', case=False, na=False, regex=True)
     
@@ -131,7 +126,6 @@ def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
     df_unpaid = df_invoice[mask_piutang_aktif & (~is_sudah_lunas)].copy()
     
     if not df_unpaid.empty:
-        # Agregasi data per nota tunggal
         df_agg = df_unpaid.groupby(["Invoice_Key", "Nama Pemesan", "No Invoice"], as_index=False).agg({
             "Piutang": "sum",
             "Tgl Pemesanan_Parsed": "min"
@@ -148,43 +142,79 @@ def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
         jumlah_invoice_piutang = df_agg["No Invoice"].nunique()
         overdue_lebih_30 = df_agg[df_agg["Overdue"] == True]["Piutang"].sum()
         
-        # 🕵️ Forensik Top 3 Pembawa Piutang Terbesar berdasarkan Alur Riil
+        # Forensik Top 3 Pembawa Piutang Terbesar
         top_debitur = df_agg.groupby("Nama Pemesan")["Piutang"].sum().reset_index()
         top_debitur = top_debitur.sort_values("Piutang", ascending=False).head(3)
         text_top_debitur = ""
         for _, row in top_debitur.iterrows():
             text_top_debitur += f"- 👥 {row['Nama Pemesan']}: Menunggak Sisa Dana Selesai Rp {int(row['Piutang']):,}\n"
             
-        # Siapkan Dataframe Hasil Akhir untuk Tampilan UI
         df_display_aging = df_agg[["Nama Pemesan", "No Invoice", "Tanggal Pemesanan", "Piutang", "Aging (hari)", "Overdue"]].copy()
 
-    # 3. KANTONG PERSENJATAAN RASIO FINANSIAL (UNTUK CFO AI)
+    # 🏦 4. KALKULASI REKENING BANK RIIL (SINKRONISASI ATM NYATA TAB PRIBADI)
+    dict_saldo_bank = {"BCA": 0.0, "Mandiri": 0.0, "BSI": 0.0, "BNI": 0.0, "BRI": 0.0, "SeaBank": 0.0, "Tunai": 0.0, "CC Mega": 0.0}
+    
+    df_pr = df_pribadi_raw.copy()
+    if not df_pr.empty:
+        df_pr["Nominal (Num)"] = df_pr["Nominal"].apply(bersihkan_angka)
+        df_pr["Bank_Sumber"] = df_pr["Bank_Sumber"].astype(str).str.strip()
+        
+        for _, row in df_pr.iterrows():
+            bank = row["Bank_Sumber"]
+            if bank in dict_saldo_bank:
+                kat = str(row["Kategori"]).strip().lower()
+                # Pemasukan menambah saldo kas nyata bank tersebut
+                if kat in ["pemasukan"]:
+                    dict_saldo_bank[bank] += row["Nominal (Num)"]
+                # Pengeluaran atau alokasi modal CapEx/Aset Kantor memotong saldo bank
+                elif kat in ["pengeluaran", "capex"]:
+                    dict_saldo_bank[bank] -= row["Nominal (Num)"]
+                # Catatan: Kategori 'Transit' internal antar bank owner tidak mengubah profit murni
+
+    # 🧮 5. FORENSIK FORMULA ALOKASI POS ANGGARAN DIGITAL AI (RULES V5)
+    # Laba murni yang dipakai adalah laba buku usaha komersial riil
+    laba_bersih_usaha = max(0.0, total_laba_buku)
+    wajib_setor_investor = laba_bersih_usaha * 0.075
+    laba_setelah_investor = laba_bersih_usaha - wajib_setor_investor
+    
+    # Pembagian 40% Cadangan Bisnis & 60% Gaji Owner
+    cadangan_bisnis_40 = laba_setelah_investor * 0.40
+    gaji_owner_60 = laba_setelah_investor * 0.60
+    
+    # Sub-alokasi Pecah Keluarga dari Gaji Owner (50% / 30% / 20%)
+    pos_rumah_tangga_50 = gaji_owner_60 * 0.50
+    pos_investasi_30 = gaji_owner_60 * 0.30
+    pos_lifestyle_20 = gaji_owner_60 * 0.20
+
+    # KANTONG PERSENJATAAN RASIO FINANSIAL (UNTUK CFO AI)
     net_profit_margin = (total_laba_buku / total_pendapatan * 100) if total_pendapatan > 0 else 0.0
     roi = (total_laba_buku / total_hpp * 100) if total_hpp > 0 else 0.0
     estimasi_kas_riil = (total_pendapatan - total_piutang) - total_hpp
     rasio_keterikatan_modal = (total_piutang / total_pendapatan * 100) if total_pendapatan > 0 else 0.0
     rasio_kerentanan_laba = (total_piutang / total_laba_buku * 100) if total_laba_buku > 0 else 0.0
     
-    # 4. Segmentasi Profitabilitas per Kategori Tiket/Hotel
-    segmentasi = df_sales.groupby("Tipe").agg(
-        Omzet=("Harga Jual (Num)", "sum"),
-        Laba=("Laba (Num)", "sum"),
-        Count=("Kode Booking", "count")
-    ).reset_index()
+    # ✈️ 6. SEGMENTASI PROFITABILITAS PER KATEGORI PRODUK
     text_segmentasi = ""
-    for _, row in segmentasi.iterrows():
-        margin_seg = (row['Laba'] / row['Omzet'] * 100) if row['Omzet'] > 0 else 0
-        text_segmentasi += f"- Produk [{row['Tipe']}]: Omzet Rp {int(row['Omzet']):,}, Laba Rp {int(row['Laba']):,}, Margin {margin_seg:.2f}%, Vol: {row['Count']} Tiket\n"
-
-    # 5. Deteksi Kebocoran Transaksi Rugi
+    if "Tipe" in df_sales.columns:
+        segmentasi = df_sales.groupby("Tipe").agg(
+            Omzet=("Harga Jual (Num)", "sum"),
+            Laba=("Laba (Num)", "sum"),
+            Count=("Kode Booking", "count")
+        ).reset_index()
+        for _, row in segmentasi.iterrows():
+            margin_seg = (row['Laba'] / row['Omzet'] * 100) if row['Omzet'] > 0 else 0
+            text_segmentasi += f"- Produk [{row['Tipe']}]: Omzet Rp {int(row['Omzet']):,}, Laba Rp {int(row['Laba']):,}, Margin {margin_seg:.2f}%, Vol: {row['Count']} Tiket\n"
+    
+    # 🚨 7. DETEKSI KEBOCORAN TRANSAKSI RUGI (BONCOS)
     transaksi_boncos = df_sales[df_sales["Laba (Num)"] < 0]
     jumlah_boncos = len(transaksi_boncos)
     total_kerugian = transaksi_boncos["Laba (Num)"].sum()
-
+    
     # Mengambil mode admin dengan aman jika kolom kosong/isi NA
     mode_admin = df_sales["Admin"].dropna().mode()
     top_admin = mode_admin[0] if not mode_admin.empty else "N/A"
-
+    
+    # 📦 RETURN DICTIONARY DIKUNCI MATANG UNTUK DASHBOARD STREAMLIT UI
     return {
         "total_transaksi": len(df_sales),
         "pendapatan": total_pendapatan,
@@ -203,6 +233,17 @@ def hitung_performa_dan_aging_v4(df_data_raw, df_cashflow_raw):
         "jumlah_transaksi_rugi": jumlah_boncos,
         "total_kerugian": abs(total_kerugian),
         "top_admin": top_admin,
-        "df_aging_report": df_display_aging
+        "df_aging_report": df_display_aging,
+        "saldo_bank_riil": dict_saldo_bank,
+        "alokasi_ai": {
+            "investor": wajib_setor_investor,
+            "sisa_laba_murni": laba_setelah_investor,
+            "cadangan_bisnis": cadangan_bisnis_40,
+            "gaji_owner": gaji_owner_60,
+            "rumah_tangga": pos_rumah_tangga_50,
+            "investasi": pos_investasi_30,
+            "lifestyle": pos_lifestyle_20
+        }
     }
 
+    

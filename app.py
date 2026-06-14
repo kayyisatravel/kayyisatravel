@@ -4084,43 +4084,40 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
             if st.button("🔍 Mulai Jalankan Audit Finansial Sekarang", type="primary", key="btn_audit_keuangan_v2"):
                 with st.spinner("Gemini AI sedang meneliti struktur pembukuan dan mengalkulasi risiko keuangan Anda..."):
                     
-                    # 🛡️ 1. INISIALISASI & SET BATAS AMAN MANDIRI
-                    BATAS_AMAN_TOKEN = 230000  # Sengaja diset di bawah 250K untuk cadangan token output AI
+                    BATAS_AMAN_TOKEN = 230000
                     lanjutkan_request = True
                     
                     try:
                         client_hitung = ai_auditor.inisialisasi_gemini()
                         if client_hitung:
+                            # Tameng proteksi tetap mengecek teks payload untuk mengukur volume token
                             token_info = client_hitung.models.count_tokens(
                                 model='gemini-2.5-flash',
                                 contents=text_payload_ai
                             )
                             
-                            # 🚨 2. CEK APAKAH MENDEKATI / MELEBIHI LIMIT
                             if token_info.total_tokens > BATAS_AMAN_TOKEN:
-                                st.error(f"❌ Audit Dibatalkan Otomatis! Ukuran data Anda ({token_info.total_tokens:,} token) hampir atau telah melebihi batas kuota menit (250,000 TPM).")
-                                st.warning("💡 Solusi: Persempit filter rentang tanggal data Anda di dashboard agar jumlah baris transaksi yang diproses lebih sedikit.")
+                                st.error(f"❌ Audit Dibatalkan Otomatis! Ukuran data Anda ({token_info.total_tokens:,} token) hampir melebihi kuota.")
                                 lanjutkan_request = False
                             else:
                                 st.caption(f"📊 *Request dikirim menggunakan {token_info.total_tokens:,} token input (Batas aman: 250,000 TPM).*")
                                 
                     except Exception as token_err:
-                        # Jika token_err terjadi karena masalah koneksi pengecekan, tetap izinkan jalan
                         pass
                     
-                    # 🚀 3. EKSEKUSI HANYA JIKA LOLOS FILTER TAMENG AMAN
-                    if lanjutkan_request:
+                    # 🚀 EKSEKUSI OPSI B
+                    if Corporate_request and lanjutkan_request: # Pastikan variabel kontrol Anda benar (misal: lanjutkan_request)
                         try:
-                            # Menjalankan fungsi audit (sesuaikan parameter dengan versi ai_auditor.py Anda)
-                            # Jika versi Anda pakai string, masukkan text_payload_ai. Jika versi dict, masukkan hasil_v5
-                            hasil_lhpa = ai_auditor.audit_forensik_dashboard(text_payload_ai)
+                            # PERBAIKAN UTAMA: Masukkan variabel 'metrics' atau 'hasil_v5' (berupa DICTIONARY objek)
+                            # Sesuaikan nama variabel dictionary hasil keluaran fungsi v5 Anda di app.py
+                            hasil_lhpa = ai_auditor.audit_forensik_dashboard(metrics) 
                             st.session_state.response_audit_ai = hasil_lhpa
                         except Exception as e:
-                            # Tameng darurat terakhir jika lolos dari pengecekan tapi tetap kena limit dari Google
                             if "429" in str(e) or "quota" in str(e).lower():
-                                st.error("⚠️ Kuota menit (TPM) atau kuota harian (RPD) Gemini Anda habis. Silakan tunggu 1 menit atau coba lagi besok.")
+                                st.error("⚠️ Kuota menit (TPM) atau kuota harian (RPD) Gemini Anda habis.")
                             else:
                                 st.error(f"⚠️ Terjadi kendala saat menghubungi AI: {str(e)}")
+
                     
             if st.session_state.response_audit_ai:
                 st.markdown("---")

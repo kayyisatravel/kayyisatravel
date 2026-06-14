@@ -32,6 +32,7 @@ from streamlit_mic_recorder import speech_to_text
 import finance_engine
 import visualizer
 import ai_auditor
+import ai_input_processor
 
 now = datetime.now(ZoneInfo("Asia/Jakarta"))
 
@@ -1036,35 +1037,22 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
     input_mentah_ref = ""
     tombol_ditekan = False 
     
-    # SAKLAR INTERAKTIF: 2 TAB BERDAMPINGAN JAUH LEBIH STABIL
+    # 🎛️ SAKLAR INTERAKTIF TAB
     tab_text, tab_file = st.tabs([
         "📝 Input Teks / Suara (Copas & Dikte)", 
         "📷 Input Gambar / File PDF"
     ])
     
-    # --- JALUR INPUT 1: KOTAK TEKS + MIKROFON SUARA (MENYATU HARMONIS) ---
-        # Ganti import di bagian paling atas file jika belum ada:
-    # from streamlit_mic_recorder import speech_to_text
-
+    # --- JALUR INPUT 1: KOTAK TEKS + MIKROFON SUARA ---
     with tab_text:
-        # Inisialisasi awal memori kunci teks jika belum ada
-        if "konten_teks_travel_utama" not in st.session_state:
-            st.session_state["konten_teks_travel_utama"] = ""
-
-        # Layout kolom: Kiri untuk teks area, Kanan untuk tombol mikrofon
         col_textarea, col_microphone = st.columns([0.80, 0.20])
         
         with col_microphone:
             st.write("🎙️ **Input Suara**")
             teks_suara_langsung = speech_to_text(
-                start_prompt="🎙️ Mulai",
-                stop_prompt="🛑 Stop",
-                language='id', 
-                key="fitur_speech_to_text_kayyisa",
-                just_once=True,
-                use_container_width=True
+                start_prompt="🎙️ Mulai", stop_prompt="🛑 Stop", language='id', 
+                key="fitur_speech_to_text_kayyisa", just_once=True, use_container_width=True
             )
-            
             if teks_suara_langsung:
                 st.session_state["konten_teks_travel_utama"] = teks_suara_langsung
                 st.rerun() 
@@ -1072,37 +1060,35 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
         with col_textarea:
             ai_raw = st.text_area(
                 "Tempelkan teks atau klik 'Mulai' di samping untuk mendikte data (pisahkan dengan '==='):",
-                key="konten_teks_travel_utama",
-                height=200
+                key="konten_teks_travel_utama", height=200
             )
         
-        # --- PERBAIKAN: Hanya gunakan 1 Tombol Utama Lebar Penuh (Tanpa Tombol Cetak PDF) ---
         if st.button("📊 Proses ke Database", key="btn_proses_text_finance", use_container_width=True):
             if ai_raw.strip():
                 tombol_ditekan = True
                 with st.spinner("Gemini AI sedang membaca salinan teks..."):
-                    # Memanggil fungsi teks AI parser utama Anda
-                    hasil_pilihan_ai = panggil_gemini_ai_parser(ai_raw.strip())
+                    # 🚀 SINKRONISASI MODULAR: Memanggil fungsi mesin universal baru
+                    import ai_input_processor
+                    hasil_pilihan_ai = ai_input_processor.proses_pembacaan_multimodal_universal(text_input=ai_raw.strip())
                     input_mentah_ref = ai_raw.strip()
-
-
 
     # --- JALUR INPUT 2: KOTAK UPLOAD FILE ---
     with tab_file:
         file_input = st.file_uploader(
             "Seret dan lepas file screenshot booking atau file PDF e-ticket asli dari vendor ke sini:",
-            type=["png", "jpg", "jpeg", "pdf"],
-            key="asisten_ai_file_input"
+            type=["png", "jpg", "jpeg", "pdf"], key="asisten_ai_file_input"
         )
         if st.button("🤖 Jalankan Proses Cerdas Gambar AI", key="btn_proses_vision_finance", use_container_width=True):
             if file_input is not None:
                 tombol_ditekan = True
                 with st.spinner("Vision AI sedang membedah dokumen gambar/PDF Anda..."):
-                    hasil_pilihan_ai = panggil_gemini_vision_parser(file_input)
+                    # 🚀 SINKRONISASI MODULAR: Memanggil fungsi mesin universal baru
+                    import ai_input_processor
+                    hasil_pilihan_ai = ai_input_processor.proses_pembacaan_multimodal_universal(file_input=file_input)
                     input_mentah_ref = f"gambar_upload {file_input.name}"
 
     # --------------------------------------------------------------------------
-    # LOGIKA PEMROSESAN GABUNGAN (BERLAKU SAMA UNTUK KEDUA METODE INPUT DI ATAS)
+    # LOGIKA PEMROSESAN GABUNGAN HIBRIDA (BISNIS & PRIBADI)
     # --------------------------------------------------------------------------
     if "peringatan_admin_ai" in st.session_state and st.session_state.peringatan_admin_ai:
         st.warning(st.session_state.peringatan_admin_ai)
@@ -1114,67 +1100,81 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
             blok_teks_list = input_mentah_ref.split("===")
             
             for idx, item in enumerate(hasil_pilihan_ai, start=1):
-                sumber_dana, detail_dana = terapkan_otomatisasi_pembayaran(item.get("platform", "Lainnya"))
+                # Deteksi otomatis jalur dari parameter AI
+                is_bisnis_line = item.get("Is_Bisnis", True)
                 
-                kode_b = item.get("kode_booking")
-                rute_p = item.get("rute")
                 hb = item.get("harga_beli") or 0
                 hj = item.get("harga_jual") or hb
+                kode_b = item.get("kode_booking", "")
+                rute_p = item.get("rute", "")
+                tipe_p = item.get("tipe", "").upper()
                 
-                # --- JARING PENGAMAN MANDATORY VALIDATION ---
-                kolom_bermasalah = []
-                if not kode_b: kolom_bermasalah.append("Kode Booking")
-                if not rute_p: kolom_bermasalah.append("Rute/Kota")
-                if hb == 0: kolom_bermasalah.append("Harga Beli (Tidak terdeteksi)")
-                
-                text_lower_block = blok_teks_list[min(idx-1, len(blok_teks_list)-1)].lower() if input_mentah_ref else ""
-                if "jual" not in text_lower_block and "total harga" not in text_lower_block and item.get("tipe") != "HOTEL":
-                    kolom_bermasalah.append("Harga Jual (Tidak ditemukan di teks/gambar mentah)")
-                
-                if kolom_bermasalah:
-                    nama_c = item.get("nama_customer") or "Nama Tidak Terbaca"
-                    pemberitahuan_masalah_data.append(f"Entri ke-{idx} (Nama: {nama_c}) ➔ Kolom kosong: **{', '.join(kolom_bermasalah)}**")
+                # ✈️ JALUR A: JARING PENGAMAN MANDATORY TRANSAKSI BISNIS TRAVEL
+                if is_bisnis_line:
+                    kolom_bermasalah = []
+                    if not kode_b: kolom_bermasalah.append("Kode Booking")
+                    if not rute_p: kolom_bermasalah.append("Rute/Kota")
+                    
+                    # Celah aman Redeem Point: Harga Beli = 0 lolos jaring jika platform ada kata 'point'
+                    if hb == 0 and "point" not in str(item.get("platform", "")).lower():
+                        kolom_bermasalah.append("Harga Beli (0 tidak sah jika bukan Redeem Point)")
+                        
+                    if kolom_bermasalah:
+                        nama_c = item.get("nama_customer") or "Nama Tidak Terbaca"
+                        pemberitahuan_masalah_data.append(f"Entri ke-{idx} (Bisnis: {nama_c}) ➔ Kolom kosong: **{', '.join(kolom_bermasalah)}**")
 
-                laba = hj - hb
-                persen_laba = f"{round((laba / hb) * 100, 2)}%" if hb > 0 else "0.0%"
+                    laba = hj - hb
+                    persen_laba = f"{round((laba / hb) * 100, 2)}%" if hb > 0 else "0.0%"
+                    sumber_dana, detail_dana = terapkan_otomatisasi_pembayaran(item.get("platform", "Lainnya"))
 
-                ai_entries.append({
-                    'Tgl Pemesanan': item.get("tgl_pemesanan", ""), 'Tgl Berangkat': item.get("tgl_berangkat", ""),
-                    'Kode Booking': kode_b if kode_b else "", 'No Penerbangan / Hotel / Kereta': item.get("item_name", ""),
-                    'Durasi': item.get("durasi", ""), 'Nama Customer': item.get("nama_customer", ""), 'Rute': rute_p if rute_p else "",
-                    'Harga Beli': hb, 'Harga Jual': hj, 'Laba': laba, 'Tipe': item.get("tipe", "").upper(),
-                    'BF/NBF': item.get("bf_status", ""), 'No Invoice': '', 'Keterangan': 'Belum Lunas',
-                    'Pemesan': 'ER ENDO', 'Admin': 'PA', ' % Laba': persen_laba,
-                    'Sumber Dana': sumber_dana, 'Detail Dana': detail_dana, 'Platform': item.get("platform", "Lainnya")
-                })
-            
-                        # --- MASUKKAN KE DATA FRAME UTAMA ---
+                    ai_entries.append({
+                        'Tgl Pemesanan': item.get("tgl_pemesanan", ""), 'Tgl Berangkat': item.get("tgl_berangkat", ""),
+                        'Kode Booking': kode_b, 'No Penerbangan / Hotel / Kereta': item.get("item_name", ""),
+                        'Durasi': item.get("durasi", ""), 'Nama Customer': item.get("nama_customer", ""), 'Rute': rute_p,
+                        'Harga Beli': hb, 'Harga Jual': hj, 'Laba': laba, 'Tipe': tipe_p,
+                        'BF/NBF': item.get("bf_status", ""), 'No Invoice': '', 'Keterangan': 'Belum Lunas',
+                        'Pemesan': 'ER ENDO', 'Admin': 'PA', ' % Laba': persen_laba,
+                        'Sumber Dana': sumber_dana, 'Detail Dana': detail_dana, 'Platform': item.get("platform", "Lainnya"),
+                        'No Rekening': '' # Kosongkan kolom anggaran dompet jika ini data bisnis
+                    })
                 
+                # 🏦 JALUR B: JARING PENGAMAN PENGELUARAN DOMPET PRIBADI / KAS RUMAH TANGGA
+                else:
+                    if hj <= 0:
+                        pemberitahuan_masalah_data.append(f"Entri ke-{idx} (Pribadi: {item.get('item_name')}) ➔ Nominal belanja kosong!")
+
+                    ai_entries.append({
+                        'Tgl Pemesanan': item.get("tgl_pemesanan", ""), 'Tgl Berangkat': '',
+                        'Kode Booking': '', 'No Penerbangan / Hotel / Kereta': item.get("item_name", ""),
+                        'Durasi': '', 'Nama Customer': item.get("nama_customer", ""), 'Rute': '',
+                        'Harga Beli': 0, 'Harga Jual': hj, 'Laba': 0, 'Tipe': '',
+                        'BF/NBF': '', 'No Invoice': '', 'Keterangan': item.get("keterangan_tambahan", "Mutasi Pribadi"),
+                        'Pemesan': 'OWNER', 'Admin': 'PA', ' % Laba': '0.0%',
+                        'Sumber Dana': 'Dana Tunai/Cash', 'Detail Dana': 'BCA', 'Platform': 'Lainnya',
+                        'No Rekening': item.get("no_rekening", "Rumah Tangga") # Mengambil porsi tebakan cerdas pos dompet dari AI
+                    })
+
             st.session_state.bulk_parsed = pd.DataFrame(ai_entries)
             st.session_state.edit_mode_bulk = True
             
             if pemberitahuan_masalah_data:
-                st.session_state.peringatan_admin_ai = "⚠️ **Peringatan Validasi Tiket!** Ditemukan beberapa kolom wajib masih kosong:\n\n" + "\n".join([f"- {e}" for e in pemberitahuan_masalah_data]) + "\n\n**Mohon lengkapi data kosong tersebut** pada menu edit manual di bawah ini sebelum disimpan!"
+                st.session_state.peringatan_admin_ai = "⚠️ **Peringatan Validasi Entri!** Ditemukan beberapa kolom wajib masih kosong:\n\n" + "\n".join([f"- {e}" for e in pemberitahuan_masalah_data]) + "\n\n**Mohon lengkapi data kosong tersebut** pada menu edit manual di bawah ini sebelum disimpan!"
             else:
                 if "peringatan_admin_ai" in st.session_state: del st.session_state["peringatan_admin_ai"]
             st.rerun()
         else:
-            st.error("⚠️ AI gagal mengekstrak data. Pastikan teks berisi manifes tiket yang valid atau kualitas gambar/suara cukup jelas.")
-
+            st.error("⚠️ AI gagal mengekstrak data. Pastikan teks berisi data valid atau kualitas gambar/suara cukup jelas.")
 
     # ==============================================================================
-    # 4. LOGIKA FORM EDIT MANUAL BAWAAN ANDA (Tetap dipertahaman di bawah tombol AI)
+    # FORM EDIT MANUAL INTERAKTIF (DENGAN SUNTIKAN DROPDOWN REKENING PRIBADI REAKTIF)
     # ==============================================================================
     if "bulk_parsed" in st.session_state and not st.session_state.bulk_parsed.empty:
         df = st.session_state.bulk_parsed
         
-        required_cols = ["Sumber Dana", "Detail Dana", "Platform"]
+        required_cols = ["Sumber Dana", "Detail Dana", "Platform", "No Rekening"]
         for col in required_cols:
-            if col not in df.columns:
-                df[col] = ""
+            if col not in df.columns: df[col] = ""
 
-
-        # Checkbox bawaan Anda untuk mengaktifkan edit mode manual
         edit_mode = st.checkbox("✏️ Edit Data Manual", value=st.session_state.get("edit_mode_bulk", False))
 
         if edit_mode:
@@ -1187,64 +1187,64 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
             for i in selected_rows:
                 row_data = df.iloc[i].to_dict()
                 st.markdown(f"---\n##### ✏️ Baris ke-{i}")
-
+                
                 with st.expander(f"📝 Edit Data Baris {i}", expanded=True):
                     updated_row = {}
-
+                
                     for col, val in row_data.items():
+                        # ========== REAKTIF: SUNTIKAN DROPDOWN POS REKENING DOMPET KELUARGA ==========
+                        if col == "No Rekening":
+                            # Munculkan dropdown 6 pos dompet keluarga secara live jika ini baris data pribadi
+                            if str(df.at[i, "Pemesan"]) == "OWNER":
+                                pos_options = ["Rumah Tangga", "Aset Kantor", "Investasi", "Lifestyle", "Cadangan Bisnis", "Dana Sosial / Titipan"]
+                                default_val = str(val) if str(val) in pos_options else "Rumah Tangga"
+                                new_val = st.selectbox(f"Pos Dompet Keluarga (Baris {i})", options=pos_options, index=pos_options.index(default_val), key=f"No_Rekening_{i}")
+                                updated_row[col] = new_val
+                            else:
+                                updated_row[col] = ""
+                            continue
+                            
                         # ========== HANDLE TANGGAL ==========
-                        if col in ["Tgl Pemesanan", "Tgl Berangkat"]:
-                            try: val = pd.to_datetime(val).date()
-                            except: val = pd.Timestamp.today().date()
+                        elif col in ["Tgl Pemesanan", "Tgl Berangkat"]:
+                            try: 
+                                val = pd.to_datetime(val).date()
+                            except: 
+                                val = pd.Timestamp.today().date()
                             new_val = st.date_input(f"{col} (Baris {i})", value=val, key=f"{col}_{i}")
                             updated_row[col] = new_val
                             continue
-
-                        # ========== HANDLE NUMERIC (REAKTIF LIVE UPDATE) ==========
+                            
+                        # ========== HANDLE NUMERIC REAKTIF LIVE UPDATE ==========
                         elif col in ["Harga Beli", "Harga Jual", "Laba", " % Laba"]:
                             if col in ["Harga Beli", "Harga Jual"]:
-                                # Ambil nilai numerik awal atau yang sedang diketik
                                 val_clean = str(val).split('.')[0] if '.' in str(val) else str(val)
                                 val_num = int(val_clean) if str(val_clean).isdigit() else 0
-                                
                                 new_val = st.text_input(f"{col} (Baris {i})", value=str(val_num), key=f"{col}_{i}")
                                 updated_row[col] = int(new_val) if new_val.isdigit() else 0
-                            
                             elif col == "Laba":
-                                # TARIK ANGKA LIVE SAAT INI DARI SCREEN INPUT ADMIN
                                 hb_live = st.session_state.get(f"Harga Beli_{i}", str(df.at[i, "Harga Beli"]))
                                 hj_live = st.session_state.get(f"Harga Jual_{i}", str(df.at[i, "Harga Jual"]))
-                                
-                                hb_int = int(hb_live) if str(hb_live).isdigit() else 0
-                                hj_int = int(hj_live) if str(hj_live).isdigit() else 0
-                                
-                                laba_live = hj_int - hb_int
-                                # Tampilkan teks info tebal interaktif agar admin bisa melihat untung live
-                                st.markdown(f"💵 **Laba Terkini (Baris {i}):** Rp {laba_live:,}")
+                                laba_live = (int(hj_live) if str(hj_live).isdigit() else 0) - (int(hb_live) if str(hb_live).isdigit() else 0)
+                                st.markdown(f"💵 Laba Terkini (Baris {i}): Rp {laba_live:,}")
                                 updated_row["Laba"] = laba_live
-                                
                             elif col == " % Laba":
                                 hb_live = st.session_state.get(f"Harga Beli_{i}", str(df.at[i, "Harga Beli"]))
                                 hj_live = st.session_state.get(f"Harga Jual_{i}", str(df.at[i, "Harga Jual"]))
-                                
                                 hb_int = int(hb_live) if str(hb_live).isdigit() else 0
-                                hj_int = int(hj_live) if str(hj_live).isdigit() else 0
-                                laba_live = hj_int - hb_int
-                                
+                                laba_live = (int(hj_live) if str(hj_live).isdigit() else 0) - hb_int
                                 persen_live = f"{round((laba_live / hb_int) * 100, 2)}%" if hb_int > 0 else "0.0%"
-                                st.markdown(f"📈 **% Laba Terkini (Baris {i}):** {persen_live}")
+                                st.markdown(f"📈 % Laba Terkini (Baris {i}): {persen_live}")
                                 updated_row[" % Laba"] = persen_live
                             continue
-
-                        # ========== HANDLE DROPDOWN: SUMBER DANA ==========
+                            
+                        # ========== HANDLE DROPDOWN CASCADING REAKTIF ==========
                         elif col == "Sumber Dana":
                             sumber_dana_options = ["Dana Tunai/Cash", "Credit Card", "Reedem Point"]
                             default_val = str(val) if str(val) in sumber_dana_options else "Dana Tunai/Cash"
                             new_val = st.selectbox(f"{col} (Baris {i})", options=sumber_dana_options, index=sumber_dana_options.index(default_val), key=f"{col}_{i}")
                             updated_row[col] = new_val
                             continue
-
-                        # ========== HANDLE DROPDOWN: DETAIL DANA ==========
+                            
                         elif col == "Detail Dana":
                             sumber_dana = updated_row.get("Sumber Dana", row_data.get("Sumber Dana", ""))
                             if sumber_dana == "Dana Tunai/Cash":
@@ -1256,82 +1256,87 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
                             else:
                                 detail_options = [""]
                             default_val = str(val) if str(val) in detail_options else detail_options[0]
-                            
-                            new_val = st.selectbox(
-                                f"{col} (Baris {i})",
-                                options=detail_options,
-                                index=detail_options.index(default_val) if default_val in detail_options else 0,
-                                key=f"{col}_{i}"
-                            )
+                            new_val = st.selectbox(f"{col} (Baris {i})", options=detail_options, index=detail_options.index(default_val) if default_val in detail_options else 0, key=f"{col}_{i}")
                             updated_row[col] = new_val
                             continue
-
-                        # ========== HANDLE DROPDOWN: PLATFORM ==========
+                            
                         elif col == "Platform":
-                            platform_options = [
-                                "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin",
-                                "KAI Access", "RedDoorz", "Garuda App", "Citilink App", 
-                                "Lion Air Group App", "AirAsia App", "Booking.com", "OYO", "Dafam", "Lainnya"
-                            ]
+                            platform_options = ["Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin", "KAI Access", "RedDoorz", "Garuda App", "Citilink App", "Lion Air Group App", "AirAsia App", "Booking.com", "OYO", "Dafam", "Lainnya"]
                             default_val = str(val) if str(val) in platform_options else "Lainnya"
                             new_val = st.selectbox(f"{col} (Baris {i})", options=platform_options, index=platform_options.index(default_val), key=f"{col}_{i}")
                             updated_row[col] = new_val
                             continue
-
-                        # ========== HANDLE DEFAULT TEXT ==========
+                            
                         else:
-                            if col == "Keterangan":
+                            if col == "Keterangan": 
                                 default_val = "Belum Lunas" if pd.isna(val) or str(val).strip() == "" else str(val)
-                            elif col == "Pemesan":
+                            elif col == "Pemesan": 
                                 default_val = "ER ENDO" if pd.isna(val) or str(val).strip() == "" else str(val)
-                            elif col == "Admin":
+                            elif col == "Admin": 
                                 default_val = "PA" if pd.isna(val) or str(val).strip() == "" else str(val)
-                            else:
+                            else: 
                                 default_val = str(val) if pd.notna(val) else ""
-
                             new_val = st.text_input(f"{col} (Baris {i})", value=default_val, key=f"{col}_{i}")
                             updated_row[col] = new_val
-
+                
                     edited_rows[i] = updated_row
+                
+                if st.button("💾 Simpan Semua Perubahan"):
+                    for i, updated in edited_rows.items():
+                        for col, val in updated.items(): 
+                            df.at[i, col] = val
+                    st.session_state.bulk_parsed = df
+                    st.session_state.edit_mode_bulk = False
+                    st.success(f"✅ {len(edited_rows)} baris berhasil diperbarui.")
+                    st.rerun()
+                else:
+                    st.session_state.edit_mode_bulk = False
+                    st.markdown("#### 📊 Data Gabungan Hasil Bulk")
+                    st.dataframe(st.session_state.bulk_parsed, use_container_width=True)
+                
+                # 📤 TOMBOL UTAMA PENYALUR DATA DUA JALUR (ROUTING ENTRi TO GSHEETS)
+                if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bulk ke GSheet", use_container_width=True):
+                    with st.spinner("Sedang menyalurkan data pembukuan ke Google Sheets secara paralel..."):
+                        df_final_save = st.session_state.bulk_parsed.copy()
+                        
+                        # Membagi gerbong data penjualan vs dompet pribadi
+                        is_bisnis_mask = df_final_save["Pemesan"] != "OWNER"
+                        df_save_bisnis = df_final_save[is_bisnis_mask].copy()
+                        df_save_pribadi = df_final_save[~is_bisnis_mask].copy()
+                        
+                        # Tembak Massal Jalur A: Ke Worksheet "Data" (Jika ada transaksi tiket)
+                        if not df_save_bisnis.empty:
+                            df_save_bisnis_clean = df_save_bisnis.drop(columns=["No Rekening"], errors="ignore")
+                            # Hubungkan dan kirim ke fungsi simpan utama existing Anda
+                            save_gsheet(df_save_bisnis_clean)
+                            
+                        # Tembak Massal Jalur B: Ke Worksheet "Pribadi" (Jika ada mutasi dompet/KPR/RT)
+                        if not df_save_pribadi.empty:
+                            df_pribadi_structured = pd.DataFrame({
+                                "Tanggal": df_save_pribadi["Tgl Pemesanan"],
+                                "Bank_Sumber": df_save_pribadi["Detail Dana"], # Bank dibaca otomatis dari detail dana
+                                "No_Rekening_AI": df_save_pribadi["No Rekening"],
+                                "Kategori": df_save_pribadi.apply(lambda r: "Pemasukan" if "pemasukan" in str(r["Keterangan"]).lower() or "ganti" in str(r["Keterangan"]).lower() or "iuran" in str(r["Keterangan"]).lower() else "Penggeluaran", axis=1),
+                                "Nominal": df_save_pribadi["Harga Jual"],
+                                "Keterangan": df_save_pribadi["No Penerbangan / Hotel / Kereta"] + " - " + df_save_pribadi["Nama Customer"]
+                            })
+                            
+                            # Buka koneksi mandiri aman ke lembar kerja baru Anda
+                            try:
+                                ws_pribadi_sheet = connect_to_gsheet("1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8", "Pribadi")
+                                for _, r_p in df_pribadi_structured.iterrows():
+                                    ws_pribadi_sheet.append_row(r_p.tolist())
+                            except Exception as e:
+                                st.error(f"Gagal menyimpan jurnal pos pribadi: {str(e)}")
+                                
+                        # PROSES PEMBERSIHAN MEMORI WIDGET SEPERTI SKRIP LAMA ANDA
+                        kunci_wajib_bersih = ["bulk_parsed", "konten_teks_travel_utama", "asisten_ai_file_input", "fitur_speech_to_text_kayyisa"]
+                        for kunci in kunci_wajib_bersih:
+                            st.session_state.pop(kunci, None)
+                            
+                        st.success("🚀 Sukses! Data tersortir otomatis ke masing-masing tab dan form telah bersih suci kembali.")
+                        st.rerun()
 
-             # Simpan semua perubahan
-            if st.button("💾 Simpan Semua Perubahan"):
-                for i, updated in edited_rows.items():
-                    for col, val in updated.items():
-                        df.at[i, col] = val
-
-                st.session_state.bulk_parsed = df
-                st.session_state.edit_mode_bulk = False
-                st.success(f"✅ {len(edited_rows)} baris berhasil diperbarui.")
-                st.rerun()
-
-        else:
-            st.session_state.edit_mode_bulk = False
-            st.markdown("#### 📊 Data Gabungan Hasil Bulk")
-            st.dataframe(st.session_state.bulk_parsed, use_container_width=True)
-
-    # Bulk save
-    if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bulk ke GSheet", use_container_width=True):
-        with st.spinner("Sedang mengunggah data pembukuan ke Google Sheets keuangan..."):
-            # Jalankan fungsi penyimpanan data asli Anda
-            save_gsheet(st.session_state.bulk_parsed)
-        
-        # LIST KUNCI TERSTRUKTUR: Menghapus seluruh jejak widget secara legal
-        kunci_wajib_bersih = [
-            "bulk_parsed",                   # Hapus dataframe pembukuan bawah
-            "konten_teks_travel_utama",      # FIX: Bersihkan kotak input teks area atas
-            "asisten_ai_file_input",         # FIX: Bersihkan berkas uploader gambar/PDF
-            "fitur_speech_to_text_kayyisa"   # FIX: Reset mikrofon dikte suara kembali ke awal
-        ]
-        
-        # Eksekusi pembersihan total menggunakan metode pop aman
-        for kunci in kunci_wajib_bersih:
-            st.session_state.pop(kunci, None)
-
-        st.success("🚀 Sukses! Data aman di GSheet dan form input telah dibersihkan kembali ke awal.")
-        
-        # Segarkan halaman secara bersih, seluruh textbox dan uploader otomatis kosong suci kembali
-        st.rerun()
 
 with st.expander("✏️ Input Manual Data"):
     tgl_pemesanan = st.date_input("Tgl Pemesanan", value=date.today(), key="tgl_pemesanan")

@@ -3656,8 +3656,8 @@ import ai_auditor
 # =========================================================================
 
 #with st.expander("📘 Laporan Baru - AI Base"):
-with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=True):
-    st.markdown("### 🔧 Filter Cashflow & Transaksi")
+with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
+    #st.markdown("### Filter Cashflow & Transaksi")
     
     # 📥 AMBIL DATA AMAN: Panggil fungsi load_data() global yang sudah ter-cache
     # Ini 100% hemat kuota API karena mengambil dari memori RAM server, bukan dari Google

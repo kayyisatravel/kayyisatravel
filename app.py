@@ -3722,7 +3722,11 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
         st.markdown("---")
 
         # 🧮 Proses sisa perhitungan metrik, tabel aging, dan AI Auditor murni hanya dari df_filtered yang super ringan
-        metrics = finance_engine.hitung_performa_dan_aging_v4(df_filtered, df_cashflow_combined)
+        metrics = finance_engine.hitung_performa_dan_reconciliation_v5(
+            df_filtered, 
+            df_pribadi_current, 
+            df_cashflow_combined
+        )
 
         # 5️⃣ TAMPILKAN INTERFACES TABS (Bersih, Rapi, & Padat di Dalam Expander)
         tab_ringkasan, tab_aging, tab_ai_audit = st.tabs([

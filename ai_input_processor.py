@@ -5,7 +5,10 @@ from google.genai import types
 from pydantic import BaseModel, Field
 from typing import Optional, List
 import json
+import datetime
 
+
+tgl_sekarang_str = datetime.date.today().strftime("%Y-%m-%d")
 # =====================================================================
 # 1. SKEMA DATA PYDANTIC
 # =====================================================================

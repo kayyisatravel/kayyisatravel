@@ -1155,6 +1155,31 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
                     })
 
             st.session_state.bulk_parsed = pd.DataFrame(ai_entries)
+            # =========================================================================
+            # 🛡️ FIX AKUNTANSI: PAKSA STERILKAN KOLOM PRIBADI SEBELUM RENDER TABLE
+            # =========================================================================
+            df_parsed_clean = pd.DataFrame(ai_entries)
+            
+            if not df_parsed_clean.empty:
+                # Ambil indeks baris yang merupakan milik Owner (Jalur Pribadi)
+                mask_pribadi = df_parsed_clean["Pemesan"] == "OWNER"
+                
+                # 1. Paksa Tanggal Berangkat untuk jalur pribadi menjadi Kosong Murni
+                df_parsed_clean.loc[mask_pribadi, "Tgl Berangkat"] = ""
+                
+                # 2. Paksa Harga Beli untuk jalur pribadi menjadi 0
+                df_parsed_clean.loc[mask_pribadi, "Harga Beli"] = 0
+                
+                # 3. Paksa Laba untuk jalur pribadi menjadi 0 (Mencegah penggelembungan laba palsu)
+                df_parsed_clean.loc[mask_pribadi, "Laba"] = 0
+                
+                # 4. Paksa % Laba untuk jalur pribadi menjadi 0.0%
+                df_parsed_clean.loc[mask_pribadi, " % Laba"] = "0.0%"
+            
+            # Masukkan dataframe yang sudah suci dan steril ke dalam memori screen
+            st.session_state.bulk_parsed = df_parsed_clean
+            # =========================================================================
+            
             st.session_state.edit_mode_bulk = True
             
             if pemberitahuan_masalah_data:

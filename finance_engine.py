@@ -43,9 +43,9 @@ def hitung_performa_dan_reconciliation_v5(df_sales_raw, df_pribadi_raw, df_cashf
     Sisa Piutang Berbasis Kas, Bagi Hasil Investor 7.5%, serta Alokasi Porsi 
     Kantong Anggaran Digital AI untuk Toko & Dompet Keluarga Owner.
     """
-    # 🛡️ 1. TAMENG PROTEKSI OBJEK KOSONG / NONE
-    if df_sales_raw is None or (not isinstance(df_sales_raw, pd.DataFrame)) or df_sales_raw.empty:
-        return {}
+    # 🛡️ 1. TAMENG PROTEKSI OBJEK KOSONG / NONE (PERBAIKAN ANTI-REM DARURAT - 100% AMAN)
+    if df_sales_raw is None or (not isinstance(df_sales_raw, pd.DataFrame)):
+        df_sales_raw = pd.DataFrame(columns=["Tgl Pemesanan", "Harga Beli", "Harga Jual", "Kode Booking", "Admin"])
         
     if df_pribadi_raw is None or (not isinstance(df_pribadi_raw, pd.DataFrame)):
         df_pribadi_raw = pd.DataFrame(columns=["Tanggal", "Bank_Sumber", "No_Rekening_AI", "Kategori", "Nominal", "Keterangan"])
@@ -53,33 +53,42 @@ def hitung_performa_dan_reconciliation_v5(df_sales_raw, df_pribadi_raw, df_cashf
     if df_cashflow_raw is None or (not isinstance(df_cashflow_raw, pd.DataFrame)):
         df_cashflow_raw = pd.DataFrame(columns=["Invoice_Key", "Jumlah", "Tipe", "Kategori"])
 
-    # 🏗️ 2. AMBIL DAN AMANKAN DATA PENJUALAN (SALES JOURNAL - ACCRUAL BASE)
+    # 🏗️ 2. AMBIL DAN AMANKAN DATA PENJUALAN
     df_sales = df_sales_raw.copy()
     
-    # 🔍 AUTO-DETECT & STANDARDISASI NAMA KOLOM "Keterangan"
-    kolom_mapping = {str(col).strip().lower(): col for col in df_sales.columns}
-    if "keterangan" in kolom_mapping:
-        df_sales["Keterangan"] = df_sales[kolom_mapping["keterangan"]].fillna("Belum Lunas")
-    else:
+    # Kondisi adaptif jika jualan tiket travel utama sedang kosong agar hitungan makro tidak crash
+    if df_sales.empty:
+        total_pendapatan = 0.0
+        total_hpp = 0.0
+        total_laba_buku = 0.0
         df_sales["Keterangan"] = "Belum Lunas"
-
-    # Deteksi & Normalisasi Kolom Wajib Invoice_Key agar anti-KeyError
-    if "Invoice_Key" not in df_sales.columns:
         df_sales["Invoice_Key"] = "N/A"
     else:
-        df_sales["Invoice_Key"] = df_sales["Invoice_Key"].fillna("N/A").astype(str).str.strip()
-        df_sales.loc[df_sales["Invoice_Key"] == "", "Invoice_Key"] = "N/A"
+        # 🔍 AUTO-DETECT & STANDARDISASI NAMA KOLOM "Keterangan"
+        kolom_mapping = {str(col).strip().lower(): col for col in df_sales.columns}
+        if "keterangan" in kolom_mapping:
+            df_sales["Keterangan"] = df_sales[kolom_mapping["keterangan"]].fillna("Belum Lunas")
+        else:
+            df_sales["Keterangan"] = "Belum Lunas"
 
-    # Bersihkan Data Nominal Angka & Tanggal Penjualan
-    df_sales["Harga Beli (Num)"] = df_sales["Harga Beli"].apply(bersihkan_angka)
-    df_sales["Harga Jual (Num)"] = df_sales["Harga Jual"].apply(bersihkan_angka)
-    df_sales["Laba (Num)"] = df_sales["Harga Jual (Num)"] - df_sales["Harga Beli (Num)"]
-    df_sales["Tgl Pemesanan_Parsed"] = pd.to_datetime(df_sales["Tgl Pemesanan"], dayfirst=True, errors="coerce")
-    
-    # Perhitungan Finansial Makro (Accrual Basis)
-    total_pendapatan = df_sales["Harga Jual (Num)"].sum()
-    total_hpp = df_sales["Harga Beli (Num)"].sum()
-    total_laba_buku = df_sales["Laba (Num)"].sum()
+        # Deteksi & Normalisasi Kolom Wajib Invoice_Key agar anti-KeyError
+        if "Invoice_Key" not in df_sales.columns:
+            df_sales["Invoice_Key"] = "N/A"
+        else:
+            df_sales["Invoice_Key"] = df_sales["Invoice_Key"].fillna("N/A").astype(str).str.strip()
+            df_sales.loc[df_sales["Invoice_Key"] == "", "Invoice_Key"] = "N/A"
+
+        # Bersihkan Data Nominal Angka & Tanggal Penjualan
+        df_sales["Harga Beli (Num)"] = df_sales["Harga Beli"].apply(bersihkan_angka)
+        df_sales["Harga Jual (Num)"] = df_sales["Harga Jual"].apply(bersihkan_angka)
+        df_sales["Laba (Num)"] = df_sales["Harga Jual (Num)"] - df_sales["Harga Beli (Num)"]
+        df_sales["Tgl Pemesanan_Parsed"] = pd.to_datetime(df_sales["Tgl Pemesanan"], dayfirst=True, errors="coerce")
+        
+        # Perhitungan Finansial Makro (Accrual Basis)
+        total_pendapatan = df_sales["Harga Jual (Num)"].sum()
+        total_hpp = df_sales["Harga Beli (Num)"].sum()
+        total_laba_buku = df_sales["Laba (Num)"].sum()
+
 
     # 📋 3. PROSES REKONSILIASI KAS MASUK & AGING REPORT POIN PIUTANG
     total_piutang = 0.0

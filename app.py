@@ -1154,7 +1154,7 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
                         pemberitahuan_masalah_data.append(f"Entri ke-{idx} (Pribadi: {item.get('item_name')}) ➔ Nominal belanja kosong!")
 
                     # 🛡️ FIX URUTAN: Deklarasikan variabel penangkap AI ini di ATAS append dictionary
-                    bank_terdeteksi_ai = item.get("detail_dana", "BCA") if item.get("detail_dana") else "BCA"
+                    bank_terdeteksi_ai = item.get("Detail Dana", "BCA") if item.get("detail_dana") else "BCA"
                     sumber_dana_ai = item.get("sumber_dana", "Dana Tunai/Cash") if item.get("sumber_dana") else "Dana Tunai/Cash"
 
                     ai_entries.append({

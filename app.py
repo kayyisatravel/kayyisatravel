@@ -1407,7 +1407,7 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
                         "Tanggal": df_save_pribadi["Tgl Pemesanan"],
                         "Bank_Sumber": df_save_pribadi["Detail Dana"].fillna("BCA"), 
                         "No_Rekening_AI": df_save_pribadi["No Rekening"].fillna("Rumah Tangga"),
-                        "Kategori": df_save_pribadi["Kategori"].fillna("Pengeluaran"),
+                        "Kategori": kategori_series.fillna("Pengeluaran"),
                         "Nominal": df_save_pribadi["Harga Jual"],
                         "Keterangan": item_name_pribadi.astype(str) + " - " + nama_cust_pribadi.astype(str)
                     })

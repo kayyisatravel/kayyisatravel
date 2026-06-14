@@ -1391,23 +1391,12 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
                     # Ini menjamin aplikasi 100% kebal dari crash jika kolom bisnis tidak terbaca
                     item_name_pribadi = df_save_pribadi["No Penerbangan / Hotel / Kereta"] if "No Penerbangan / Hotel / Kereta" in df_save_pribadi.columns else "Pengeluaran"
                     nama_cust_pribadi = df_save_pribadi["Nama Customer"] if "Nama Customer" in df_save_pribadi.columns else "Owner"
-                    
-                    if "Kategori" in df_save_pribadi.columns:
-                        kategori_series = df_save_pribadi["Kategori"]
-                    elif "kategori" in df_save_pribadi.columns:
-                        kategori_series = df_save_pribadi["kategori"]
-                    else:
-                        # Jika tidak ditemukan sama sekali di dataframe, buat otomatis berdasarkan isi teks keterangan
-                        kategori_series = df_save_pribadi.apply(
-                            lambda r: "Pemasukan" if "pemasukan" in str(r.get("Keterangan", "")).lower() or "ganti" in str(r.get("Keterangan", "")).lower() or "iuran" in str(r.get("Keterangan", "")).lower() else "Pengeluaran", 
-                            axis=1
-                        )
 
                     df_pribadi_structured = pd.DataFrame({
                         "Tanggal": df_save_pribadi["Tgl Pemesanan"],
                         "Bank_Sumber": df_save_pribadi["Detail Dana"].fillna("BCA"), 
                         "No_Rekening_AI": df_save_pribadi["No Rekening"].fillna("Rumah Tangga"),
-                        "Kategori": kategori_series.fillna("Pengeluaran"),
+                        "Kategori": df_save_pribadi["Kategori"].fillna("Pengeluaran"), # Langsung ambil dari AI
                         "Nominal": df_save_pribadi["Harga Jual"],
                         "Keterangan": item_name_pribadi.astype(str) + " - " + nama_cust_pribadi.astype(str)
                     })

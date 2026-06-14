@@ -103,6 +103,24 @@ def prepare_batch_update(
                 })
 
     return updates
+
+def sedot_data_pribadi_independen():
+    """
+    Fungsi penarik data mandiri untuk tab 'Pribadi' Google Sheets.
+    Menjamin data mutasi kas ruko stabil dan anti-kosong di memori RAM.
+    """
+    try:
+        ws_pribadi = connect_to_gsheet(SHEET_ID, "Pribadi")
+        df_p_raw = pd.DataFrame(ws_pribadi.get_all_records())
+        if df_p_raw.empty:
+            return pd.DataFrame(columns=["Tanggal", "Bank_Sumber", "No_Rekening_AI", "Kategori", "Nominal", "Keterangan"])
+        df_p_raw = df_p_raw.dropna(how="all")
+        df_p_raw = df_p_raw.drop_duplicates(keep="first")
+        return df_p_raw
+    except:
+        return pd.DataFrame(columns=["Tanggal", "Bank_Sumber", "No_Rekening_AI", "Kategori", "Nominal", "Keterangan"])
+
+
  # === Fungsi PDF ===
 import os
 from fpdf import FPDF
@@ -3832,13 +3850,7 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
         if 'df_pribadi' in locals() or 'df_pribadi' in globals():
             df_pribadi_current = df_pribadi
         else:
-            try:
-                # Panggil fungsi penarik multi-tab global milik Anda
-                _, df_pribadi_fresh = load_data_all_tabs()
-                df_pribadi_current = df_pribadi_fresh
-            except:
-                # Jika fungsi load gagal/belum terbaca di scope ini, buatkan DataFrame cadangan agar anti-crash
-                df_pribadi_current = pd.DataFrame(columns=["Tanggal", "Bank_Sumber", "No_Rekening_AI", "Kategori", "Nominal", "Keterangan"])
+            df_pribadi_current = sedot_data_pribadi_independen()
 
         # =========================================================================
         # 🚀 EKSEKUSI ENGINE V5: Panggil dengan 3 Parameter Data yang Sudah Steril
@@ -4160,11 +4172,6 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
                     key="btn_download_word_html_v3"
                 )
 
-metrics = finance_engine.hitung_performa_dan_reconciliation_v5(
-            df_filtered, 
-            df_pribadi_current, 
-            df_cashflow_combined
-        )
 # =========================================================================
 # 🎨 TAHAP VISUALISASI: RENDER KARTU SALDO MULTI-BANK & ANGGARAN DIGITAL AI
 # =========================================================================

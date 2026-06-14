@@ -3870,6 +3870,109 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
         """, unsafe_allow_html=True)
 
         st.markdown("---")
+
+        # =========================================================================
+        # 🎨 TAHAP VISUALISASI: RENDER KARTU SALDO MULTI-BANK & ANGGARAN DIGITAL AI
+        # =========================================================================
+        st.markdown("### 🏦 I. Posisi Saldo Riil di Rekening Bank (Sesuai ATM)")
+        st.caption("Angka di bawah dihitung otomatis dari akumulasi seluruh mutasi masuk dan keluar.")
+        
+        # Tarik data saldo bank dari fungsi finance_engine v5 kita
+        saldo_bank = metrics.get("saldo_bank_riil", {})
+        
+        # Susun 4 kolom horizontal untuk baris pertama bank
+        cb1, cb2, cb3, cb4 = st.columns(4)
+        with cb1:
+            st.markdown(f"""<div style='background-color:#e3f2fd; padding:15px; border-radius:10px; border-left: 5px solid #1e88e5;'>
+                <p style='margin:0; font-size:12px; color:#555;'>🟦 SALDO BCA</p>
+                <h3 style='margin:0; color:#1565c0;'>Rp {int(saldo_bank.get("BCA", 0)):,}</h3>
+            </div>""".replace(",", "."), unsafe_allow_html=True)
+        with cb2:
+            st.markdown(f"""<div style='background-color:#e8f5e9; padding:15px; border-radius:10px; border-left: 5px solid #43a047;'>
+                <p style='margin:0; font-size:12px; color:#555;'>🟩 SALDO MANDIRI</p>
+                <h3 style='margin:0; color:#2e7d32;'>Rp {int(saldo_bank.get("Mandiri", 0)):,}</h3>
+            </div>""".replace(",", "."), unsafe_allow_html=True)
+        with cb3:
+            st.markdown(f"""<div style='background-color:#fff3e0; padding:15px; border-radius:10px; border-left: 5px solid #fb8c00;'>
+                <p style='margin:0; font-size:12px; color:#555;'>🟧 SALDO SEABANK</p>
+                <h3 style='margin:0; color:#ef6c00;'>Rp {int(saldo_bank.get("SeaBank", 0)):,}</h3>
+            </div>""".replace(",", "."), unsafe_allow_html=True)
+        with cb4:
+            st.markdown(f"""<div style='background-color:#f3e5f5; padding:15px; border-radius:10px; border-left: 5px solid #8e24aa;'>
+                <p style='margin:0; font-size:12px; color:#555;'>🟪 SALDO BSI</p>
+                <h3 style='margin:0; color:#6a1b9a;'>Rp {int(saldo_bank.get("BSI", 0)):,}</h3>
+            </div>""".replace(",", "."), unsafe_allow_html=True)
+
+        # Baris kedua untuk sisa akun rekening bank Anda
+        st.markdown("<br>", unsafe_allow_html=True)
+        cb5, cb6, cb7, cb8 = st.columns(4)
+        with cb5:
+            st.markdown(f"""<div style='background-color:#e1f5fe; padding:15px; border-radius:10px; border-left: 5px solid #039be5;'>
+                <p style='margin:0; font-size:12px; color:#555;'>🌐 SALDO BNI</p>
+                <h3 style='margin:0; color:#0277bd;'>Rp {int(saldo_bank.get("BNI", 0)):,}</h3>
+            </div>""".replace(",", "."), unsafe_allow_html=True)
+        with cb6:
+            st.markdown(f"""<div style='background-color:#efebe9; padding:15px; border-radius:10px; border-left: 5px solid #6d4c41;'>
+                <p style='margin:0; font-size:12px; color:#555;'>🟫 SALDO BRI</p>
+                <h3 style='margin:0; color:#4e342e;'>Rp {int(saldo_bank.get("BRI", 0)):,}</h3>
+            </div>""".replace(",", "."), unsafe_allow_html=True)
+        with cb7:
+            st.markdown(f"""<div style='background-color:#eceff1; padding:15px; border-radius:10px; border-left: 5px solid #546e7a;'>
+                <p style='margin:0; font-size:12px; color:#555;'>💵 DOMPET TUNAI</p>
+                <h3 style='margin:0; color:#37474f;'>Rp {int(saldo_bank.get("Tunai", 0)):,}</h3>
+            </div>""".replace(",", "."), unsafe_allow_html=True)
+        with cb8:
+            # Kolom kosong pelengkap simetri layout
+            st.write("")
+
+        st.markdown("---")
+        st.markdown("### 💼 II. Kantong Anggaran Hasil Alokasi AI (Dompet Keluarga & Toko)")
+        st.caption("Pembagian dana bersih setelah dipotong otomatis untuk hak wajib investor sebesar 7.5%.")
+        
+        # Tarik data anggaran dompet dari alokasi_ai finance_engine
+        alokasi = metrics.get("alokasi_ai", {})
+        
+        ca1, ca2, ca3 = st.columns(3)
+        with ca1:
+            st.markdown(f"""<div style='background-color:#fffde7; padding:20px; border-radius:12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 6px solid #fdd835;'>
+                <h4 style='margin:0; color:#f57f17;'>💸 SETORAN INVESTOR (7.5%)</h4>
+                <h2 style='margin:10px 0 0 0; color:#f57f17;'>Rp {int(alokasi.get("investor", 0)):,}</h2>
+                <p style='margin:5px 0 0 0; font-size:11px; color:#777;'>Dana wajib disisihkan periode ini</p>
+            </div>""".replace(",", "."), unsafe_allow_html=True)
+        with ca2:
+            st.markdown(f"""<div style='background-color:#e8f5e9; padding:20px; border-radius:12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 6px solid #43a047;'>
+                <h4 style='margin:0; color:#1b5e20;'>🛡️ CADANGAN BISNIS (40%)</h4>
+                <h2 style='margin:10px 0 0 0; color:#1b5e20;'>Rp {int(alokasi.get("cadangan_bisnis", 0)):,}</h2>
+                <p style='margin:5px 0 0 0; font-size:11px; color:#777;'>Tabungan darurat & modal proyek besar</p>
+            </div>""".replace(",", "."), unsafe_allow_html=True)
+        with ca3:
+            # Hitung total Gaji Owner (Gabungan Rumah Tangga + Investasi + Lifestyle)
+            total_gaji_owner = alokasi.get("rumah_tangga", 0) + alokasi.get("investasi", 0) + alokasi.get("lifestyle", 0)
+            st.markdown(f"""<div style='background-color:#e1f5fe; padding:20px; border-radius:12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 6px solid #039be5;'>
+                <h4 style='margin:0; color:#01579b;'>💰 TOTAL GAJI OWNER (60%)</h4>
+                <h2 style='margin:10px 0 0 0; color:#01579b;'>Rp {int(total_gaji_owner):,}</h2>
+                <p style='margin:5px 0 0 0; font-size:11px; color:#777;'>Total jatah belanja dapur masuk keluarga</p>
+            </div>""".replace(",", "."), unsafe_allow_html=True)
+
+        # Baris kedua untuk sub-pos pecahan dari total jatah Gaji Owner 60%
+        st.markdown("<br>", unsafe_allow_html=True)
+        ca4, ca5, ca6 = st.columns(3)
+        with ca4:
+            st.markdown(f"""<div style='background-color:#f9fbe7; padding:18px; border-radius:10px; border-left: 6px solid #c0ca33;'>
+                <p style='margin:0; font-size:12px; color:#555;'>🏠 POS RUMAH TANGGA & KPR (50%)</p>
+                <h3 style='margin:5px 0 0 0; color:#827717;'>Rp {int(alokasi.get("rumah_tangga", 0)):,}</h3>
+            </div>""".replace(",", "."), unsafe_allow_html=True)
+        with ca5:
+            st.markdown(f"""<div style='background-color:#e0f2f1; padding:18px; border-radius:10px; border-left: 6px solid #00897b;'>
+                <p style='margin:0; font-size:12px; color:#555;'>📈 POS INVESTASI MASA DEPAN (30%)</p>
+                <h3 style='margin:5px 0 0 0; color:#004d40;'>Rp {int(alokasi.get("investasi", 0)):,}</h3>
+            </div>""".replace(",", "."), unsafe_allow_html=True)
+        with ca6:
+            st.markdown(f"""<div style='background-color:#fff3e0; padding:18px; border-radius:10px; border-left: 6px solid #fb8c00;'>
+                <p style='margin:0; font-size:12px; color:#555;'>🎡 POS LIFESTYLE / JAJAN (20%)</p>
+                <h3 style='margin:5px 0 0 0; color:#e65100;'>Rp {int(alokasi.get("lifestyle", 0)):,}</h3>
+            </div>""".replace(",", "."), unsafe_allow_html=True)
+
         
         # 📊 3. BAGIAN GRAFIK INTERAKTIF
         col_g1, col_g2 = st.columns(2)

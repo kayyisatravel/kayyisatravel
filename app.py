@@ -4083,6 +4083,19 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
                 
             if st.button("🔍 Mulai Jalankan Audit Finansial Sekarang", type="primary", key="btn_audit_keuangan_v2"):
                 with st.spinner("Gemini AI sedang meneliti struktur pembukuan dan mengalkulasi risiko keuangan Anda..."):
+                    try:
+                        client_hitung = ai_auditor.inisialisasi_gemini()
+                        if client_hitung:
+                            token_info = client_hitung.models.count_tokens(
+                                model='gemini-2.5-flash',
+                                contents=text_payload_ai
+                            )
+                            # Menampilkan info jumlah token yang digunakan di bawah spinner
+                            st.caption(f"📊 *Request dikirim menggunakan {token_info.total_tokens:,} token input (Batas aman: 250,000 TPM).*")
+                    except Exception as token_err:
+                        # Jika fungsi hitung token error, sistem tidak akan crash dan tetap lanjut ke audit
+                        pass
+                    
                     # Ganti parameter pemanggilan di file ai_auditor.py Anda
                     hasil_lhpa = ai_auditor.audit_forensik_dashboard(text_payload_ai)
                     st.session_state.response_audit_ai = hasil_lhpa

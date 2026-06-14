@@ -15,7 +15,7 @@ tgl_sekarang_str = datetime.date.today().strftime("%Y-%m-%d")
 class AIUniversalEntry(BaseModel):
     Is_Bisnis: bool = Field(description="True jika transaksi tiket/hotel pelanggan. False jika pengeluaran pribadi/operasional rumah-kantor.")
     Tabel_Tujuan: str = Field(description="Wajib diisi 'DATA' jika Is_Bisnis true, atau 'PRIBADI' jika Is_Bisnis false.")
-    tgl_pemesanan: str = Field(description="Format YYYY-MM-DD. Jika ragu/tidak terdeteksi, gunakan tanggal hari ini atau samakan dengan tgl berangkat.")
+    tgl_pemesanan: str = Field(description="Format YYYY-MM-DD. Jika ragu/tidak terdeteksi, gunakan tanggal hari ini yaitu: {tgl_sekarang_str} atau samakan dengan tgl berangkat.")
     tgl_berangkat: str = Field(description="Format YYYY-MM-DD. WAJIB kosongkan '' jika Is_Bisnis adalah false.")
     kode_booking: str = Field(description="Teks string kapital (PNR/ID Pesanan). WAJIB kosongkan '' jika Is_Bisnis adalah false.")
     item_name: str = Field(description="Nama properti hotel, detail penerbangan/kereta, atau nama barang belanjaan pribadi sesuai aturan format ketat.")

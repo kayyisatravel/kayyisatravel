@@ -103,8 +103,8 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
        - Masukkan hasil pembagian bersih per kamar/per pax ini sebagai "harga_jual".
        - Jika dokumen HOTEL, tidak ada instruksi 'Jual'/'Harga' manual, tetapi ada kolom 'Total Harga' resmi dari tabel voucher (cth: 'Total Harga Rp 1.860.000'), ambil angka ini sebagai total omzet jual. Kamu WAJIB membagi rata total harga ini dengan 'Jumlah Kamar' (Contoh: Total Harga tabel 1.860.000 / 2 kamar = 930000). Masukkan hasil pembagian per kamar ini sebagai "harga_jual".
        - Langkah 3 (FALLBACK): Jika Langkah 1 dan 2 tidak ada, samakan nilai "harga_jual" dengan "harga_beli" per baris.
-    4. UNTUK JALUR PRIBADI: Masukkan nominal total uang belanja langsung ke field "harga_jual", dan set "harga_beli" menjadi 0.
-    - Untuk JALUR PRIBADI (Is_Bisnis adalah false), kolom "tgl_berangkat" dan "durasi" HUKUMNYA WAJIB DIISI STRING KOSONG "" (DILARANG KERAS diisi tanggal atau teks apa pun).
+    4. UNTUK JALUR PRIBADI: Masukkan nominal total uang belanja langsung ke field "harga_jual", set "harga_beli" dan "laba" menjadi 0.
+    - Untuk JALUR PRIBADI (Is_Bisnis adalah false), kolom "tgl_berangkat", "harga_beli", "laba" dan "durasi" WAJIB DIISI STRING KOSONG "" (DILARANG KERAS diisi tanggal atau teks apa pun).
     - Jika pada jalur pribadi tidak disebutkan nama toko spesifik tempat bertransaksi, isi kolom "nama_customer" dengan nama vendor atau 'Lainnya', JANGAN PERNAH diisi dengan nama pos rekening seperti Rumah Tangga atau Lifestyle.
 
 

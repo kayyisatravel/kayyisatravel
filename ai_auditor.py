@@ -70,7 +70,36 @@ def audit_forensik_dashboard(summary_text):
     - Kebijakan batas kredit maksimal (*Credit Limit Control*) per nama pemesan korporat.
     - Aturan penguncian sistem tiket (*System Hard-Stop Auto Block*) jika ditemukan harga modal vendor naik tiba-tiba di atas harga jual pelanggan.
     - Taktik penagihan massal (*Bulk Debt Collection*) dengan insentif pelunasan cepat.
+
+    Susunlah laporan audit formal siap cetak dengan struktur wajib sebagai berikut:
     
+    # 🏛️ LAPORAN AUDIT SINKRONISASI KEUANGAN: BISNIS TRAVEL & DOMPET KELUARGA — KAYYISA GROUP
+    
+    ### 📊 I. RAPOR KESEHATAN KAS: ANTARA LABA DI ATAS KERTAS VS UANG NYATA DI ATM
+    Sajikan data angka makro bisnis ke dalam tabel Markdown di bawah ini. Jelaskan kepada owner dengan bahasa awam: apakah keuntungan jualan tiket travel selama ini benar-benar berbentuk uang tunai asli yang bisa dipakai belanja, ataukah hanya "laba kertas" yang terjebak di utang para klien. Hubungkan dengan situasi harga tiket pesawat hasil riset internet Anda.
+
+    | Indikator Keuangan | Angka Aktual | Arti Sederhananya untuk Orang Awam | Status Kesehatan Kas Anda |
+    | :--- | :--- | :--- | :--- |
+    | **Total Penjualan** | [Isi Rp] | Total nilai omzet dagang tiket yang tercatat | [Isi Analisis Bahasa Awam] |
+    | **Profit Bersih Buku** | [Isi Rp] | Keuntungan di atas kertas sebelum dikurangi utang orang | [Isi Analisis Bahasa Awam] |
+    | **Estimasi Kas Riil** | [Isi Rp] | Sisa uang tunai asli yang benar-benar Anda pegang | [Isi Analisis Bahasa Awam] |
+    | **Total Piutang Klien** | [Isi Rp] | Total uang modal Anda yang masih dibawa/diutang orang lain | [Isi Analisis Bahasa Awam] |
+    
+    ### 🔗 II. ANALISIS HUBUNGAN SEBAB-AKIBAT: BAGAIMANA PIUTANG TRAVEL MEMBUAT ATM PRIBADI MINUS
+    Di sinilah Anda membedah integrasi kedua jalur keuangan. Analisis data mutasi pribadi yang dikirim (terutama kasus **Bank BSI yang minus Rp 4.200.000 akibat cicilan KPR** dan **Pos Rumah Tangga yang membengkak**):
+    1. Jelaskan bagaimana kemacetan penagihan utang di jalur bisnis travel (sebutkan nama-nama pengutang terbesar jika ada di data) berdampak langsung membuat ATM BSI pribadi owner menjadi jebol/minus untuk bayar KPR.
+    2. Bedah secara objektif: Mengapa pos belanja Rumah Tangga bisa boncos parah dibanding jatah plafon aslinya (Hubungkan fakta bahwa untungnya tertolong karena adanya suntikan "Setoran Modal Tunai Rp 10.000.000" dari kantong owner). Jelaskan fenomena tambal sulam ini dengan bahasa yang mudah dipahami.
+    
+    ### 💼 III. STRATEGI UTAMAKAN UANG TUNAI & TRIK MENETAPKAN HARGA (BERDASARKAN RISET GOOGLE)
+    1. Bongkar rahasia distribusi produk Anda: Kenapa jualan tiket pesawat omzetnya raksasa tapi untungnya tipis, sedangkan hotel untungnya tebal? Berikan penjelasan sistem sub-agent di Indonesia yang mudah dicerna orang awam.
+    2. Berikan rumus sederhana (Mark-up / Service Fee) hasil riset pasar internet Anda agar admin Anda bisa langsung mempraktikkan cara mengambil untung yang pas per tiket pesawat tanpa takut kalah saing dengan Traveloka atau Tiket.com.
+    
+    ### ⚡ IV. EXECUTIVE ACTION PLAN: CARA CEPAT MENYELAMATKAN KAS (SOP AMAN UNTUK ADMIN & OWNER)
+    Berikan panduan aksi nyata 1-2-3-4 yang sangat tegas namun praktis untuk langsung dieksekusi minggu ini:
+    1. **SOP Batang Utang (Credit Limit)**: Berapa batasan maksimal klien boleh utang tiket.
+    2. **SOP Rem Darurat Tiket**: Perintah kepada Admin PA untuk stop issued tiket jika harga modal vendor mendadak naik melebihi harga jual ke klien.
+    3. **Instruksi Tambal Sulam ATM (Cash Interchange)**: Berikan perintah konkret kepada owner untuk mentransfer dana dari rekening yang saldonya gendut (Sebutkan nama Bank Mandiri dan nominalnya) ke rekening Bank BSI yang minus agar tidak kena pinalti atau pemblokiran autodebit bank.
+    4. **SOP Ikat Pinggang Dapur**: Tips sederhana mengontrol pengeluaran rumah tangga agar jatah belanja aktual tidak melonjak jauh meninggalkan plafon anggaran AI yang ideal.
     Gunakan gaya bahasa mentor bisnis yang merangkul, memberi semangat, solutif, jujur apa adanya, namun tetap tegas terhadap resiko bisnis kedepan dan fokus pada bagaimana memulihkan uang tunai bisnis secepatnya.
     Juga anda bisa berikan insight tren model bisnis terbaru yang bisa dijajaki namun tetap inline dengan core bisnis utama.
     Buat dalam format laporan siap cetak yang akan digunakan sebagai acuan dan petunjuk pelaksanaan bagi perusahaan. Termasuk periode laporan berdasarkan data yang diambil.

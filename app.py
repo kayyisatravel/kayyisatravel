@@ -35,6 +35,7 @@ import ai_auditor
 import ai_input_processor
 
 now = datetime.now(ZoneInfo("Asia/Jakarta"))
+tgl_sekarang_str = datetime.today().strftime("%Y-%m-%d")
 
 
 #refresh

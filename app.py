@@ -1303,61 +1303,61 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
                 
                     edited_rows[i] = updated_row
                 
-                if st.button("💾 Simpan Semua Perubahan"):
-                    for i, updated in edited_rows.items():
-                        for col, val in updated.items(): 
-                            df.at[i, col] = val
-                    st.session_state.bulk_parsed = df
-                    st.session_state.edit_mode_bulk = False
-                    st.success(f"✅ {len(edited_rows)} baris berhasil diperbarui.")
-                    st.rerun()
-                else:
-                    st.session_state.edit_mode_bulk = False
-                    st.markdown("#### 📊 Data Gabungan Hasil Bulk")
-                    st.dataframe(st.session_state.bulk_parsed, use_container_width=True)
+            if st.button("💾 Simpan Semua Perubahan"):
+                for i, updated in edited_rows.items():
+                    for col, val in updated.items(): 
+                        df.at[i, col] = val
+                st.session_state.bulk_parsed = df
+                st.session_state.edit_mode_bulk = False
+                st.success(f"✅ {len(edited_rows)} baris berhasil diperbarui.")
+                st.rerun()
+        else:
+            st.session_state.edit_mode_bulk = False
+            st.markdown("#### 📊 Data Gabungan Hasil Bulk")
+            st.dataframe(st.session_state.bulk_parsed, use_container_width=True)
+        
+        # 📤 TOMBOL UTAMA PENYALUR DATA DUA JALUR (ROUTING ENTRi TO GSHEETS)
+        if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bulk ke GSheet", use_container_width=True):
+            with st.spinner("Sedang menyalurkan data pembukuan ke Google Sheets secara paralel..."):
+                df_final_save = st.session_state.bulk_parsed.copy()
                 
-                # 📤 TOMBOL UTAMA PENYALUR DATA DUA JALUR (ROUTING ENTRi TO GSHEETS)
-                if st.session_state.get("bulk_parsed") is not None and st.button("📤 Simpan Bulk ke GSheet", use_container_width=True):
-                    with st.spinner("Sedang menyalurkan data pembukuan ke Google Sheets secara paralel..."):
-                        df_final_save = st.session_state.bulk_parsed.copy()
+                # Membagi gerbong data penjualan vs dompet pribadi
+                is_bisnis_mask = df_final_save["Pemesan"] != "OWNER"
+                df_save_bisnis = df_final_save[is_bisnis_mask].copy()
+                df_save_pribadi = df_final_save[~is_bisnis_mask].copy()
+                
+                # Tembak Massal Jalur A: Ke Worksheet "Data" (Jika ada transaksi tiket)
+                if not df_save_bisnis.empty:
+                    df_save_bisnis_clean = df_save_bisnis.drop(columns=["No Rekening"], errors="ignore")
+                    # Hubungkan dan kirim ke fungsi simpan utama existing Anda
+                    save_gsheet(df_save_bisnis_clean)
+                    
+                # Tembak Massal Jalur B: Ke Worksheet "Pribadi" (Jika ada mutasi dompet/KPR/RT)
+                if not df_save_pribadi.empty:
+                    df_pribadi_structured = pd.DataFrame({
+                        "Tanggal": df_save_pribadi["Tgl Pemesanan"],
+                        "Bank_Sumber": df_save_pribadi["Detail Dana"], # Bank dibaca otomatis dari detail dana
+                        "No_Rekening_AI": df_save_pribadi["No Rekening"],
+                        "Kategori": df_save_pribadi.apply(lambda r: "Pemasukan" if "pemasukan" in str(r["Keterangan"]).lower() or "ganti" in str(r["Keterangan"]).lower() or "iuran" in str(r["Keterangan"]).lower() else "Penggeluaran", axis=1),
+                        "Nominal": df_save_pribadi["Harga Jual"],
+                        "Keterangan": df_save_pribadi["No Penerbangan / Hotel / Kereta"] + " - " + df_save_pribadi["Nama Customer"]
+                    })
+                    
+                    # Buka koneksi mandiri aman ke lembar kerja baru Anda
+                    try:
+                        ws_pribadi_sheet = connect_to_gsheet("1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8", "Pribadi")
+                        for _, r_p in df_pribadi_structured.iterrows():
+                            ws_pribadi_sheet.append_row(r_p.tolist())
+                    except Exception as e:
+                        st.error(f"Gagal menyimpan jurnal pos pribadi: {str(e)}")
                         
-                        # Membagi gerbong data penjualan vs dompet pribadi
-                        is_bisnis_mask = df_final_save["Pemesan"] != "OWNER"
-                        df_save_bisnis = df_final_save[is_bisnis_mask].copy()
-                        df_save_pribadi = df_final_save[~is_bisnis_mask].copy()
-                        
-                        # Tembak Massal Jalur A: Ke Worksheet "Data" (Jika ada transaksi tiket)
-                        if not df_save_bisnis.empty:
-                            df_save_bisnis_clean = df_save_bisnis.drop(columns=["No Rekening"], errors="ignore")
-                            # Hubungkan dan kirim ke fungsi simpan utama existing Anda
-                            save_gsheet(df_save_bisnis_clean)
-                            
-                        # Tembak Massal Jalur B: Ke Worksheet "Pribadi" (Jika ada mutasi dompet/KPR/RT)
-                        if not df_save_pribadi.empty:
-                            df_pribadi_structured = pd.DataFrame({
-                                "Tanggal": df_save_pribadi["Tgl Pemesanan"],
-                                "Bank_Sumber": df_save_pribadi["Detail Dana"], # Bank dibaca otomatis dari detail dana
-                                "No_Rekening_AI": df_save_pribadi["No Rekening"],
-                                "Kategori": df_save_pribadi.apply(lambda r: "Pemasukan" if "pemasukan" in str(r["Keterangan"]).lower() or "ganti" in str(r["Keterangan"]).lower() or "iuran" in str(r["Keterangan"]).lower() else "Penggeluaran", axis=1),
-                                "Nominal": df_save_pribadi["Harga Jual"],
-                                "Keterangan": df_save_pribadi["No Penerbangan / Hotel / Kereta"] + " - " + df_save_pribadi["Nama Customer"]
-                            })
-                            
-                            # Buka koneksi mandiri aman ke lembar kerja baru Anda
-                            try:
-                                ws_pribadi_sheet = connect_to_gsheet("1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8", "Pribadi")
-                                for _, r_p in df_pribadi_structured.iterrows():
-                                    ws_pribadi_sheet.append_row(r_p.tolist())
-                            except Exception as e:
-                                st.error(f"Gagal menyimpan jurnal pos pribadi: {str(e)}")
-                                
-                        # PROSES PEMBERSIHAN MEMORI WIDGET SEPERTI SKRIP LAMA ANDA
-                        kunci_wajib_bersih = ["bulk_parsed", "konten_teks_travel_utama", "asisten_ai_file_input", "fitur_speech_to_text_kayyisa"]
-                        for kunci in kunci_wajib_bersih:
-                            st.session_state.pop(kunci, None)
-                            
-                        st.success("🚀 Sukses! Data tersortir otomatis ke masing-masing tab dan form telah bersih suci kembali.")
-                        st.rerun()
+                # PROSES PEMBERSIHAN MEMORI WIDGET SEPERTI SKRIP LAMA ANDA
+                kunci_wajib_bersih = ["bulk_parsed", "konten_teks_travel_utama", "asisten_ai_file_input", "fitur_speech_to_text_kayyisa"]
+                for kunci in kunci_wajib_bersih:
+                    st.session_state.pop(kunci, None)
+                    
+                st.success("🚀 Sukses! Data tersortir otomatis ke masing-masing tab dan form telah bersih suci kembali.")
+                st.rerun()
 
 
 with st.expander("✏️ Input Manual Data"):

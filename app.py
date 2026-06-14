@@ -1093,15 +1093,27 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
     if "peringatan_admin_ai" in st.session_state and st.session_state.peringatan_admin_ai:
         st.warning(st.session_state.peringatan_admin_ai)
 
+    # --------------------------------------------------------------------------
+    # 🛡️ REVISI MUTLAK: PENATAAN SINKRONISASI LABA & TANGGAL STERIL KAS PRIBADI
+    # --------------------------------------------------------------------------
     if tombol_ditekan:
         if hasil_pilihan_ai:
             ai_entries = []
             pemberitahuan_masalah_data = [] 
             blok_teks_list = input_mentah_ref.split("===")
             
+            import datetime
+            tgl_hari_ini_riil = datetime.date.today().strftime("%Y-%m-%d")
+            
             for idx, item in enumerate(hasil_pilihan_ai, start=1):
-                # Deteksi otomatis jalur dari parameter AI
                 is_bisnis_line = item.get("Is_Bisnis", True)
+                
+                # Jinakkan tanggal gaib bawaan cutoff memori AI
+                tgl_pemesanan_ai = str(item.get("tgl_pemesanan", "")).strip()
+                if (not tgl_pemesanan_ai) or ("2024" in tgl_pemesanan_ai) or ("2025" in tgl_pemesanan_ai) or ("05-22" in tgl_pemesanan_ai):
+                    tgl_final_pilihan = tgl_hari_ini_riil
+                else:
+                    tgl_final_pilihan = tgl_pemesanan_ai
                 
                 hb = item.get("harga_beli") or 0
                 hj = item.get("harga_jual") or hb
@@ -1109,13 +1121,11 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
                 rute_p = item.get("rute", "")
                 tipe_p = item.get("tipe", "").upper()
                 
-                # ✈️ JALUR A: JARING PENGAMAN MANDATORY TRANSAKSI BISNIS TRAVEL
+                # ✈️ JALUR A: TRANSAKSI BISNIS TRAVEL KLIEN (HITUNG LABA RIIL)
                 if is_bisnis_line:
                     kolom_bermasalah = []
                     if not kode_b: kolom_bermasalah.append("Kode Booking")
                     if not rute_p: kolom_bermasalah.append("Rute/Kota")
-                    
-                    # Celah aman Redeem Point: Harga Beli = 0 lolos jaring jika platform ada kata 'point'
                     if hb == 0 and "point" not in str(item.get("platform", "")).lower():
                         kolom_bermasalah.append("Harga Beli (0 tidak sah jika bukan Redeem Point)")
                         
@@ -1123,56 +1133,57 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
                         nama_c = item.get("nama_customer") or "Nama Tidak Terbaca"
                         pemberitahuan_masalah_data.append(f"Entri ke-{idx} (Bisnis: {nama_c}) ➔ Kolom kosong: **{', '.join(kolom_bermasalah)}**")
 
-                    laba = hj - hb
-                    persen_laba = f"{round((laba / hb) * 100, 2)}%" if hb > 0 else "0.0%"
+                    laba_bisnis = hj - hb
+                    persen_laba = f"{round((laba_bisnis / hb) * 100, 2)}%" if hb > 0 else "0.0%"
                     sumber_dana, detail_dana = terapkan_otomatisasi_pembayaran(item.get("platform", "Lainnya"))
 
                     ai_entries.append({
-                        'Tgl Pemesanan': item.get("tgl_pemesanan", ""), 'Tgl Berangkat': item.get("tgl_berangkat", ""),
+                        'Tgl Pemesanan': tgl_final_pilihan, 'Tgl Berangkat': item.get("tgl_berangkat", ""),
                         'Kode Booking': kode_b, 'No Penerbangan / Hotel / Kereta': item.get("item_name", ""),
                         'Durasi': item.get("durasi", ""), 'Nama Customer': item.get("nama_customer", ""), 'Rute': rute_p,
-                        'Harga Beli': hb, 'Harga Jual': hj, 'Laba': laba, 'Tipe': tipe_p,
+                        'Harga Beli': hb, 'Harga Jual': hj, 'Laba': laba_bisnis, 'Tipe': tipe_p,
                         'BF/NBF': item.get("bf_status", ""), 'No Invoice': '', 'Keterangan': 'Belum Lunas',
                         'Pemesan': 'ER ENDO', 'Admin': 'PA', ' % Laba': persen_laba,
                         'Sumber Dana': sumber_dana, 'Detail Dana': detail_dana, 'Platform': item.get("platform", "Lainnya"),
-                        'No Rekening': '' # Kosongkan kolom anggaran dompet jika ini data bisnis
+                        'No Rekening': ''
                     })
                 
-                # 🏦 JALUR B: JARING PENGAMAN PENGELUARAN DOMPET PRIBADI / KAS RUMAH TANGGA
+                # 🏦 JALUR B: PENGELUARAN/PEMASUKAN DOMPET PRIBADI KELUARGA (KAS MURNI - LABA WAJIB 0)
                 else:
                     if hj <= 0:
                         pemberitahuan_masalah_data.append(f"Entri ke-{idx} (Pribadi: {item.get('item_name')}) ➔ Nominal belanja kosong!")
 
                     ai_entries.append({
-                        'Tgl Pemesanan': item.get("tgl_pemesanan", ""), 'Tgl Berangkat': '',
+                        'Tgl Pemesanan': tgl_final_pilihan, 
+                        'Tgl Berangkat': '',  # Paksa kosong dari hulu loop
                         'Kode Booking': '', 'No Penerbangan / Hotel / Kereta': item.get("item_name", ""),
                         'Durasi': '', 'Nama Customer': item.get("nama_customer", ""), 'Rute': '',
-                        'Harga Beli': 0, 'Harga Jual': hj, 'Laba': 0, 'Tipe': '',
-                        'BF/NBF': '', 'No Invoice': '', 'Keterangan': item.get("keterangan_tambahan", "Mutasi Pribadi"),
-                        'Pemesan': 'OWNER', 'Admin': 'PA', ' % Laba': '0.0%',
+                        'Harga Beli': 0, 
+                        'Harga Jual': hj, 
+                        'Laba': 0,            # Paksa 0 mutlak secara legal di scope lokal
+                        'Tipe': '', 'BF/NBF': '', 'No Invoice': '', 
+                        'Keterangan': item.get("keterangan_tambahan", "Mutasi Pribadi"),
+                        'Pemesan': 'OWNER', 'Admin': 'PA', 
+                        ' % Laba': '0.0%',    # Paksa 0.0% mutlak
                         'Sumber Dana': 'Dana Tunai/Cash', 'Detail Dana': 'BCA', 'Platform': 'Lainnya',
-                        'No Rekening': item.get("no_rekening", "Rumah Tangga") # Mengambil porsi tebakan cerdas pos dompet dari AI
+                        'No Rekening': item.get("no_rekening", "Rumah Tangga")
                     })
 
-            st.session_state.bulk_parsed = pd.DataFrame(ai_entries)
             # =========================================================================
-            # 🛡️ FIX AKUNTANSI FINAL: PAKSA STERILKAN DATAFRAME SEBELUM MASUK MEMORI UI
+            # 🛡️ TRIK PAMUNGKAS: FORCE OVERWRITE DATAFRAME LEVEL (ANTI-BOCOR DATA)
             # =========================================================================
-            # 1. Bentuk Dataframe awal dari hasil loop ai_entries Anda
-            df_mentah_ai = pd.DataFrame(ai_entries)
+            df_final_clean = pd.DataFrame(ai_entries)
             
-            if not df_mentah_ai.empty:
-                # Buat masker pengenal: baris mana yang merupakan transaksi pribadi milik Owner
-                masker_pribadi = df_mentah_ai["Pemesan"] == "OWNER"
-                
-                # Paksa bersihkan kolom-kolom pribadi agar patuh hukum akuntansi (Mencegah Laba Palsu)
-                df_mentah_ai.loc[masker_pribadi, "Tgl Berangkat"] = ""
-                df_mentah_ai.loc[masker_pribadi, "Harga Beli"] = 0
-                df_mentah_ai.loc[masker_pribadi, "Laba"] = 0
-                df_mentah_ai.loc[masker_pribadi, " % Laba"] = "0.0%"
+            if not df_final_clean.empty:
+                # Cari baris yang pemesannya OWNER, paksa ratakan kolomnya ke tanah
+                masker_pribadi_final = df_final_clean["Pemesan"] == "OWNER"
+                df_final_clean.loc[masker_pribadi_final, "Tgl Berangkat"] = ""
+                df_final_clean.loc[masker_pribadi_final, "Harga Beli"] = 0
+                df_final_clean.loc[masker_pribadi_final, "Laba"] = 0
+                df_final_clean.loc[masker_pribadi_final, " % Laba"] = "0.0%"
             
-            # 2. Kunci DataFrame yang SUDAH SUCI DAN STERIL ini ke dalam session_state utama Anda
-            st.session_state.bulk_parsed = df_mentah_ai
+            # Kunci hasil murni ini ke RAM screen Anda
+            st.session_state.bulk_parsed = df_final_clean
             # =========================================================================
             
             st.session_state.edit_mode_bulk = True
@@ -1181,6 +1192,7 @@ with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
             else:
                 if "peringatan_admin_ai" in st.session_state: del st.session_state["peringatan_admin_ai"]
             st.rerun()
+
 
         else:
             st.error("⚠️ AI gagal mengekstrak data. Pastikan teks berisi data valid atau kualitas gambar/suara cukup jelas.")

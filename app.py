@@ -2349,7 +2349,16 @@ with st.expander("💾 Database Pemesan", expanded=False):
         # Cetak info uninvoice ke UI
         if total_uninvoice > 0:
             st.info(f"📋 Terdeteksi total nilai penjualan tanpa nomor invoice sebesar: Rp {total_uninvoice:,.0f}".replace(",", "."))
-
+            belum_lunas_df = df_filtered[
+                df_filtered["Keterangan"].astype(str).str.strip().str.lower().str.contains("belum lunas", na=False)
+            ]
+            
+            # Hitung total nilai belum lunas menggunakan mesin pembersih angka Anda
+            total_belum_lunas = belum_lunas_df["Harga Jual"].apply(finance_engine.bersihkan_angka).sum()
+            
+            # Cetak info Belum Lunas tepat di bawah info Uninvoice
+            if total_belum_lunas > 0:
+                st.info(f"💰 Terdeteksi total nilai penjualan belum lunas sebesar: Rp {total_belum_lunas:,.0f}".replace(",", "."))
         
         # Tampilkan notifikasi di sidebar
         with st.sidebar:

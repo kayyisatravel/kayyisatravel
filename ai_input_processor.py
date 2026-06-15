@@ -30,7 +30,7 @@ class AIUniversalEntry(BaseModel):
     tgl_berangkat: str = Field(description="Format YYYY-MM-DD. WAJIB kosongkan '' jika Is_Bisnis adalah false.")
     kode_booking: str = Field(description="Teks string kapital (PNR/ID Pesanan). WAJIB kosongkan '' jika Is_Bisnis adalah false.")
     item_name: str = Field(description="Nama properti hotel, detail penerbangan/kereta, atau nama barang belanjaan pribadi sesuai aturan format ketat.")
-    durasi: str = Field(description="Durasi menginap hotel atau jam perjalanan transportasi. WAJIB kosongkan '' jika Is_Bisnis adalah false.")
+    durasi: str = Field(description="Durasi menginap hotel atau jam perjalanan transportasi. contoh: '1 mlm' untuk hotel, atau jam perjalanan '17:52-20:35' untuk transportasi. WAJIB kosongkan '' jika Is_Bisnis adalah false.")
     nama_customer: str = Field(description="Nama penumpang/tamu yang sudah dibersihkan sesuai EYD baku, atau nama toko belanja pribadi.")
     rute: str = Field(description="Kode bandara 3 huruf, stasiun, atau nama kota hotel. WAJIB kosongkan '' jika Is_Bisnis adalah false.")
     harga_beli: int = Field(description="Angka murni integer modal per unit (pax/kamar). Set 0 jika transaksi pribadi.")

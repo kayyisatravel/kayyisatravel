@@ -127,13 +127,13 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
        Wajib bersihkan dan balik total jika mendeteksi format nama maskapai/internasional (Last Name/First Name) serta hapus gelar sapaan seperti 'MR', 'MRS', 'MS', 'TN', 'NY'.
        (Contoh: 'UTOMO/PRABOWO MR' -> Hasil: 'Prabowo Utomo').
        (Contoh: 'SUTRISNO/DEWI MRS' -> Hasil: 'Dewi Sutrisno').
-    1. Tipe PESAWAT: "item_name" berisi Nama Maskapai dan No Penerbangan (cth: "QG997-QG 174"). Durasi format 'HH:MM - HH:MM'. Rute HANYA kode bandara 3 huruf (cth: "TKG - SUB").
+    1. Tipe PESAWAT: "item_name" berisi Nama Maskapai dan No Penerbangan (cth: "QG997-QG 174"). "durasi" format 'HH:MM - HH:MM' (contoh 17:00 - 18:45). Rute HANYA kode bandara 3 huruf (cth: "TKG - SUB").
     2. Tipe HOTEL:
        - "item_name": Nama properti hotel bersih (Contoh: "Montana Hotel Syariah Banjarbaru").
        - "durasi": Jumlah malam + kata 'mlm' (Contoh: "2 mlm").
        - "rute": HANYA nama kota/kabupaten lokasi hotel (Contoh: "Banjarbaru").
        - "bf_status": Isi 'BF' (jika ada sarapan) atau 'NBF' (jika tanpa sarapan/Room Only).
-    3. Tipe KERETA (Termasuk Whoosh): "item_name" format penulisan WAJIB: [Nama Kereta] [Singkatan Kelas] [Nomor Gerbong]/[Nomor Kursi] (Contoh: "Sembrani Eks 4/5D"). Durasi format 'HH:MM - HH:MM'. Rute berisi kode stasiun asal - tujuan (cth: "GMR - SBI").
+    3. Tipe KERETA (Termasuk Whoosh): "item_name" format penulisan WAJIB: [Nama Kereta] [Singkatan Kelas] [Nomor Gerbong]/[Nomor Kursi] (Contoh: "Sembrani Eks 4/5D"). "durasi" format 'HH:MM - HH:MM' (contoh 17:00 - 18:45). Rute berisi kode stasiun asal - tujuan (cth: "GMR - SBI").
        INGAT: Jika kelasnya 'Business Class', singkatan kelasnya adalah 'Bis' (Contoh: "Whoosh Bis 2/4A"). JANGAN PERNAH menulis kata "Bus"!
     4. TANGGAL: Format standar ISO 'YYYY-MM-DD'. 
        - Jika teks menyebutkan kata 'Hari ini', 'Sekarang', atau tanggal tidak terdeteksi, Anda WAJIB menggunakan tanggal acuan ini: {tgl_sekarang_str}.

@@ -1962,41 +1962,39 @@ with st.expander("💾 Database Pemesan", expanded=False):
 
 
         MAX_TOTAL = 25_000_000
-        if auto_select_25jt:
-
-            best_bookings = auto_select_smart(
-                editable_df,
-                MAX_TOTAL
-            )
         
-            editable_df["Pilih"] = False
-        
-            editable_df.loc[
-                editable_df["Kode Booking"].isin(best_bookings),
-                "Pilih"
-            ] = True
+        # 1️⃣ Inisialisasi flag auto-select agar tidak berjalan berulang kali
+        if "last_auto_select_state" not in st.session_state:
+            st.session_state.last_auto_select_state = False
 
+        # 2️⃣ Manajemen Session State (Sinkronisasi dengan filter teks)
         if "editable_df" not in st.session_state:
-            st.session_state.editable_df = editable_df
-
-        if not st.session_state.editable_df.equals(editable_df):
             st.session_state.editable_df = editable_df.copy()
-            st.session_state.editable_df["Pilih"] = False
+        else:
+            # Deteksi apakah user mengubah filter pencarian teks di atas
+            cols_to_compare = [c for c in editable_df.columns if c != "Pilih"]
+            if not st.session_state.editable_df[cols_to_compare].equals(editable_df[cols_to_compare]):
+                st.session_state.editable_df = editable_df.copy()
+                st.session_state.last_auto_select_state = False  # Reset filter otomatis jika teks cari berubah
 
-        if auto_select_25jt:
-
-            best_bookings = auto_select_smart(
-                st.session_state.editable_df,
-                MAX_TOTAL
-            )
-        
+        # 3️⃣ Logika Auto-Pilih 25 Juta (Hanya berjalan saat status checkbox berubah)
+        if auto_select_25jt and not st.session_state.last_auto_select_state:
+            # Jalankan kalkulasi pintar hanya sekali
+            best_bookings = auto_select_smart(st.session_state.editable_df, MAX_TOTAL)
+            
+            # Terapkan centang ke data state
             st.session_state.editable_df["Pilih"] = False
-        
             st.session_state.editable_df.loc[
-                st.session_state.editable_df["Kode Booking"].isin(best_bookings),
-                "Pilih"
+                st.session_state.editable_df["Kode Booking"].isin(best_bookings), "Pilih"
             ] = True
+            st.session_state.last_auto_select_state = True
+            
+        elif not auto_select_25jt and st.session_state.last_auto_select_state:
+            # Jika tombol dinonaktifkan, bersihkan semua centangan
+            st.session_state.editable_df["Pilih"] = False
+            st.session_state.last_auto_select_state = False
 
+        # 4️⃣ Fitur Pilih Semua (Select All)
         select_all = st.checkbox("Pilih Semua", value=False, key="select_all_checkbox")
         if select_all:
             st.session_state.editable_df["Pilih"] = True
@@ -2005,6 +2003,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
                 st.session_state.editable_df["Pilih"] = False
         st.session_state.last_select_all_state = select_all
 
+        # 5️⃣ Tampilkan Tabel Data Editor
         selected_df = st.data_editor(
             st.session_state.editable_df,
             use_container_width=True,
@@ -2014,8 +2013,11 @@ with st.expander("💾 Database Pemesan", expanded=False):
                 "Pilih": st.column_config.CheckboxColumn("Pilih", help="Centang untuk buat invoice")
             }
         )
+        
+        # 6️⃣ Simpan perubahan data tabel & ambil baris terpilih untuk total kalkulasi
         st.session_state.editable_df = selected_df
         selected_data = selected_df[selected_df["Pilih"]]
+
 # === Edit Form untuk 1 Baris ===
         if len(selected_data) == 1:
             with st.expander('Edit Data yang dipilih'):
@@ -2304,13 +2306,15 @@ with st.expander("💾 Database Pemesan", expanded=False):
                 
                     except Exception as e:
                         st.error(f"❌ Gagal update massal: {e}")
-
-        
     
-        total_harga_jual = df_filtered['Harga Jual'].apply(finance_engine.bersihkan_angka).sum()
-        total_laba = df_filtered['Laba'].apply(finance_engine.bersihkan_angka).sum()
+        # =========================================================================
+        # 🔧 FIX LOGIKA 1: Hitung Menggunakan selected_data Agar Sesuai Centang Tabel
+        # =========================================================================
+        # Pastikan baris ini ditaruh SETELAH perintah: selected_data = selected_df[selected_df["Pilih"]]
+        total_harga_jual = selected_data['Harga Jual'].apply(finance_engine.bersihkan_angka).sum()
+        total_laba = selected_data['Laba'].apply(finance_engine.bersihkan_angka).sum()
         
-                # === Kode Cetak Total & Sukses Anda yang Sudah Berjalan Lancar ===
+        # === Kode Cetak Total & Sukses Anda yang Sudah Berjalan Lancar ===
         st.markdown(f"**Total Harga Jual Hasil Filter: Rp {total_harga_jual:,.0f}**.af".replace(",", ".").replace(".af", ""))
         st.markdown(f"**Total Laba Hasil Filter: Rp {total_laba:,.0f}**.af".replace(",", ".").replace(".af", ""))
         
@@ -2320,42 +2324,29 @@ with st.expander("💾 Database Pemesan", expanded=False):
             st.warning(f"⚠️ Total penjualan mendekati batas: Rp {total_harga_jual:,.0f}".replace(",", "."))
         
         # =========================================================================
-        # 🔧 FIX LOGIKA: Menghitung Data yang Belum Punya Invoice Menggunakan Variabel V2
+        # 🔧 FIX LOGIKA 2: Menghitung Sisa Penjualan Tanpa Invoice Secara Efisien
         # =========================================================================
         
-        # 1. Pastikan rentang waktu terdefinisi dengan aman baik untuk mode Rentang, Bulanan, maupun Tahunan
-        if filter_mode == "📆 Rentang Tanggal":
-            tgl_awal_calc = pd.Timestamp(tgl_awal).normalize()
-            tgl_akhir_calc = pd.Timestamp(tgl_akhir).normalize() + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
-        elif filter_mode == "🗓️ Bulanan":
-            # Jika memilih bulanan, kunci batas dari tanggal 1 hingga akhir bulan yang dipilih
-            tgl_awal_calc = pd.Timestamp(year=tahun_bulan, month=bulan_nama[bulan_pilihan], day=1)
-            tgl_akhir_calc = (tgl_awal_calc + pd.offsets.MonthEnd(1)) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
-        else:
-            # Jika tahunan, kunci dari 1 Januari hingga 31 Desember
-            tgl_awal_calc = pd.Timestamp(year=tahun_pilihan, month=1, day=1)
-            tgl_akhir_calc = pd.Timestamp(year=tahun_pilihan, month=12, day=31, hour=23, minute=59, second=59)
-
-        # 2. Saring dataframe master (df) menggunakan kolom 'Tgl Pemesanan_Parsed' yang sudah aman dan seragam
-        uninvoice_df = df[
-            (df["Tgl Pemesanan_Parsed"] >= tgl_awal_calc) &
-            (df["Tgl Pemesanan_Parsed"] <= tgl_akhir_calc) &
-            (
-                df["No Invoice"].isna() |
-                (df["No Invoice"].astype(str).str.strip() == "") |
-                (df["No Invoice"].astype(str).str.lower() == "nan")
-            )
+        # Saring langsung dari df_filtered yang sudah melewati filter tanggal utama Anda
+        uninvoice_df = df_filtered[
+            (df_filtered["No Invoice"].isna()) |
+            (df_filtered["No Invoice"].astype(str).str.strip() == "") |
+            (df_filtered["No Invoice"].astype(str).str.lower() == "nan")
         ]
         
-        # 3. Jalankan filter pencarian nama jika parameter nama_filter aktif di sistem Anda
+        # Ikut sertakan filter Nama Customer baru agar info uninvoice di bawah sinkron
+        if 'nama_customer_filter' in locals() or 'nama_customer_filter' in globals():
+            if nama_customer_filter:
+                uninvoice_df = uninvoice_df[uninvoice_df["Nama Customer"].str.contains(nama_customer_filter, case=False, na=False)]
+                
         if 'nama_filter' in locals() or 'nama_filter' in globals():
             if nama_filter:
                 uninvoice_df = uninvoice_df[uninvoice_df["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
         
-        # 4. Gunakan mesin pembersih angka dari finance_engine agar hitungan uninvoice akurat 100%
+        # Hitung total nilai sisa uninvoice yang tersedia
         total_uninvoice = uninvoice_df["Harga Jual"].apply(finance_engine.bersihkan_angka).sum()
         
-        # Cetak info uninvoice jika diperlukan di UI Anda
+        # Cetak info uninvoice ke UI
         if total_uninvoice > 0:
             st.info(f"📋 Terdeteksi total nilai penjualan tanpa nomor invoice sebesar: Rp {total_uninvoice:,.0f}".replace(",", "."))
 

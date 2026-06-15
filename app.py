@@ -1852,6 +1852,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
     # === Filter Tambahan ===
     st.markdown("### 🧍 Filter Tambahan")
     
+    df_filtered_by_text_and_date = df_filtered.copy()
     tampilkan_uninvoice_saja = st.checkbox("🔍 Tampilkan hanya yang belum ada Invoice", value=True)
     auto_select_25jt = st.checkbox("⚙️ Auto-pilih total penjualan sampai Rp 25 juta")
     
@@ -1890,6 +1891,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
     if no_invoice_filter:
         df_filtered = df_filtered[df_filtered["No Invoice"].str.contains(no_invoice_filter.strip(), case=False, na=False)]
     
+    base_info_df = df_filtered.copy()
     # 5️⃣ Filter hanya yang belum ada Invoice
     if tampilkan_uninvoice_saja:
         df_filtered = df_filtered[df_filtered["No Invoice"].isna() | (df_filtered["No Invoice"].str.strip() == "")]
@@ -2327,38 +2329,28 @@ with st.expander("💾 Database Pemesan", expanded=False):
         # 🔧 FIX LOGIKA 2: Menghitung Sisa Penjualan Tanpa Invoice Secara Efisien
         # =========================================================================
         
+        base_info_df = df_filtered_by_text_and_date.copy()
         # Saring langsung dari df_filtered yang sudah melewati filter tanggal utama Anda
-        uninvoice_df = df_filtered[
-            (df_filtered["No Invoice"].isna()) |
-            (df_filtered["No Invoice"].astype(str).str.strip() == "") |
-            (df_filtered["No Invoice"].astype(str).str.lower() == "nan")
+        uninvoice_df = base_info_df[
+            (base_info_df["No Invoice"].isna()) |
+            (base_info_df["No Invoice"].astype(str).str.strip() == "") |
+            (base_info_df["No Invoice"].astype(str).str.lower() == "nan")
         ]
-        
-        # Ikut sertakan filter Nama Customer baru agar info uninvoice di bawah sinkron
-        if 'nama_customer_filter' in locals() or 'nama_customer_filter' in globals():
-            if nama_customer_filter:
-                uninvoice_df = uninvoice_df[uninvoice_df["Nama Customer"].str.contains(nama_customer_filter, case=False, na=False)]
-                
-        if 'nama_filter' in locals() or 'nama_filter' in globals():
-            if nama_filter:
-                uninvoice_df = uninvoice_df[uninvoice_df["Nama Pemesan"].str.contains(nama_filter, case=False, na=False)]
-        
-        # Hitung total nilai sisa uninvoice yang tersedia
         total_uninvoice = uninvoice_df["Harga Jual"].apply(finance_engine.bersihkan_angka).sum()
         
         # Cetak info uninvoice ke UI
         if total_uninvoice > 0:
             st.info(f"📋 Terdeteksi total nilai penjualan tanpa nomor invoice sebesar: Rp {total_uninvoice:,.0f}".replace(",", "."))
-            belum_lunas_df = df_filtered[
-                df_filtered["Keterangan"].astype(str).str.strip().str.lower().str.contains("belum lunas", na=False)
-            ]
             
-            # Hitung total nilai belum lunas menggunakan mesin pembersih angka Anda
-            total_belum_lunas = belum_lunas_df["Harga Jual"].apply(finance_engine.bersihkan_angka).sum()
-            
-            # Cetak info Belum Lunas tepat di bawah info Uninvoice
-            if total_belum_lunas > 0:
-                st.info(f"💰 Terdeteksi total nilai penjualan belum lunas sebesar: Rp {total_belum_lunas:,.0f}".replace(",", "."))
+        # 2. Hitung Belum Lunas dari base_info_df (Sehingga invoice yang belum lunas TETAP IKUT TERHITUNG)
+        belum_lunas_df = base_info_df[
+            base_info_df["Keterangan"].astype(str).str.strip().str.lower().str.contains("belum lunas", na=False)
+        ]
+        total_belum_lunas = belum_lunas_df["Harga Jual"].apply(finance_engine.bersihkan_angka).sum()
+        
+        # Cetak info Belum Lunas ke UI (Nilainya sekarang pasti jauh lebih besar)
+        if total_belum_lunas > 0:
+            st.info(f"💰 Terdeteksi total nilai penjualan belum lunas sebesar: Rp {total_belum_lunas:,.0f}".replace(",", "."))
         
         # Tampilkan notifikasi di sidebar
         with st.sidebar:

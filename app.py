@@ -107,18 +107,48 @@ def prepare_batch_update(
 def sedot_data_pribadi_independen():
     """
     Fungsi penarik data mandiri untuk tab 'Pribadi' Google Sheets.
-    Menjamin data mutasi kas ruko stabil dan anti-kosong di memori RAM.
+    Lebih hemat kuota API, cepat, dan anti-kosong di memori RAM.
     """
+    kolom_target = ["Tanggal", "Bank_Sumber", "No_Rekening_AI", "Kategori", "Nominal", "Keterangan"]
+    
     try:
         ws_pribadi = connect_to_gsheet(SHEET_ID, "Pribadi")
-        df_p_raw = pd.DataFrame(ws_pribadi.get_all_records())
-        if df_p_raw.empty:
-            return pd.DataFrame(columns=["Tanggal", "Bank_Sumber", "No_Rekening_AI", "Kategori", "Nominal", "Keterangan"])
-        df_p_raw = df_p_raw.dropna(how="all")
-        df_p_raw = df_p_raw.drop_duplicates(keep="first")
-        return df_p_raw
-    except:
-        return pd.DataFrame(columns=["Tanggal", "Bank_Sumber", "No_Rekening_AI", "Kategori", "Nominal", "Keterangan"])
+        
+        # 1. Gunakan get_all_values() karena mengambil baris mentah secara masal jauh lebih cepat
+        # Info: Jika tabel Anda punya range spesifik (misal A:F), gunakan ws_pribadi.get('A1:F') untuk menghemat kuota lebih ekstrem
+        data_mentah = ws_pribadi.get_all_values()
+        
+        if not data_mentah or len(data_mentah) <= 1:
+            return pd.DataFrame(columns=kolom_target)
+        
+        # 2. Pisahkan header dan baris data
+        header = data_mentah[0]
+        baris_data = data_mentah[1:]
+        
+        # 3. Konversi ke DataFrame
+        df_p_raw = pd.DataFrame(baris_data, columns=header)
+        
+        # 4. Saring kolom agar hanya menyimpan yang dibutuhkan di RAM
+        # Ini mencegah eror jika ada kolom sampah di sebelah kanan tabel
+        df_p_raw = df_p_raw[[col for col in kolom_target if col in df_p_raw.columns]]
+        
+        # 5. Pembersihan data di memori RAM
+        df_p_raw = df_p_raw.replace(r'^\s*$', None, regex=True) # Ubah string kosong menjadi None
+        df_p_raw = df_p_raw.dropna(how="all")                  # Hapus baris yang benar-benar kosong
+        df_p_raw = df_p_raw.drop_duplicates(keep="first")       # Hapus duplikat
+        
+        # Pastikan kolom output tetap konsisten meskipun sheet kosong
+        for col in kolom_target:
+            if col not in df_p_raw.columns:
+                df_p_raw[col] = None
+                
+        return df_p_raw[kolom_target]
+        
+    except Exception as e:
+        # PENTING: Cetak log error agar Anda tahu jika terjadi kegagalan koneksi/API
+        print(f"Gagal mengambil data dari Google Sheets: {e}")
+        return pd.DataFrame(columns=kolom_target)
+
 
 
  # === Fungsi PDF ===

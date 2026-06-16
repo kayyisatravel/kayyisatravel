@@ -1788,9 +1788,6 @@ with st.expander("💾 Database Pemesan", expanded=False):
     SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
     WORKSHEET_NAME = "Data"
 
-    # Hubungkan langsung ke finance_engine untuk standarisasi angka
-    import finance_engine
-
     def connect_to_gsheet(SHEET_ID, worksheet_name="Data"):
         scope = [
             "https://spreadsheets.google.com/feeds",
@@ -1802,7 +1799,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
         sheet = client.open_by_key(SHEET_ID)
         return sheet.worksheet(worksheet_name)
 
-    @st.cache_data
+    @st.cache_data(ttl=300)
     def load_data():
         ws = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
         df = pd.DataFrame(ws.get_all_records())

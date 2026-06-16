@@ -45,18 +45,24 @@ class AIUniversalEntry(BaseModel):
     @field_validator('tgl_pemesanan', 'tgl_berangkat')
     @classmethod
     def pastikan_format_tanggal(cls, v: str) -> str:
-        if v == "":
-            return v
-        # Jika AI malah mengembalikan format DD-MM-YYYY secara tidak sengaja
-        if re.match(r"^\d{2}-\d{2}-\d{4}$", v):
-            return datetime.strptime(v, "%d-%m-%Y").strftime("%Y-%m-%m")
+        if not v:
+            return ""
         
-        # Validasi apakah string sudah sesuai standar ISO YYYY-MM-DD
+        # 1. Bersihkan spasi di awal/akhir
+        v = v.strip()
+        
+        # 2. Normalisasi format DD/MM/YYYY atau DD-MM-YYYY menjadi YYYY-MM-DD
+        # Menangani input e-ticket seperti "10/09/2026" atau "10-09-2026"
+        if re.match(r"^\d{2}[/-]\d{2}[/-]\d{4}$", v):
+            pembatas = "/" if "/" in v else "-"
+            return datetime.strptime(v, f"%d{pembatas}%m{pembatas}%Y").strftime("%Y-%m-%d")
+        
+        # 3. Validasi akhir memastikan string sudah standar ISO YYYY-MM-DD
         try:
             datetime.strptime(v, "%Y-%m-%d")
             return v
         except ValueError:
-            raise ValueError("Format tanggal harus berupa YYYY-MM-DD yang valid.")
+            raise ValueError(f"Format tanggal '{v}' tidak valid. Harus berupa YYYY-MM-DD atau DD/MM/YYYY.")
 
 class AIUniversalParserResult(BaseModel):
     entries: List[AIUniversalEntry]
@@ -117,6 +123,10 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
          * 'Cadangan Bisnis' : Untuk setoran tabungan 40% laba toko atau penarikan dana darurat modal.
          * 'Dana Sosial / Titipan' : Khusus untuk iuran keamanan/RT titipan warga perumahan (Uang Sosial).
 
+    Aturan Tambahan Ekstraksi Tanggal:
+    - Jika menemukan format tanggal dengan garis miring seperti DD/MM/YYYY (Contoh: 10/09/2026 artinya 10 September), ubah secara ketat ke YYYY-MM-DD (2026-09-10). Jangan tertukar antara bulan dan hari!
+
+    
     🧮 ATURAN MATEMATIKA PECAH BARIS & HARGA ECERAN:
     1. UNTUK JALUR BISNIS: Periksa nama penumpang atau tamu terlebih dahulu.
        - JIKA nama tamu/penumpang BERBEDA-BEDA (cth: Jane Susanna & Gascha Firga), Anda WAJIB memecah data menjadi beberapa baris entri, lalu bagi rata nominal total vendor/internal dengan jumlah pax/kamar tersebut.

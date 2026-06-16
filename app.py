@@ -679,6 +679,7 @@ with col2:
 # Garis horizontal
 st.markdown("""<hr style="border-top: 1px solid #7f8c8d;">""", unsafe_allow_html=True)
 bunderan_alert_slot = st.empty()
+bunderan_alert_slot2 = st.empty()
 
 #with st.sidebar:
     
@@ -2424,7 +2425,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
         total_endo_uninvoice = endo_uninvoice_df["Harga Jual"].apply(finance_engine.bersihkan_angka).sum()
         
         if total_endo_uninvoice > 0:
-            bunderan_alert_slot.error(f"🚨 **PERINGATAN INVOICE:** Terdeteksi **Invoice Belum Dibuat** sebesar: **Rp {total_endo_uninvoice:,.0f}**".replace(",", "."))
+            bunderan_alert_slot2.error(f"🚨 **PERINGATAN INVOICE:** Terdeteksi **Invoice Belum Dibuat** sebesar: **Rp {total_endo_uninvoice:,.0f}**".replace(",", "."))
         
         # Tampilkan notifikasi di sidebar
         with st.sidebar:

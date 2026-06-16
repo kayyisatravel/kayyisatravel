@@ -152,9 +152,11 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
     3. Tipe KERETA (Termasuk Whoosh): "item_name" format penulisan WAJIB: [Nama Kereta] [Singkatan Kelas] [Nomor Gerbong]/[Nomor Kursi] (Contoh: "Sembrani Eks 4/5D"). "durasi" format 'HH:MM - HH:MM' (contoh 17:00 - 18:45). Rute berisi kode stasiun asal - tujuan (cth: "GMR - SBI").
        INGAT: Jika kelasnya 'Business Class', singkatan kelasnya adalah 'Bis' (Contoh: "Whoosh Bis 2/4A"). JANGAN PERNAH menulis kata "Bus"!
     4. TANGGAL: Format standar ISO 'YYYY-MM-DD'. 
-       - HATI-HATI JANGAN TERBALIK antara BULAN (MM) dan TANGGAL (DD). Contoh: Jika teks bertuliskan "10 September 2026", maka September adalah Bulan 09, dan 10 adalah Tanggal. Hasilnya WAJIB '2026-09-10'. JANGAN PERNAH mengubahnya menjadi '2026-10-09'.
-       - Jika teks menyebutkan kata 'Hari ini', 'Sekarang', atau tanggal tidak terdeteksi, Anda WAJIB menggunakan tanggal acuan ini: {tgl_sekarang_str}.
-       - Untuk JALUR PRIBADI (Is_Bisnis: false), kolom "tgl_berangkat" WAJIB hukumnya diisi string kosong "" tanpa pengecualian, jangan pernah memasukkan tanggal apa pun di sana.
+       - ⚠️ ATURAN MUTLAK FORMAT INDONESIA: Teks input menggunakan standar penanggalan Indonesia (DD/MM/YYYY atau DD-MM-YYYY). 
+       - Jika menemukan teks "10/09/2026" atau "10-09-2026", angka '10' adalah TANGGAL (DD) dan '09' adalah BULAN September (MM). Anda WAJIB mengonversinya menjadi '2026-09-10'. DILARANG KERAS membalikkannya menjadi format Amerika (2026-10-09)!
+       - Jika teks menyebutkan kata 'Hari ini' atau 'Sekarang', gunakan tanggal acuan ini: {tgl_sekarang_str}.
+       - Untuk JALUR PRIBADI (Is_Bisnis: false), kolom "tgl_berangkat" WAJIB diisi string kosong "".
+
     5. PLATFORM: Pilih salah satu dari: "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin", "KAI Access", "RedDoorz", "Lainnya".
     6. KETERANGAN PAKET TAMBAHAN: Jika di dalam teks input terdapat informasi paket wisata tambahan (add-on promo ticket seperti Dufan, Ancol, Jatim Park, dll), kamu WAJIB menuliskan nama paket tersebut secara ringkas ke dalam field "keterangan_tambahan" agar datanya tidak hilang.
        

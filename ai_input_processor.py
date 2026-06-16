@@ -2,8 +2,9 @@
 import streamlit as st
 from google import genai
 from google.genai import types
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
+import re
 import json
 from datetime import datetime
 

@@ -2370,8 +2370,15 @@ with st.expander("💾 Database Pemesan", expanded=False):
         # 🔧 FIX LOGIKA 2: Menghitung Sisa Penjualan Tanpa Invoice Secara Efisien
         # =========================================================================
         
-        base_info_df = df_filtered_by_text_and_date.copy()
-        # Saring langsung dari df_filtered yang sudah melewati filter tanggal utama Anda
+        base_info_df = df.copy() 
+
+        # Pastikan kolom-kolom kritikal dikonversi ke string dengan aman untuk menghindari error tipe data
+        for col in ["No Invoice", "Keterangan", "Nama Pemesan"]:
+            if col in base_info_df.columns:
+                base_info_df[col] = base_info_df[col].astype(str).str.strip()
+            else:
+                base_info_df[col] = "" # Antisipasi jika kolom tidak sengaja terhapus di GSheets
+        
         uninvoice_df = base_info_df[
             (base_info_df["No Invoice"].isna()) |
             (base_info_df["No Invoice"].astype(str).str.strip() == "") |

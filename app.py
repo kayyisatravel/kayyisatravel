@@ -2360,7 +2360,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
         total_endo_belum_lunas = endo_unpaid_df["Harga Jual"].apply(finance_engine.bersihkan_angka).sum()
         # Trik untuk debugging (bisa dihapus setelah tahu penyebabnya)
         st.write("DEBUG: Jumlah baris data Endo yang terdeteksi:", len(endo_unpaid_df))
-        st.dataframe(endo_unpaid_df[["Tanggal", "Nama Pemesan", "Harga Jual", "Keterangan"]])
+        st.dataframe(endo_unpaid_df[["Tanggal Pemesanan", "Nama Pemesan", "Harga Jual", "Keterangan"]])
 
         if total_endo_belum_lunas > 0:
             bunderan_alert_slot.error(f"🚨 **PERINGATAN PIUTANG:** Terdeteksi total nilai penjualan belum lunas **PT Endo** sebesar: **Rp {total_endo_belum_lunas:,.0f}**".replace(",", "."))

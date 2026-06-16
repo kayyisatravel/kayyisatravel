@@ -2418,14 +2418,14 @@ with st.expander("💾 Database Pemesan", expanded=False):
         #st.dataframe(endo_unpaid_df[["Tgl Pemesanan", "Nama Pemesan", "Harga Jual", "Keterangan"]])
 
         if total_endo_belum_lunas > 25000000:
-            bunderan_alert_slot.error(f"🚨 **PERINGATAN PIUTANG: Transaksi PT Endo Belum Lunas** sebesar: **Rp {total_endo_belum_lunas:,.0f}**".replace(",", "."))
+            bunderan_alert_slot.error(f"🚨 **Transaksi PT Endo Belum Lunas** sebesar: **Rp {total_endo_belum_lunas:,.0f}**".replace(",", "."))
         endo_uninvoice_df = uninvoice_df[
             uninvoice_df["Nama Pemesan"].astype(str).str.contains("Endo", case=False, na=False)
         ]
         total_endo_uninvoice = endo_uninvoice_df["Harga Jual"].apply(finance_engine.bersihkan_angka).sum()
         
         if total_endo_uninvoice > 25000000:
-            bunderan_alert_slot2.error(f"🚨 **PERINGATAN INVOICE: Invoice PT Endo Belum Dibuat** sebesar: **Rp {total_endo_uninvoice:,.0f}**".replace(",", "."))
+            bunderan_alert_slot2.error(f"🚨 **Invoice PT Endo Belum Dibuat** sebesar: **Rp {total_endo_uninvoice:,.0f}**".replace(",", "."))
         
         # Tampilkan notifikasi di sidebar
         with st.sidebar:

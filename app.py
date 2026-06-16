@@ -1,4 +1,4 @@
-
+#app.py
 import generatornew
 import os
 os.environ["STREAMLIT_WATCHER_TYPE"] = "none"
@@ -4308,13 +4308,18 @@ with st.expander("Laporan Saldo Rekening Real Time"):
             <h3 style='margin:0; color:#4e342e;'>Rp {int(saldo_bank.get("BRI", 0)):,}</h3>
         </div>""".replace(",", "."), unsafe_allow_html=True)
     with cb7:
+        st.markdown(f"""<div style='background-color:#fffde7; padding:15px; border-radius:10px; border-left: 5px solid #ffd600;'>
+            <p style='margin:0; font-size:12px; color:#1a237e; font-weight:bold;'>🟨 SALDO MEGA</p>
+            <h3 style='margin:0; color:#0d47a1;'>Rp {int(saldo_bank.get("Mega", 0)):,}</h3>
+        </div>""".replace(",", "."), unsafe_allow_html=True)
+    with cb8:
         st.markdown(f"""<div style='background-color:#eceff1; padding:15px; border-radius:10px; border-left: 5px solid #546e7a;'>
             <p style='margin:0; font-size:12px; color:#555;'>💵 DOMPET TUNAI</p>
             <h3 style='margin:0; color:#37474f;'>Rp {int(saldo_bank.get("Tunai", 0)):,}</h3>
         </div>""".replace(",", "."), unsafe_allow_html=True)
-    with cb8:
+
         # Kolom kosong pelengkap simetri layout
-        st.write("")
+        #st.write("")
 
     st.markdown("---")
     st.markdown("### 💼 II. Kantong Anggaran Hasil Alokasi AI (Dompet Keluarga & Toko)")

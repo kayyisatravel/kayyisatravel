@@ -2069,7 +2069,14 @@ with st.expander("💾 Database Pemesan", expanded=False):
         
                 # ===== Fungsi bantu amankan tanggal =====
                 def safe_date(val):
-                    return None if pd.isna(val) else val.date()
+                    if pd.isna(val):
+                        return None
+                    try:
+                        # Mengonversi teks/string atau objek lain ke tanggal secara otomatis
+                        return pd.to_datetime(val).date()
+                    except Exception:
+                        # Jika data berupa teks acak atau gagal dikonversi, kembalikan None
+                        return None
 
         
                 # ============================

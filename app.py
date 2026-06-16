@@ -647,6 +647,7 @@ with col2:
 
 # Garis horizontal
 st.markdown("""<hr style="border-top: 1px solid #7f8c8d;">""", unsafe_allow_html=True)
+bunderan_alert_slot = st.empty()
 
 #with st.sidebar:
     
@@ -2359,7 +2360,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
         total_endo_belum_lunas = endo_unpaid_df["Harga Jual"].apply(finance_engine.bersihkan_angka).sum()
         
         if total_endo_belum_lunas > 0:
-            st.info(f"💰 Terdeteksi total nilai penjualan belum lunas khusus **Endo**: Rp {total_endo_belum_lunas:,.0f}".replace(",", "."))
+            bunderan_alert_slot.error(f"🚨 **PERINGATAN PIUTANG:** Terdeteksi total nilai penjualan belum lunas **PT Endo** sebesar: **Rp {total_endo_belum_lunas:,.0f}**".replace(",", "."))
         
         # Tampilkan notifikasi di sidebar
         with st.sidebar:

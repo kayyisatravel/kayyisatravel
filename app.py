@@ -2352,6 +2352,15 @@ with st.expander("💾 Database Pemesan", expanded=False):
         if total_belum_lunas > 0:
             st.info(f"💰 Terdeteksi total nilai penjualan belum lunas sebesar: Rp {total_belum_lunas:,.0f}".replace(",", "."))
         
+        endo_unpaid_df = belum_lunas_df[
+            belum_lunas_df["Nama Pemesan"].astype(str).str.contains("Endo", case=False, na=False)
+        ]
+        
+        total_endo_belum_lunas = endo_unpaid_df["Harga Jual"].apply(finance_engine.bersihkan_angka).sum()
+        
+        if total_endo_belum_lunas > 0:
+            st.info(f"💰 Terdeteksi total nilai penjualan belum lunas khusus **Endo**: Rp {total_endo_belum_lunas:,.0f}".replace(",", "."))
+        
         # Tampilkan notifikasi di sidebar
         with st.sidebar:
             st.markdown("---")

@@ -1305,32 +1305,44 @@ with st.expander('⌨️ Upload Data Reservasi', expanded=False):
                         if col in ["Tgl Pemesanan", "Tgl Berangkat"]:
                             import datetime
                             
-                            # Logika Normalisasi: Paksa string dari AI menjadi objek date resmi Python
+                            val_date = None
+                            
                             if isinstance(val, str) and val.strip() != "":
+                                val_clean = val.strip().replace("/", "-") # Ganti '/' jadi '-'
+                                
+                                # 1. Coba format standar ISO utama (YYYY-MM-DD)
                                 try:
-                                    # Coba tebak jika formatnya DD-MM-YYYY (Bawaan Prompt AI kita)
-                                    val_date = pd.to_datetime(val, dayfirst=True).date()
-                                except:
+                                    val_date = datetime.datetime.strptime(val_clean, "%Y-%m-%d").date()
+                                except ValueError:
+                                    # 2. Alternatif jika format terbalik dari AI (DD-MM-YYYY)
                                     try:
-                                        # Cadangan jika formatnya YYYY-MM-DD
-                                        val_date = pd.to_datetime(val).date()
-                                    except:
-                                        val_date = datetime.date.today()
+                                        val_date = datetime.datetime.strptime(val_clean, "%d-%m-%Y").date()
+                                    except ValueError:
+                                        # 3. Jika gagal semua, gunakan pandas sebagai fallback terakhir tanpa menebak ambigu
+                                        try:
+                                            val_date = pd.to_datetime(val_clean).date()
+                                        except:
+                                            val_date = datetime.date.today()
+                                            
                             elif isinstance(val, (pd.Timestamp, datetime.datetime)):
                                 val_date = val.date()
                             elif isinstance(val, datetime.date):
                                 val_date = val
                             else:
-                                # Jika data kosong/NaT, setel otomatis ke tanggal hari ini
                                 val_date = datetime.date.today()
                                 
+                            # Paksa widget date_input mengunci format tampilan ISO agar admin tidak bingung
                             new_val = st.date_input(
                                 f"{col} (Baris {i})", 
                                 value=val_date, 
+                                format="YYYY-MM-DD",
                                 key=f"{col}_{i}"
                             )
-                            updated_row[col] = new_val
+                            
+                            # Pastikan nilai yang dikembalikan ke updated_row berupa string YYYY-MM-DD siap simpan
+                            updated_row[col] = new_val.strftime("%Y-%m-%d")
                             continue
+
 
                             
                         # ========== HANDLE NUMERIC REAKTIF LIVE UPDATE ==========

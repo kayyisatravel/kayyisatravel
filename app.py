@@ -1043,7 +1043,7 @@ def terapkan_otomatisasi_pembayaran(platform_name: str) -> (str, str):
 # ==============================================================================
 # 🤖 [FIXED FINAL]: EXPANDER UTAMA - MULTI-INPUT (TEKS, GAMBAR, & SUARA) CERDAS AI
 # ==============================================================================
-with st.expander('⌨️ Upload Data Reservasi)', expanded=True):
+with st.expander('⌨️ Upload Data Reservasi', expanded=False):
     st.markdown("""
     *Pilih metode input yang paling praktis. Sistem otomatis menyelaraskan format KAI, Hotel, maupun Pesawat.*
     """)

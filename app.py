@@ -33,6 +33,7 @@ import finance_engine
 import visualizer
 import ai_auditor
 import ai_input_processor
+import hybrid_finance_engine
 
 now = datetime.now(ZoneInfo("Asia/Jakarta"))
 tgl_sekarang_str = datetime.today().strftime("%Y-%m-%d")
@@ -5908,4 +5909,98 @@ with st.expander("🖥️ MONITORING", expanded=False):
         })
         st.dataframe(df_forensik, hide_index=True, use_container_width=True)
 
+# Pastikan data sheet telah ter-load ke variabel ini sebelum memanggil
+# df_filtered (dari sheet Data) dan df_pribadi_current (dari sheet Pribadi)
+
+with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN (HYBRID FIXED VS SURPLUS)", expanded=True):
+    
+    # Eksekusi kalkulasi engine baru
+    analisa_hybrid = hybrid_finance_engine.hitung_hybrid_monitoring_v1(df_filtered, df_pribadi_current)
+    
+    # ----------------------------------------------------------------------------------------------
+    # STYLING INJEKSI CSS BARU
+    # ----------------------------------------------------------------------------------------------
+    st.markdown("""
+    <style>
+        .hybrid-box { background-color: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 15px; }
+        .title-card { font-size: 0.9rem; color: #475569; font-weight: bold; }
+        .val-card { font-size: 1.5rem; font-weight: 800; color: #0f172a; }
+        .badge-secure { background-color: #10b981; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        .badge-alert { background-color: #ef4444; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # HEADER NOTIFIKASI PROTOKOL DARURAT
+    if analisa_hybrid["status_darurat_aktif"]:
+        st.error("⚠️ **PROTOKOL DARURAT AKTIF:** Kas operasional toko saat ini berada di bawah target Gaji Flat Rumah Tangga. Alokasi kertas menyarankan penggunaan sisa saldo Tabungan Cadangan Bisnis periode sebelumnya untuk menutupi selisih operasional keluarga.")
+    else:
+        st.success("✅ **SISTEM AMAN:** Arus kas masuk toko sanggup memenuhi Gaji Dasar Flat Rumah Tangga tanpa mengganggu modal kerja vendor.")
+
+    # TAMPILAN KONDISI RIIL (REALITAS FISIK UANG)
+    st.markdown("#### 💵 1. MONITORING KONDISI RIIL (REALITAS FISIK)")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown(f"""
+        <div class="hybrid-box" style="border-left: 5px solid #3b82f6;">
+            <div class="title-card">📈 ESTIMASI KAS RIIL TOKO</div>
+            <div class="val-card">Rp {analisa_hybrid['kas_riil_bisnis_toko']:,.0f}</div>
+            <span class="title-card">(Di luar Piutang & Modal Vendor)</span>
+        </div>
+        """, unsafe_allow_html=True)
+    with c2:
+        st.markdown(f"""
+        <div class="hybrid-box" style="border-left: 5px solid #ef4444;">
+            <div class="title-card">🧾 TOTAL PIUTANG AKTIF</div>
+            <div class="val-card">Rp {analisa_hybrid['total_piutang']:,.0f}</div>
+            <span class="badge-alert">Status: Menunggu Tagihan</span>
+        </div>
+        """, unsafe_allow_html=True)
+    with c3:
+        st.markdown(f"""
+        <div class="hybrid-box" style="border-left: 5px solid #10b981;">
+            <div class="title-card">🏦 TOTAL ATM NYATA PRIBADI</div>
+            <div class="val-card">Rp {analisa_hybrid['total_atm_pribadi']:,.0f}</div>
+            <span class="badge-secure">Sesuai Saldo M-Banking</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # BREAKDOWN SALDO RIIL PER REKENING
+    with st.expander("🔍 Rincian Saldo Nyata Tiap Akun Bank (Faktual M-Banking)"):
+        sb = analisa_hybrid["saldo_bank_aktual"]
+        df_sb_view = pd.DataFrame({
+            "Akun Bank": ["BCA", "Mandiri", "BSI", "Tagihan Kartu Kredit (UOB/CC Mega)"],
+            "Saldo Terbaca": [f"Rp {sb['BCA']:,.0f}", f"Rp {sb['Mandiri']:,.0f}", f"Rp {sb['BSI']:,.0f}", f"Rp {sb['Kartu Kredit']:,.0f}"]
+        })
+        st.dataframe(df_sb_view, hide_index=True, use_container_width=True)
+
+    # TAMPILAN MONITORING TARGET ALOKASI (DI ATAS KERTAS)
+    st.write("")
+    st.markdown("#### 📋 2. TARGET PEMBAGIAN ANGGARAN (HITUNGAN DI ATAS KERTAS)")
+    
+    col_l1, col_l2 = st.columns(2)
+    with col_l1:
+        st.info("🏛️ **ALOKASI BAGI HASIL BISNIS (BULANAN)**")
+        df_alokasi_bisnis = pd.DataFrame({
+            "Komponen Kertas": ["Hak Setor Investor (7.5%)", "Gaji Pokok Flat Owner (Dikunci)", "Target Cadangan Bisnis Baru (40%)"],
+            "Nominal Atas Kertas": [
+                f"Rp {analisa_hybrid['wajib_setor_investor']:,.0f}",
+                f"Rp {analisa_hybrid['gaji_owner_dialokasikan']:,.0f}",
+                f"Rp {analisa_hybrid['cadangan_bisnis_kertas']:,.0f}"
+            ]
+        })
+        st.dataframe(df_alokasi_bisnis, hide_index=True, use_container_width=True)
+
+    with col_l2:
+        st.warning("🏠 **KANTUNG TARGET BELANJA DOMESTIK (FIXED COST)**")
+        items_domestik = []
+        nominals_domestik = []
+        for k, v in analisa_hybrid["target_kertas_domestik"].items():
+            items_domestik.append(k)
+            nominals_domestik.append(f"Rp {v:,.0f}")
+            
+        df_domestik_view = pd.DataFrame({
+            "Pos Pengeluaran Keluarga": items_domestik,
+            "Target Plafon Bulanan": nominals_domestik
+        })
+        st.dataframe(df_domestik_view, hide_index=True, use_container_width=True)
 

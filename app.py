@@ -5715,27 +5715,60 @@ with st.expander("🖥️ MONITORING", expanded=False):
     #                                         STYLING CSS CUSTOM
     # ==================================================================================================
     st.markdown("""
-        <style>
-            .header-box {
-                background-color: #0e1117;
-                padding: 20px;
-                border-radius: 10px;
-                border: 2px solid #4bc0c0;
-                text-align: center;
-                margin-bottom: 25px;
-            }
-            .custom-card {
-                background-color: #111827;
-                padding: 15px;
-                border-radius: 8px;
-                border-left: 5px solid #ef4444;
-                margin-bottom: 10px;
-            }
-            .status-warning { color: #ef4444; font-weight: bold; }
-            .status-tempo { color: #f59e0b; font-weight: bold; }
-            .status-liquid { color: #10b981; font-weight: bold; }
-        </style>
-        """, unsafe_allow_html=True)
+    <style>
+        /* Desain Header Utama: Putih Bersih dengan Border Sian */
+        .header-box {
+            background-color: #ffffff;
+            padding: 22px;
+            border-radius: 12px;
+            border: 2px solid #4bc0c0;
+            text-align: center;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .header-box h2 {
+            color: #1e293b !important; /* Memaksa teks judul berwarna gelap/hitam */
+            font-weight: 800;
+        }
+        
+        /* Desain Kotak Metrik (Card): Latar Putih, Teks Gelap Kontras Tinggi */
+        .custom-card {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 6px solid #ef4444;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+        }
+        
+        /* Pewarnaan Teks Label dan Angka Murni agar Kontras di Latar Putih */
+        .card-label {
+            font-size: 0.85rem; 
+            color: #64748b; /* Abu-abu gelap profesional */
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+        .card-value {
+            font-size: 1.8rem; 
+            font-weight: 800; 
+            color: #0f172a; /* Hitam pekat modern */
+            line-height: 2rem;
+            margin-top: 5px;
+            margin-bottom: 5px;
+            display: inline-block;
+        }
+        .card-status {
+            font-size: 0.85rem;
+            color: #334155;
+            font-weight: 500;
+        }
+
+        /* Warna Status Indikator */
+        .status-warning { color: #dc2626; font-weight: 700; }
+        .status-tempo { color: #d97706; font-weight: 700; }
+        .status-liquid { color: #16a34a; font-weight: 700; }
+    </style>
+    """, unsafe_allow_html=True)
     
     # ==================================================================================================
     #                                           HEADER UTAMA
@@ -5753,31 +5786,32 @@ with st.expander("🖥️ MONITORING", expanded=False):
         st.write("")
         st.markdown("##### 📊 METRICS UTAMA BISNIS:")
         
+        # 3 Kotak Utama Metrik Bisnis dengan Penerapan Kelas CSS Baru
         m1, m2, m3 = st.columns(3)
         with m1:
             status_piutang = "🚨 WARNING" if overdue_lebih_30 > 0 else "🟢 AMAN"
             st.markdown(f"""
             <div class="custom-card" style="border-left-color: #ef4444;">
-                <span style="font-size:0.9rem; color:#9ca3af;">🧾 PIUTANG DI PELANGGAN</span><br>
-                <span style="font-size:1.6rem; font-weight:bold;">Rp {total_piutang:,.0f}</span><br>
-                <span style="font-size:0.85rem;">Status: <span class="status-warning">{status_piutang}</span></span>
+                <span class="card-label">🧾 PIUTANG DI PELANGGAN</span><br>
+                <span class="card-value">Rp {total_piutang:,.0f}</span><br>
+                <span class="card-status">Status: <span class="status-warning">{status_piutang}</span></span>
             </div>
             """, unsafe_allow_html=True)
         with m2:
             st.markdown(f"""
             <div class="custom-card" style="border-left-color: #f59e0b;">
-                <span style="font-size:0.9rem; color:#9ca3af;">🪪 UTANG MULTI-CC GLOBAL</span><br>
-                <span style="font-size:1.6rem; font-weight:bold;">Rp {utang_cc_global:,.0f}</span><br>
-                <span style="font-size:0.85rem;">Status: <span class="status-tempo">⚠️ JATUH TEMPO</span></span>
+                <span class="card-label">🪪 TOTAL TAGIHAN KARTU KREDIT</span><br>
+                <span class="card-value">Rp {utang_cc_global:,.0f}</span><br>
+                <span class="card-status">Status: <span class="status-tempo">⚠️ JATUH TEMPO</span></span>
             </div>
             """, unsafe_allow_html=True)
         with m3:
             status_kas = "🟢 LIQUID" if estimasi_kas_riil > 0 else "🚨 DEFISIT"
             st.markdown(f"""
             <div class="custom-card" style="border-left-color: #10b981;">
-                <span style="font-size:0.9rem; color:#9ca3af;">💵 ESTIMASI KAS RIIL TOKO</span><br>
-                <span style="font-size:1.6rem; font-weight:bold;">Rp {estimasi_kas_riil:,.0f}</span><br>
-                <span style="font-size:0.85rem;">Status: <span class="status-liquid">{status_kas}</span></span>
+                <span class="card-label">💵 ESTIMASI KAS RIIL TOKO</span><br>
+                <span class="card-value">Rp {estimasi_kas_riil:,.0f}</span><br>
+                <span class="card-status">Status: <span class="status-liquid">{status_kas}</span></span>
             </div>
             """, unsafe_allow_html=True)
 

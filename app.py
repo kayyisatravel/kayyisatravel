@@ -1968,28 +1968,40 @@ with st.expander("💾 Database Pemesan", expanded=False):
             3️⃣ Efisien untuk dataset besar
             """
             temp_df = df.copy()
+    
+            if "Tgl Pemesanan_Parsed" in temp_df.columns:
+                temp_df["Tgl Pemesanan_Clean"] = temp_df["Tgl Pemesanan_Parsed"]
+            else:
+                temp_df["Tgl Pemesanan_Clean"] = pd.to_datetime(temp_df["Tgl Pemesanan"], format="%d-%m-%Y", errors="coerce")
             
-            # Pastikan tanggal datetime
-            temp_df["Tgl Pemesanan"] = pd.to_datetime(temp_df["Tgl Pemesanan"], errors="coerce")
-            
-            # Group per Kode Booking → total Harga Jual dan ambil tanggal paling awal
+            def parse_harga_safe(harga_str):
+                if pd.isna(harga_str):
+                    return 0.0
+                if isinstance(harga_str, (int, float)):
+                    return float(harga_str)
+                # Jika string, bersihkan karakter non-numeric
+                s = str(harga_str).replace('Rp', '').replace('.', '').replace(',', '').strip()
+                try:
+                    return float(s)
+                except:
+                    return 0.0
+        
             grouped = temp_df.groupby("Kode Booking").agg({
-                "Harga Jual": lambda x: sum(parse_harga(v) for v in x),
-                "Tgl Pemesanan": "min"
-            }).dropna(subset=["Tgl Pemesanan"]).reset_index()
+                "Harga Jual": lambda x: sum(parse_harga_safe(v) for v in x),
+                "Tgl Pemesanan_Clean": "min"
+            }).dropna(subset=["Tgl Pemesanan_Clean"]).reset_index()
             
             # Urutkan berdasarkan tanggal paling lama dulu, lalu harga besar
-            grouped = grouped.sort_values(by=["Tgl Pemesanan", "Harga Jual"], ascending=[True, False])
+            grouped = grouped.sort_values(by=["Tgl Pemesanan_Clean", "Harga Jual"], ascending=[True, False])
             
             selected = []
             total = 0
             
             # Ambil tanggal unik
-            unique_dates = grouped["Tgl Pemesanan"].sort_values().unique()
+            unique_dates = grouped["Tgl Pemesanan_Clean"].sort_values().unique()
             
-            for date in unique_dates:
-                daily = grouped[grouped["Tgl Pemesanan"] == date].copy()
-                # Sort harga besar dulu di tanggal ini
+            for date_val in unique_dates:
+                daily = grouped[grouped["Tgl Pemesanan_Clean"] == date_val].copy()
                 daily = daily.sort_values(by="Harga Jual", ascending=False)
                 
                 for _, row in daily.iterrows():
@@ -1998,7 +2010,6 @@ with st.expander("💾 Database Pemesan", expanded=False):
                         selected.append(row["Kode Booking"])
                         total += harga
                 
-                # Jika max_total sudah tercapai, hentikan loop
                 if total >= max_total:
                     break
             

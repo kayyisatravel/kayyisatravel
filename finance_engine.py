@@ -146,7 +146,7 @@ def hitung_performa_dan_reconciliation_v5(df_sales_raw=None, df_pribadi_raw=None
             df_display_aging = df_agg[["Nama Pemesan", "No Invoice", "Tanggal Pemesanan", "Piutang", "Aging (hari)", "Overdue"]].copy()
 
     # 🏦 4. KALKULASI REKENING BANK RIIL (PERBAIKAN SINKRONISASI MUTASI AKTUAL)
-    dict_saldo_bank = {"BCA": 0.0, "Mandiri": 0.0, "BSI": 0.0, "BNI": 0.0, "BRI": 0.0, "SeaBank": 0.0, "Tunai": 0.0, "CC Mega": 0.0}
+    dict_saldo_bank = {"BCA": 0.0, "Mandiri": 0.0, "BSI": 0.0, "BNI": 0.0, "BRI": 0.0, "SeaBank": 0.0, "Tunai": 0.0, "Kartu Kredit": 0.0}
     
     # Inisialisasi akumulasi kantong anggaran digital riil berbasis mutasi kas ruko
     dict_alokasi_aktual = {"investor": 0.0, "cadangan_bisnis": 0.0, "rumah_tangga": 0.0, "investasi": 0.0, "lifestyle": 0.0}

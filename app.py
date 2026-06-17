@@ -5800,7 +5800,7 @@ with st.expander("🖥️ MONITORING", expanded=False):
             st.markdown("**SISI KANAN: KEWAJIBAN & EKUITAS**")
             df_pasiva = pd.DataFrame({
                 "Komponen Kanan": ["Total Tagihan Multi-CC", "Utang Hak Investor (7.5%)", "Cadangan Bersih Toko (40%)", "Modal Awal + Laba Ditahan", "TOTAL PASIVA"],
-                "Nominal": [f"Rp {utang_cc_mega:,.0f}", f"Rp {wajib_setor_investor:,.0f}", f"Rp {cadangan_bisnis_40:,.0f}", f"Rp {modal_dan_laba_ditahan:,.0f}", f"Rp {total_aset:,.0f}"]
+                "Nominal": [f"Rp {utang_cc_global:,.0f}", f"Rp {wajib_setor_investor:,.0f}", f"Rp {cadangan_bisnis_40:,.0f}", f"Rp {modal_dan_laba_ditahan:,.0f}", f"Rp {total_aset:,.0f}"]
             })
             st.dataframe(df_pasiva, hide_index=True, use_container_width=True)
     

@@ -169,7 +169,9 @@ def hitung_performa_dan_reconciliation_v5(df_sales_raw=None, df_pribadi_raw=None
             # A. KALKULASI MULTI-BANK (Sesuai Nilai ATM Nyata)
             # Normalisasi nama bank agar kebal dari variasi spasi/huruf kecil dari data input
             bank_key = None
-            if "mandiri" in bank.lower(): bank_key = "Mandiri"
+            if "cc" in bank.lower() or "credit" in bank.lower() or "mega" in bank.lower(): 
+                bank_key = "Kartu Kredit"
+            elif "mandiri" in bank.lower(): bank_key = "Mandiri"
             elif "bca" in bank.lower(): bank_key = "BCA"
             elif "bsi" in bank.lower(): bank_key = "BSI"
             elif "bni" in bank.lower(): bank_key = "BNI"

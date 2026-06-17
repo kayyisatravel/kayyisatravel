@@ -114,6 +114,9 @@ def hitung_performa_dan_reconciliation_v5(df_sales_raw=None, df_pribadi_raw=None
                 
         if list_pembayaran:
             df_payments = pd.DataFrame(list_pembayaran)
+                
+        if list_pembayaran:
+            df_payments = pd.DataFrame(list_pembayaran)
 
     # Kawinkan data jualan dengan data cicilan yang terdeteksi
     if "No Invoice" in df_sales.columns:

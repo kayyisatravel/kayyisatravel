@@ -83,22 +83,34 @@ def hitung_performa_dan_reconciliation_v5(df_sales_raw=None, df_pribadi_raw=None
     df_pr_copy = df_pribadi_raw.copy()
     df_payments = pd.DataFrame(columns=["No Invoice", "Jumlah Masuk"])
     
-    if not df_pr_copy.empty and "No Invoice" in df_sales.columns:
+    if not df_pr_copy.empty and "Invoice_Key" in df_sales.columns:
+        # Ambil nominal angka mutasi pribadi dan bersihkan
         df_pr_copy["Nominal (Num)"] = df_pr_copy["Nominal"].apply(bersihkan_angka)
         df_pemasukan = df_pr_copy[df_pr_copy["Kategori"].astype(str).str.strip().str.lower() == "pemasukan"].copy()
         
         # Detektif AI: Mencari kecocokan Nomor Invoice di dalam Teks Keterangan mutasi pribadi
         list_pembayaran = []
-        list_invoice_unik = df_sales["No Invoice"].dropna().unique().tolist()
+        list_invoice_unik = df_sales["Invoice_Key"].dropna().unique().tolist()
         
         for inv in list_invoice_unik:
             inv_str = str(inv).strip()
-            if inv_str == "" or inv_str == "N/A": continue
-            # Cek apakah nomor invoice tertulis di kolom Keterangan Bank Pribadi
-            mask_match = df_pemasukan["Keterangan"].astype(str).str.contains(inv_str, case=False, na=False)
+            if inv_str == "" or inv_str == "N/A": 
+                continue
+                
+            # 🎯 FORMULA RADAR REGEX (PENGAKOMODIR VOICE-TO-TEXT):
+            # Pola ini artinya: Cari kata "inv" ATAU "invoice", diikuti spasi/tanda baca opsional (\D*), 
+            # lalu diakhiri oleh nomor invoice murni secara spesifik.
+            pola_radar = rf"(?:inv|invoice)\D*{inv_str}\b"
+            
+            # Komputer memindai kolom Keterangan menggunakan radar pola di atas
+            # case=False memastikan huruf besar/kecil (Invoice/invoice/INV) tetap terdeteksi
+            mask_match = df_pemasukan["Keterangan"].astype(str).str.contains(pola_radar, case=False, na=False, regex=True)
+            
+            # Hitung total nominal uang masuk yang lolos sensor radar
             total_terbayar = df_pemasukan[mask_match]["Nominal (Num)"].sum()
+            
             if total_terbayar > 0:
-                list_pembayaran.append({"No Invoice": inv, "Jumlah Masuk": total_terbayar})
+                list_pembayaran.append({"Invoice_Key": inv, "Jumlah Masuk": total_terbayar})
                 
         if list_pembayaran:
             df_payments = pd.DataFrame(list_pembayaran)

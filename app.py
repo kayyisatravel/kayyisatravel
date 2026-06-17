@@ -5914,10 +5914,46 @@ with st.expander("🖥️ MONITORING", expanded=False):
 
 with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN (HYBRID FIXED VS SURPLUS)", expanded=True):
     
-        # Eksekusi perhitungan dari engine hybrid baru
-    db = hybrid_finance_engine.hitung_hybrid_monitoring_v1(df_filtered, df_pribadi_current)
+    st.markdown("##### 📅 PILIH PERIODE MONITORING ANGGARAN")
+    f_c1, f_c2 = st.columns(2)
     
-    # Injeksi CSS Premium untuk Scannability Maksimal
+    # AMANKAN LOGIKA CLONING: Gunakan kolom hasil parsing dari fungsi load_data() Anda
+    df_sales_ready = df_filtered.copy()
+    df_pribadi_ready = df_pribadi_current.copy()
+    
+    # Perbaikan Bug 1: Sinkronisasi Penanggalan Satu Pintu yang Pintar
+    if "Tgl Pemesanan_Parsed" in df_sales_ready.columns:
+        df_sales_ready["Tgl_DT"] = df_sales_ready["Tgl Pemesanan_Parsed"]
+    else:
+        df_sales_ready["Tgl_DT"] = pd.to_datetime(df_sales_ready["Tgl Pemesanan"], errors="coerce")
+        
+    df_pribadi_ready["Tgl_DT"] = pd.to_datetime(df_pribadi_ready["Tanggal"], errors="coerce")
+    
+    # Kunci Daftar Tahun Operasional
+    list_tahun = sorted(df_sales_ready["Tgl_DT"].dt.year.dropna().unique().astype(int).tolist(), reverse=True)
+    if not list_tahun:
+        list_tahun = [pd.Timestamp.today().year]
+        
+    with f_c1:
+        tahun_terpilih = st.selectbox("Tahun Operasional", options=list_tahun, key="hybrid_year_filter")
+        
+    with f_c2:
+        nama_bulan = ["Semua Bulan", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
+        bulan_terpilih = st.selectbox("Bulan Operasional", options=nama_bulan, index=0, key="hybrid_month_filter")
+        
+    # LOGIKA FILTER DUA JALUR
+    if bulan_terpilih == "Semua Bulan":
+        df_sales_filtered = df_sales_ready[df_sales_ready["Tgl_DT"].dt.year == tahun_terpilih]
+        df_pribadi_filtered = df_pribadi_ready[df_pribadi_ready["Tgl_DT"].dt.year == tahun_terpilih]
+    else:
+        angka_bulan = nama_bulan.index(bulan_terpilih)
+        df_sales_filtered = df_sales_ready[(df_sales_ready["Tgl_DT"].dt.year == tahun_terpilih) & (df_sales_ready["Tgl_DT"].dt.month == angka_bulan)]
+        df_pribadi_filtered = df_pribadi_ready[(df_pribadi_ready["Tgl_DT"].dt.year == tahun_terpilih) & (df_pribadi_ready["Tgl_DT"].dt.month == angka_bulan)]
+
+    # EKSEKUSI ENGINE
+    db = hybrid_finance_engine.hitung_hybrid_monitoring_v1(df_sales_filtered, df_pribadi_filtered)
+    
+    # INTERFACE DESIGN STANDAR (Sama dengan skrip sebelumnya)
     st.markdown("""
     <style>
         .m-box { background-color: #ffffff; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; border-top: 4px solid #475569; margin-bottom: 12px; }
@@ -5929,16 +5965,16 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN (HYBRID FIXED VS SURPLUS
     </style>
     """, unsafe_allow_html=True)
 
+    st.write("")
+    st.info(f"📍 Menampilkan Analisis Keuangan Periode: **{bulan_terpilih} {tahun_terpilih}**")
+
     if db["status_darurat_aktif"]:
-        st.error(f"⚠️ **PROTOKOL DARURAT AKTIF:** Kas toko defisit **Rp {db['nilai_defisit_gaji']:,.0f}** dari target Gaji Pokok Rumah Tangga. Alokasi menyarankan penggunaan sisa dana Cadangan Bisnis terdahulu.")
+        st.error(f"⚠️ **PROTOKOL DARURAT AKTIF:** Kas toko periode ini defisit **Rp {db['nilai_defisit_gaji']:,.0f}** dari target Gaji Pokok Rumah Tangga.")
     else:
         st.success("✅ **SISTEM STATUS AMAN:** Arus kas masuk toko sanggup membiayai penuh Gaji Pokok Domestik.")
 
-    # =========================================================================
-    # ROW LAYER 1: 16 GRID METRIKS INTELIJEN FINANSIAL
-    # =========================================================================
-    st.markdown("### 📊 INTERACTIVE METRICS CENTER (16 FINANCIAL INDICATORS)")
-    
+    # 1. GRID METRIKS INTERACTIVE
+    st.markdown("### 📊 INTERACTIVE METRICS CENTER")
     st.markdown("##### 🏛️ A. Rumpun Profitabilitas & Kinerja Bisnis Murni")
     g1, g2, g3, g4 = st.columns(4)
     with g1: st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">1. Net Profit Margin</div><div class="m-val">{db["npm"]:.2f}%</div><div class="m-sub">Efisiensi Laba Buku</div></div>', unsafe_allow_html=True)
@@ -5948,7 +5984,7 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN (HYBRID FIXED VS SURPLUS
 
     st.markdown("##### 🧾 B. Rumpun Struktur Kas & Ambang Batas Piutang")
     g5, g6, g7, g8 = st.columns(4)
-    with g5: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">5. Kas Riil Toko</div><div class="m-val">Rp {db["kas_riil_bisnis_toko"]:,.0f}</div><div class="m-sub">Uang Fisik di Luar Vendor</div></div>', unsafe_allow_html=True)
+    with g5: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">5. Kas Riil Toko</div><div class="m-val">Rp {db["kas_riil_bisnis_toko"]:,.0f}</div><div class="m-sub">Uang Fisik Terkumpul Murni</div></div>', unsafe_allow_html=True)
     with g6: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">6. Rasio Ikat Modal</div><div class="m-val c-red">{db["rasio_keterikatan_modal"]:.1f}%</div><div class="m-sub">Omzet Sangkut di Pelanggan</div></div>', unsafe_allow_html=True)
     with g7: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">7. Rasio Rentan Laba</div><div class="m-val">{db["rasio_kerentanan_laba"]:.1f}%</div><div class="m-sub">Porsi Laba Semu Kertas</div></div>', unsafe_allow_html=True)
     with g8: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">8. Invoice Unpaid</div><div class="m-val c-red">{db["jumlah_invoice_piutang"]} Transaksi</div><div class="m-sub">Total Nota Belum Lunas</div></div>', unsafe_allow_html=True)
@@ -5967,40 +6003,25 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN (HYBRID FIXED VS SURPLUS
     with g15: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">15. Admin Terproduktif</div><div class="m-val" style="font-size:1.15rem; padding:3px 0;">{db["top_admin"]}</div><div class="m-sub">Sales Volume Terbanyak</div></div>', unsafe_allow_html=True)
     with g16: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">16. Aset Lancar Toko</div><div class="m-val">Rp {db["total_aset_lancar_toko"]:,.0f}</div><div class="m-sub">Total Kas Riil + Piutang</div></div>', unsafe_allow_html=True)
 
-    # =========================================================================
-    # DETAIL SALDO REKENING KAS PRIBADI (JAWABAN PERTANYAAN ANDA)
-    # =========================================================================
+    # 2. DETAIL SALDO REKENING KAS PRIBADI
     st.write("")
     st.markdown("### 🔍 2. BUKU BESAR DETAIL TRANSPARANSI KAS PRIBADI")
-    
-    # Rekonstruksi Kamus Bank ke Format Tabel Dataframe Ringkas & Informatif
     rekening_list, in_list, out_list, nett_list = [], [], [], []
     for bank_nm, info in db["log_bank_pribadi"].items():
         rekening_list.append(f"🏦 Akun {bank_nm}")
         in_list.append(f"Rp {info['masuk']:,.0f}")
         out_list.append(f"Rp {info['keluar']:,.0f}")
-        
-        # Berikan penanda warna merah jika saldo kartu kredit minus (artinya ada utang)
         if bank_nm == "Kartu Kredit":
             nett_list.append(f"Rp {info['saldo']:,.0f} (Tagihan Berjalan)")
         else:
             nett_list.append(f"Rp {info['saldo']:,.0f}")
 
-    df_kas_detail = pd.DataFrame({
-        "Akun Rekening Fisik": rekening_list,
-        "Total Uang Masuk (+)": in_list,
-        "Total Uang Keluar (-)": out_list,
-        "Saldo Akhir Riil (M-Banking)": nett_list
-    })
+    df_kas_detail = pd.DataFrame({"Akun Rekening Fisik": rekening_list, "Total Uang Masuk (+)": in_list, "Total Uang Keluar (-)": out_list, "Saldo Akhir Riil (M-Banking)": nett_list})
     st.dataframe(df_kas_detail, hide_index=True, use_container_width=True)
 
-    # =========================================================================
-    # NERACA KEUANGAN BISNIS MURNI (STANDAR SAK EMKM)
-    # =========================================================================
+    # 3. NERACA POSISI KEUANGAN BISNIS MURNI (SAK EMKM)
     st.write("")
     st.markdown("### ⚖️ 3. NERACA POSISI KEUANGAN BISNIS MURNI (SAK EMKM STANDARDS)")
-    
-    # Hitung Pasiva Penyeimbang Neraca
     utang_investor_kertas = db["wajib_setor_investor"]
     cadangan_bisnis_kertas = db["cadangan_bisnis_kertas"]
     modal_laba_ditahan_kertas = db["total_aset_lancar_toko"] - (utang_investor_kertas + cadangan_bisnis_kertas)
@@ -6008,12 +6029,8 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN (HYBRID FIXED VS SURPLUS
     col_neraca_kiri, col_neraca_kanan = st.columns(2)
     with col_neraca_kiri:
         st.markdown("**SISI AKTIVA (ASET LANCAR)**")
-        df_aktiva = pd.DataFrame({
-            "Komponen Aset Toko": ["Kas & Setara Kas (Toko Riil)", "Piutang Dagang Konsumen Active", "TOTAL AKTIVA"],
-            "Nilai Buku": [f"Rp {max(0.0, db['kas_riil_bisnis_toko']):,.0f}", f"Rp {db['total_piutang']:,.0f}", f"Rp {db['total_aset_lancar_toko']:,.0f}"]
-        })
+        df_aktiva = pd.DataFrame({"Komponen Aset Toko": ["Kas & Setara Kas (Toko Riil)", "Piutang Dagang Konsumen Active", "TOTAL AKTIVA"], "Nilai Buku": [f"Rp {max(0.0, db['kas_riil_bisnis_toko']):,.0f}", f"Rp {db['total_piutang']:,.0f}", f"Rp {db['total_aset_lancar_toko']:,.0f}"]})
         st.dataframe(df_aktiva, hide_index=True, use_container_width=True)
-
     with col_neraca_kanan:
         st.markdown("**SISI PASIVA (KEWAJIBAN & EKUITAS)**")
         df_pasiva = pd.DataFrame({

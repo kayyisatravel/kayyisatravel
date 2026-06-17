@@ -5659,7 +5659,7 @@ with st.expander("🖥️ MONITORING", expanded=False):
     # 1. Simulasi Data Penjualan Tiket/Travel (df_sales_raw)
     df_filtered = df_filtered[[
         "Tgl Pemesanan", "Nama Pemesan", "No Invoice", "Harga Beli", 
-        "Harga Jual", "Kode Booking", "Admin", "Keterangan", "Invoice_Key", "Tipe"
+        "Harga Jual", "Kode Booking", "Admin", "Keterangan", "No Invoice", "Tipe"
     ]].copy()
 
     # 2. Memotong df_pribadi_current sesuai kolom yang Anda minta
@@ -5668,9 +5668,9 @@ with st.expander("🖥️ MONITORING", expanded=False):
     ]].copy()
 
     # 3. Memotong df_cashflow_combined sesuai kolom yang Anda minta
-    df_cashflow_combined = df_cashflow_combined[[
-        "Invoice_Key", "Jumlah", "Tipe", "Kategori"
-    ]].copy()
+    #df_cashflow_combined = df_cashflow_combined[[
+     #   "Invoice_Key", "Jumlah", "Tipe", "Kategori"
+    #]].copy()
     
     
     # Eksekusi fungsi v5 dari skrip finance_engine.py Anda

@@ -5704,7 +5704,7 @@ with st.expander("🖥️ MONITORING", expanded=False):
     
     # KUNCI UTAMA: Ambil saldo bank menggunakan kata kunci asli engine v5 ("saldo_bank_riil")
     dict_saldo = hasil_sistem.get("saldo_bank_riil", {})
-    utang_cc_mega = dict_saldo.get("CC Mega", 0.0)
+    utang_cc_global = dict_saldo.get("Kartu Kredit", 0.0)
     saldo_bca = dict_saldo.get("BCA", 0.0)
     saldo_mandiri = dict_saldo.get("Mandiri", 0.0)
     saldo_bsi = dict_saldo.get("BSI", 0.0)
@@ -5767,7 +5767,7 @@ with st.expander("🖥️ MONITORING", expanded=False):
             st.markdown(f"""
             <div class="custom-card" style="border-left-color: #f59e0b;">
                 <span style="font-size:0.9rem; color:#9ca3af;">🪪 UTANG MULTI-CC GLOBAL</span><br>
-                <span style="font-size:1.6rem; font-weight:bold;">Rp {utang_cc_mega:,.0f}</span><br>
+                <span style="font-size:1.6rem; font-weight:bold;">Rp {utang_cc_global:,.0f}</span><br>
                 <span style="font-size:0.85rem;">Status: <span class="status-tempo">⚠️ JATUH TEMPO</span></span>
             </div>
             """, unsafe_allow_html=True)

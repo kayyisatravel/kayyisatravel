@@ -6028,31 +6028,34 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN (HYBRID FIXED VS SURPLUS
     # =========================================================================
     st.write("")
     st.markdown("### 📋 4. MONITORING TARGET BUDGET PLAFON (DI ATAS KERTAS)")
+    
     col_b1, col_b2 = st.columns(2)
+    
     with col_b1:
         st.info("🏛️ **ALOKASI TARGET BISNIS**")
-        st.dataframe(pd.DataFrame({
+        df_target_bisnis = pd.DataFrame({
             "Komponen": ["Hak Investor (7.5%)", "Gaji Pokok Flat Owner (Locked)", "Target Cadangan Baru (40%)"],
             "Nominal": [
                 f"Rp {db['wajib_setor_investor']:,.0f}", 
                 f"Rp {db['gaji_owner_dialokasikan']:,.0f}", 
                 f"Rp {db['cadangan_bisnis_kertas']:,.0f}"
             ]
-            }), hide_index=True, use_container_width=True)
-            
-            with col_b2:
-            st.warning("🏠 **PLAFON BELANJA DOMESTIK MANDATORI**")
-            items_d, nominals_d = [], []
-            
-            for k, v in db["target_kertas_domestik"].items():
+        })
+        st.dataframe(df_target_bisnis, hide_index=True, use_container_width=True)
+        
+    with col_b2:
+        st.warning("🏠 **PLAFON BELANJA DOMESTIK MANDATORI**")
+        items_d, nominals_d = [], []
+        
+        for k, v in db["target_kertas_domestik"].items():
             items_d.append(k)
             nominals_d.append(f"Rp {v:,.0f}")
             
-            df_domestik_final = pd.DataFrame({
+        df_domestik_final = pd.DataFrame({
             "Pos Pengeluaran Keluarga": items_d, 
             "Target Plafon": nominals_d
-            })
-            st.dataframe(df_domestik_final, hide_index=True, use_container_width=True)
+        })
+        st.dataframe(df_domestik_final, hide_index=True, use_container_width=True)
 
 
 

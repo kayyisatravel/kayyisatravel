@@ -69,7 +69,7 @@ class AIHotelMasterSchema(BaseModel):
     order_id: str = Field(description="ID Pesanan / Order ID dari platform OTA")
     itinerary_id: str = Field(description="ID Itinerary, jika tidak ada di teks isi dengan '-'")
     hotel_name: str = Field(description="Nama hotel lengkap berformat EYD baku / Title Case, contoh: 'Hotel Ambun Suri'")
-    location: str = Field(description="Alamat lengkap, jalan, kecamatan, kota, dan provinsi lokasi hotel")
+    location: str = Field(description="Alamat lengkap, jalan, kecamatan, kota, dan provinsi lokasi hotel. Jika tidak tersedia informasi lengkap, anda WAJIB melakukan pencarian internet (Google Search)")
     jumlah_kamar: int = Field(description="Jumlah total kamar yang dipesan sebagai Integer murni")
     tanggal_masuk: str = Field(description="Tanggal Check-in format indah dibaca, contoh: 'Sel, 09 Jun 2026'")
     jam_masuk: str = Field(description="Waktu jam check-in akomodasi, contoh: '14:00-23:59'")
@@ -99,7 +99,7 @@ class AIHotelMasterSchema(BaseModel):
         Gunakan fitur pencarian internet (Google Search) untuk melacak nomor telepon resmi, 
         nomor HP layanan, atau kontak resepsionis aktif dari properti hotel ini berdasarkan nama hotel 
         dan alamat lokasi di atas. Kembalikan hasilnya dalam format string bersih, contoh: '+6285265575009'. 
-        Jika setelah dicari di internet tetap tidak ditemukan, isi dengan tanda strip '-'.
+        Jika anda ragu nomornya tidak valid atau setelah dicari di internet tetap tidak ditemukan, isi dengan tanda strip '-'.
     """)
     
     # 3. FIX: Variabel Kamar Dikunci Tunggal (Tanpa Ganda) & Menghapus Kata "Kamar" Otomatis

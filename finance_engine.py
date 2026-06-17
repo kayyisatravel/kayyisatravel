@@ -42,17 +42,21 @@ def bersihkan_angka(val):
 # ==========================================
 import pandas as pd
 
-def hitung_performa_dan_reconciliation_v5(df_sales_raw, df_pribadi_raw):
+def hitung_performa_dan_reconciliation_v5(df_sales_raw=None, df_pribadi_raw=None, df_cashflow_raw=None):
     """
-    Engine Finansial v5 Steril: Menggunakan 2 Parameter Realita Sekarang.
-    Menghubungkan Data Penjualan Utama dengan Data Mutasi Pribadi secara Fleksibel.
+    Engine Finansial v5 Resmi: Menerima 3 parameter secara fleksibel 
+    untuk menjamin kecocokan dengan baris 3925 dan baris 5600-an.
     """
-    # 🛡️ 1. TAMENG PROTEKSI OBJEK KOSONG
+    
+    # 🛡️ BAGIAN DI BAWAH INI HARUS TETAP ADA DI DALAM ENGINE:
     if df_sales_raw is None or (not isinstance(df_sales_raw, pd.DataFrame)):
         df_sales_raw = pd.DataFrame(columns=["Tgl Pemesanan", "Harga Beli", "Harga Jual", "Kode Booking", "Admin", "No Invoice", "Keterangan", "Nama Pemesan", "Tipe"])
         
     if df_pribadi_raw is None or (not isinstance(df_pribadi_raw, pd.DataFrame)):
         df_pribadi_raw = pd.DataFrame(columns=["Tanggal", "Bank_Sumber", "No_Rekening_AI", "Kategori", "Nominal", "Keterangan"])
+        
+    if df_cashflow_raw is None or (not isinstance(df_cashflow_raw, pd.DataFrame)):
+        df_cashflow_raw = pd.DataFrame(columns=["Invoice_Key", "Jumlah", "Tipe", "Kategori"])
 
     # 🏗️ 2. AMBIL DAN AMANKAN DATA PENJUALAN
     df_sales = df_sales_raw.copy().reset_index(drop=True)

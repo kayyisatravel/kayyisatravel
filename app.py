@@ -5672,52 +5672,60 @@ with st.expander("🖥️ MONITORING", expanded=False):
      #   "Invoice_Key", "Jumlah", "Tipe", "Kategori"
     #]].copy()
     
-    # =========================================================================
-    # 🛡️ STANDARDISASI WAJIB: MENAMBAL KOLOM YANG TIDAK ADA DI GOOGLE SHEETS
+        # =========================================================================
+    # 🛡️ STANDARDISASI ANTI-CRASH: AMANKAN JIKA DATA KOSONG ATAU FILTER TIDAK KETEMU
     # =========================================================================
     
-    # 1. Pastikan df_filtered (Data Penjualan) punya kolom wajib untuk GroupBy
+    # 1. Amankan df_filtered (Data Penjualan)
     kolom_wajib_sales = ["Invoice_Key", "Nama Pemesan", "No Invoice", "Harga Beli", "Harga Jual", "Admin", "Keterangan", "Tipe"]
-    for col in kolom_wajib_sales:
-        if col not in df_filtered.columns:
-            if col in ["Harga Beli", "Harga Jual"]:
-                df_filtered[col] = 0.0
-            elif col == "Invoice_Key":
-                # Jika Invoice_Key tidak ada, kita kloning/samakan saja nilainya dengan No Invoice
-                if "No Invoice" in df_filtered.columns:
-                    df_filtered["Invoice_Key"] = df_filtered["No Invoice"].astype(str).str.strip().fillna("N/A")
+    
+    if df_filtered is None or df_filtered.empty:
+        # Jika kosong akibat filter tanggal, buatkan tabel kosong baru berstruktur kokoh
+        df_filtered = pd.DataFrame(columns=kolom_wajib_sales)
+    else:
+        # Jika ada isinya, buat kolom wajib yang belum ada dengan aman
+        for col in kolom_wajib_sales:
+            if col not in df_filtered.columns:
+                if col in ["Harga Beli", "Harga Jual"]:
+                    df_filtered[col] = 0.0
+                elif col == "Invoice_Key" and "No Invoice" in df_filtered.columns:
+                    # Menggunakan perintah .copy() agar tidak memicu SettingWithCopyWarning
+                    df_filtered["Invoice_Key"] = df_filtered["No Invoice"].fillna("N/A").astype(str)
                 else:
-                    df_filtered["Invoice_Key"] = "N/A"
-            else:
-                df_filtered[col] = "N/A" # Membuat kolom teks biasa yang aman (1-dimensional)
+                    df_filtered[col] = "N/A"
 
-    # Potong df_filtered agar murni berisi kolom yang sudah disterilkan
+    # Potong secara aman
     df_filtered = df_filtered[kolom_wajib_sales].copy()
 
 
-    # 2. Pastikan df_cashflow_combined punya kolom sesuai struktur Sheets Arus Kas Anda
+    # 2. Amankan df_cashflow_combined (Data Arus Kas)
     kolom_wajib_cf = ["Invoice_Key", "No Invoice", "Jumlah", "Tipe", "Kategori"]
-    for col in kolom_wajib_cf:
-        if col not in df_cashflow_combined.columns:
-            if col == "Invoice_Key" and "No Invoice" in df_cashflow_combined.columns:
-                df_cashflow_combined["Invoice_Key"] = df_cashflow_combined["No Invoice"].astype(str).str.strip().fillna("N/A")
-            elif col == "Jumlah":
-                df_cashflow_combined[col] = 0.0
-            else:
-                df_cashflow_combined[col] = "N/A"
+    
+    if df_cashflow_combined is None or df_cashflow_combined.empty:
+        df_cashflow_combined = pd.DataFrame(columns=kolom_wajib_cf)
+    else:
+        for col in kolom_wajib_cf:
+            if col not in df_cashflow_combined.columns:
+                if col == "Invoice_Key" and "No Invoice" in df_cashflow_combined.columns:
+                    df_cashflow_combined["Invoice_Key"] = df_cashflow_combined["No Invoice"].fillna("N/A").astype(str)
+                elif col == "Jumlah":
+                    df_cashflow_combined[col] = 0.0
+                else:
+                    df_cashflow_combined[col] = "N/A"
 
-    # Potong df_cashflow_combined agar steril
+    # Potong secara aman
     df_cashflow_combined = df_cashflow_combined[kolom_wajib_cf].copy()
 
 
     # =========================================================================
-    # 🚀 EKSEKUSI ENGINE V5: Sekarang dijamin bebas dari ValueError!
+    # 🚀 EKSEKUSI ENGINE V5: Dijamin Kebal dari AttributeError & ValueError!
     # =========================================================================
     hasil_sistem = finance_engine.hitung_performa_dan_reconciliation_v5(
         df_filtered, 
         df_pribadi_current, 
         df_cashflow_combined
     )
+
 
     
     # Ekstraksi variabel dari return value engine untuk Brankas 1

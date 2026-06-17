@@ -5645,124 +5645,66 @@ with st.expander("📘 Laporan - laporan"):
 #======================================================================================================================================
 from finance_engine import hitung_performa_dan_reconciliation_v5
 
-# Set halaman ke mode wide (lebar) agar muat untuk layout menyamping
+# ==================================================================================================
+#                                 SINKRONISASI DATA UTAMA DARI ENGINE V5
+# ==================================================================================================
 with st.expander("🖥️ MONITORING", expanded=False):
 
-    # ==================================================================================================
-    #                                 SINKRONISASI DATA UTAMA DARI ENGINE V5
-    # ==================================================================================================
-    # Sediakan DataFrame mentah Anda di sini (contoh mengambil dari variabel session atau gsheets)
-    # df_sales_raw = ...
-    # df_pribadi_raw = ...
-    # df_cashflow_raw = ...
-
-    # 1. Simulasi Data Penjualan Tiket/Travel (df_sales_raw)
-    df_filtered = df_filtered[[
+    # 🧼 1. PROSES AMBIL KOLOM ASLI YANG NYATA ADA DI GOOGLE SHEETS (ANTI-CRASH)
+    kolom_nyata_sales = [
         "Tgl Pemesanan", "Nama Pemesan", "No Invoice", "Harga Beli", 
-        "Harga Jual", "Kode Booking", "Admin", "Keterangan", "No Invoice", "Tipe"
-    ]].copy()
+        "Harga Jual", "Kode Booking", "Admin", "Keterangan", "Tipe"
+    ]
+    # Ambil kolom yang tersedia, abaikan kolom buatan sistem yang bikin patah indeks
+    kolom_tersedia_sales = [col for col in kolom_nyata_sales if col in df_filtered.columns]
+    df_filtered_clean = df_filtered[kolom_tersedia_sales].copy().reset_index(drop=True)
 
-    # 2. Memotong df_pribadi_current sesuai kolom yang Anda minta
-    df_pribadi_current = df_pribadi_current[[
-        "Tanggal", "Bank_Sumber", "No_Rekening_AI", "Kategori", "Nominal", "Keterangan"
-    ]].copy()
-
-    # 3. Memotong df_cashflow_combined sesuai kolom yang Anda minta
-    #df_cashflow_combined = df_cashflow_combined[[
-     #   "Invoice_Key", "Jumlah", "Tipe", "Kategori"
-    #]].copy()
-    
-    # =========================================================================
-    # 🛡️ STANDARDISASI MUTAKHIR: AMANKAN STRUKTUR INDEKS & BENTUK TABEL (ANTI-CRASH)
-    # =========================================================================
-    
-    # 1. Amankan df_filtered (Data Penjualan)
-    kolom_wajib_sales = ["Invoice_Key", "Nama Pemesan", "No Invoice", "Harga Beli", "Harga Jual", "Admin", "Keterangan", "Tipe"]
-    
-    if df_filtered is None or df_filtered.empty:
-        df_filtered = pd.DataFrame(columns=kolom_wajib_sales)
+    # Buat kolom Invoice_Key tiruan dalam bentuk list murni agar kebal dari ValueError
+    if "No Invoice" in df_filtered_clean.columns:
+        list_inv = df_filtered_clean["No Invoice"].fillna("N/A").astype(str).tolist()
+        df_filtered_clean = df_filtered_clean.assign(Invoice_Key=list_inv)
     else:
-        # 🧼 PIL : Reset Indeks untuk Meratakan Baris yang Bentrok (Menghilangkan ValueError)
-        df_filtered = df_filtered.reset_index(drop=True)
-        
-        # Buat kolom Invoice_Key dari No Invoice secara independen dan aman
-        if "No Invoice" in df_filtered.columns:
-            # Menggunakan serangkaian konversi string murni yang aman dari fragmentasi
-            seri_invoice = df_filtered["No Invoice"].fillna("N/A").astype(str)
-            df_filtered["Invoice_Key"] = seri_invoice
-        else:
-            df_filtered["Invoice_Key"] = "N/A"
-            
-        # Lengkapi kolom wajib lainnya jika belum ada
-        for col in kolom_wajib_sales:
-            if col not in df_filtered.columns:
-                if col in ["Harga Beli", "Harga Jual"]:
-                    df_filtered[col] = 0.0
-                else:
-                    df_filtered[col] = "N/A"
+        df_filtered_clean = df_filtered_clean.assign(Invoice_Key="N/A")
 
-    # Ambil salinan murni dari kolom yang diminta
-    df_filtered = df_filtered[kolom_wajib_sales].copy()
+    # 🧼 2. Memotong df_pribadi_current sesuai kolom nyata
+    kolom_nyata_pribadi = ["Tanggal", "Bank_Sumber", "No_Rekening_AI", "Kategori", "Nominal", "Keterangan"]
+    kolom_tersedia_pribadi = [col for col in kolom_nyata_pribadi if col in df_pribadi_current.columns]
+    df_pribadi_clean = df_pribadi_current[kolom_tersedia_pribadi].copy().reset_index(drop=True)
 
-
-    # 2. Amankan df_cashflow_combined (Data Arus Kas)
-    kolom_wajib_cf = ["Invoice_Key", "No Invoice", "Jumlah", "Tipe", "Kategori"]
-    
-    if df_cashflow_combined is None or df_cashflow_combined.empty:
-        df_cashflow_combined = pd.DataFrame(columns=kolom_wajib_cf)
-    else:
-        # 🧼 PIL : Reset Indeks untuk tabel arus kas
-        df_cashflow_combined = df_cashflow_combined.reset_index(drop=True)
-        
-        if "No Invoice" in df_cashflow_combined.columns:
-            seri_cf = df_cashflow_combined["No Invoice"].fillna("N/A").astype(str)
-            df_cashflow_combined["Invoice_Key"] = seri_cf
-        else:
-            df_cashflow_combined["Invoice_Key"] = "N/A"
-            
-        for col in kolom_wajib_cf:
-            if col not in df_cashflow_combined.columns:
-                if col == "Jumlah":
-                    df_cashflow_combined[col] = 0.0
-                else:
-                    df_cashflow_combined[col] = "N/A"
-
-    # Ambil salinan murni
-    df_cashflow_combined = df_cashflow_combined[kolom_wajib_cf].copy()
-
+    # 🧼 3. Buat parameter formalitas untuk Arus Kas Lama agar Engine V5 tidak mogok
+    df_cashflow_combined = pd.DataFrame(columns=["Invoice_Key", "No Invoice", "Jumlah", "Tipe", "Kategori"])
 
     # =========================================================================
-    # 🚀 EKSEKUSI ENGINE V5: Jalankan ke Mesin Utama
+    # 🚀 EKSEKUSI ENGINE V5: Jalankan ke Mesin Utama dengan Data yang Sudah Steril
     # =========================================================================
     hasil_sistem = finance_engine.hitung_performa_dan_reconciliation_v5(
-        df_filtered, 
-        df_pribadi_current, 
+        df_filtered_clean, 
+        df_pribadi_clean, 
         df_cashflow_combined
     )
 
-
-
-    
-    # Ekstraksi variabel dari return value engine untuk Brankas 1
+    # =========================================================================
+    # 📥 EKSTRAKSI VARIABEL DARI RETURN VALUE ENGINE (SINKRONISASI KATA KUNCI)
+    # =========================================================================
     total_piutang = hasil_sistem.get("total_piutang", 0.0)
-    overdue_lebih_30 = hasil_sistem.get("overdue_lebih_30", 0.0)
-    estimasi_kas_riil = hasil_sistem.get("estimasi_kas_riil", 0.0)
-    wajib_setor_investor = hasil_sistem.get("wajib_setor_investor", 0.0)
-    cadangan_bisnis_40 = hasil_sistem.get("cadangan_bisnis_40", 0.0)
+    overdue_lebih_30 = hasil_sistem.get("overdue_lebih_30_hari", 0.0) # Disesuaikan dengan return asli engine
+    estimasi_kas_riil = hasil_sistem.get("kas_riil", 0.0) # Disesuaikan dengan return asli engine
     
-    # Proteksi dictionary saldo bank agar aman dari KeyError
-    dict_saldo = hasil_sistem.get("saldo_bank", {})
+    # Ambil dictionary bersarang alokasi_ai
+    dict_alokasi = hasil_sistem.get("alokasi_ai", {})
+    wajib_setor_investor = dict_alokasi.get("investor", 0.0)
+    cadangan_bisnis_40 = dict_alokasi.get("cadangan_bisnis", 0.0)
+    pos_rumah_tangga = dict_alokasi.get("rumah_tangga", 0.0)
+    pos_lifestyle = dict_alokasi.get("lifestyle", 0.0)
+    pos_investasi = dict_alokasi.get("investasi", 0.0)
+    
+    # KUNCI UTAMA: Ambil saldo bank menggunakan kata kunci asli engine v5 ("saldo_bank_riil")
+    dict_saldo = hasil_sistem.get("saldo_bank_riil", {})
     utang_cc_mega = dict_saldo.get("CC Mega", 0.0)
-    
-    # Ekstraksi variabel untuk Brankas 2 (Alokasi & Dompet Pribadi)
-    pos_rumah_tangga = hasil_sistem.get("pos_rumah_tangga_50", 0.0)
-    pos_lifestyle = hasil_sistem.get("pos_lifestyle_20", 0.0)
-    pos_investasi = hasil_sistem.get("pos_investasi_30", 0.0)
-    
     saldo_bca = dict_saldo.get("BCA", 0.0)
     saldo_mandiri = dict_saldo.get("Mandiri", 0.0)
     saldo_bsi = dict_saldo.get("BSI", 0.0)
-    # Gabungan saldo ATM Nyata sesuai manajemen internal Anda
+    
     total_atm_nyata = saldo_bca + saldo_mandiri + saldo_bsi
     
     # ==================================================================================================
@@ -5800,7 +5742,6 @@ with st.expander("🖥️ MONITORING", expanded=False):
     </div>
     """, unsafe_allow_html=True)
     
-    
     # ==================================================================================================
     # [🖥️ BRANKAS 1: KESEHATAN KINERJA BISNIS MURNI (STANDAR AKUNTANSI SAK EMKM)]
     # ==================================================================================================
@@ -5808,7 +5749,6 @@ with st.expander("🖥️ MONITORING", expanded=False):
         st.write("")
         st.markdown("##### 📊 METRICS UTAMA BISNIS:")
         
-        # 3 Kotak Utama Metrik Bisnis
         m1, m2, m3 = st.columns(3)
         with m1:
             status_piutang = "🚨 WARNING" if overdue_lebih_30 > 0 else "🟢 AMAN"
@@ -5836,11 +5776,10 @@ with st.expander("🖥️ MONITORING", expanded=False):
                 <span style="font-size:0.85rem;">Status: <span class="status-liquid">{status_kas}</span></span>
             </div>
             """, unsafe_allow_html=True)
-    
+
         st.write("")
         st.markdown("##### 🗎 NERACA POSISI KEUANGAN BISNIS (BALANCE SHEET)")
         
-        # Hitung nilai penyeimbang Sisi Kanan (Modal + Laba Ditahan) berdasarkan prinsip Aktiva = Pasiva
         total_aset = estimasi_kas_riil + total_piutang
         modal_dan_laba_ditahan = total_aset - (utang_cc_mega + wajib_setor_investor + cadangan_bisnis_40)
     
@@ -5862,8 +5801,7 @@ with st.expander("🖥️ MONITORING", expanded=False):
             st.dataframe(df_pasiva, hide_index=True, use_container_width=True)
     
         st.success("STATUS NERACA: ✅ 100% BALANCED")
-    
-    
+
     # ==================================================================================================
     # [🏠 BRANKAS 2: KONTROL ARUS KAS & DOMPET DOMESTIK (MANAJEMEN INTERNAL PRIBADI)]
     # ==================================================================================================
@@ -5871,7 +5809,6 @@ with st.expander("🖥️ MONITORING", expanded=False):
         st.write("")
         st.markdown("##### 📊 METRICS UTAMA KELUARGA:")
         
-        # 3 Kotak Utama Metrik Keluarga
         mx1, mx2, mx3 = st.columns(3)
         with mx1:
             st.markdown(f"""
@@ -5891,7 +5828,6 @@ with st.expander("🖥️ MONITORING", expanded=False):
             </div>
             """, unsafe_allow_html=True)
         with mx3:
-            # Menampilkan Saldo Mandiri Khusus Dompet Istri jika dipisah dari pool utama
             st.markdown(f"""
             <div class="custom-card" style="border-left-color: #3b82f6;">
                 <span style="font-size:0.9rem; color:#9ca3af;">👩‍💼 DOMPET MANDIRI ISTRI</span><br>
@@ -5903,7 +5839,6 @@ with st.expander("🖥️ MONITORING", expanded=False):
         st.write("")
         st.markdown("##### 📋 TABEL FORENSIK BEBAN PENGELUARAN BULANAN KELUARGA (DETEKSI KATA KUNCI RADAR RAM)")
     
-        # Data tabel forensik dialokasikan dinamis dari akumulasi pos anggaran internal Anda
         df_forensik = pd.DataFrame({
             "Pos Anggaran & Nama Beban": [
                 "🏠 POS RUMAH TANGGA & UTILITAS (Porsi 50%)",
@@ -5923,4 +5858,5 @@ with st.expander("🖥️ MONITORING", expanded=False):
             ]
         })
         st.dataframe(df_forensik, hide_index=True, use_container_width=True)
+
 

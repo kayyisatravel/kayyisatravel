@@ -5646,49 +5646,53 @@ with st.expander("📘 Laporan - laporan"):
 from finance_engine import hitung_performa_dan_reconciliation_v5
 
 # ==================================================================================================
-#                                 SINKRONISASI DATA UTAMA DARI ENGINE V5
+#          SINKRONISASI DATA UTAMA UNTUK MENU MONITORING (VERSI AMAN & VALID 100%)
 # ==================================================================================================
 with st.expander("🖥️ MONITORING", expanded=False):
 
-    # 🧼 1. PROSES AMBIL KOLOM ASLI YANG NYATA ADA DI GOOGLE SHEETS (ANTI-CRASH)
+    # 🧼 1. ISOLASI DATA PENJUALAN (Jangan sentuh df_filtered asli agar laporan atas tidak rusak!)
     kolom_nyata_sales = [
         "Tgl Pemesanan", "Nama Pemesan", "No Invoice", "Harga Beli", 
         "Harga Jual", "Kode Booking", "Admin", "Keterangan", "Tipe"
     ]
-    # Ambil kolom yang tersedia, abaikan kolom buatan sistem yang bikin patah indeks
+    # Ambil kolom yang tersedia dari df_filtered asli, buat salinan baru yang terisolasi
     kolom_tersedia_sales = [col for col in kolom_nyata_sales if col in df_filtered.columns]
-    df_filtered_clean = df_filtered[kolom_tersedia_sales].copy().reset_index(drop=True)
+    df_monitoring_sales = df_filtered[kolom_tersedia_sales].copy().reset_index(drop=True)
 
-    # Buat kolom Invoice_Key tiruan dalam bentuk list murni agar kebal dari ValueError
-    if "No Invoice" in df_filtered_clean.columns:
-        list_inv = df_filtered_clean["No Invoice"].fillna("N/A").astype(str).tolist()
-        df_filtered_clean = df_filtered_clean.assign(Invoice_Key=list_inv)
+    # Buat kolom Invoice_Key tiruan khusus di dalam tabel isolasi baru kita
+    if "No Invoice" in df_monitoring_sales.columns:
+        list_inv = df_monitoring_sales["No Invoice"].fillna("N/A").astype(str).tolist()
+        df_monitoring_sales = df_monitoring_sales.assign(Invoice_Key=list_inv)
     else:
-        df_filtered_clean = df_filtered_clean.assign(Invoice_Key="N/A")
+        df_monitoring_sales = df_monitoring_sales.assign(Invoice_Key="N/A")
 
-    # 🧼 2. Memotong df_pribadi_current sesuai kolom nyata
+
+    # 🧼 2. ISOLASI DATA MUTASI PRIBADI
     kolom_nyata_pribadi = ["Tanggal", "Bank_Sumber", "No_Rekening_AI", "Kategori", "Nominal", "Keterangan"]
     kolom_tersedia_pribadi = [col for col in kolom_nyata_pribadi if col in df_pribadi_current.columns]
-    df_pribadi_clean = df_pribadi_current[kolom_tersedia_pribadi].copy().reset_index(drop=True)
+    df_monitoring_pribadi = df_pribadi_current[kolom_tersedia_pribadi].copy().reset_index(drop=True)
 
-    # 🧼 3. Buat parameter formalitas untuk Arus Kas Lama agar Engine V5 tidak mogok
-    df_cashflow_combined = pd.DataFrame(columns=["Invoice_Key", "No Invoice", "Jumlah", "Tipe", "Kategori"])
+
+    # 🧼 3. Buat parameter formalitas untuk Arus Kas Lama
+    df_cashflow_combined_monitoring = pd.DataFrame(columns=["Invoice_Key", "No Invoice", "Jumlah", "Tipe", "Kategori"])
+
 
     # =========================================================================
-    # 🚀 EKSEKUSI ENGINE V5: Jalankan ke Mesin Utama dengan Data yang Sudah Steril
+    # 🚀 EKSEKUSI ENGINE V5 UNTUK MENU MONITORING BAVVAH
     # =========================================================================
     hasil_sistem = finance_engine.hitung_performa_dan_reconciliation_v5(
-        df_filtered_clean, 
-        df_pribadi_clean, 
-        df_cashflow_combined
+        df_monitoring_sales, 
+        df_monitoring_pribadi, 
+        df_cashflow_combined_monitoring
     )
 
     # =========================================================================
-    # 📥 EKSTRAKSI VARIABEL DARI RETURN VALUE ENGINE (SINKRONISASI KATA KUNCI)
+    # 📥 EKSTRAKSI VARIABEL DARI RETURN VALUE ENGINE (Sama seperti teks kopas Anda)
     # =========================================================================
     total_piutang = hasil_sistem.get("total_piutang", 0.0)
-    overdue_lebih_30 = hasil_sistem.get("overdue_lebih_30_hari", 0.0) # Disesuaikan dengan return asli engine
-    estimasi_kas_riil = hasil_sistem.get("kas_riil", 0.0) # Disesuaikan dengan return asli engine
+    overdue_lebih_30 = hasil_sistem.get("overdue_lebih_30_hari", 0.0)
+    estimasi_kas_riil = hasil_sistem.get("kas_riil", 0.0)
+
     
     # Ambil dictionary bersarang alokasi_ai
     dict_alokasi = hasil_sistem.get("alokasi_ai", {})

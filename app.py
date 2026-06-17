@@ -5672,9 +5672,53 @@ with st.expander("🖥️ MONITORING", expanded=False):
      #   "Invoice_Key", "Jumlah", "Tipe", "Kategori"
     #]].copy()
     
+    # =========================================================================
+    # 🛡️ STANDARDISASI WAJIB: MENAMBAL KOLOM YANG TIDAK ADA DI GOOGLE SHEETS
+    # =========================================================================
     
-    # Eksekusi fungsi v5 dari skrip finance_engine.py Anda
-    hasil_sistem = hitung_performa_dan_reconciliation_v5(df_filtered, df_pribadi_current, df_cashflow_combined)
+    # 1. Pastikan df_filtered (Data Penjualan) punya kolom wajib untuk GroupBy
+    kolom_wajib_sales = ["Invoice_Key", "Nama Pemesan", "No Invoice", "Harga Beli", "Harga Jual", "Admin", "Keterangan", "Tipe"]
+    for col in kolom_wajib_sales:
+        if col not in df_filtered.columns:
+            if col in ["Harga Beli", "Harga Jual"]:
+                df_filtered[col] = 0.0
+            elif col == "Invoice_Key":
+                # Jika Invoice_Key tidak ada, kita kloning/samakan saja nilainya dengan No Invoice
+                if "No Invoice" in df_filtered.columns:
+                    df_filtered["Invoice_Key"] = df_filtered["No Invoice"].astype(str).str.strip().fillna("N/A")
+                else:
+                    df_filtered["Invoice_Key"] = "N/A"
+            else:
+                df_filtered[col] = "N/A" # Membuat kolom teks biasa yang aman (1-dimensional)
+
+    # Potong df_filtered agar murni berisi kolom yang sudah disterilkan
+    df_filtered = df_filtered[kolom_wajib_sales].copy()
+
+
+    # 2. Pastikan df_cashflow_combined punya kolom sesuai struktur Sheets Arus Kas Anda
+    kolom_wajib_cf = ["Invoice_Key", "No Invoice", "Jumlah", "Tipe", "Kategori"]
+    for col in kolom_wajib_cf:
+        if col not in df_cashflow_combined.columns:
+            if col == "Invoice_Key" and "No Invoice" in df_cashflow_combined.columns:
+                df_cashflow_combined["Invoice_Key"] = df_cashflow_combined["No Invoice"].astype(str).str.strip().fillna("N/A")
+            elif col == "Jumlah":
+                df_cashflow_combined[col] = 0.0
+            else:
+                df_cashflow_combined[col] = "N/A"
+
+    # Potong df_cashflow_combined agar steril
+    df_cashflow_combined = df_cashflow_combined[kolom_wajib_cf].copy()
+
+
+    # =========================================================================
+    # 🚀 EKSEKUSI ENGINE V5: Sekarang dijamin bebas dari ValueError!
+    # =========================================================================
+    hasil_sistem = finance_engine.hitung_performa_dan_reconciliation_v5(
+        df_filtered, 
+        df_pribadi_current, 
+        df_cashflow_combined
+    )
+
     
     # Ekstraksi variabel dari return value engine untuk Brankas 1
     total_piutang = hasil_sistem.get("total_piutang", 0.0)

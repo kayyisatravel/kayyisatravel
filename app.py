@@ -5915,68 +5915,117 @@ with st.expander("🖥️ MONITORING", expanded=False):
 with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN (HYBRID FIXED VS SURPLUS)", expanded=True):
     
     # Eksekusi kalkulasi engine baru
+        # Eksekusi kalkulasi engine baru
     analisa_hybrid = hybrid_finance_engine.hitung_hybrid_monitoring_v1(df_filtered, df_pribadi_current)
     
-    # ----------------------------------------------------------------------------------------------
-    # STYLING INJEKSI CSS BARU
-    # ----------------------------------------------------------------------------------------------
+    # Injeksi CSS Custom untuk visualisasi box metrik tingkat lanjut
     st.markdown("""
     <style>
-        .hybrid-box { background-color: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 15px; }
-        .title-card { font-size: 0.9rem; color: #475569; font-weight: bold; }
-        .val-card { font-size: 1.5rem; font-weight: 800; color: #0f172a; }
-        .badge-secure { background-color: #10b981; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
-        .badge-alert { background-color: #ef4444; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        .metric-container { background-color: #ffffff; padding: 18px; border-radius: 10px; border: 1px solid #e2e8f0; border-top: 5px solid #64748b; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .metric-title { font-size: 0.8rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+        .metric-value { font-size: 1.6rem; font-weight: 800; color: #0f172a; margin-top: 5px; margin-bottom: 5px; }
+        .metric-sub { font-size: 0.75rem; color: #94a3b8; font-weight: 500; }
+        .badge-red { background-color: #fee2e2; color: #dc2626; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+        .badge-green { background-color: #dcfce7; color: #16a34a; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
 
-    # HEADER NOTIFIKASI PROTOKOL DARURAT
-    if analisa_hybrid["status_darurat_aktif"]:
-        st.error("⚠️ **PROTOKOL DARURAT AKTIF:** Kas operasional toko saat ini berada di bawah target Gaji Flat Rumah Tangga. Alokasi kertas menyarankan penggunaan sisa saldo Tabungan Cadangan Bisnis periode sebelumnya untuk menutupi selisih operasional keluarga.")
-    else:
-        st.success("✅ **SISTEM AMAN:** Arus kas masuk toko sanggup memenuhi Gaji Dasar Flat Rumah Tangga tanpa mengganggu modal kerja vendor.")
-
-    # TAMPILAN KONDISI RIIL (REALITAS FISIK UANG)
-    st.markdown("#### 💵 1. MONITORING KONDISI RIIL (REALITAS FISIK)")
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.markdown(f"""
-        <div class="hybrid-box" style="border-left: 5px solid #3b82f6;">
-            <div class="title-card">📈 ESTIMASI KAS RIIL TOKO</div>
-            <div class="val-card">Rp {analisa_hybrid['kas_riil_bisnis_toko']:,.0f}</div>
-            <span class="title-card">(Di luar Piutang & Modal Vendor)</span>
-        </div>
-        """, unsafe_allow_html=True)
-    with c2:
-        st.markdown(f"""
-        <div class="hybrid-box" style="border-left: 5px solid #ef4444;">
-            <div class="title-card">🧾 TOTAL PIUTANG AKTIF</div>
-            <div class="val-card">Rp {analisa_hybrid['total_piutang']:,.0f}</div>
-            <span class="badge-alert">Status: Menunggu Tagihan</span>
-        </div>
-        """, unsafe_allow_html=True)
-    with c3:
-        st.markdown(f"""
-        <div class="hybrid-box" style="border-left: 5px solid #10b981;">
-            <div class="title-card">🏦 TOTAL ATM NYATA PRIBADI</div>
-            <div class="val-card">Rp {analisa_hybrid['total_atm_pribadi']:,.0f}</div>
-            <span class="badge-secure">Sesuai Saldo M-Banking</span>
-        </div>
-        """, unsafe_allow_html=True)
-
-    # BREAKDOWN SALDO RIIL PER REKENING
-    with st.expander("🔍 Rincian Saldo Nyata Tiap Akun Bank (Faktual M-Banking)"):
-        sb = analisa_hybrid["saldo_bank_aktual"]
-        df_sb_view = pd.DataFrame({
-            "Akun Bank": ["BCA", "Mandiri", "BSI", "Tagihan Kartu Kredit (UOB/CC Mega)"],
-            "Saldo Terbaca": [f"Rp {sb['BCA']:,.0f}", f"Rp {sb['Mandiri']:,.0f}", f"Rp {sb['BSI']:,.0f}", f"Rp {sb['Kartu Kredit']:,.0f}"]
-        })
-        st.dataframe(df_sb_view, hide_index=True, use_container_width=True)
-
-    # TAMPILAN MONITORING TARGET ALOKASI (DI ATAS KERTAS)
-    st.write("")
-    st.markdown("#### 📋 2. TARGET PEMBAGIAN ANGGARAN (HITUNGAN DI ATAS KERTAS)")
+    # ----------------------------------------------------------------------------------------------
+    # ROW LAYER 1: UTAMA & KESEHATAN KAS RIIL
+    # ----------------------------------------------------------------------------------------------
+    st.markdown("#### ⚡ 1. INDIKATOR UTAMA KESEHATAN KAS FISIK")
+    r1_c1, r1_c2, r1_c3, r1_c4 = st.columns(4)
     
+    with r1_c1:
+        st.markdown(f"""
+        <div class="metric-container" style="border-top-color: #3b82f6;">
+            <div class="metric-title">📊 KAS RIIL TOKO</div>
+            <div class="metric-value">Rp {analisa_hybrid['kas_riil_bisnis_toko']:,.0f}</div>
+            <div class="metric-sub">Uang murni siap pakai toko</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with r1_c2:
+        st.markdown(f"""
+        <div class="metric-container" style="border-top-color: #f59e0b;">
+            <div class="metric-title">🧾 PIUTANG AKTIF</div>
+            <div class="metric-value">Rp {analisa_hybrid['total_piutang']:,.0f}</div>
+            <div class="metric-sub">Rasio Terikat: <span class="badge-red">{analisa_hybrid['rasio_keterikatan_modal']:.1f}%</span></div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with r1_c3:
+        st.markdown(f"""
+        <div class="metric-container" style="border-top-color: #10b981;">
+            <div class="metric-title">🏦 TOTAL ATM PRIBADI</div>
+            <div class="metric-value">Rp {analisa_hybrid['total_atm_pribadi']:,.0f}</div>
+            <div class="metric-sub">Daya Tahan: <span class="badge-green">{analisa_hybrid['daya_tahan_bulan']:.2f} Bulan</span></div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with r1_c4:
+        if analisa_hybrid["status_darurat_aktif"]:
+            st.markdown(f"""
+            <div class="metric-container" style="border-top-color: #ef4444;">
+                <div class="metric-title">🚨 DEFISIT GAJI DOMESTIK</div>
+                <div class="metric-value" style="color: #dc2626;">Rp {analisa_hybrid['nilai_defisit_gaji']:,.0f}</div>
+                <div class="metric-sub"><span class="badge-red">Sokong via Cadangan</span></div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div class="metric-container" style="border-top-color: #10b981;">
+                <div class="metric-title">🚨 DEFISIT GAJI DOMESTIK</div>
+                <div class="metric-value" style="color: #16a34a;">Rp 0</div>
+                <div class="metric-sub"><span class="badge-green">Kebutuhan Rumah Tangga Aman</span></div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # ----------------------------------------------------------------------------------------------
+    # ROW LAYER 2: FORENSIK KEBOCORAN & REKREASI DATA PRIBADI (RADAR RAM)
+    # ----------------------------------------------------------------------------------------------
+    st.markdown("#### 🔍 2. PANEL FORENSIK & RADAR KEBOCORAN")
+    r2_c1, r2_c2, r2_c3, r2_c4 = st.columns(4)
+    
+    with r2_c1:
+        st.markdown(f"""
+        <div class="metric-container" style="border-top-color: #ec4899;">
+            <div class="metric-title">🔥 TRANSAKSI BONCOS</div>
+            <div class="metric-value">{analisa_hybrid['jumlah_boncos']} Invoice</div>
+            <div class="metric-sub">Total Rugi: <span class="badge-red">Rp {analisa_hybrid['total_kerugian']:,.0f}</span></div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with r2_c2:
+        st.markdown(f"""
+        <div class="metric-container" style="border-top-color: #8b5cf6;">
+            <div class="metric-title">👑 TOP ADMIN SALES</div>
+            <div class="metric-value" style="font-size:1.3rem; padding: 4px 0;">{analisa_hybrid['top_admin']}</div>
+            <div class="metric-sub">Volume transaksi tertinggi</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with r2_c3:
+        st.markdown(f"""
+        <div class="metric-container" style="border-top-color: #06b6d4;">
+            <div class="metric-title">🏠 MUTASI KAS RUMAH TANGGA</div>
+            <div class="metric-value" style="font-size:1.3rem; padding: 4px 0;">Rp {analisa_hybrid['mutasi_pos_digital']['rumah_tangga']:,.0f}</div>
+            <div class="metric-sub">Realisasi riil via Radar RAM</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with r2_c4:
+        st.markdown(f"""
+        <div class="metric-container" style="border-top-color: #ec4899;">
+            <div class="metric-title">🎡 SISA KANTONG LIFESTYLE</div>
+            <div class="metric-value" style="font-size:1.3rem; padding: 4px 0;">Rp {analisa_hybrid['mutasi_pos_digital']['lifestyle']:,.0f}</div>
+            <div class="metric-sub">Akumulasi kuota jajan aman</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # TAMPILAN TABEL DETIL ANGGARAN KERTAS (YANG SUDAH ADA SEBELUMNYA)
+    st.write("")
+    st.markdown("#### 📋 3. RENCANA PEMBAGIAN ANGGARAN (DI ATAS KERTAS)")
     col_l1, col_l2 = st.columns(2)
     with col_l1:
         st.info("🏛️ **ALOKASI BAGI HASIL BISNIS (BULANAN)**")
@@ -6003,4 +6052,5 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN (HYBRID FIXED VS SURPLUS
             "Target Plafon Bulanan": nominals_domestik
         })
         st.dataframe(df_domestik_view, hide_index=True, use_container_width=True)
+
 

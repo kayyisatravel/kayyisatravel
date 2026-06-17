@@ -5657,39 +5657,24 @@ with st.expander("🖥️ MONITORING", expanded=False):
     # df_cashflow_raw = ...
 
     # 1. Simulasi Data Penjualan Tiket/Travel (df_sales_raw)
-    df_sales_raw = pd.DataFrame({
-        "Tgl Pemesanan": ["10/06/2026", "12/06/2026", "14/06/2026"],
-        "Nama Pemesan": ["Budi Pakasi", "Siti Aminah", "Ahmad Subarjo"],
-        "No Invoice": ["INV-001", "INV-002", "INV-003"],
-        "Harga Beli": ["Rp 5.000.000", "Rp 12.000.000", "Rp 8.000.000"],
-        "Harga Jual": ["Rp 7.000.000", "Rp 15.000.000", "Rp 10.000.000"],
-        "Kode Booking": ["JSX123", "MNA456", "GIA789"],
-        "Admin": ["Admin 1", "Admin 2", "Admin 1"],
-        "Keterangan": ["Belum Lunas", "Lunas", "Belum Lunas"],
-        "Invoice_Key": ["INV001", "INV002", "INV003"],
-        "Tipe": ["Paket Umroh", "Tiket Domestik", "Paket Tour"]
-    })
+    df_filtered = df_filtered[[
+        "Tgl Pemesanan", "Nama Pemesan", "No Invoice", "Harga Beli", 
+        "Harga Jual", "Kode Booking", "Admin", "Keterangan", "Invoice_Key", "Tipe"
+    ]].copy()
+
+    # 2. Memotong df_pribadi_current sesuai kolom yang Anda minta
+    df_pribadi_current = df_pribadi_current[[
+        "Tanggal", "Bank_Sumber", "No_Rekening_AI", "Kategori", "Nominal", "Keterangan"
+    ]].copy()
+
+    # 3. Memotong df_cashflow_combined sesuai kolom yang Anda minta
+    df_cashflow_combined = df_cashflow_combined[[
+        "Invoice_Key", "Jumlah", "Tipe", "Kategori"
+    ]].copy()
     
-    # 2. Simulasi Data Arus Kas Bank Pribadi & Alokasi Internal (df_pribadi_raw)
-    df_pribadi_raw = pd.DataFrame({
-        "Tanggal": ["01/06/2026", "02/06/2026", "05/06/2026", "06/06/2026"],
-        "Bank_Sumber": ["BCA", "Mandiri", "BSI", "BCA"],
-        "No_Rekening_AI": ["kantong cadangan", "pos rumah tangga", "kantong investasi", "kantong lifestyle"],
-        "Kategori": ["Pemasukan", "Pengeluaran", "Pemasukan", "Pengeluaran"],
-        "Nominal": ["Rp 500.000", "Rp 1.500.000", "Rp 2.000.000", "Rp 300.000"],
-        "Keterangan": ["Pindahan profit", "Bayar Listrik", "Beli Reksadana", "Makan Malam"]
-    })
-    
-    # 3. Simulasi Cicilan Kas Masuk Berdasarkan Invoice (df_cashflow_raw)
-    df_cashflow_raw = pd.DataFrame({
-        "Invoice_Key": ["INV001", "INV003"],
-        "Jumlah": ["Rp 2.000.000", "Rp 4.000.000"],
-        "Tipe": ["Masuk", "Masuk"],
-        "Kategori": ["Piutang", "Piutang"]
-    })
     
     # Eksekusi fungsi v5 dari skrip finance_engine.py Anda
-    hasil_sistem = hitung_performa_dan_reconciliation_v5(df_sales_raw, df_pribadi_raw, df_cashflow_raw)
+    hasil_sistem = hitung_performa_dan_reconciliation_v5(df_filtered, df_pribadi_current, df_cashflow_combined)
     
     # Ekstraksi variabel dari return value engine untuk Brankas 1
     total_piutang = hasil_sistem.get("total_piutang", 0.0)

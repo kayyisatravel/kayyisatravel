@@ -2435,7 +2435,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
         ]
         total_endo_uninvoice = endo_uninvoice_df["Harga Jual"].apply(finance_engine.bersihkan_angka).sum()
         
-        if total_endo_uninvoice > 25000000:
+        if total_endo_uninvoice > 0:
             bunderan_alert_slot2.error(f"🚨 **Invoice PT Endo Belum Dibuat** sebesar: **Rp {total_endo_uninvoice:,.0f}**".replace(",", "."))
         
         # Tampilkan notifikasi di sidebar

@@ -5672,29 +5672,36 @@ with st.expander("🖥️ MONITORING", expanded=False):
      #   "Invoice_Key", "Jumlah", "Tipe", "Kategori"
     #]].copy()
     
-        # =========================================================================
-    # 🛡️ STANDARDISASI ANTI-CRASH: AMANKAN JIKA DATA KOSONG ATAU FILTER TIDAK KETEMU
+    # =========================================================================
+    # 🛡️ STANDARDISASI MUTAKHIR: AMANKAN STRUKTUR INDEKS & BENTUK TABEL (ANTI-CRASH)
     # =========================================================================
     
     # 1. Amankan df_filtered (Data Penjualan)
     kolom_wajib_sales = ["Invoice_Key", "Nama Pemesan", "No Invoice", "Harga Beli", "Harga Jual", "Admin", "Keterangan", "Tipe"]
     
     if df_filtered is None or df_filtered.empty:
-        # Jika kosong akibat filter tanggal, buatkan tabel kosong baru berstruktur kokoh
         df_filtered = pd.DataFrame(columns=kolom_wajib_sales)
     else:
-        # Jika ada isinya, buat kolom wajib yang belum ada dengan aman
+        # 🧼 PIL : Reset Indeks untuk Meratakan Baris yang Bentrok (Menghilangkan ValueError)
+        df_filtered = df_filtered.reset_index(drop=True)
+        
+        # Buat kolom Invoice_Key dari No Invoice secara independen dan aman
+        if "No Invoice" in df_filtered.columns:
+            # Menggunakan serangkaian konversi string murni yang aman dari fragmentasi
+            seri_invoice = df_filtered["No Invoice"].fillna("N/A").astype(str)
+            df_filtered["Invoice_Key"] = seri_invoice
+        else:
+            df_filtered["Invoice_Key"] = "N/A"
+            
+        # Lengkapi kolom wajib lainnya jika belum ada
         for col in kolom_wajib_sales:
             if col not in df_filtered.columns:
                 if col in ["Harga Beli", "Harga Jual"]:
                     df_filtered[col] = 0.0
-                elif col == "Invoice_Key" and "No Invoice" in df_filtered.columns:
-                    # Menggunakan perintah .copy() agar tidak memicu SettingWithCopyWarning
-                    df_filtered["Invoice_Key"] = df_filtered["No Invoice"].fillna("N/A").astype(str)
                 else:
                     df_filtered[col] = "N/A"
 
-    # Potong secara aman
+    # Ambil salinan murni dari kolom yang diminta
     df_filtered = df_filtered[kolom_wajib_sales].copy()
 
 
@@ -5704,27 +5711,35 @@ with st.expander("🖥️ MONITORING", expanded=False):
     if df_cashflow_combined is None or df_cashflow_combined.empty:
         df_cashflow_combined = pd.DataFrame(columns=kolom_wajib_cf)
     else:
+        # 🧼 PIL : Reset Indeks untuk tabel arus kas
+        df_cashflow_combined = df_cashflow_combined.reset_index(drop=True)
+        
+        if "No Invoice" in df_cashflow_combined.columns:
+            seri_cf = df_cashflow_combined["No Invoice"].fillna("N/A").astype(str)
+            df_cashflow_combined["Invoice_Key"] = seri_cf
+        else:
+            df_cashflow_combined["Invoice_Key"] = "N/A"
+            
         for col in kolom_wajib_cf:
             if col not in df_cashflow_combined.columns:
-                if col == "Invoice_Key" and "No Invoice" in df_cashflow_combined.columns:
-                    df_cashflow_combined["Invoice_Key"] = df_cashflow_combined["No Invoice"].fillna("N/A").astype(str)
-                elif col == "Jumlah":
+                if col == "Jumlah":
                     df_cashflow_combined[col] = 0.0
                 else:
                     df_cashflow_combined[col] = "N/A"
 
-    # Potong secara aman
+    # Ambil salinan murni
     df_cashflow_combined = df_cashflow_combined[kolom_wajib_cf].copy()
 
 
     # =========================================================================
-    # 🚀 EKSEKUSI ENGINE V5: Dijamin Kebal dari AttributeError & ValueError!
+    # 🚀 EKSEKUSI ENGINE V5: Jalankan ke Mesin Utama
     # =========================================================================
     hasil_sistem = finance_engine.hitung_performa_dan_reconciliation_v5(
         df_filtered, 
         df_pribadi_current, 
         df_cashflow_combined
     )
+
 
 
     

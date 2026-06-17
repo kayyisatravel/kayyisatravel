@@ -5915,31 +5915,66 @@ with st.expander("🖥️ MONITORING", expanded=False):
 with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN (HYBRID FIXED VS SURPLUS)", expanded=True):
     
     # =========================================================================
-    # COMPONENT 1: KUNCI SINKRONISASI DATA SATU PINTU (ANTI-DOUBLE FILTER)
+    # COMPONENT 1: WIDGET FILTER MANDIRI (TERISOLASI)
     # =========================================================================
-    # Langsung gunakan data hasil filter mutakhir dari sistem utama Anda (486 Baris Sah)
-    df_sales_filtered = df_filtered.copy()
-    df_pribadi_filtered = df_pribadi_current.copy()
-
-    # DETEKSI INFORMASI BULAN SECARA OTOMATIS DARI DATA AKTIF UNTUK LABEL INFO
-    nama_bulan_id = [
-        "Desember", "Januari", "Februari", "Maret", "April", "Mei", "Juni", 
-        "Juli", "Agustus", "September", "Oktober", "November", "Desember"
-    ]
+    st.markdown("##### 📅 PILIH PERIODE MONITORING ANGGARAN")
+    f_c1, f_c2 = st.columns(2)
     
-    if not df_sales_filtered.empty:
-        sample_date = df_sales_filtered["Tgl Pemesanan_Parsed"].dropna().iloc[0]
-        label_periode_aktif = f"{nama_bulan_id[sample_date.month]} {sample_date.year}"
+    # Ambil basis data mentah dari load data utama agar pencarian tahun mutakhir
+    df_sales_source = df.copy()
+    df_pribadi_source = df_pribadi_current.copy()
+    
+    # Ekstraksi daftar tahun kerja secara dinamis dari database utama Anda
+    if not df_sales_source.empty:
+        # Gunakan kolom parsed yang sudah dijamin bertipe datetime oleh fungsi load_data()
+        list_tahun = sorted(df_sales_source["Tgl Pemesanan_Parsed"].dt.year.dropna().unique().astype(int).tolist(), reverse=True)
     else:
-        label_periode_aktif = "Periode Terpilih"
+        list_tahun = [2026]
+        
+    with f_c1:
+        tahun_terpilih = st.selectbox("Tahun Operasional", options=list_tahun, index=0, key="hybrid_v2_year_filter")
+        
+    with f_c2:
+        nama_bulan_id = [
+            "Semua Bulan", "Januari", "Februari", "Maret", "April", "Mei", "Juni", 
+            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+        ]
+        # Set default awal ke bulan Mei (index 5) sesuai data pengujian Anda
+        bulan_terpilih = st.selectbox("Bulan Operasional", options=nama_bulan_id, index=5, key="hybrid_v2_month_filter")
 
     # =========================================================================
-    # COMPONENT 2: EKSEKUSI DATA PARALEL KE ENGINE HYBRID
+    # COMPONENT 2: ALGORITMA PENYARING COGNITIVE (ANTI-BOCOR FORMAT)
+    # =========================================================================
+    # Konstruksi filter ketat untuk data penjualan
+    if bulan_terpilih == "Semua Bulan":
+        mask_sales = (df_sales_source["Tgl Pemesanan_Parsed"].dt.year == tahun_terpilih)
+    else:
+        angka_bulan = nama_bulan_id.index(bulan_terpilih)
+        mask_sales = (df_sales_source["Tgl Pemesanan_Parsed"].dt.year == tahun_terpilih) & (df_sales_source["Tgl Pemesanan_Parsed"].dt.month == angka_bulan)
+        
+    df_sales_filtered = df_sales_source[mask_sales].copy()
+
+    # Konstruksi filter ketat untuk data mutasi pribadi (Konversi paksa ke Datetime sebelum filter)
+    if not df_pribadi_source.empty and "Tanggal" in df_pribadi_source.columns:
+        # Tangani format strip DD-MM-YYYY secara presisi khusus untuk data pribadi
+        df_pribadi_source["Tanggal_Parsed_Hybrid"] = pd.to_datetime(df_pribadi_source["Tanggal"], format="%d-%m-%Y", errors="coerce")
+        
+        if bulan_terpilih == "Semua Bulan":
+            mask_pribadi = (df_pribadi_source["Tanggal_Parsed_Hybrid"].dt.year == tahun_terpilih)
+        else:
+            mask_pribadi = (df_pribadi_source["Tanggal_Parsed_Hybrid"].dt.year == tahun_terpilih) & (df_pribadi_source["Tanggal_Parsed_Hybrid"].dt.month == angka_bulan)
+            
+        df_pribadi_filtered = df_pribadi_source[mask_pribadi].copy()
+    else:
+        df_pribadi_filtered = df_pribadi_source.copy()
+
+    # =========================================================================
+    # COMPONENT 3: LEMPAR DATA TERFILTER KE ENGINE HYBRID
     # =========================================================================
     db = hybrid_finance_engine.hitung_hybrid_monitoring_v1(df_sales_filtered, df_pribadi_filtered)
     
     # ----------------------------------------------------------------------------------------------
-    # TAMPILAN INTERFACE UI PREMIUM (SINKRON 100% DENGAN 486 DATA ANDA)
+    # TAMPILAN INTERFACE UI PREMIUM (SINKRON & VALID 100% BERBASIS FILTER MANDIRI)
     # ----------------------------------------------------------------------------------------------
     st.markdown("""
     <style>
@@ -5952,7 +5987,8 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN (HYBRID FIXED VS SURPLUS
     </style>
     """, unsafe_allow_html=True)
 
-    st.info(f"📍 Menampilkan Analisis Anggaran Mengikuti Filter Utama: **{label_periode_aktif}**")
+    st.write("")
+    st.info(f"📍 Menampilkan Analisis Keuangan Berdasarkan Filter Mandiri: **{bulan_terpilih} {tahun_terpilih}**")
 
     if db["status_darurat_aktif"]:
         st.error(f"⚠️ **PROTOKOL DARURAT AKTIF:** Kas toko periode ini defisit **Rp {db['nilai_defisit_gaji']:,.0f}** dari target Gaji Pokok Rumah Tangga.")
@@ -5985,7 +6021,7 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN (HYBRID FIXED VS SURPLUS
     with g11: st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">11. Saving Efficiency</div><div class="m-val">{db["rasio_menabung_domestik"]:.1f}%</div><div class="m-sub">Daya Mengendap Dana ATM</div></div>', unsafe_allow_html=True)
     with g12: st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">12. Outstanding CC</div><div class="m-val c-red">Rp {db["beban_cc_aktual"]:,.0f}</div><div class="m-sub">Beban Kartu Kredit Berjalan</div></div>', unsafe_allow_html=True)
 
-    st.markdown("##### 🕵️‍♂️ D. Rumpun Forensik Kebocoran & Ketahanan")
+    st.markdown("##### 👑 D. Rumpun Forensik Kebocoran & Ketahanan")
     g13, g14, g15, g16 = st.columns(4)
     with g13: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">13. Cash Runway</div><div class="m-val c-grn">{db["daya_tahan_bulan"]:.2f} Bulan</div><div class="m-sub">Napas Domestik Tanpa Laba</div></div>', unsafe_allow_html=True)
     with g14: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">14. Invoice Boncos</div><div class="m-val c-red">{db["jumlah_boncos"]} Kasus</div><div class="m-sub">Rugi Rugi: Rp {db["total_kerugian"]:,.0f}</div></div>', unsafe_allow_html=True)

@@ -2428,7 +2428,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
         #st.write("DEBUG: Jumlah baris data Endo yang terdeteksi:", len(endo_unpaid_df))
         #st.dataframe(endo_unpaid_df[["Tgl Pemesanan", "Nama Pemesan", "Harga Jual", "Keterangan"]])
 
-        if total_endo_belum_lunas > 25000000:
+        if total_endo_belum_lunas > 0:
             bunderan_alert_slot.error(f"🚨 **Transaksi PT Endo Belum Lunas** sebesar: **Rp {total_endo_belum_lunas:,.0f}**".replace(",", "."))
         endo_uninvoice_df = uninvoice_df[
             uninvoice_df["Nama Pemesan"].astype(str).str.contains("Endo", case=False, na=False)

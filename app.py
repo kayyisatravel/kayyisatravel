@@ -5715,25 +5715,38 @@ with st.expander("🖥️ MONITORING", expanded=False):
     #                                         STYLING CSS CUSTOM
     # ==================================================================================================
     st.markdown("""
-    <style>
+        <style>
+        /* Tambahkan warna teks dasar untuk seluruh body/container agar kontras */
+        .dashboard-container {
+            color: #f3f4f6; /* Putih diredam agar mata tidak lelah */
+            font-family: sans-serif;
+        }
+        
         .header-box {
             background-color: #0e1117;
             padding: 20px;
             border-radius: 10px;
-            border: 2px solid #4bc0c0;
+            /* Perubahan: Ubah border jadi lebih tipis/halus agar tidak terlalu menusuk mata */
+            border: 1px solid rgba(75, 192, 192, 0.4); 
             text-align: center;
             margin-bottom: 25px;
         }
+    
         .custom-card {
-            background-color: #111827;
+            background-color: #161e2e; /* Perubahan: Sedikit lebih terang dari #0e1117 agar kartu lebih "timbul" */
             padding: 15px;
             border-radius: 8px;
             border-left: 5px solid #ef4444;
             margin-bottom: 10px;
         }
+    
+        /* Warna status sudah sangat bagus, dipertahankan */
         .status-warning { color: #ef4444; font-weight: bold; }
         .status-tempo { color: #f59e0b; font-weight: bold; }
         .status-liquid { color: #10b981; font-weight: bold; }
+        
+        /* Tambahan: Warna teks sekunder untuk keterangan kecil */
+        .text-muted { color: #9ca3af; font-size: 0.875rem; }
     </style>
     """, unsafe_allow_html=True)
     

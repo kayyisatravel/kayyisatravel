@@ -5785,7 +5785,7 @@ with st.expander("🖥️ MONITORING", expanded=False):
         st.markdown("##### 🗎 NERACA POSISI KEUANGAN BISNIS (BALANCE SHEET)")
         
         total_aset = estimasi_kas_riil + total_piutang
-        modal_dan_laba_ditahan = total_aset - (utang_cc_mega + wajib_setor_investor + cadangan_bisnis_40)
+        modal_dan_laba_ditahan = total_aset - (utang_cc_global + wajib_setor_investor + cadangan_bisnis_40)
     
         col_kiri, col_kanan = st.columns(2)
         with col_kiri:

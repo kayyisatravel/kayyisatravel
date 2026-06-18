@@ -5912,7 +5912,7 @@ with st.expander("🖥️ MONITORING", expanded=False):
 # Pastikan data sheet telah ter-load ke variabel ini sebelum memanggil
 # df_filtered (dari sheet Data) dan df_pribadi_current (dari sheet Pribadi)
 
-with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN (HYBRID FIXED VS SURPLUS)", expanded=True):
+with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN (HYBRID FIXED VS SURPLUS)", expanded=False):
     
     # =========================================================================
     # COMPONENT 1: WIDGET FILTER MANDIRI (TERISOLASI)

@@ -1,4 +1,4 @@
-#hybrid_finance_engine.py
+# hybrid_finance_engine.py
 import pandas as pd
 import numpy as np
 import re
@@ -18,60 +18,82 @@ def bersihkan_angka(val):
         try: return float(s_clean)
         except: return 0.0
 
-def hitung_hybrid_monitoring_v1(df_sales_raw, df_pribadi_raw):
+def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw):
+    """
+    Engine V2: Mengintegrasikan 100% Logika Alokasi Lama dengan 
+    Mekanisme Deteksi Pelunasan Otomatis dari Sheet Pribadi.
+    """
     df_sales = df_sales_raw.copy().reset_index(drop=True)
     df_pribadi = df_pribadi_raw.copy().reset_index(drop=True)
     
-    # Hitung jumlah baris mentah untuk kebutuhan panel debugging
+    # Mengembalikan nilai passthrough untuk Panel Debugging UI
     debug_raw_sales_count = len(df_sales)
     debug_raw_pribadi_count = len(df_pribadi)
     
-    # 1. STANDARISASI DATA PENJUALAN TOKO
+    # 1. STANDARISASI DATA PENJUALAN TOKO (BUKU UTAMA)
     if not df_sales.empty:
         df_sales["Harga Beli (Num)"] = df_sales["Harga Beli"].apply(bersihkan_angka)
         df_sales["Harga Jual (Num)"] = df_sales["Harga Jual"].apply(bersihkan_angka)
         df_sales["Laba (Num)"] = df_sales["Harga Jual (Num)"] - df_sales["Harga Beli (Num)"]
     else:
-        df_sales["Harga Beli (Num)"] = 0.0
-        df_sales["Harga Jual (Num)"] = 0.0
-        df_sales["Laba (Num)"] = 0.0
+        df_sales["Harga Beli (Num)"], df_sales["Harga Jual (Num)"], df_sales["Laba (Num)"] = 0.0, 0.0, 0.0
 
-    # 2. STANDARISASI DATA MUTASI KAS PRIBADI
+    # 2. STANDARISASI DATA MUTASI KAS PRIBADI (Perbaikan Bug String)
     if not df_pribadi.empty:
         df_pribadi["Nominal (Num)"] = df_pribadi["Nominal"].apply(bersihkan_angka)
     else:
         df_pribadi["Nominal (Num)"] = 0.0
 
-    # 3. SEGREGASI KAS LUNAS VS PIUTANG AKTIF
-    if "Keterangan" in df_sales.columns:
-        # Mengunci filter murni hanya pada kata kunci 'Belum Lunas'
-        is_belum_lunas = df_sales["Keterangan"].astype(str).str.contains("Belum Lunas", case=False, na=False)
+    # =========================================================================
+    # JEMBATAN LOGIKA BARU: DETEKSI PELUNASAN INVOICE DARI SHEET PRIBADI
+    # =========================================================================
+    def ekstrak_nomor_invoice(teks):
+        teks_str = str(teks).upper()
+        # Mencari pola teks INV diikuti tanda hubung/spasi opasional dan angka (Contoh: INV-001)
+        match = re.search(r'INV[-\s]?\d+', teks_str)
+        if match:
+            return match.group(0).replace(" ", "-")
+        return None
+
+    # Isolasi mutasi masuk dari konsumen di rekening pribadi owner
+    df_pribadi["No_Invoice_Terdeteksi"] = df_pribadi["Keterangan"].apply(ekstrak_nomor_invoice)
+    df_pribadi_masuk = df_pribadi[df_pribadi["Kategori"].str.lower().str.contains("pemasukan", na=False)].copy()
+    
+    # Hitung akumulasi transfer masuk per nomor invoice nyata
+    if not df_pribadi_masuk.empty:
+        df_terbayar_agg = df_pribadi_masuk.dropna(subset=["No_Invoice_Terdeteksi"]).groupby("No_Invoice_Terdeteksi")["Nominal (Num)"].sum().reset_index()
+        df_terbayar_agg.columns = ["No Invoice", "Total_Terbayar_Fisik"]
     else:
-        is_belum_lunas = False
+        df_terbayar_agg = pd.DataFrame(columns=["No Invoice", "Total_Terbayar_Fisik"])
+
+    # Hitung piutang terintegrasi (Vektorisasi Kilat)
+    if not df_sales.empty:
+        df_sales_agg = df_sales.groupby("No Invoice")["Harga Jual (Num)"].sum().reset_index()
+        df_piutang_skenario = df_sales_agg.merge(df_terbayar_agg, on="No Invoice", how="left").fillna(0.0)
+        df_piutang_skenario["Sisa_Piutang"] = (df_piutang_skenario["Harga Jual (Num)"] - df_piutang_skenario["Total_Terbayar_Fisik"]).clip(lower=0.0)
         
-    df_unpaid = df_sales[is_belum_lunas].copy()
-    df_paid = df_sales[~is_belum_lunas].copy()
-    
-    # KALKULASI AMBANG BATAS PIUTANG
-    total_piutang = df_unpaid["Harga Jual (Num)"].sum() if not df_unpaid.empty else 0.0
-    jumlah_invoice_piutang = df_unpaid["No Invoice"].nunique() if not df_unpaid.empty else 0
-    
-    # REVISI FORMULA HUKUM BESI KAS: Hanya kurangi HPP dari transaksi yang sudah lunas (Uang Masuk)
-    omzet_lunas_riil = df_paid["Harga Jual (Num)"].sum() if not df_paid.empty else 0.0
-    hpp_lunas_riil = df_paid["Harga Beli (Num)"].sum() if not df_paid.empty else 0.0
-    kas_riil_bisnis_toko = omzet_lunas_riil - hpp_lunas_riil
-    
+        # Ekstraksi hasil akhir untuk metrik dashboard
+        total_piutang = df_piutang_skenario["Sisa_Piutang"].sum()
+        jumlah_invoice_piutang = len(df_piutang_skenario[df_piutang_skenario["Sisa_Piutang"] > 0])
+        
+        # KAS RIIL BISNIS = Total dana masuk yang teridentifikasi milik toko (Bukan uang pribadi)
+        kas_riil_bisnis_toko = df_piutang_skenario["Total_Terbayar_Fisik"].sum()
+    else:
+        total_piutang, jumlah_invoice_piutang, kas_riil_bisnis_toko = 0.0, 0, 0.0
+
+    # =========================================================================
+    # KEMBALI KE 100% RUMUS LOGIKA CORPORATE LAMA ANDA
+    # =========================================================================
     total_omzet_buku = df_sales["Harga Jual (Num)"].sum()
     total_hpp_buku = df_sales["Harga Beli (Num)"].sum()
     laba_buku_total = df_sales["Laba (Num)"].sum()
 
-    # 4. METRIK RASIO PROFITABILITAS CORPORATE
     npm = (laba_buku_total / total_omzet_buku * 100) if total_omzet_buku > 0 else 0.0
     roi = (laba_buku_total / total_hpp_buku * 100) if total_hpp_buku > 0 else 0.0
     rasio_keterikatan_modal = (total_piutang / total_omzet_buku * 100) if total_omzet_buku > 0 else 0.0
     rasio_kerentanan_laba = (total_piutang / laba_buku_total * 100) if laba_buku_total > 0 else 0.0
 
-    # 5. BALANCING TRANSPARANSI BUKU BANK AKTUAL
+    # BALANCING TRANSPARANSI BUKU BANK AKTUAL
     log_bank = {
         "BCA": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
         "Mandiri": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
@@ -88,7 +110,7 @@ def hitung_hybrid_monitoring_v1(df_sales_raw, df_pribadi_raw):
             nominal = row["Nominal (Num)"]
             
             bank_key = None
-            if "cc" in bank or "credit" in bank or "uob" in bank or "mega" in bank: bank_key = "Kartu Kredit"
+            if any(x in bank for x in ["cc", "credit", "uob", "mega"]): bank_key = "Kartu Kredit"
             elif "mandiri" in bank: bank_key = "Mandiri"
             elif "bca" in bank: bank_key = "BCA"
             elif "bsi" in bank: bank_key = "BSI"
@@ -111,7 +133,7 @@ def hitung_hybrid_monitoring_v1(df_sales_raw, df_pribadi_raw):
     total_cash_out_pribadi = sum(info["keluar"] for info in log_bank.values())
     rasio_menabung_domestik = (total_atm_pribadi / total_cash_in_pribadi * 100) if total_cash_in_pribadi > 0 else 0.0
 
-    # 6. PROTOKOL ALOKASI BASELINE FIXED COST
+    # PROTOKOL ALOKASI BASELINE FIXED COST LAMA Anda
     GAJI_BASELINE_FLAT = 26259567.0
     wajib_setor_investor = max(0.0, kas_riil_bisnis_toko) * 0.075
     kas_setelah_investor = max(0.0, kas_riil_bisnis_toko) - wajib_setor_investor
@@ -130,7 +152,7 @@ def hitung_hybrid_monitoring_v1(df_sales_raw, df_pribadi_raw):
 
     daya_tahan_bulan = (total_atm_pribadi / GAJI_BASELINE_FLAT) if total_atm_pribadi > 0 else 0.0
 
-    # 7. FORENSIK DETEKSI TRANSAKSI RUGI
+    # FORENSIK DETEKSI TRANSAKSI RUGI LAMA Anda
     transaksi_boncos = df_sales[df_sales["Laba (Num)"] < 0] if not df_sales.empty else pd.DataFrame()
     jumlah_boncos = len(transaksi_boncos)
     total_kerugian = abs(transaksi_boncos["Laba (Num)"].sum()) if not transaksi_boncos.empty else 0.0

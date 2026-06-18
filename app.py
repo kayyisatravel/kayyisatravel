@@ -3004,7 +3004,7 @@ def safe_first(df, col):
         return ""
     return df[col].iloc[0]
 
-@st.cache_data(ttl=600)  # cache 10 menit
+@st.cache_data(ttl=3000)
 def load_sheet(sheet_id, worksheet_name):
     try:
         ws = connect_to_gsheet(sheet_id, worksheet_name)
@@ -3257,7 +3257,7 @@ def get_ws(sheet_id, worksheet_name):
     return connect_to_gsheet(sheet_id, worksheet_name)
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=3000)
 def load_sheet_cached(sheet_id, worksheet_name):
     """
     Cache dataframe selama 5 menit

@@ -5912,12 +5912,12 @@ with st.expander("🖥️ MONITORING", expanded=False):
 # Pastikan data sheet telah ter-load ke variabel ini sebelum memanggil
 # df_filtered (dari sheet Data) dan df_pribadi_current (dari sheet Pribadi)
 
-with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN (HYBRID FIXED VS SURPLUS)", expanded=False):
+with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     
     # =========================================================================
     # COMPONENT 1: WIDGET FILTER MANDIRI (TERISOLASI)
     # =========================================================================
-    st.markdown("##### 📅 PILIH PERIODE MONITORING ANGGARAN")
+    st.markdown("##### 📅 Pilih Periode Monitoring")
     f_c1, f_c2 = st.columns(2)
     
     # Ambil basis data mentah dari load data utama agar pencarian tahun mutakhir
@@ -5926,7 +5926,6 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN (HYBRID FIXED VS SURPLUS
     
     # Ekstraksi daftar tahun kerja secara dinamis dari database utama Anda
     if not df_sales_source.empty:
-        # Gunakan kolom parsed yang sudah dijamin bertipe datetime oleh fungsi load_data()
         list_tahun = sorted(df_sales_source["Tgl Pemesanan_Parsed"].dt.year.dropna().unique().astype(int).tolist(), reverse=True)
     else:
         list_tahun = [2026]
@@ -5988,12 +5987,12 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN (HYBRID FIXED VS SURPLUS
     """, unsafe_allow_html=True)
 
     st.write("")
-    st.info(f"📍 Menampilkan Analisis Keuangan Berdasarkan Filter Mandiri: **{bulan_terpilih} {tahun_terpilih}**")
+    st.info(f"📍 Menampilkan Analisis Keuangan: **{bulan_terpilih} {tahun_terpilih}**")
 
     if db["status_darurat_aktif"]:
         st.error(f"⚠️ **PROTOKOL DARURAT AKTIF:** Kas toko periode ini defisit **Rp {db['nilai_defisit_gaji']:,.0f}** dari target Gaji Pokok Rumah Tangga.")
     else:
-        st.success("✅ **SISTEM STATUS AMAN:** Arus kas masuk toko sanggup membiayai penuh Gaji Pokok Domestik.")
+        st.success("✅ **SISTEM STATUS AMAN:** Kas Bisnis sanggup membiayai penuh Gaji Owner.")
 
     # --------------------------------==========================================
     # DISPLAY METRICS CENTER (16 PANEL INDIKATOR)
@@ -6014,7 +6013,7 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN (HYBRID FIXED VS SURPLUS
     with g7: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">7. Rasio Rentan Laba</div><div class="m-val">{db["rasio_kerentanan_laba"]:.1f}%</div><div class="m-sub">Porsi Laba Semu Kertas</div></div>', unsafe_allow_html=True)
     with g8: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">8. Invoice Unpaid</div><div class="m-val c-red">{db["jumlah_invoice_piutang"]} Transaksi</div><div class="m-sub">Total Nota Belum Lunas</div></div>', unsafe_allow_html=True)
 
-    st.markdown("##### 🏦 C. Rumpun Aliran Kas Masuk-Keluar Pribadi")
+    st.markdown("##### 🏦 C. Rumpun Aliran Kas Keluar-Masuk Pribadi")
     g9, g10, g11, g12 = st.columns(4)
     with g9:  st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">9. Total Cash Inflow</div><div class="m-val c-grn">Rp {db["total_cash_in_pribadi"]:,.0f}</div><div class="m-sub">Akumulasi Masuk Rekening</div></div>', unsafe_allow_html=True)
     with g10: st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">10. Total Cash Outflow</div><div class="m-val c-red">Rp {db["total_cash_out_pribadi"]:,.0f}</div><div class="m-sub">Akumulasi Keluar Rekening</div></div>', unsafe_allow_html=True)
@@ -6078,7 +6077,7 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN (HYBRID FIXED VS SURPLUS
     # KANTONG TARGET ALOKASI KERTAS (KONDISI DOMESTIK KELUARGA)
     # =========================================================================
     st.write("")
-    st.markdown("### 📋 4. MONITORING TARGET BUDGET PLAFON (DI ATAS KERTAS)")
+    st.markdown("### 📋 4. MONITORING TARGET ALOKASI BUDGET (DI ATAS KERTAS)")
     
     col_b1, col_b2 = st.columns(2)
     
@@ -6095,7 +6094,7 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN (HYBRID FIXED VS SURPLUS
         st.dataframe(df_target_bisnis, hide_index=True, use_container_width=True)
         
     with col_b2:
-        st.warning("🏠 **PLAFON BELANJA DOMESTIK MANDATORI**")
+        st.warning("🏠 **PLAFON BELANJA RUMAH TANGGA MANDATORI**")
         items_d, nominals_d = [], []
         
         for k, v in db["target_kertas_domestik"].items():

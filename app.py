@@ -5617,13 +5617,11 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     jurnal_data = st.session_state.get("jurnal_output_ready", {
         "saldo_kas_riil": 0.0,
         "piutang_total": 0.0,
-        "jumlah_invoice_piutang": 0,
-        "df_piutang_clean": pd.DataFrame(),
-        "df_cash_clean": pd.DataFrame()
+        "jumlah_invoice_piutang": 0
     })
     
-    # Cukup kirim 2 data saja ke mesin hitung
-    db = hybrid_finance_engine.hitung_hybrid_monitoring_v2(df_sales_filtered, df_pribadi_filtered)
+    import hybrid_finance_engine
+    db = hybrid_finance_engine.hitung_hybrid_monitoring_v2(df_sales_filtered, df_pribadi_filtered, jurnal_data)
 
     
     # ----------------------------------------------------------------------------------------------

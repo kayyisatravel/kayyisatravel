@@ -5622,7 +5622,9 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
         "df_cash_clean": pd.DataFrame()
     })
     
-    db = hybrid_finance_engine.hitung_hybrid_monitoring_v2(df_sales_filtered, df_pribadi_filtered, jurnal_data)
+    # Cukup kirim 2 data saja ke mesin hitung
+    db = hybrid_finance_engine.hitung_hybrid_monitoring_v2(df_sales_filtered, df_pribadi_filtered)
+
     
     # ----------------------------------------------------------------------------------------------
     # TAMPILAN INTERFACE UI PREMIUM (SINKRON & VALID 100% BERBASIS FILTER MANDIRI)

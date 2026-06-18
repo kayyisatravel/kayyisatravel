@@ -18,15 +18,15 @@ def bersihkan_angka(val):
         try: return float(s_clean)
         except: return 0.0
 
-def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw):
+def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
     """
-    Engine V2: Mengintegrasikan 100% Logika Alokasi Lama dengan 
-    Mekanisme Deteksi Pelunasan Otomatis dari Sheet Pribadi.
+    Engine V2 (Solusi B): Mengambil data matang dari Jurnal Akuntansi 
+    melalui session_state untuk akuntansi manajemen & alokasi domestik.
     """
     df_sales = df_sales_raw.copy().reset_index(drop=True)
     df_pribadi = df_pribadi_raw.copy().reset_index(drop=True)
     
-    # Mengembalikan nilai passthrough untuk Panel Debugging UI
+    # Nilai passthrough untuk Panel Debugging UI
     debug_raw_sales_count = len(df_sales)
     debug_raw_pribadi_count = len(df_pribadi)
     
@@ -38,56 +38,28 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw):
     else:
         df_sales["Harga Beli (Num)"], df_sales["Harga Jual (Num)"], df_sales["Laba (Num)"] = 0.0, 0.0, 0.0
 
-    # 2. STANDARISASI DATA MUTASI KAS PRIBADI (Perbaikan Bug String)
+    # 2. STANDARISASI DATA MUTASI KAS PRIBADI
     if not df_pribadi.empty:
         df_pribadi["Nominal (Num)"] = df_pribadi["Nominal"].apply(bersihkan_angka)
     else:
         df_pribadi["Nominal (Num)"] = 0.0
 
     # =========================================================================
-    # JEMBATAN LOGIKA BARU: DETEKSI PELUNASAN INVOICE DARI SHEET PRIBADI
+    # JANTUNG SOLUSI B: AMBIL DATA PASTI YANG SUDAH DIVALIDASI JURNAL AKUNTANSI
     # =========================================================================
-    def ekstrak_nomor_invoice(teks):
-        teks_str = str(teks).upper()
-        # Mencari pola teks INV diikuti tanda hubung/spasi opasional dan angka (Contoh: INV-001)
-        match = re.search(r'INV[-\s]?\d+', teks_str)
-        if match:
-            return match.group(0).replace(" ", "-")
-        return None
-
-    # Isolasi mutasi masuk dari konsumen di rekening pribadi owner
-    df_pribadi["No_Invoice_Terdeteksi"] = df_pribadi["Keterangan"].apply(ekstrak_nomor_invoice)
-    df_pribadi_masuk = df_pribadi[df_pribadi["Kategori"].str.lower().str.contains("pemasukan", na=False)].copy()
-    
-    # Hitung akumulasi transfer masuk per nomor invoice nyata
-    if not df_pribadi_masuk.empty:
-        df_terbayar_agg = df_pribadi_masuk.dropna(subset=["No_Invoice_Terdeteksi"]).groupby("No_Invoice_Terdeteksi")["Nominal (Num)"].sum().reset_index()
-        df_terbayar_agg.columns = ["No Invoice", "Total_Terbayar_Fisik"]
+    if jurnal_data is not None and isinstance(jurnal_data, dict):
+        kas_riil_bisnis_toko = jurnal_data.get("saldo_kas_riil", 0.0)
+        total_piutang = jurnal_data.get("piutang_total", 0.0)
+        jumlah_invoice_piutang = jurnal_data.get("jumlah_invoice_piutang", 0)
     else:
-        df_terbayar_agg = pd.DataFrame(columns=["No Invoice", "Total_Terbayar_Fisik"])
+        # Fallback jika data jurnal kosong saat pertama kali dimuat
+        kas_riil_bisnis_toko, total_piutang, jumlah_invoice_piutang = 0.0, 0.0, 0
 
-    # Hitung piutang terintegrasi (Vektorisasi Kilat)
-    if not df_sales.empty:
-        df_sales_agg = df_sales.groupby("No Invoice")["Harga Jual (Num)"].sum().reset_index()
-        df_piutang_skenario = df_sales_agg.merge(df_terbayar_agg, on="No Invoice", how="left").fillna(0.0)
-        df_piutang_skenario["Sisa_Piutang"] = (df_piutang_skenario["Harga Jual (Num)"] - df_piutang_skenario["Total_Terbayar_Fisik"]).clip(lower=0.0)
-        
-        # Ekstraksi hasil akhir untuk metrik dashboard
-        total_piutang = df_piutang_skenario["Sisa_Piutang"].sum()
-        jumlah_invoice_piutang = len(df_piutang_skenario[df_piutang_skenario["Sisa_Piutang"] > 0])
-        
-        # KAS RIIL BISNIS = Total dana masuk yang teridentifikasi milik toko (Bukan uang pribadi)
-        kas_riil_bisnis_toko = df_piutang_skenario["Total_Terbayar_Fisik"].sum()
-    else:
-        total_piutang, jumlah_invoice_piutang, kas_riil_bisnis_toko = 0.0, 0, 0.0
-
-    # =========================================================================
-    # KEMBALI KE 100% RUMUS LOGIKA CORPORATE LAMA ANDA
-    # =========================================================================
     total_omzet_buku = df_sales["Harga Jual (Num)"].sum()
     total_hpp_buku = df_sales["Harga Beli (Num)"].sum()
     laba_buku_total = df_sales["Laba (Num)"].sum()
 
+    # RASIO PROFITABILITAS CORPORATE
     npm = (laba_buku_total / total_omzet_buku * 100) if total_omzet_buku > 0 else 0.0
     roi = (laba_buku_total / total_hpp_buku * 100) if total_hpp_buku > 0 else 0.0
     rasio_keterikatan_modal = (total_piutang / total_omzet_buku * 100) if total_omzet_buku > 0 else 0.0
@@ -133,7 +105,7 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw):
     total_cash_out_pribadi = sum(info["keluar"] for info in log_bank.values())
     rasio_menabung_domestik = (total_atm_pribadi / total_cash_in_pribadi * 100) if total_cash_in_pribadi > 0 else 0.0
 
-    # PROTOKOL ALOKASI BASELINE FIXED COST LAMA Anda
+    # PROTOKOL ALOKASI BASELINE FIXED COST
     GAJI_BASELINE_FLAT = 26259567.0
     wajib_setor_investor = max(0.0, kas_riil_bisnis_toko) * 0.075
     kas_setelah_investor = max(0.0, kas_riil_bisnis_toko) - wajib_setor_investor
@@ -152,7 +124,7 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw):
 
     daya_tahan_bulan = (total_atm_pribadi / GAJI_BASELINE_FLAT) if total_atm_pribadi > 0 else 0.0
 
-    # FORENSIK DETEKSI TRANSAKSI RUGI LAMA Anda
+    # FORENSIK DETEKSI TRANSAKSI RUGI
     transaksi_boncos = df_sales[df_sales["Laba (Num)"] < 0] if not df_sales.empty else pd.DataFrame()
     jumlah_boncos = len(transaksi_boncos)
     total_kerugian = abs(transaksi_boncos["Laba (Num)"].sum()) if not transaksi_boncos.empty else 0.0
@@ -175,6 +147,5 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw):
         "log_bank_pribadi": log_bank, "mutasi_pos_digital": mutasi_pos_digital,
         "target_kertas_domestik": {"1. Tempat Tinggal & Kendaraan (40.9%)": 10728067.0, "2. Rumah Tangga & Keluarga (25.8%)": 6768500.0, "3. Kebutuhan Pokok Hidup (19.0%)": 5000000.0, "4. Tagihan Bulanan & Ops (9.2%)": 2405000.0, "5. Edukasi, Anak & Sosial (5.1%)": 1358000.0},
         "total_omzet_buku": total_omzet_buku, "total_hpp_buku": total_hpp_buku,
-        # Variabel Debug Passthrough
         "debug_raw_sales_count": debug_raw_sales_count, "debug_raw_pribadi_count": debug_raw_pribadi_count
     }

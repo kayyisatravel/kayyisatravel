@@ -11,8 +11,6 @@ import PyPDF2
 from pdf2image import convert_from_bytes
 from process_ocr import process_ocr_unified
 from sheets_utils import connect_to_gsheet, append_dataframe_to_sheet
-import streamlit as st
-import pandas as pd
 from datetime import datetime, date, timedelta
 from fpdf import FPDF
 import gspread
@@ -21,7 +19,6 @@ import io
 import math # Untuk pembulatan jika diperlukan
 from typing import List, Dict
 from gspread.utils import rowcol_to_a1
-from datetime import datetime
 from zoneinfo import ZoneInfo  # Built-in mulai Python 3.9
 import time
 from generator import parse_input_dynamic, generate_eticket, parse_evoucher_text, generate_evoucher_html, generate_pdf417_barcode, generate_eticket_pdf
@@ -34,6 +31,8 @@ import visualizer
 import ai_auditor
 import ai_input_processor
 import hybrid_finance_engine
+import re
+
 
 now = datetime.now(ZoneInfo("Asia/Jakarta"))
 tgl_sekarang_str = datetime.today().strftime("%Y-%m-%d")
@@ -569,12 +568,42 @@ for key, default in {
     if key not in st.session_state:
         st.session_state[key] = default
 
-# Google Sheets ID
+# === Konfigurasi GSheet ===
 SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
+WORKSHEET_NAME = "Data"
 
-import re
-import pandas as pd
-import streamlit as st
+def connect_to_gsheet(SHEET_ID, worksheet_name="Data"):
+    scope = [
+        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/drive"
+    ]
+    creds_dict = st.secrets["gcp_service_account"]
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    client = gspread.authorize(creds)
+    sheet = client.open_by_key(SHEET_ID)
+    return sheet.worksheet(worksheet_name)
+
+@st.cache_data(ttl=3000)
+def load_data():
+    ws = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
+    df = pd.DataFrame(ws.get_all_records())
+
+    if "Tgl Pemesanan" not in df.columns:
+        st.error("❌ Kolom 'Tgl Pemesanan' tidak ditemukan.")
+        st.stop()
+        
+    # ----------------------------------------------------------------------
+    # 🛡️ FIX DUPLIKASI: Hapus baris yang kembar identik agar tidak terhitung ganda
+    # ----------------------------------------------------------------------
+    df = df.dropna(how="all") # Hapus jika ada baris kosongan di GSheets
+    df = df.drop_duplicates(keep="first") # Buang 7 duplikat, sisakan 1 data utama yang sah
+    # ----------------------------------------------------------------------
+
+    # FIX 1: Parsing Tanggal Satu Pintu yang Ketat (DD-MM-YYYY)
+    df["Tgl Pemesanan_Parsed"] = pd.to_datetime(df["Tgl Pemesanan"], format="%d-%m-%Y", errors="coerce")
+    df = df.dropna(subset=["Tgl Pemesanan_Parsed"])
+
+    return df
 
 def save_gsheet(df: pd.DataFrame):
     """
@@ -1798,42 +1827,6 @@ with st.expander("✏️ Input Manual Data"):
 
 
 with st.expander("💾 Database Pemesan", expanded=False):
-    # === Konfigurasi GSheet ===
-    SHEET_ID = "1idBV7qmL7KzEMUZB6Fl31ZeH5h7iurhy3QeO4aWYON8"
-    WORKSHEET_NAME = "Data"
-
-    def connect_to_gsheet(SHEET_ID, worksheet_name="Data"):
-        scope = [
-            "https://spreadsheets.google.com/feeds",
-            "https://www.googleapis.com/auth/drive"
-        ]
-        creds_dict = st.secrets["gcp_service_account"]
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-        client = gspread.authorize(creds)
-        sheet = client.open_by_key(SHEET_ID)
-        return sheet.worksheet(worksheet_name)
-
-    @st.cache_data(ttl=300)
-    def load_data():
-        ws = connect_to_gsheet(SHEET_ID, WORKSHEET_NAME)
-        df = pd.DataFrame(ws.get_all_records())
-    
-        if "Tgl Pemesanan" not in df.columns:
-            st.error("❌ Kolom 'Tgl Pemesanan' tidak ditemukan.")
-            st.stop()
-            
-        # ----------------------------------------------------------------------
-        # 🛡️ FIX DUPLIKASI: Hapus baris yang kembar identik agar tidak terhitung ganda
-        # ----------------------------------------------------------------------
-        df = df.dropna(how="all") # Hapus jika ada baris kosongan di GSheets
-        df = df.drop_duplicates(keep="first") # Buang 7 duplikat, sisakan 1 data utama yang sah
-        # ----------------------------------------------------------------------
-    
-        # FIX 1: Parsing Tanggal Satu Pintu yang Ketat (DD-MM-YYYY)
-        df["Tgl Pemesanan_Parsed"] = pd.to_datetime(df["Tgl Pemesanan"], format="%d-%m-%Y", errors="coerce")
-        df = df.dropna(subset=["Tgl Pemesanan_Parsed"])
-    
-        return df
 
     if st.button("🔄 Refresh Data", key="btn_refresh_db_lama"):
         st.cache_data.clear()
@@ -4709,7 +4702,7 @@ def get_ws(sheet_id, worksheet_name):
     return connect_to_gsheet(sheet_id, worksheet_name)
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=3000)
 def load_sheet_cached(sheet_id, worksheet_name):
     """
     Cache dataframe selama 5 menit

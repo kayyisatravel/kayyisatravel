@@ -3483,7 +3483,13 @@ with st.expander("📘 Jurnal Akuntansi", expanded=False):
         "- Pembayaran tagihan kartu dicatat sebagai pengurangan kas dan mengurangi liability.\n"
         "- Untuk otomasi pendapatan (cash-basis), sertakan kolom `Paid_Amount` atau catatan `Masuk` pada sheet 'Arus Kas'."
     )
-
+    st.session_state["jurnal_output_ready"] = {
+        "saldo_kas_riil": float(saldo),
+        "piutang_total": float(piutang_total),
+        "jumlah_invoice_piutang": int(df_piutang.shape[0]),
+        "df_piutang_clean": df_piutang.copy(),
+        "df_cash_clean": df_cash_only.copy()
+    }
 
 #======================================================================================================================================
 #                                                        LAPORAN KEUANGAN BARU
@@ -5607,7 +5613,16 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     # =========================================================================
     # COMPONENT 3: LEMPAR DATA TERFILTER KE ENGINE HYBRID
     # =========================================================================
-    db = hybrid_finance_engine.hitung_hybrid_monitoring_v1(df_sales_filtered, df_pribadi_filtered)
+    
+    jurnal_data = st.session_state.get("jurnal_output_ready", {
+        "saldo_kas_riil": 0.0,
+        "piutang_total": 0.0,
+        "jumlah_invoice_piutang": 0,
+        "df_piutang_clean": pd.DataFrame(),
+        "df_cash_clean": pd.DataFrame()
+    })
+    
+    db = hybrid_finance_engine.hitung_hybrid_monitoring_v2(df_sales_filtered, df_pribadi_filtered, jurnal_data)
     
     # ----------------------------------------------------------------------------------------------
     # TAMPILAN INTERFACE UI PREMIUM (SINKRON & VALID 100% BERBASIS FILTER MANDIRI)

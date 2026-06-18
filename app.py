@@ -3282,10 +3282,11 @@ def refresh_cached_data():
 with st.expander("📘 Jurnal Akuntansi", expanded=False):
 
     # --- REFRESH BUTTON (Optimized) ---
-    if st.button("🔄 Refresh Data", key="btn_refresh_db_lama"):
+    if st.button("🔄 Refresh Data", key="btn_refresh_jurnal_baru"):
         load_sheet_cached.clear()
         st.toast("Cache dibersihkan! Memuat data baru...", icon="ℹ️")
         st.rerun()
+
 
     # --- LOAD DATA ---
     if "df_data" not in st.session_state:

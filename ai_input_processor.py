@@ -113,15 +113,22 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
        Jika input berisi manifes pemesanan tiket pesawat, booking hotel, atau tiket kereta api milik customer/klien.
        
     2. Transaksi JALUR PRIBADI DOMPET KELUARGA (Set properti "Is_Bisnis": false, "Tabel_Tujuan": "PRIBADI"):
-       Jika input berisi pengeluaran operasional rumah/kantor, belanja bulanan sembako, uang jajan, bensin istri, cicilan KPR, iuran RT perumahan (Uang Sosial).
-       - Kosongkan kolom "tipe", "bf_status", "kode_booking", "durasi", "rute", "tgl_berangkat".
+       Wajib digunakan jika input berisi:
+       - Pengeluaran operasional rumah/kantor, belanja bulanan sembako, uang jajan, bensin istri, cicilan KPR, iuran RT perumahan (Uang Sosial).
+       - MUTASI REKENING MURNI, TRANSFER MASUK, ATAU NOTIFIKASI PEMBAYARAN TUNAI (Contoh: "Pembayaran dari PT Endo...", "Transfer masuk dari..."). Meskipun transaksi tersebut berasal dari nama PT/Perusahaan atau terkait bisnis, jika inputnya HANYA BERUPA NOTIFIKASI MUTASI/TRANSFER DANA (bukan voucher/e-ticket travel), maka WAJIB dikategorikan sebagai JALUR PRIBADI dengan kategori "Pemasukan".
+       
+       Aturan Kolom Jalur Pribadi:
+       - Kolom "tipe", "bf_status", "kode_booking", "durasi", "rute", "tgl_berangkat" WAJIB DIISI STRING KOSONG "".
        - Pilih pos "no_rekening" secara cerdas wajib salah satu dari:
-         * 'Aset Kantor' : Untuk cicilan KPR rumah kantor kosong atau perbaikan properti kantor tersebut.
+         * 'Aset Kantor' : Untuk cicilan KPR rumah kantor kosong, perbaikan properti kantor, atau jika ada dana masuk/pembayaran dari PT/Mitra bisnis yang masuk ke rekening pribadi.
          * 'Rumah Tangga' : Untuk belanja dapur, listrik/air rumah tinggal, gaji ART, atau bensin harian mobil istri.
          * 'Lifestyle' : Untuk makan di mall (Trans Studio), jajan kopi, liburan keluarga, atau belanja konsumtif pribadi.
          * 'Investasi' : Untuk emas logam mulia, reksa dana, saham, atau tabungan masa depan mandiri.
          * 'Cadangan Bisnis' : Untuk setoran tabungan 40% laba toko atau penarikan dana darurat modal.
          * 'Dana Sosial / Titipan' : Khusus untuk iuran keamanan/RT titipan warga perumahan (Uang Sosial).
+
+    🔀 PENANGANAN INPUT HIBRIDA (CAMPURAN):
+    - Jika user mengirimkan teks yang berisi gabungan transaksi bisnis travel DAN transaksi pengeluaran/pemasukan pribadi sekaligus dalam satu teks, Anda WAJIB memisahkannya menjadi objek entri yang berbeda di dalam array JSON output.
 
     Aturan Tambahan Ekstraksi Tanggal:
     - Jika menemukan format tanggal dengan garis miring seperti DD/MM/YYYY (Contoh: 10/09/2026 artinya 10 September), ubah secara ketat ke YYYY-MM-DD (2026-09-10). Jangan tertukar antara bulan dan hari!
@@ -143,9 +150,9 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
        - Masukkan hasil pembagian bersih per kamar/per pax ini sebagai "harga_jual".
        - Jika dokumen HOTEL, tidak ada instruksi 'Jual'/'Harga' manual, tetapi ada kolom 'Total Harga' resmi dari tabel voucher (cth: 'Total Harga Rp 1.860.000'), ambil angka ini sebagai total omzet jual. Kamu WAJIB membagi rata total harga ini dengan 'Jumlah Kamar' (Contoh: Total Harga tabel 1.860.000 / 2 kamar = 930000). Masukkan hasil pembagian per kamar ini sebagai "harga_jual".
        - Langkah 3 (FALLBACK): Jika Langkah 1 dan 2 tidak ada, samakan nilai "harga_jual" dengan "harga_beli" per baris.
-    4. UNTUK JALUR PRIBADI: Masukkan nominal total uang belanja langsung ke field "harga_jual", set "harga_beli" dan "laba" menjadi 0.
+    4. UNTUK JALUR PRIBADI: Masukkan nominal total uang belanja/transfer langsung ke field "harga_jual", set "harga_beli" dan "laba" menjadi 0.
     - Untuk JALUR PRIBADI (Is_Bisnis adalah false), kolom "tgl_berangkat", "harga_beli", "laba" dan "durasi" WAJIB DIISI STRING KOSONG "" (DILARANG KERAS diisi tanggal atau teks apa pun).
-    - Jika pada jalur pribadi tidak disebutkan nama toko spesifik tempat bertransaksi, isi kolom "nama_customer" dengan nama vendor atau 'Lainnya', JANGAN PERNAH diisi dengan nama pos rekening seperti Rumah Tangga atau Lifestyle.
+    - Jika pada jalur pribadi tidak disebutkan nama toko spesifik tempat bertransaksi, isi kolom "nama_customer" dengan nama vendor, nama pembayar/perusahaan mutasi dana, atau 'Lainnya', JANGAN PERNAH diisi dengan nama pos rekening seperti Rumah Tangga atau Lifestyle.
 
 
     📋 ATURAN STRUKTUR DATA UTAMA (WAJIB DIPATUHI BAGAIMANAPUN INPUT TEKSNYA):
@@ -171,6 +178,8 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
     6. KETERANGAN PAKET TAMBAHAN: Jika di dalam teks input terdapat informasi paket wisata tambahan (add-on promo ticket seperti Dufan, Ancol, Jatim Park, dll), kamu WAJIB menuliskan nama paket tersebut secara ringkas ke dalam field "keterangan_tambahan" agar datanya tidak hilang.
        
     """
+    content_payload = [prompt_rules]
+
     content_payload = [prompt_rules]
     
     if text_input:

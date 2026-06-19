@@ -3983,6 +3983,7 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
                 # 2. Isolasi data pemasukan bank pribadi
                 if not df_pribadi.empty and "Kategori" in df_pribadi.columns:
                     df_pribadi_in = df_pribadi[df_pribadi["Kategori"].astype(str).str.strip().str.lower() == "pemasukan"].copy()
+                    df_pribadi_in["Nominal (Num)"] = df_pribadi_in["Nominal"].apply(hybrid_finance_engine.bersihkan_angka)
                 else:
                     df_pribadi_in = pd.DataFrame()
         

@@ -3598,7 +3598,7 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
         )
 
         # 5️⃣ TAMPILKAN INTERFACES TABS (Bersih, Rapi, & Padat di Dalam Expander)
-        tab_ringkasan, tab_aging, tab_ai_audit = st.tabs([
+        tab_ringkasan, tab_aging, tab_ai_audit, tab_match_erp = st.tabs([
             "📊 Ringkasan Keuangan", 
             "⏳ Aging Report Piutang", 
             "🕵️‍♂️ AI Real-time Auditor",

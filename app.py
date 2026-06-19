@@ -5723,15 +5723,20 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
         st.markdown("</div>", unsafe_allow_html=True)
 
     if btn_match:
-        with st.spinner("Sistem ERP sedang mencocokkan mutasi 12 digit invoice dan memperbarui Google Sheets..."):
+        with st.spinner("Sistem ERP sedang mencocokkan mutasi 12 digit invoice..."):
             try:
                 # 1. Bangun koneksi ke Google Sheets fisik
                 worksheet = connect_to_gsheet(SHEET_ID, "Data")
                 worksheet_cols = [str(col).strip() for col in worksheet.row_values(1)]
                 
-                # 2. Siapkan data dari session state
+                # 2. AMBIL DATA SEGAR LANGSUNG DARI VARIABEL LOKAL YANG SUDAH TERSEDIA
                 df_all = st.session_state.df_data.copy()
-                df_pribadi = st.session_state.df_pribadi_current.copy()
+                
+                # Mengambil dari variabel lokal halaman Anda, jika tidak ada baru panggil fungsi penariknya
+                if 'df_pribadi_current' in locals() or 'df_pribadi_current' in globals():
+                    df_pribadi = df_pribadi_current.copy()
+                else:
+                    df_pribadi = sedot_data_pribadi_independen()
                 
                 # 3. Filter kilat: Hanya proses baris Pemasukan di sheet Pribadi
                 if not df_pribadi.empty and "Kategori" in df_pribadi.columns:

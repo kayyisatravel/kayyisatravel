@@ -5714,7 +5714,7 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     with g5: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">5. Kas Riil Toko</div><div class="m-val">Rp {db["kas_riil_bisnis_toko"]:,.0f}</div><div class="m-sub">Uang Fisik di Luar Vendor</div></div>', unsafe_allow_html=True)
     with g6: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">6. Rasio Ikat Modal</div><div class="m-val c-red">{db["rasio_keterikatan_modal"]:.1f}%</div><div class="m-sub">Omzet Sangkut di Pelanggan</div></div>', unsafe_allow_html=True)
     with g7: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">7. Rasio Rentan Laba</div><div class="m-val">{db["rasio_kerentanan_laba"]:.1f}%</div><div class="m-sub">Porsi Laba Semu Kertas</div></div>', unsafe_allow_html=True)
-    with g8: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">8. Invoice Unpaid</div><div class="m-val c-red">{db["jumlah_invoice_piutang"]} Transaksi</div><div class="m-sub">Total Nota Belum Lunas</div></div>', unsafe_allow_html=True)
+    with g8: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">8. Invoice Unpaid</div><div class="m-val c-red">{metrics["jumlah_invoice_piutang"]} Transaksi</div><div class="m-sub">Total Nota Belum Lunas</div></div>', unsafe_allow_html=True)
 
     st.markdown("##### 🏦 C. Rumpun Aliran Kas Keluar-Masuk Pribadi")
     g9, g10, g11, g12 = st.columns(4)

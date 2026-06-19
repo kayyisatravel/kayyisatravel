@@ -3601,7 +3601,8 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
         tab_ringkasan, tab_aging, tab_ai_audit = st.tabs([
             "📊 Ringkasan Keuangan", 
             "⏳ Aging Report Piutang", 
-            "🕵️‍♂️ AI Real-time Auditor"
+            "🕵️‍♂️ AI Real-time Auditor",
+            "🤖 Jembatan Match ERP"
         ])
         
         # --- TAB 1: RINGKASAN DATA ANGKA & GRAFIK INTERAKTIF ---
@@ -3963,6 +3964,141 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
                     type="primary",
                     key="btn_download_word_html_v3"
                 )
+        # =========================================================================
+        # TAB 4: ENGINE REKONSILIASI OTOMATIS & TAMENG PENGAMAN BATCH UPDATE
+        # =========================================================================
+        with tab_match_erp:
+            st.subheader("🤖 Panel Kendali Rekonsiliasi Bank & Penyelaras Status GSheets")
+            st.caption("Sistem membandingkan 12 digit invoice di sheet Pribadi dengan nominal tagihan asli di Toko sebelum melakukan update fisik.")
+        
+            try:
+                # 1. Tarik basis data mentah terpusat
+                df_all_data = st.session_state.df_data.copy()
+                
+                if 'df_pribadi_current' in locals() or 'df_pribadi_current' in globals():
+                    df_pribadi = df_pribadi_current.copy()
+                else:
+                    df_pribadi = sedot_data_pribadi_independen()
+        
+                # 2. Isolasi data pemasukan bank pribadi
+                if not df_pribadi.empty and "Kategori" in df_pribadi.columns:
+                    df_pribadi_in = df_pribadi[df_pribadi["Kategori"].astype(str).str.strip().str.lower() == "pemasukan"].copy()
+                else:
+                    df_pribadi_in = pd.DataFrame()
+        
+                # 3. Radar Ekstraktor khusus 12 digit nomor invoice (yymmddhhmmss)
+                def ambil_inv_12_digit(teks):
+                    match = re.search(r'\b\d{12}\b', str(teks))
+                    return match.group(0) if match else None
+        
+                if not df_pribadi_in.empty and "Keterangan" in df_pribadi_in.columns:
+                    df_pribadi_in["Invoice_Target"] = df_pribadi_in["Keterangan"].apply(ambil_inv_12_digit)
+                    df_pembayaran_valid = df_pribadi_in.dropna(subset=["Invoice_Target"]).copy()
+                else:
+                    df_pembayaran_valid = pd.DataFrame()
+        
+                # 4. KONSTRUKSI TABEL PRATINJAU DETEKTIF (PREVIEW)
+                if not df_pembayaran_valid.empty and not df_all_data.empty:
+                    df_all_data["No Invoice_Clean"] = df_all_data["No Invoice"].astype(str).str.strip()
+                    df_all_data["Harga Jual (Num)"] = df_all_data["Harga Jual"].apply(bersihkan_angka)
+        
+                    preview_rows = []
+                    update_requests = []
+                    status_blocking_aktif = False # Sinyal pengunci tombol jika ada bahaya/salah ketik
+        
+                    # Satukan nominal total tagihan per invoice dari data penjualan
+                    df_sales_group = df_all_data.groupby("No Invoice_Clean").agg({
+                        "Harga Jual (Num)": "sum",
+                        "Nama Pemesan": "first"
+                    }).reset_index()
+        
+                    for _, row_p in df_pembayaran_valid.iterrows():
+                        target_inv = str(row_p["Invoice_Target"]).strip()
+                        nominal_bank = float(row_p["Nominal (Num)"])
+                        tgl_bayar_raw = pd.to_datetime(row_p["Tanggal"], errors="coerce")
+                        tgl_bayar_str = tgl_bayar_raw.strftime("%d/%m/%y") if not pd.isna(tgl_bayar_raw) else "2026"
+        
+                        # Cari kecocokan di data penjualan
+                        match_sales = df_sales_group[df_sales_group["No Invoice_Clean"] == target_inv]
+        
+                        if not match_sales.empty:
+                            tagihan_toko = float(match_sales["Harga Jual (Num)"].iloc[0])
+                            nama_klien = str(match_sales["Nama Pemesan"].iloc[0])
+                            selisih = nominal_bank - tagihan_toko
+        
+                            # DETERMINASI SENSOR AI KONTROL AMBANG BATAS
+                            if abs(selisih) == 0:
+                                status_sensor = "🟢 Lunas Sempurna (Valid)"
+                            elif (selisih < 0) and (abs(selisih) <= 50000):
+                                status_sensor = "🟡 Toleransi Pajak PPh 23 (Aman)"
+                            elif (selisih < 0) and (abs(selisih) > 50000):
+                                status_sensor = "🔴 Kurang Bayar (Bahaya Kebocoran)"
+                                status_blocking_aktif = True
+                            elif selisih > 0:
+                                status_sensor = "🚨 Kritis! Salah Input Angka Admin"
+                                status_blocking_aktif = True
+        
+                            preview_rows.append({
+                                "No Invoice": target_inv,
+                                "Nama Klien": nama_klien,
+                                "Tagihan Toko": tagihan_toko,
+                                "Uang Masuk Bank": nominal_bank,
+                                "Selisih Nominal": selisih,
+                                "Status Sensor Sistem": status_sensor
+                            })
+        
+                            # Jika statusnya Aman/Toleransi, masukkan ke daftar antrean update GSheets
+                            if not status_blocking_aktif:
+                                mask_all_rows = (df_all_data["No Invoice_Clean"] == target_inv)
+                                matching_indices = df_all_data[mask_all_rows].index.tolist()
+                                
+                                # Ambil indeks kolom Keterangan secara presisi (Default kolom 14)
+                                worksheet = connect_to_gsheet(SHEET_ID, "Data")
+                                worksheet_cols = [str(col).strip() for col in worksheet.row_values(1)]
+                                col_keterangan_idx = worksheet_cols.index("Keterangan") + 1 if "Keterangan" in worksheet_cols else 14
+        
+                                for idx in matching_indices:
+                                    row_number = idx + 2
+                                    update_requests.append({
+                                        "range": rowcol_to_a1(row_number, col_keterangan_idx),
+                                        "values": [[f"Lunas {tgl_bayar_str}"]]
+                                    })
+        
+                    # 5. TAMPILKAN TABEL PRATINJAU KE LAYAR MONITOR
+                    if preview_rows:
+                        df_preview_table = pd.DataFrame(preview_rows)
+                        st.markdown("##### 🔍 Hasil Pemeriksaan Validitas Nominal Sebelum Sinkronisasi")
+                        st.dataframe(
+                            df_preview_table.style.format({
+                                "Tagihan Toko": "Rp {:,.0f}",
+                                "Uang Masuk Bank": "Rp {:,.0f}",
+                                "Selisih Nominal": "Rp {:,.0f}"
+                            }),
+                            use_container_width=True,
+                            hide_index=True
+                        )
+                        st.write("")
+        
+                        # 6. EKSEKUSI TOMBOL BERDASARKAN HASIL SENSOR
+                        if status_blocking_aktif:
+                            st.error("⚠️ **EKSEKUSI DIKUNCI SISTEM:** Terdeteksi adanya selisih kurang bayar yang parah atau kesalahan ketik nominal oleh Admin. Silakan periksa kembali angka pada Excel Sheet 'Pribadi' Anda, lalu tekan tombol Refresh!")
+                            st.button("🤖 Jalankan Auto-Match & Update GSheets", key="btn_erp_blocked", disabled=True, use_container_width=True)
+                        else:
+                            st.success("✅ **SISTEM STATUS STERIL:** Seluruh nominal transferan masuk cocok dan lolos ambang batas toleransi. Data aman untuk disinkronisasikan.")
+                            if st.button("🤖 Jalankan Auto-Match & Update GSheets", key="btn_erp_execute_active", type="primary", use_container_width=True):
+                                if update_requests:
+                                    worksheet.batch_update(update_requests)
+                                    st.success(f"🎉 Sukses Korporat! Status {len(preview_rows)} Invoice berhasil diperbarui menjadi LUNAS secara permanen di Google Sheets!")
+                                    st.cache_data.clear()
+                                    load_sheet_cached.clear()
+                                    st.rerun()
+                    else:
+                        st.info("ℹ️ Tidak ada mutasi pemasukan baru di sheet Pribadi yang memiliki 12 digit nomor invoice untuk dicocokkan.")
+                else:
+                    st.info("ℹ️ Belum ada catatan transfer masuk dari customer di database Pribadi.")
+        
+            except Exception as erp_tab_err:
+                st.error(f"❌ Gagal memuat jembatan ERP: {str(erp_tab_err)}")
 
 # =========================================================================
 # 🎨 TAHAP VISUALISASI: RENDER KARTU SALDO MULTI-BANK & ANGGARAN DIGITAL AI
@@ -5716,100 +5852,6 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     with g7: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">7. Rasio Rentan Laba</div><div class="m-val">{db["rasio_kerentanan_laba"]:.1f}%</div><div class="m-sub">Porsi Laba Semu Kertas</div></div>', unsafe_allow_html=True)
     with g8: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">8. Invoice Unpaid</div><div class="m-val c-red">{db["jumlah_invoice_piutang"]} Transaksi</div><div class="m-sub">Total Nota Belum Lunas</div></div>', unsafe_allow_html=True)
 
-    st.write("")
-    with st.container():
-        st.markdown("<div style='padding: 10px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;'>", unsafe_allow_html=True)
-        btn_match = st.button("🤖 Jalankan Auto-Match ERP & Sinkronisasi GSheets", key="btn_erp_writeback_prod", type="primary", use_container_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        # === KODE PERBAIKAN MUTLAK TOMBOL AUTO-MATCH PADA FILE APP.PY ===
-    if btn_match:
-        with st.spinner("Sistem ERP sedang melakukan rekonsiliasi 12 digit invoice..."):
-            try:
-                # 1. Tarik data mentah UTUH (Januari - Hari Ini) langsung dari database utama GSheets
-                worksheet = connect_to_gsheet(SHEET_ID, "Data")
-                worksheet_cols = [str(col).strip() for col in worksheet.row_values(1)]
-                
-                # Pastikan mengambil df_data utuh dari session state tanpa potongan filter tanggal
-                df_all_data = st.session_state.df_data.copy()
-                
-                if 'df_pribadi_current' in locals() or 'df_pribadi_current' in globals():
-                    df_pribadi = df_pribadi_current.copy()
-                else:
-                    df_pribadi = sedot_data_pribadi_independen()
-                
-                # 2. Filter data pemasukan bank pribadi
-                if not df_pribadi.empty and "Kategori" in df_pribadi.columns:
-                    df_pribadi_in = df_pribadi[df_pribadi["Kategori"].astype(str).str.strip().str.lower() == "pemasukan"].copy()
-                else:
-                    df_pribadi_in = pd.DataFrame()
-
-                # 3. Ekstraktor murni khusus 12 digit angka invoice
-                def ambil_inv_12_digit(teks):
-                    match = re.search(r'\b\d{12}\b', str(teks))
-                    return match.group(0) if match else None
-
-                if not df_pribadi_in.empty and "Keterangan" in df_pribadi_in.columns:
-                    df_pribadi_in["Invoice_Target"] = df_pribadi_in["Keterangan"].apply(ambil_inv_12_digit)
-                    df_pembayaran_valid = df_pribadi_in.dropna(subset=["Invoice_Target"])
-                else:
-                    df_pembayaran_valid = pd.DataFrame()
-
-                # 4. Eksekusi Pencocokan Langsung Berbasis No Invoice (Kebal Filter Tanggal)
-                if not df_pembayaran_valid.empty and not df_all_data.empty:
-                    update_requests = []
-                    count_lunas = 0
-                    
-                    # Ambil indeks kolom "Keterangan" secara presisi di GSheets (Header + 1)
-                    if "Keterangan" in worksheet_cols:
-                        col_keterangan_idx = worksheet_cols.index("Keterangan") + 1
-                    else:
-                        col_keterangan_idx = 14 # Fallback standar kolom 14
-                        
-                    # Pastikan kolom No Invoice murni berupa string bersih tanpa spasi
-                    df_all_data["No Invoice_Clean"] = df_all_data["No Invoice"].astype(str).str.strip()
-
-                    for _, row_p in df_pembayaran_valid.iterrows():
-                        target_inv = str(row_p["Invoice_Target"]).strip()
-                        tgl_bayar_raw = pd.to_datetime(row_p["Tanggal"], errors="coerce")
-                        tgl_bayar_str = tgl_bayar_raw.strftime("%d/%m/%y") if not pd.isna(tgl_bayar_raw) else "2026"
-                        
-                        # Tembak langsung kecocokan No Invoice 12 digit di database utama
-                        mask_match = (df_all_data["No Invoice_Clean"] == target_inv)
-                        
-                        if mask_match.any():
-                            # Ambil baris indeks asli Google Sheets (Indeks Pandas + 2 karena header)
-                            matching_indices = df_all_data[mask_match].index.tolist()
-                            
-                            for idx in matching_indices:
-                                row_number = idx + 2
-                                range_a1 = rowcol_to_a1(row_number, col_keterangan_idx)
-                                
-                                # Kemas data update tanpa melalui fungsi prepare_batch_update yang bias
-                                update_requests.append({
-                                    "range": range_a1,
-                                    "values": [[f"Lunas {tgl_bayar_str}"]]
-                                })
-                                count_lunas += 1
-
-                    # 5. Tembakkan Batch Update ke Google Sheets
-                    if update_requests:
-                        worksheet.batch_update(update_requests)
-                        st.success(f"✅ Sukses Terbimbing! {count_lunas} baris pesanan untuk Invoice {target_inv} otomatis berubah menjadi LUNAS di Google Sheets!")
-                        
-                        # Bersihkan cache total agar data visual langsung melompat segar
-                        st.cache_data.clear()
-                        if "load_sheet_cached" in globals():
-                            load_sheet_cached.clear()
-                        st.rerun()
-                    else:
-                        st.info("ℹ️ Tidak ada mutasi pemasukan baru di sheet Pribadi yang cocok dengan invoice Penjualan.")
-                else:
-                    st.info("ℹ️ Data mutasi masuk kosong atau tidak ada nomor invoice yang bisa dicocokkan.")
-            except Exception as e:
-                st.error(f"❌ Gagal Rekonsiliasi Otomatis: {str(e)}")
-
-    
     st.markdown("##### 🏦 C. Rumpun Aliran Kas Keluar-Masuk Pribadi")
     g9, g10, g11, g12 = st.columns(4)
     with g9:  st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">9. Total Cash Inflow</div><div class="m-val c-grn">Rp {db["total_cash_in_pribadi"]:,.0f}</div><div class="m-sub">Akumulasi Masuk Rekening</div></div>', unsafe_allow_html=True)

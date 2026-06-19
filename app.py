@@ -4000,7 +4000,7 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
                 # 4. KONSTRUKSI TABEL PRATINJAU DETEKTIF (PREVIEW)
                 if not df_pembayaran_valid.empty and not df_all_data.empty:
                     df_all_data["No Invoice_Clean"] = df_all_data["No Invoice"].astype(str).str.strip()
-                    df_all_data["Harga Jual (Num)"] = df_all_data["Harga Jual"].apply(bersihkan_angka)
+                    df_all_data["Harga Jual (Num)"] = df_all_data["Harga Jual"].apply(hybrid_finance_engine.bersihkan_angka)
         
                     preview_rows = []
                     update_requests = []

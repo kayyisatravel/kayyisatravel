@@ -5722,29 +5722,29 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
         btn_match = st.button("🤖 Jalankan Auto-Match ERP & Sinkronisasi GSheets", key="btn_erp_writeback_prod", type="primary", use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
+        # === KODE PERBAIKAN MUTLAK TOMBOL AUTO-MATCH PADA FILE APP.PY ===
     if btn_match:
-        with st.spinner("Sistem ERP sedang mencocokkan mutasi 12 digit invoice..."):
+        with st.spinner("Sistem ERP sedang melakukan rekonsiliasi 12 digit invoice..."):
             try:
-                # 1. Bangun koneksi ke Google Sheets fisik
+                # 1. Tarik data mentah UTUH (Januari - Hari Ini) langsung dari database utama GSheets
                 worksheet = connect_to_gsheet(SHEET_ID, "Data")
                 worksheet_cols = [str(col).strip() for col in worksheet.row_values(1)]
                 
-                # 2. AMBIL DATA SEGAR LANGSUNG DARI VARIABEL LOKAL YANG SUDAH TERSEDIA
-                df_all = st.session_state.df_data.copy()
+                # Pastikan mengambil df_data utuh dari session state tanpa potongan filter tanggal
+                df_all_data = st.session_state.df_data.copy()
                 
-                # Mengambil dari variabel lokal halaman Anda, jika tidak ada baru panggil fungsi penariknya
                 if 'df_pribadi_current' in locals() or 'df_pribadi_current' in globals():
                     df_pribadi = df_pribadi_current.copy()
                 else:
                     df_pribadi = sedot_data_pribadi_independen()
                 
-                # 3. Filter kilat: Hanya proses baris Pemasukan di sheet Pribadi
+                # 2. Filter data pemasukan bank pribadi
                 if not df_pribadi.empty and "Kategori" in df_pribadi.columns:
                     df_pribadi_in = df_pribadi[df_pribadi["Kategori"].astype(str).str.strip().str.lower() == "pemasukan"].copy()
                 else:
                     df_pribadi_in = pd.DataFrame()
 
-                # 4. Ambil Angka Invoice murni 12 Digit (yymmddhhmmss)
+                # 3. Ekstraktor murni khusus 12 digit angka invoice
                 def ambil_inv_12_digit(teks):
                     match = re.search(r'\b\d{12}\b', str(teks))
                     return match.group(0) if match else None
@@ -5755,46 +5755,49 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
                 else:
                     df_pembayaran_valid = pd.DataFrame()
 
-                # 5. Iterasi Vektor RAM untuk mempersiapkan Batch Update
-                if not df_pembayaran_valid.empty and not df_all.empty:
+                # 4. Eksekusi Pencocokan Langsung Berbasis No Invoice (Kebal Filter Tanggal)
+                if not df_pembayaran_valid.empty and not df_all_data.empty:
                     update_requests = []
                     count_lunas = 0
                     
-                    # Normalisasi string pencarian di RAM agar super cepat
-                    for col in ["Nama Pemesan", "Kode Booking", "Tgl Berangkat", "Nama Customer", "No Penerbangan / Hotel / Kereta"]:
-                        if col in df_all.columns:
-                            df_all[f"{col}_str"] = df_all[col].astype(str).str.strip().str.lower()
+                    # Ambil indeks kolom "Keterangan" secara presisi di GSheets (Header + 1)
+                    if "Keterangan" in worksheet_cols:
+                        col_keterangan_idx = worksheet_cols.index("Keterangan") + 1
+                    else:
+                        col_keterangan_idx = 14 # Fallback standar kolom 14
+                        
+                    # Pastikan kolom No Invoice murni berupa string bersih tanpa spasi
+                    df_all_data["No Invoice_Clean"] = df_all_data["No Invoice"].astype(str).str.strip()
 
                     for _, row_p in df_pembayaran_valid.iterrows():
-                        target_inv = str(row_p["Invoice_Target"])
+                        target_inv = str(row_p["Invoice_Target"]).strip()
                         tgl_bayar_raw = pd.to_datetime(row_p["Tanggal"], errors="coerce")
                         tgl_bayar_str = tgl_bayar_raw.strftime("%d/%m/%y") if not pd.isna(tgl_bayar_raw) else "2026"
                         
-                        # Cari baris penjualan yang memiliki nomor invoice yang cocok
-                        mask_match = (df_all["No Invoice"].astype(str).str.strip() == target_inv)
+                        # Tembak langsung kecocokan No Invoice 12 digit di database utama
+                        mask_match = (df_all_data["No Invoice_Clean"] == target_inv)
                         
                         if mask_match.any():
-                            df_selected_sales = df_all[mask_match].copy()
+                            # Ambil baris indeks asli Google Sheets (Indeks Pandas + 2 karena header)
+                            matching_indices = df_all_data[mask_match].index.tolist()
                             
-                            # Normalisasi string pada sub-dataframe data terpilih
-                            for col in ["Nama Pemesan", "Kode Booking", "Tgl Berangkat", "Nama Customer", "No Penerbangan / Hotel / Kereta"]:
-                                if col in df_selected_sales.columns:
-                                    df_selected_sales[f"{col}_str"] = df_selected_sales[col].astype(str).str.strip().str.lower()
-                            
-                            # Ubah teks Keterangan menjadi Lunas beserta tanggal transfernya
-                            config_tulisan_baru = {"Keterangan": f"Lunas {tgl_bayar_str}"}
-                            
-                            # PANGGIL FUNGSI BATCH UPDATE BAWAAN ANDA YANG SUDAH TERBUKTI AMAN
-                            list_blok_a1 = prepare_batch_update(df_all, df_selected_sales, config_tulisan_baru, worksheet_cols)
-                            update_requests.extend(list_blok_a1)
-                            count_lunas += len(df_selected_sales)
+                            for idx in matching_indices:
+                                row_number = idx + 2
+                                range_a1 = rowcol_to_a1(row_number, col_keterangan_idx)
+                                
+                                # Kemas data update tanpa melalui fungsi prepare_batch_update yang bias
+                                update_requests.append({
+                                    "range": range_a1,
+                                    "values": [[f"Lunas {tgl_bayar_str}"]]
+                                })
+                                count_lunas += 1
 
-                    # 6. Kirim data massal ke server Google Sheets
+                    # 5. Tembakkan Batch Update ke Google Sheets
                     if update_requests:
                         worksheet.batch_update(update_requests)
-                        st.success(f"✅ Sukses! {count_lunas} baris pesanan otomatis diubah menjadi LUNAS di Google Sheets.")
+                        st.success(f"✅ Sukses Terbimbing! {count_lunas} baris pesanan untuk Invoice {target_inv} otomatis berubah menjadi LUNAS di Google Sheets!")
                         
-                        # Bersihkan seluruh cache agar visualisasi dashboard langsung berubah seketika
+                        # Bersihkan cache total agar data visual langsung melompat segar
                         st.cache_data.clear()
                         if "load_sheet_cached" in globals():
                             load_sheet_cached.clear()
@@ -5802,9 +5805,10 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
                     else:
                         st.info("ℹ️ Tidak ada mutasi pemasukan baru di sheet Pribadi yang cocok dengan invoice Penjualan.")
                 else:
-                    st.info("ℹ️ Belum ada data transfer masuk dari customer di database Pribadi.")
+                    st.info("ℹ️ Data mutasi masuk kosong atau tidak ada nomor invoice yang bisa dicocokkan.")
             except Exception as e:
                 st.error(f"❌ Gagal Rekonsiliasi Otomatis: {str(e)}")
+
     
     st.markdown("##### 🏦 C. Rumpun Aliran Kas Keluar-Masuk Pribadi")
     g9, g10, g11, g12 = st.columns(4)

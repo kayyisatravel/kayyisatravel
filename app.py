@@ -5682,7 +5682,7 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     <style>
         .m-box { background-color: #ffffff; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; border-top: 4px solid #475569; margin-bottom: 12px; }
         .m-lbl { font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-        .m-val { font-size: 1.45rem; font-weight: 800; color: #0f172a; margin-top: 3px; }
+        .m-val { font-size: 1.30rem; font-weight: 800; color: #0f172a; margin-top: 3px; }
         .m-sub { font-size: 0.72rem; color: #94a3b8; font-weight: 500; margin-top: 2px; }
         .c-red { color: #dc2626 !important; font-weight: 700; }
         .c-grn { color: #16a34a !important; font-weight: 700; }

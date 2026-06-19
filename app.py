@@ -2485,22 +2485,36 @@ with st.expander("💾 Database Pemesan", expanded=False):
             else:
                 # Admin mengetik sendiri
                 nama_pemesan = st.text_input("Masukkan Nama Pemesan:", "")
+            
+            opsi_tanggal = st.selectbox(
+                "Pilih Tanggal Invoice:",
+                ("Tanggal Sesuai Pemesanan", "Tanggal Hari Ini", "Pilih Tanggal Manual")
+            )
+            
+            # Komponen kalender input hanya muncul jika admin memilih opsi manual
+            if opsi_tanggal == "Pilih Tanggal Manual":
+                tanggal_pilihan = st.date_input("Tanggal Kustom:", pd.Timestamp.now().date())
+                tanggal_invoice = pd.to_datetime(tanggal_pilihan)
+            elif opsi_tanggal == "Tanggal Hari Ini":
+                tanggal_invoice = pd.Timestamp.now()
+            else:
+                try:
+                    tanggal_invoice = pd.to_datetime(selected_data["Tgl Pemesanan"].iloc[0])
+                except Exception:
+                    tanggal_invoice = pd.Timestamp.now()
+        
+            st.write("") # Memberikan sedikit jeda vertikal agar tombol tidak terlalu rapat
+            
+            # 4. Tombol Eksekusi PDF
             if st.button("📄 Buat Invoice PDF"):
                 if not selected_data.empty:
-        
                     records = selected_data.to_dict(orient="records")
-        
-                    # Tanggal invoice → ambil dari kolom Tgl Pemesanan baris pertama
-                    tanggal_invoice = pd.to_datetime(selected_data["Tgl Pemesanan"].iloc[0])
-        
-                    # Buat nomor invoice unik
                     st.session_state.current_unique_invoice_no = now.strftime("%y%m%d%H%M%S")
                     current_pdf_filename = f"INV_{st.session_state.current_unique_invoice_no}.pdf"
-
-                    # === PEMANGGILAN FUNGSI YANG BARU ===
+        
                     pdf_path_generated = buat_invoice_pdf(
                         records,
-                        tanggal_invoice,
+                        tanggal_invoice, # Variabel dinamis dari hasil selectbox di atas
                         st.session_state.current_unique_invoice_no,
                         current_pdf_filename,
                         logo_path="assets/Logo Perusahaan.jpeg",

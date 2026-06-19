@@ -5716,6 +5716,91 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     with g7: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">7. Rasio Rentan Laba</div><div class="m-val">{db["rasio_kerentanan_laba"]:.1f}%</div><div class="m-sub">Porsi Laba Semu Kertas</div></div>', unsafe_allow_html=True)
     with g8: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">8. Invoice Unpaid</div><div class="m-val c-red">{db["jumlah_invoice_piutang"]} Transaksi</div><div class="m-sub">Total Nota Belum Lunas</div></div>', unsafe_allow_html=True)
 
+    st.write("")
+    with st.container():
+        st.markdown("<div style='padding: 10px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;'>", unsafe_allow_html=True)
+        btn_match = st.button("🤖 Jalankan Auto-Match ERP & Sinkronisasi GSheets", key="btn_erp_writeback_prod", type="primary", use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    if btn_match:
+        with st.spinner("Sistem ERP sedang mencocokkan mutasi 12 digit invoice dan memperbarui Google Sheets..."):
+            try:
+                # 1. Bangun koneksi ke Google Sheets fisik
+                worksheet = connect_to_gsheet(SHEET_ID, "Data")
+                worksheet_cols = [str(col).strip() for col in worksheet.row_values(1)]
+                
+                # 2. Siapkan data dari session state
+                df_all = st.session_state.df_data.copy()
+                df_pribadi = st.session_state.df_pribadi_current.copy()
+                
+                # 3. Filter kilat: Hanya proses baris Pemasukan di sheet Pribadi
+                if not df_pribadi.empty and "Kategori" in df_pribadi.columns:
+                    df_pribadi_in = df_pribadi[df_pribadi["Kategori"].astype(str).str.strip().str.lower() == "pemasukan"].copy()
+                else:
+                    df_pribadi_in = pd.DataFrame()
+
+                # 4. Ambil Angka Invoice murni 12 Digit (yymmddhhmmss)
+                def ambil_inv_12_digit(teks):
+                    match = re.search(r'\b\d{12}\b', str(teks))
+                    return match.group(0) if match else None
+
+                if not df_pribadi_in.empty and "Keterangan" in df_pribadi_in.columns:
+                    df_pribadi_in["Invoice_Target"] = df_pribadi_in["Keterangan"].apply(ambil_inv_12_digit)
+                    df_pembayaran_valid = df_pribadi_in.dropna(subset=["Invoice_Target"])
+                else:
+                    df_pembayaran_valid = pd.DataFrame()
+
+                # 5. Iterasi Vektor RAM untuk mempersiapkan Batch Update
+                if not df_pembayaran_valid.empty and not df_all.empty:
+                    update_requests = []
+                    count_lunas = 0
+                    
+                    # Normalisasi string pencarian di RAM agar super cepat
+                    for col in ["Nama Pemesan", "Kode Booking", "Tgl Berangkat", "Nama Customer", "No Penerbangan / Hotel / Kereta"]:
+                        if col in df_all.columns:
+                            df_all[f"{col}_str"] = df_all[col].astype(str).str.strip().str.lower()
+
+                    for _, row_p in df_pembayaran_valid.iterrows():
+                        target_inv = str(row_p["Invoice_Target"])
+                        tgl_bayar_raw = pd.to_datetime(row_p["Tanggal"], errors="coerce")
+                        tgl_bayar_str = tgl_bayar_raw.strftime("%d/%m/%y") if not pd.isna(tgl_bayar_raw) else "2026"
+                        
+                        # Cari baris penjualan yang memiliki nomor invoice yang cocok
+                        mask_match = (df_all["No Invoice"].astype(str).str.strip() == target_inv)
+                        
+                        if mask_match.any():
+                            df_selected_sales = df_all[mask_match].copy()
+                            
+                            # Normalisasi string pada sub-dataframe data terpilih
+                            for col in ["Nama Pemesan", "Kode Booking", "Tgl Berangkat", "Nama Customer", "No Penerbangan / Hotel / Kereta"]:
+                                if col in df_selected_sales.columns:
+                                    df_selected_sales[f"{col}_str"] = df_selected_sales[col].astype(str).str.strip().str.lower()
+                            
+                            # Ubah teks Keterangan menjadi Lunas beserta tanggal transfernya
+                            config_tulisan_baru = {"Keterangan": f"Lunas {tgl_bayar_str}"}
+                            
+                            # PANGGIL FUNGSI BATCH UPDATE BAWAAN ANDA YANG SUDAH TERBUKTI AMAN
+                            list_blok_a1 = prepare_batch_update(df_all, df_selected_sales, config_tulisan_baru, worksheet_cols)
+                            update_requests.extend(list_blok_a1)
+                            count_lunas += len(df_selected_sales)
+
+                    # 6. Kirim data massal ke server Google Sheets
+                    if update_requests:
+                        worksheet.batch_update(update_requests)
+                        st.success(f"✅ Sukses! {count_lunas} baris pesanan otomatis diubah menjadi LUNAS di Google Sheets.")
+                        
+                        # Bersihkan seluruh cache agar visualisasi dashboard langsung berubah seketika
+                        st.cache_data.clear()
+                        if "load_sheet_cached" in globals():
+                            load_sheet_cached.clear()
+                        st.rerun()
+                    else:
+                        st.info("ℹ️ Tidak ada mutasi pemasukan baru di sheet Pribadi yang cocok dengan invoice Penjualan.")
+                else:
+                    st.info("ℹ️ Belum ada data transfer masuk dari customer di database Pribadi.")
+            except Exception as e:
+                st.error(f"❌ Gagal Rekonsiliasi Otomatis: {str(e)}")
+    
     st.markdown("##### 🏦 C. Rumpun Aliran Kas Keluar-Masuk Pribadi")
     g9, g10, g11, g12 = st.columns(4)
     with g9:  st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">9. Total Cash Inflow</div><div class="m-val c-grn">Rp {db["total_cash_in_pribadi"]:,.0f}</div><div class="m-sub">Akumulasi Masuk Rekening</div></div>', unsafe_allow_html=True)

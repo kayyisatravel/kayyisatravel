@@ -5627,15 +5627,52 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     # =========================================================================
     # COMPONENT 3: LEMPAR DATA TERFILTER KE ENGINE HYBRID
     # =========================================================================
-    
-    jurnal_data = st.session_state.get("jurnal_output_ready", {
+    # 1. Ambil data matang dari session state Jurnal Akuntansi sebagai basis data utama
+    jurnal_data_master = st.session_state.get("jurnal_output_ready", {
         "saldo_kas_riil": 0.0,
         "piutang_total": 0.0,
-        "jumlah_invoice_piutang": 0
+        "jumlah_invoice_piutang": 0,
+        "df_cash_clean": pd.DataFrame(),
+        "df_piutang_clean": pd.DataFrame()
     })
     
+    # 2. Ambil DataFrame Arus Kas & Piutang bersih yang dihasilkan oleh Jurnal
+    df_cash_from_jurnal = jurnal_data_master["df_cash_clean"].copy()
+    df_piutang_from_jurnal = jurnal_data_master["df_piutang_clean"].copy()
+    
+    # 3. PROSES SLICING (PEMOTONGAN BERDASARKAN FILTER BULAN DI DASHBOARD)
+    # (Variabel 'tahun_terpilih' dan 'bulan_terpilih' diambil dari widget selectbox Dashboard Anda)
+    if not df_cash_from_jurnal.empty and "Tanggal" in df_cash_from_jurnal.columns:
+        df_cash_from_jurnal["Tanggal"] = pd.to_datetime(df_cash_from_jurnal["Tanggal"], errors="coerce")
+        
+        if bulan_terpilih == "Semua Bulan":
+            mask_cash_dashboard = (df_cash_from_jurnal["Tanggal"].dt.year == tahun_terpilih)
+        else:
+            mask_cash_dashboard = (df_cash_from_jurnal["Tanggal"].dt.year == tahun_terpilih) & (df_cash_from_jurnal["Tanggal"].dt.month == nama_bulan_id.index(bulan_terpilih))
+            
+        df_cash_dashboard_filtered = df_cash_from_jurnal[mask_cash_dashboard].copy()
+    else:
+        df_cash_dashboard_filtered = df_cash_from_jurnal.copy()
+    
+    # 4. HITUNG ULANG METRIK KAS RIIL KHUSUS UNTUK BULAN YANG DIPILIH USER
+    total_masuk_bulan_ini = df_cash_dashboard_filtered.query("Tipe=='Masuk'")["Jumlah"].sum() if not df_cash_dashboard_filtered.empty else 0.0
+    total_keluar_bulan_ini = df_cash_dashboard_filtered.query("Tipe=='Keluar'")["Jumlah"].sum() if not df_cash_dashboard_filtered.empty else 0.0
+    saldo_kas_bulan_ini = total_masuk_bulan_ini - total_keluar_bulan_ini
+    
+    # 5. BUNGKUS KEMBALI MENJADI DATA BULANAN UNTUK DISUNTIKKAN KE ENGINE HYBRID
+    jurnal_data_dashboard_input = {
+        "saldo_kas_riil": float(saldo_kas_bulan_ini),
+        "piutang_total": float(jurnal_data_master["piutang_total"]), # Piutang kumulatif/aging global
+        "jumlah_invoice_piutang": int(jurnal_data_master["jumlah_invoice_piutang"])
+    }
+    
+    # 6. KIRIM KE ENGINE HYBRID V2 (ANGKA BISNIS SEKARANG BERGERAK DINAMIS IKUT FILTER BULAN!)
     import hybrid_finance_engine
-    db = hybrid_finance_engine.hitung_hybrid_monitoring_v2(df_sales_filtered, df_pribadi_filtered, jurnal_data)
+    db = hybrid_finance_engine.hitung_hybrid_monitoring_v2(
+        df_sales_filtered, 
+        df_pribadi_filtered, 
+        jurnal_data_dashboard_input # Suntikan data bulanan dinamis
+    )
 
     
     # ----------------------------------------------------------------------------------------------

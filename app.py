@@ -4010,8 +4010,14 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
                     # Satukan nominal total tagihan per invoice dari data penjualan
                     df_sales_group = df_all_data.groupby("No Invoice_Clean").agg({
                         "Harga Jual (Num)": "sum",
-                        "Nama Pemesan": "first"
+                        "Nama Pemesan": "first",
+                        "Keterangan": "first"
                     }).reset_index()
+                    is_belum_lunas = df_sales_group["Keterangan"].astype(str).str.contains("Belum Lunas", case=False, na=False)
+                    is_sudah_lunas = df_sales_group["Keterangan"].astype(str).str.contains(r'(?<!belum\s)lunas', case=False, na=False, regex=True)
+                    
+                    # Paksa agar df_sales_group HANYA berisi nomor invoice yang benar-benar belum lunas di GSheets
+                    df_sales_group = df_sales_group[is_belum_lunas & (~is_sudah_lunas)].copy()
         
                     for _, row_p in df_pembayaran_valid.iterrows():
                         target_inv = str(row_p["Invoice_Target"]).strip()

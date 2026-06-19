@@ -156,12 +156,36 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
         if not mode_admin.empty: top_admin = str(mode_admin[0])
 
     total_aset_lancar_toko = max(0.0, kas_riil_bisnis_toko) + total_piutang
+    outstanding_cc_total = 0.0
 
+    # LANGKAH 1: Hitung total semua transaksi tiket yang digesek pakai CC (Mulai Mei 2026)
+    if not df_sales.empty and "Sumber Dana" in df_sales.columns:
+        mask_sumber_cc = df_sales["Sumber Dana"].astype(str).str.lower().str.contains("credit|cc|kartu", na=False)
+        df_cc_active = df_sales[mask_sumber_cc & is_belum_lunas & (~is_sudah_lunas)].copy()
+        
+        if not df_cc_active.empty:
+            df_cc_active["Tgl_Parsed_CC"] = pd.to_datetime(df_cc_active["Tgl Pemesanan"], dayfirst=True, errors="coerce")
+            df_cc_cutoff = df_cc_active[df_cc_active["Tgl_Parsed_CC"] >= pd.Timestamp("2026-05-01")]
+            outstanding_cc_total = df_cc_cutoff["Harga Beli (Num)"].sum()
+
+    # LANGKAH 2: Hitung total uang yang sudah dibayarkan untuk melunasi tagihan CC di sheet Pribadi
+    total_bayar_tagihan_cc = 0.0
+    if not df_pribadi.empty and "Keterangan" in df_pribadi.columns:
+        # Filter mencari baris pengeluaran yang ditujukan untuk membayar tagihan kartu kredit
+        mask_bayar_cc = (
+            df_pribadi["Keterangan"].astype(str).str.lower().str.contains("tagihan cc|pelunasan cc|bayar cc|tagihan kartu", na=False) &
+            (df_pribadi["Kategori"].astype(str).str.strip().str.lower() == "pengeluaran")
+        )
+        total_bayar_tagihan_cc = df_pribadi[mask_bayar_cc]["Nominal (Num)"].sum()
+
+    # LANGKAH 3: Sisa Beban Kartu Kredit Berjalan (Dikurangi Secara Adil)
+    outstanding_cc_final = max(0.0, outstanding_cc_total - total_bayar_tagihan_cc)
+    
     return {
         "npm": npm, "roi": roi, "total_tiket_terjual": len(df_sales), "laba_per_tiket": (laba_buku_total / len(df_sales)) if len(df_sales) > 0 else 0.0,
         "kas_riil_bisnis_toko": kas_riil_bisnis_toko, "total_piutang": total_piutang, "rasio_keterikatan_modal": rasio_keterikatan_modal, "rasio_kerentanan_laba": rasio_kerentanan_laba,
         "jumlah_invoice_piutang": jumlah_invoice_piutang, "total_cash_in_pribadi": total_cash_in_pribadi, "total_cash_out_pribadi": total_cash_out_pribadi, "rasio_menabung_domestik": rasio_menabung_domestik,
-        "beban_cc_aktual": log_bank["Kartu Kredit"]["saldo"], "total_atm_pribadi": total_atm_pribadi, "daya_tahan_bulan": daya_tahan_bulan, "total_aset_lancar_toko": total_aset_lancar_toko,
+        "beban_cc_aktual": outstanding_cc_final,
         "laba_buku_total": laba_buku_total, "jumlah_boncos": jumlah_boncos, "total_kerugian": total_kerugian, "top_admin": top_admin,
         "wajib_setor_investor": wajib_setor_investor, "gaji_owner_dialokasikan": gaji_owner_dialokasikan, "cadangan_bisnis_kertas": cadangan_bisnis_40_kertas,
         "status_darurat_aktif": status_darurat_aktif, "nilai_defisit_gaji": nilai_defisit_gaji,

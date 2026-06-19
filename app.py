@@ -5704,16 +5704,16 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     
     st.markdown("##### 🏛️ A. Rumpun Profitabilitas & Kinerja Bisnis Murni")
     g1, g2, g3, g4 = st.columns(4)
-    with g1: st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">1. Net Profit Margin</div><div class="m-val">{db["npm"]:.2f}%</div><div class="m-sub">Efisiensi Laba Buku</div></div>', unsafe_allow_html=True)
-    with g2: st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">2. Return on Investment</div><div class="m-val">{db["roi"]:.2f}%</div><div class="m-sub">Efektivitas Putaran Modal</div></div>', unsafe_allow_html=True)
-    with g3: st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">3. Volume Penjualan</div><div class="m-val">{db["total_tiket_terjual"]} Pax</div><div class="m-sub">Total Produk Ter-issued</div></div>', unsafe_allow_html=True)
+    with g1: st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">1. Net Profit Margin</div><div class="m-val">{metrics["margin_laba_bersih"]:.2f}%</div><div class="m-sub">Efisiensi Laba Buku</div></div>', unsafe_allow_html=True)
+    with g2: st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">2. Return on Investment</div><div class="m-val">{metrics["roi"]:.2f}%</div><div class="m-sub">Efektivitas Putaran Modal</div></div>', unsafe_allow_html=True)
+    with g3: st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">3. Volume Penjualan</div><div class="m-val">{metrics["total_transaksi"]} Pax</div><div class="m-sub">Total Produk Ter-issued</div></div>', unsafe_allow_html=True)
     with g4: st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">4. Avg Laba per Produk</div><div class="m-val">Rp {db["laba_per_tiket"]:,.0f}</div><div class="m-sub">Rata-rata Margin Bersih</div></div>', unsafe_allow_html=True)
 
     st.markdown("##### 🧾 B. Rumpun Struktur Kas & Ambang Batas Piutang")
     g5, g6, g7, g8 = st.columns(4)
-    with g5: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">5. Kas Riil Toko</div><div class="m-val">Rp {db["kas_riil_bisnis_toko"]:,.0f}</div><div class="m-sub">Uang Fisik di Luar Vendor</div></div>', unsafe_allow_html=True)
-    with g6: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">6. Rasio Ikat Modal</div><div class="m-val c-red">{db["rasio_keterikatan_modal"]:.1f}%</div><div class="m-sub">Omzet Sangkut di Pelanggan</div></div>', unsafe_allow_html=True)
-    with g7: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">7. Rasio Rentan Laba</div><div class="m-val">{db["rasio_kerentanan_laba"]:.1f}%</div><div class="m-sub">Porsi Laba Semu Kertas</div></div>', unsafe_allow_html=True)
+    with g5: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">5. Kas Riil Bisnis</div><div class="m-val">Rp {["metrics["kas_riil"]"]:,.0f}</div><div class="m-sub">Uang Fisik Bisnis</div></div>', unsafe_allow_html=True)
+    with g6: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">6. Rasio Ikat Modal</div><div class="m-val c-red">{metrics["rasio_keterikatan_modal"]:.1f}%</div><div class="m-sub">Omzet Sangkut di Pelanggan</div></div>', unsafe_allow_html=True)
+    with g7: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">7. Rasio Rentan Laba</div><div class="m-val">{metrics["rasio_kerentanan_laba"]:.1f}%</div><div class="m-sub">Porsi Laba Semu Kertas</div></div>', unsafe_allow_html=True)
     with g8: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">8. Invoice Unpaid</div><div class="m-val c-red">{metrics["jumlah_invoice_piutang"]} Transaksi</div><div class="m-sub">Total Nota Belum Lunas</div></div>', unsafe_allow_html=True)
 
     st.markdown("##### 🏦 C. Rumpun Aliran Kas Keluar-Masuk Pribadi")
@@ -5726,9 +5726,9 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     st.markdown("##### 👑 D. Rumpun Forensik Kebocoran & Ketahanan")
     g13, g14, g15, g16 = st.columns(4)
     with g13: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">13. Cash Runway</div><div class="m-val c-grn">{db["daya_tahan_bulan"]:.2f} Bulan</div><div class="m-sub">Napas Domestik Tanpa Laba</div></div>', unsafe_allow_html=True)
-    with g14: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">14. Invoice Boncos</div><div class="m-val c-red">{db["jumlah_boncos"]} Kasus</div><div class="m-sub">Rugi Rugi: Rp {db["total_kerugian"]:,.0f}</div></div>', unsafe_allow_html=True)
+    with g14: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">14. Invoice Rugi</div><div class="m-val c-red">{metrics["jumlah_transaksi_rugi"]} Kasus</div><div class="m-sub">Rugi Rugi: Rp {db["total_kerugian"]:,.0f}</div></div>', unsafe_allow_html=True)
     with g15: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">15. Admin Terproduktif</div><div class="m-val" style="font-size:1.15rem; padding:3px 0;">{db["top_admin"]}</div><div class="m-sub">Sales Volume Terbanyak</div></div>', unsafe_allow_html=True)
-    with g16: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">16. Aset Lancar Toko</div><div class="m-val">Rp {db["total_aset_lancar_toko"]:,.0f}</div><div class="m-sub">Total Kas Riil + Piutang</div></div>', unsafe_allow_html=True)
+    with g16: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">16. Aset Lancar Toko</div><div class="m-val">Rp {metrics["kas_riil"] + metrics["total_piutang"]:,.0f}</div><div class="m-sub">Total Kas Riil + Piutang</div></div>', unsafe_allow_html=True)
 
     # DETAIL SALDO REKENING KAS PRIBADI
     st.write("")

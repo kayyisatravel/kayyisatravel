@@ -5726,7 +5726,7 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     st.markdown("##### 👑 D. Rumpun Forensik Kebocoran & Ketahanan")
     g13, g14, g15, g16 = st.columns(4)
     with g13: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">13. Cash Runway</div><div class="m-val c-grn">{db["daya_tahan_bulan"]:.2f} Bulan</div><div class="m-sub">Napas Domestik Tanpa Laba</div></div>', unsafe_allow_html=True)
-    with g14: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">14. Invoice Rugi</div><div class="m-val c-red">{db["total_kerugian"]} Kasus</div><div class="m-sub">Rugi Rugi: Rp {db["total_kerugian"]:,.0f}</div></div>', unsafe_allow_html=True)
+    with g14: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">14. Invoice Boncos</div><div class="m-val c-red">{db["jumlah_boncos"]} Kasus</div><div class="m-sub">Rugi Rugi: Rp {db["total_kerugian"]:,.0f}</div></div>', unsafe_allow_html=True)
     with g15: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">15. Admin Terproduktif</div><div class="m-val" style="font-size:1.15rem; padding:3px 0;">{db["top_admin"]}</div><div class="m-sub">Sales Volume Terbanyak</div></div>', unsafe_allow_html=True)
     with g16: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">16. Aset Lancar Toko</div><div class="m-val">Rp {db["total_aset_lancar_toko"]:,.0f}</div><div class="m-sub">Total Kas Riil + Piutang</div></div>', unsafe_allow_html=True)
 

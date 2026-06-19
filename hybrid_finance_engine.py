@@ -181,16 +181,47 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
     # LANGKAH 3: Sisa Beban Kartu Kredit Berjalan (Dikurangi Secara Adil)
     outstanding_cc_final = max(0.0, outstanding_cc_total - total_bayar_tagihan_cc)
     
+        # === PASTIKAN VARIABEL DAYA_TAHAN_BULAN INI ADA DI DALAM RETURN FILE HYBRID_FINANCE_ENGINE.PY ===
     return {
-        "npm": npm, "roi": roi, "total_tiket_terjual": len(df_sales), "laba_per_tiket": (laba_buku_total / len(df_sales)) if len(df_sales) > 0 else 0.0,
-        "kas_riil_bisnis_toko": kas_riil_bisnis_toko, "total_piutang": total_piutang, "rasio_keterikatan_modal": rasio_keterikatan_modal, "rasio_kerentanan_laba": rasio_kerentanan_laba,
-        "jumlah_invoice_piutang": jumlah_invoice_piutang, "total_cash_in_pribadi": total_cash_in_pribadi, "total_cash_out_pribadi": total_cash_out_pribadi, "rasio_menabung_domestik": rasio_menabung_domestik,
-        "beban_cc_aktual": outstanding_cc_final,
-        "laba_buku_total": laba_buku_total, "jumlah_boncos": jumlah_boncos, "total_kerugian": total_kerugian, "top_admin": top_admin,
-        "wajib_setor_investor": wajib_setor_investor, "gaji_owner_dialokasikan": gaji_owner_dialokasikan, "cadangan_bisnis_kertas": cadangan_bisnis_40_kertas,
-        "status_darurat_aktif": status_darurat_aktif, "nilai_defisit_gaji": nilai_defisit_gaji,
-        "log_bank_pribadi": log_bank, "mutasi_pos_digital": mutasi_pos_digital,
-        "target_kertas_domestik": {"1. Tempat Tinggal & Kendaraan (40.9%)": 10728067.0, "2. Rumah Tangga & Keluarga (25.8%)": 6768500.0, "3. Kebutuhan Pokok Hidup (19.0%)": 5000000.0, "4. Tagihan Bulanan & Ops (9.2%)": 2405000.0, "5. Edukasi, Anak & Sosial (5.1%)": 1358000.0},
-        "total_omzet_buku": total_omzet_buku, "total_hpp_buku": total_hpp_buku,
-        "debug_raw_sales_count": debug_raw_sales_count, "debug_raw_pribadi_count": debug_raw_pribadi_count
+        "npm": npm, 
+        "roi": roi, 
+        "total_tiket_terjual": len(df_sales), 
+        "laba_per_tiket": (laba_buku_total / len(df_sales)) if len(df_sales) > 0 else 0.0,
+        "kas_riil_bisnis_toko": kas_riil_bisnis_toko, 
+        "total_piutang": total_piutang, 
+        "rasio_keterikatan_modal": rasio_keterikatan_modal, 
+        "rasio_kerentanan_laba": rasio_kerentanan_laba,
+        "jumlah_invoice_piutang": jumlah_invoice_piutang, 
+        "total_cash_in_pribadi": total_cash_in_pribadi, 
+        "total_cash_out_pribadi": total_cash_out_pribadi, 
+        "rasio_menabung_domestik": rasio_menabung_domestik,
+        "beban_cc_aktual": outstanding_cc_final, 
+        "total_atm_pribadi": total_atm_pribadi, 
+        
+        "daya_tahan_bulan": daya_tahan_bulan, # <── SUNTIKKAN INI YANG HILANG (Penyembuh Eror)
+        
+        "total_aset_lancar_toko": total_aset_lancar_toko,
+        "laba_buku_total": laba_buku_total, 
+        "jumlah_boncos": jumlah_boncos, 
+        "total_kerugian": total_kerugian, 
+        "top_admin": top_admin,
+        "wajib_setor_investor": wajib_setor_investor, 
+        "gaji_owner_dialokasikan": gaji_owner_dialokasikan, 
+        "cadangan_bisnis_kertas": cadangan_bisnis_40_kertas,
+        "status_darurat_aktif": status_darurat_aktif, 
+        "nilai_defisit_gaji": nilai_defisit_gaji,
+        "log_bank_pribadi": log_bank, 
+        "mutasi_pos_digital": mutasi_pos_digital,
+        "target_kertas_domestik": {
+            "1. Tempat Tinggal & Kendaraan (40.9%)": 10728067.0, 
+            "2. Rumah Tangga & Keluarga (25.8%)": 6768500.0, 
+            "3. Kebutuhan Pokok Hidup (19.0%)": 5000000.0, 
+            "4. Tagihan Bulanan & Ops (9.2%)": 2405000.0, 
+            "5. Edukasi, Anak & Sosial (5.1%)": 1358000.0
+        },
+        "total_omzet_buku": total_omzet_buku, 
+        "total_hpp_buku": total_hpp_buku,
+        "debug_raw_sales_count": debug_raw_sales_count, 
+        "debug_raw_pribadi_count": debug_raw_pribadi_count
     }
+

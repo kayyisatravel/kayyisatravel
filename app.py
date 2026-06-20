@@ -5983,13 +5983,15 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
                 "🔴 BEBAN POKOK PENJUALAN (Total HPP Beli Tiket)",
                 "📊 LABA KOTOR (Gross Profit)",
                 "🔴 BEBAN OPERASIONAL (Biaya Ops Toko)",
-                "🏆 LABA BERSIH RIIL PERIODE BERJALAN"
+                "🔴 BEBAN KEUANGAN: Biaya Bagi Hasil Investor (7.5%)", # <── Masuk sebagai pengurang Laba
+                "🏆 LABA BERSIH RIIL HAK PEMILIK UTAMA"
             ],
             "Nilai Buku": [
                 f"Rp {db['total_omzet_buku']:,.0f}",
                 f"Rp {db['total_hpp_buku']:,.0f}",
                 f"Rp {db['laba_buku_total']:,.0f}",
                 f"Rp {db['total_biaya_operasional_bisnis']:,.0f}",
+                f"Rp {db['wajib_setor_investor']:,.0f}", # Menampilkan nilai beban 7.5%
                 f"Rp {db['laba_bersih_riil_bisnis']:,.0f}"
             ]
         })
@@ -6001,22 +6003,19 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
     with st.container():
         st.markdown("### ⚖️ 2. LAPORAN POSISI KEUANGAN (BALANCE SHEET)")
         
-        # 1. SISI AKTIVA (Tetap Aman Utuh)
+        # Sisi Aktiva (Membaca total aset lancar riil saat ini)
         total_aktiva_riil = max(0.0, db['kas_riil_bisnis_toko']) + db['total_piutang']
         
-        # 2. SISI PASIVA (Integrasi Utang Kartu Kredit ke Kelompok Liabilitas)
-        nilai_utang_usaha = 0.0 # Utang operasional pihak ketiga tetap 0
-        nilai_utang_cc_bank = float(db.get('beban_cc_aktual', 0.0)) # <── Ambil nominal Outstanding CC secara otomatis
+        # Sisi Pasiva (Liabilitas & Ekuitas Hasil Pemindahan Kontrak Akad)
+        nilai_utang_cc_bank = float(db.get('beban_cc_aktual', 0.0))
+        nilai_utang_pokok_investor = 100000000.0 # <── Rp 100 Juta Jan dipindahkan resmi ke KAMAR LIABILITAS
         
-        # Alokasi Ekuitas SAK EMKM
-        nilai_modal_investor = float(db['wajib_setor_investor'])
-        nilai_saldo_laba = float(db['laba_bersih_riil_bisnis'])
+        total_liabilitas_kewajiban = nilai_utang_cc_bank + nilai_utang_pokok_investor
+        nilai_saldo_laba_berjalan = float(db['laba_bersih_riil_bisnis'])
         
-        # Hitung Nilai Buku Modal Kerja Bersih Pemilik setelah dikurangi Utang CC Bank agar 100% Balanced
-        nilai_total_liabilitas = nilai_utang_usaha + nilai_utang_cc_bank
-        nilai_modal_pemilik = total_aktiva_riil - (nilai_total_liabilitas + nilai_modal_investor + nilai_saldo_laba)
-        
-        total_pasiva_riil = nilai_total_liabilitas + nilai_modal_investor + nilai_modal_pemilik + nilai_saldo_laba
+        # Rumus penyeimbang otomatis mengunci porsi sisa nilai ekuitas modal kerja pemilik
+        nilai_modal_pemilik = total_aktiva_riil - (total_liabilitas_kewajiban + nilai_saldo_laba_berjalan)
+        total_pasiva_riil = total_liabilitas_kewajiban + nilai_modal_pemilik + nilai_saldo_laba_berjalan
     
         c_neraca_kiri, c_neraca_kanan = st.columns(2)
         
@@ -6033,16 +6032,16 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
             df_pasiva_sejati = pd.DataFrame({
                 "Pos Liabilitas & Ekuitas": [
                     "Liabilitas: Utang Usaha / Dagang", 
-                    "Liabilitas: Utang Bank / Kartu Kredit", # <── Baris Baru Resmi SAK EMKM
-                    "Ekuitas: Modal Investor (7.5%)", 
+                    "Liabilitas: Utang Bank / Kartu Kredit",
+                    "Liabilitas: Utang Jangka Pendek (Investor Pokok)", 
                     "Ekuitas: Modal Pemilik / Modal Kerja", 
-                    "Ekuitas: Saldo Laba (Laba Ditahan)", 
+                    "Ekuitas: Saldo Laba (Laba Ditahan + Laba Berjalan)", 
                     "TOTAL LIABILITAS & EKUITAS"
                 ],
                 "Nilai Buku": [
                     f"Rp {nilai_utang_usaha:,.0f}", 
-                    f"Rp {nilai_utang_cc_bank:,.0f}", # <── Memunculkan angka Rp 444.992.692
-                    f"Rp {nilai_modal_investor:,.0f}", 
+                    f"Rp {nilai_utang_cc_bank:,.0f}",
+                    f"Rp {nilai_utang_pokok_investor:,.0f}",# <── Memunculkan angka Rp 444.992.692 
                     f"Rp {nilai_modal_pemilik:,.0f}", 
                     f"Rp {nilai_saldo_laba:,.0f}", 
                     f"Rp {total_pasiva_riil:,.0f}"

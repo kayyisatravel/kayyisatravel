@@ -6007,6 +6007,7 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
         total_aktiva_riil = max(0.0, db['kas_riil_bisnis_toko']) + db['total_piutang']
         
         # Sisi Pasiva (Liabilitas & Ekuitas Hasil Pemindahan Kontrak Akad)
+        nilai_utang_usaha = 0.0
         nilai_utang_cc_bank = float(db.get('beban_cc_aktual', 0.0))
         nilai_utang_pokok_investor = 100000000.0 # <── Rp 100 Juta Jan dipindahkan resmi ke KAMAR LIABILITAS
         

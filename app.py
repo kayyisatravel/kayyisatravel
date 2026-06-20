@@ -5803,9 +5803,20 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     saldo_kas_bulan_ini = total_masuk_bulan_ini - total_keluar_bulan_ini
     
     # 5. BUNGKUS KEMBALI MENJADI DATA BULANAN UNTUK DISUNTIKKAN KE ENGINE HYBRID
+    if not df_piutang_from_jurnal.empty and "Tanggal" in df_piutang_from_jurnal.columns:
+        df_piutang_from_jurnal["Tanggal"] = pd.to_datetime(df_piutang_from_jurnal["Tanggal"], errors="coerce")
+        if bulan_terpilih == "Semua Bulan":
+            mask_piutang_dash = (df_piutang_from_jurnal["Tanggal"].dt.year == tahun_terpilih)
+        else:
+            mask_piutang_dash = (df_piutang_from_jurnal["Tanggal"].dt.year == tahun_terpilih) & (df_piutang_from_jurnal["Tanggal"].dt.month == nama_bulan_id.index(bulan_terpilih))
+        piutang_dashboard_filtered = df_piutang_from_jurnal[mask_piutang_dash]["Sisa"].sum()
+    else:
+        piutang_dashboard_filtered = jurnal_data_master["piutang_total"]
+
+    # Kirim ke engine dengan dimensi waktu yang sudah disetarakan (Valid 100%)
     jurnal_data_dashboard_input = {
         "saldo_kas_riil": float(saldo_kas_bulan_ini),
-        "piutang_total": float(jurnal_data_master["piutang_total"]), # Piutang kumulatif/aging global
+        "piutang_total": float(piutang_dashboard_filtered), 
         "jumlah_invoice_piutang": int(jurnal_data_master["jumlah_invoice_piutang"])
     }
     

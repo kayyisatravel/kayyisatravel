@@ -226,8 +226,8 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
                 if "cadangan" in pos_rek or "aset kantor" in pos_rek:
                     total_biaya_operasional_bisnis += nominal
 
-    # DIKELUARKAN DARI BLOK IF: Jaminan tetap dihitung bernilai Rp 0 saat sheet Pribadi masih kosong
-    laba_bersih_riil_bisnis = laba_buku_total - total_biaya_operasional_bisnis
+    beban_bagi_hasil_investor = max(0.0, kas_riil_bisnis_toko) * 0.075
+    laba_bersih_riil_bisnis = laba_buku_total - total_biaya_operasional_bisnis - beban_bagi_hasil_investor
     daya_tahan_bulan = (kas_riil_bisnis_toko / GAJI_BASELINE_FLAT) if kas_riil_bisnis_toko > 0 else 0.0
 
     
@@ -249,6 +249,7 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
         "total_atm_pribadi": total_atm_pribadi, 
         
         "daya_tahan_bulan": daya_tahan_bulan, # <── SUNTIKKAN INI YANG HILANG (Penyembuh Eror)
+        "wajib_setor_investor": beban_bagi_hasil_investor,
         "laba_bersih_riil_bisnis": laba_bersih_riil_bisnis, # <── Pengganti top_admin di level data
         "total_biaya_operasional_bisnis": total_biaya_operasional_bisnis,
         "total_aset_lancar_toko": total_aset_lancar_toko,

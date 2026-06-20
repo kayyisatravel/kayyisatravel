@@ -6035,7 +6035,8 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
                 "Nilai Buku": [
                     f"Rp {db['wajib_setor_investor']:,.0f}", 
                     f"Rp {db['cadangan_bisnis_kertas']:,.0f}", 
-                    f"Rp {nilai_ekuitas_penyeimbang:,.0f}" # <── Menampilkan sisa nilai ekuitas riil di lapangan
+                    f"Rp {nilai_ekuitas_penyeimbang:,.0f}",
+                    f"Rp {total_pasiva_riil:,.0f}"
                 ]
             })
             st.dataframe(df_pasiva_sejati, hide_index=True, use_container_width=True)

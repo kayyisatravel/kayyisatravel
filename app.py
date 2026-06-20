@@ -5970,14 +5970,45 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     #     st.dataframe(df_domestik_final, hide_index=True, use_container_width=True)
 
 st.write("")
-with st.container():
+with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False):
+
+    # =============================================================================
+    # LAPORAN 1: LAPORAN LABA RUGI
+    # =============================================================================
+    with st.container():
+        st.markdown("### 📈 1. LAPORAN LABA RUGI (INCOME STATEMENT)")
+        df_laba_rugi_emkm = pd.DataFrame({
+            "Komponen Laporan Keuangan": [
+                "🟢 PENDAPATAN (Total Omzet Penjualan Tiket)",
+                "🔴 BEBAN POKOK PENJUALAN (Total HPP Beli Tiket)",
+                "📊 LABA KOTOR (Gross Profit)",
+                "🔴 BEBAN OPERASIONAL (Biaya Ops Toko)",
+                "🏆 LABA BERSIH RIIL PERIODE BERJALAN"
+            ],
+            "Nilai Buku": [
+                f"Rp {db['total_omzet_buku']:,.0f}",
+                f"Rp {db['total_hpp_buku']:,.0f}",
+                f"Rp {db['laba_buku_total']:,.0f}",
+                f"Rp {db['total_biaya_operasional_bisnis']:,.0f}",
+                f"Rp {db['laba_bersih_riil_bisnis']:,.0f}"
+            ]
+        })
+        st.dataframe(df_laba_rugi_emkm, hide_index=True, use_container_width=True)
+    
+    # =============================================================================
+    # LAPORAN 2: LAPORAN POSISI KEUANGAN (NERACA SEJATI)
+    # =============================================================================
+    with st.container():
         st.markdown("### ⚖️ 2. LAPORAN POSISI KEUANGAN (BALANCE SHEET)")
         
         # Perhitungan Komponen Neraca Independen (True Balancing)
         total_aktiva_riil = max(0.0, db['kas_riil_bisnis_toko']) + db['total_piutang']
         
-        # Pasiva dibangun dari Kewajiban + Ekuitas Independen (Bukan rumus pengurangan)
-        nilai_ekuitas_riil = db['laba_bersih_riil_bisnis'] 
+        # SAK EMKM: Ambil nilai HPP sebagai pengakuan modal kerja/talangan yang berjalan di tengah jalan
+        nilai_modal_kerja_awal = float(db['total_hpp_buku'])
+        
+        # Pasiva dibangun dari Kewajiban + Ekuitas Independen (Termasuk Penyangga HPP)
+        nilai_ekuitas_riil = db['laba_bersih_riil_bisnis'] + nilai_modal_kerja_awal 
         total_pasiva_riil = db['wajib_setor_investor'] + db['cadangan_bisnis_kertas'] + nilai_ekuitas_riil
     
         c_neraca_kiri, c_neraca_kanan = st.columns(2)
@@ -5993,10 +6024,23 @@ with st.container():
         with c_neraca_kanan:
             st.markdown("**SISI PASIVA (KEWAJIBAN & MODAL)**")
             df_pasiva_sejati = pd.DataFrame({
-                "Komponen Kewajiban & Modal": ["Utang Hak Setor Investor (7.5%)", "Plafon Cadangan Bisnis (40%)", "Ekuitas / Laba Bersih Kumulatif", "TOTAL PASIVA (KEWAJIBAN+MODAL)"],
-                "Nilai Buku": [f"Rp {db['wajib_setor_investor']:,.0f}", f"Rp {db['cadangan_bisnis_kertas']:,.0f}", f"Rp {nilai_ekuitas_riil:,.0f}", f"Rp {total_pasiva_riil:,.0f}"]
+                "Komponen Kewajiban & Modal": [
+                    "Utang Hak Setor Investor (7.5%)", 
+                    "Plafon Cadangan Bisnis (40%)", 
+                    "Modal Kerja Awal (Penyangga HPP)", # <── Akun Baru Penyeimbang Laporan Tengah Jalan
+                    "Ekuitas / Laba Bersih Berjalan", 
+                    "TOTAL PASIVA (KEWAJIBAN+MODAL)"
+                ],
+                "Nilai Buku": [
+                    f"Rp {db['wajib_setor_investor']:,.0f}", 
+                    f"Rp {db['cadangan_bisnis_kertas']:,.0f}", 
+                    f"Rp {nilai_modal_kerja_awal:,.0f}", # <── Tampilkan nominal HPP secara mandiri
+                    f"Rp {db['laba_bersih_riil_bisnis']:,.0f}", 
+                    f"Rp {total_pasiva_riil:,.0f}"
+                ]
             })
             st.dataframe(df_pasiva_sejati, hide_index=True, use_container_width=True)
+
     
         # Sensor Alarm Detektor Kebocoran Neraca ERP
         selisih_neraca = total_aktiva_riil - total_pasiva_riil
@@ -6017,5 +6061,4 @@ with st.container():
             f"3. **Status Kas Koran Bank (Pribadi)**: Saat ini total saldo perbankan fisik yang tercatat di sheet Pribadi adalah **Rp {db['total_atm_pribadi']:,.0f}**. Seluruh pengeluaran pos domestik (Rumah Tangga, Lifestyle) diisolasi dan tidak dibebankan ke dalam Laporan Laba Rugi Bisnis guna mempertahankan Asas Kesatuan Usaha.\n"
             f"4. **Manajemen Risiko Piutang**: Rasio Kerentanan Laba tercatat sebesar **{db['rasio_kerentanan_laba']:.1f}%**. Terdapat **{db['jumlah_invoice_piutang']}** Invoice aktif belum tertagih dengan nilai total piutang **Rp {db['total_piutang']:,.0f}**."
         )
-
 

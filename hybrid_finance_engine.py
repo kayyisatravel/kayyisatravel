@@ -179,7 +179,6 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
         if not mode_admin.empty: top_admin = str(mode_admin[0])
 
     total_aset_lancar_toko = max(0.0, kas_riil_bisnis_toko) + total_piutang
-    outstanding_cc_total = 0.0
 
     # =========================================================================
     # BLOK C: OPERASIONAL KARTU KREDIT (LANGKAH 1 - 3) - REVISI CUT-OFF TOTAL

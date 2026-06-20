@@ -131,6 +131,9 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
     wajib_setor_investor = max(0.0, kas_riil_bisnis_toko) * 0.075
     kas_setelah_investor = max(0.0, kas_riil_bisnis_toko) - wajib_setor_investor
     
+    # =========================================================================
+    # BLOK A: LOGIKA STATUS DARURAT & GAJI FIXED COST FLATS
+    # =========================================================================
     status_darurat_aktif = False
     nilai_defisit_gaji = 0.0
     
@@ -143,22 +146,9 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
         status_darurat_aktif = True
         nilai_defisit_gaji = GAJI_BASELINE_FLAT - kas_setelah_investor
 
-    total_biaya_operasional_bisnis = 0.0 
-    if not df_pribadi.empty and "Bank_Sumber" in df_pribadi.columns:
-        for _, row in df_pribadi.iterrows():
-            kat = str(row.get("Kategori", "")).strip().lower()
-            pos_rek = str(row.get("No_Rekening_AI", "")).strip().lower()
-            nominal = row["Nominal (Num)"]
-            
-            # JIKA kategori adalah pengeluaran DAN kantongnya ditujukan untuk urusan toko/bisnis
-            if kat == "pengeluaran":
-                if "cadangan" in pos_rek or "aset kantor" in pos_rek:
-                    # Akumulasikan ke biaya operasional murni (misal: bayar sewa, bayar internet, listrik kantor)
-                    total_biaya_operasional_bisnis += nominal
-        laba_bersih_riil_bisnis = laba_buku_total - total_biaya_operasional_bisnis
-        daya_tahan_bulan = (kas_riil_bisnis_toko / GAJI_BASELINE_FLAT) if kas_riil_bisnis_toko > 0 else 0.0
-
-    # FORENSIK DETEKSI TRANSAKSI RUGI LAMA Anda
+    # =========================================================================
+    # BLOK B: FORENSIK DETEKSI TRANSAKSI RUGI LAMA Anda
+    # =========================================================================
     transaksi_boncos = df_sales[df_sales["Laba (Num)"] < 0] if not df_sales.empty else pd.DataFrame()
     jumlah_boncos = len(transaksi_boncos)
     total_kerugian = abs(transaksi_boncos["Laba (Num)"].sum()) if not transaksi_boncos.empty else 0.0
@@ -171,6 +161,9 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
     total_aset_lancar_toko = max(0.0, kas_riil_bisnis_toko) + total_piutang
     outstanding_cc_total = 0.0
 
+    # =========================================================================
+    # BLOK C: OPERASIONAL KARTU KREDIT (LANGKAH 1 - 3)
+    # =========================================================================
     # LANGKAH 1: Hitung total semua transaksi tiket yang digesek pakai CC (Mulai Mei 2026)
     if not df_sales.empty and "Sumber Dana" in df_sales.columns:
         mask_sumber_cc = df_sales["Sumber Dana"].astype(str).str.lower().str.contains("credit|cc|kartu", na=False)
@@ -184,7 +177,6 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
     # LANGKAH 2: Hitung total uang yang sudah dibayarkan untuk melunasi tagihan CC di sheet Pribadi
     total_bayar_tagihan_cc = 0.0
     if not df_pribadi.empty and "Keterangan" in df_pribadi.columns:
-        # Filter mencari baris pengeluaran yang ditujukan untuk membayar tagihan kartu kredit
         mask_bayar_cc = (
             df_pribadi["Keterangan"].astype(str).str.lower().str.contains("tagihan cc|pelunasan cc|bayar cc|tagihan kartu", na=False) &
             (df_pribadi["Kategori"].astype(str).str.strip().str.lower() == "pengeluaran")
@@ -193,6 +185,25 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
 
     # LANGKAH 3: Sisa Beban Kartu Kredit Berjalan (Dikurangi Secara Adil)
     outstanding_cc_final = max(0.0, outstanding_cc_total - total_bayar_tagihan_cc)
+
+    # =========================================================================
+    # BLOK D: SENSOR DETEKSI OTOMATIS BIAYA OPS TOKO & INTEGRASI VARIABEL UTAMA
+    # =========================================================================
+    total_biaya_operasional_bisnis = 0.0 
+    if not df_pribadi.empty and "Bank_Sumber" in df_pribadi.columns:
+        for _, row in df_pribadi.iterrows():
+            kat = str(row.get("Kategori", "")).strip().lower()
+            pos_rek = str(row.get("No_Rekening_AI", "")).strip().lower()
+            nominal = row["Nominal (Num)"]
+            
+            if kat == "pengeluaran":
+                if "cadangan" in pos_rek or "aset kantor" in pos_rek:
+                    total_biaya_operasional_bisnis += nominal
+
+    # DIKELUARKAN DARI BLOK IF: Jaminan tetap dihitung bernilai Rp 0 saat sheet Pribadi masih kosong
+    laba_bersih_riil_bisnis = laba_buku_total - total_biaya_operasional_bisnis
+    daya_tahan_bulan = (kas_riil_bisnis_toko / GAJI_BASELINE_FLAT) if kas_riil_bisnis_toko > 0 else 0.0
+
     
         # === PASTIKAN VARIABEL DAYA_TAHAN_BULAN INI ADA DI DALAM RETURN FILE HYBRID_FINANCE_ENGINE.PY ===
     return {

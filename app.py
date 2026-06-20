@@ -4110,206 +4110,206 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
 # =========================================================================
 # 🎨 TAHAP VISUALISASI: RENDER KARTU SALDO MULTI-BANK & ANGGARAN DIGITAL AI
 # =========================================================================
-with st.expander("Laporan Saldo Rekening Real Time"):
-    st.markdown("### 🏦 I. Posisi Saldo Riil di Rekening Bank (Sesuai ATM)")
-    st.caption("Angka di bawah dihitung otomatis dari akumulasi seluruh mutasi masuk dan keluar.")
+# with st.expander("Laporan Saldo Rekening Real Time"):
+#     st.markdown("### 🏦 I. Posisi Saldo Riil di Rekening Bank (Sesuai ATM)")
+#     st.caption("Angka di bawah dihitung otomatis dari akumulasi seluruh mutasi masuk dan keluar.")
     
-    # Tarik data saldo bank dari fungsi finance_engine v5 kita
-    saldo_bank = metrics.get("saldo_bank_riil", {})
+#     # Tarik data saldo bank dari fungsi finance_engine v5 kita
+#     saldo_bank = metrics.get("saldo_bank_riil", {})
     
-    # Susun 4 kolom horizontal untuk baris pertama bank
-    cb1, cb2, cb3, cb4 = st.columns(4)
-    with cb1:
-        st.markdown(f"""<div style='background-color:#e3f2fd; padding:15px; border-radius:10px; border-left: 5px solid #1e88e5;'>
-            <p style='margin:0; font-size:12px; color:#555;'>🟦 SALDO BCA</p>
-            <h3 style='margin:0; color:#1565c0;'>Rp {int(saldo_bank.get("BCA", 0)):,}</h3>
-        </div>""".replace(",", "."), unsafe_allow_html=True)
-    with cb2:
-        st.markdown(f"""<div style='background-color:#e8f5e9; padding:15px; border-radius:10px; border-left: 5px solid #43a047;'>
-            <p style='margin:0; font-size:12px; color:#555;'>🟩 SALDO MANDIRI</p>
-            <h3 style='margin:0; color:#2e7d32;'>Rp {int(saldo_bank.get("Mandiri", 0)):,}</h3>
-        </div>""".replace(",", "."), unsafe_allow_html=True)
-    with cb3:
-        st.markdown(f"""<div style='background-color:#fff3e0; padding:15px; border-radius:10px; border-left: 5px solid #fb8c00;'>
-            <p style='margin:0; font-size:12px; color:#555;'>🟧 SALDO SEABANK</p>
-            <h3 style='margin:0; color:#ef6c00;'>Rp {int(saldo_bank.get("SeaBank", 0)):,}</h3>
-        </div>""".replace(",", "."), unsafe_allow_html=True)
-    with cb4:
-        st.markdown(f"""<div style='background-color:#f3e5f5; padding:15px; border-radius:10px; border-left: 5px solid #8e24aa;'>
-            <p style='margin:0; font-size:12px; color:#555;'>🟪 SALDO BSI</p>
-            <h3 style='margin:0; color:#6a1b9a;'>Rp {int(saldo_bank.get("BSI", 0)):,}</h3>
-        </div>""".replace(",", "."), unsafe_allow_html=True)
+#     # Susun 4 kolom horizontal untuk baris pertama bank
+#     cb1, cb2, cb3, cb4 = st.columns(4)
+#     with cb1:
+#         st.markdown(f"""<div style='background-color:#e3f2fd; padding:15px; border-radius:10px; border-left: 5px solid #1e88e5;'>
+#             <p style='margin:0; font-size:12px; color:#555;'>🟦 SALDO BCA</p>
+#             <h3 style='margin:0; color:#1565c0;'>Rp {int(saldo_bank.get("BCA", 0)):,}</h3>
+#         </div>""".replace(",", "."), unsafe_allow_html=True)
+#     with cb2:
+#         st.markdown(f"""<div style='background-color:#e8f5e9; padding:15px; border-radius:10px; border-left: 5px solid #43a047;'>
+#             <p style='margin:0; font-size:12px; color:#555;'>🟩 SALDO MANDIRI</p>
+#             <h3 style='margin:0; color:#2e7d32;'>Rp {int(saldo_bank.get("Mandiri", 0)):,}</h3>
+#         </div>""".replace(",", "."), unsafe_allow_html=True)
+#     with cb3:
+#         st.markdown(f"""<div style='background-color:#fff3e0; padding:15px; border-radius:10px; border-left: 5px solid #fb8c00;'>
+#             <p style='margin:0; font-size:12px; color:#555;'>🟧 SALDO SEABANK</p>
+#             <h3 style='margin:0; color:#ef6c00;'>Rp {int(saldo_bank.get("SeaBank", 0)):,}</h3>
+#         </div>""".replace(",", "."), unsafe_allow_html=True)
+#     with cb4:
+#         st.markdown(f"""<div style='background-color:#f3e5f5; padding:15px; border-radius:10px; border-left: 5px solid #8e24aa;'>
+#             <p style='margin:0; font-size:12px; color:#555;'>🟪 SALDO BSI</p>
+#             <h3 style='margin:0; color:#6a1b9a;'>Rp {int(saldo_bank.get("BSI", 0)):,}</h3>
+#         </div>""".replace(",", "."), unsafe_allow_html=True)
 
-    # Baris kedua untuk sisa akun rekening bank Anda
-    st.markdown("<br>", unsafe_allow_html=True)
-    cb5, cb6, cb7, cb8 = st.columns(4)
-    with cb5:
-        st.markdown(f"""<div style='background-color:#e1f5fe; padding:15px; border-radius:10px; border-left: 5px solid #039be5;'>
-            <p style='margin:0; font-size:12px; color:#555;'>🌐 SALDO BNI</p>
-            <h3 style='margin:0; color:#0277bd;'>Rp {int(saldo_bank.get("BNI", 0)):,}</h3>
-        </div>""".replace(",", "."), unsafe_allow_html=True)
-    with cb6:
-        st.markdown(f"""<div style='background-color:#efebe9; padding:15px; border-radius:10px; border-left: 5px solid #6d4c41;'>
-            <p style='margin:0; font-size:12px; color:#555;'>🟫 SALDO BRI</p>
-            <h3 style='margin:0; color:#4e342e;'>Rp {int(saldo_bank.get("BRI", 0)):,}</h3>
-        </div>""".replace(",", "."), unsafe_allow_html=True)
-    with cb7:
-        st.markdown(f"""<div style='background-color:#fffde7; padding:15px; border-radius:10px; border-left: 5px solid #ffd600;'>
-            <p style='margin:0; font-size:12px; color:#1a237e; font-weight:bold;'>🟨 SALDO MEGA</p>
-            <h3 style='margin:0; color:#0d47a1;'>Rp {int(saldo_bank.get("Mega", 0)):,}</h3>
-        </div>""".replace(",", "."), unsafe_allow_html=True)
-    with cb8:
-        st.markdown(f"""<div style='background-color:#eceff1; padding:15px; border-radius:10px; border-left: 5px solid #546e7a;'>
-            <p style='margin:0; font-size:12px; color:#555;'>💵 DOMPET TUNAI</p>
-            <h3 style='margin:0; color:#37474f;'>Rp {int(saldo_bank.get("Tunai", 0)):,}</h3>
-        </div>""".replace(",", "."), unsafe_allow_html=True)
+#     # Baris kedua untuk sisa akun rekening bank Anda
+#     st.markdown("<br>", unsafe_allow_html=True)
+#     cb5, cb6, cb7, cb8 = st.columns(4)
+#     with cb5:
+#         st.markdown(f"""<div style='background-color:#e1f5fe; padding:15px; border-radius:10px; border-left: 5px solid #039be5;'>
+#             <p style='margin:0; font-size:12px; color:#555;'>🌐 SALDO BNI</p>
+#             <h3 style='margin:0; color:#0277bd;'>Rp {int(saldo_bank.get("BNI", 0)):,}</h3>
+#         </div>""".replace(",", "."), unsafe_allow_html=True)
+#     with cb6:
+#         st.markdown(f"""<div style='background-color:#efebe9; padding:15px; border-radius:10px; border-left: 5px solid #6d4c41;'>
+#             <p style='margin:0; font-size:12px; color:#555;'>🟫 SALDO BRI</p>
+#             <h3 style='margin:0; color:#4e342e;'>Rp {int(saldo_bank.get("BRI", 0)):,}</h3>
+#         </div>""".replace(",", "."), unsafe_allow_html=True)
+#     with cb7:
+#         st.markdown(f"""<div style='background-color:#fffde7; padding:15px; border-radius:10px; border-left: 5px solid #ffd600;'>
+#             <p style='margin:0; font-size:12px; color:#1a237e; font-weight:bold;'>🟨 SALDO MEGA</p>
+#             <h3 style='margin:0; color:#0d47a1;'>Rp {int(saldo_bank.get("Mega", 0)):,}</h3>
+#         </div>""".replace(",", "."), unsafe_allow_html=True)
+#     with cb8:
+#         st.markdown(f"""<div style='background-color:#eceff1; padding:15px; border-radius:10px; border-left: 5px solid #546e7a;'>
+#             <p style='margin:0; font-size:12px; color:#555;'>💵 DOMPET TUNAI</p>
+#             <h3 style='margin:0; color:#37474f;'>Rp {int(saldo_bank.get("Tunai", 0)):,}</h3>
+#         </div>""".replace(",", "."), unsafe_allow_html=True)
 
-        # Kolom kosong pelengkap simetri layout
-        #st.write("")
+#         # Kolom kosong pelengkap simetri layout
+#         #st.write("")
 
-    st.markdown("---")
-    st.markdown("### 💼 II. Kantong Anggaran Hasil Alokasi AI (Dompet Keluarga & Toko)")
-    st.caption("Pembagian dana bersih setelah dipotong otomatis untuk hak wajib investor sebesar 7.5%.")
+#     st.markdown("---")
+#     st.markdown("### 💼 II. Kantong Anggaran Hasil Alokasi AI (Dompet Keluarga & Toko)")
+#     st.caption("Pembagian dana bersih setelah dipotong otomatis untuk hak wajib investor sebesar 7.5%.")
     
-    # Tarik data anggaran dompet dari alokasi_ai finance_engine
-    alokasi = metrics.get("alokasi_ai", {})
+#     # Tarik data anggaran dompet dari alokasi_ai finance_engine
+#     alokasi = metrics.get("alokasi_ai", {})
     
-    ca1, ca2, ca3 = st.columns(3)
-    with ca1:
-        st.markdown(f"""<div style='background-color:#fffde7; padding:20px; border-radius:12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 6px solid #fdd835;'>
-            <h4 style='margin:0; color:#f57f17;'>💸 SETORAN INVESTOR (7.5%)</h4>
-            <h2 style='margin:10px 0 0 0; color:#f57f17;'>Rp {int(alokasi.get("investor", 0)):,}</h2>
-            <p style='margin:5px 0 0 0; font-size:11px; color:#777;'>Dana wajib disisihkan periode ini</p>
-        </div>""".replace(",", "."), unsafe_allow_html=True)
-    with ca2:
-        st.markdown(f"""<div style='background-color:#e8f5e9; padding:20px; border-radius:12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 6px solid #43a047;'>
-            <h4 style='margin:0; color:#1b5e20;'>🛡️ CADANGAN BISNIS (40%)</h4>
-            <h2 style='margin:10px 0 0 0; color:#1b5e20;'>Rp {int(alokasi.get("cadangan_bisnis", 0)):,}</h2>
-            <p style='margin:5px 0 0 0; font-size:11px; color:#777;'>Tabungan darurat & modal proyek besar</p>
-        </div>""".replace(",", "."), unsafe_allow_html=True)
-    with ca3:
-        # Hitung total Gaji Owner (Gabungan Rumah Tangga + Investasi + Lifestyle)
-        total_gaji_owner = alokasi.get("rumah_tangga", 0) + alokasi.get("investasi", 0) + alokasi.get("lifestyle", 0)
-        st.markdown(f"""<div style='background-color:#e1f5fe; padding:20px; border-radius:12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 6px solid #039be5;'>
-            <h4 style='margin:0; color:#01579b;'>💰 TOTAL GAJI OWNER (60%)</h4>
-            <h2 style='margin:10px 0 0 0; color:#01579b;'>Rp {int(total_gaji_owner):,}</h2>
-            <p style='margin:5px 0 0 0; font-size:11px; color:#777;'>Total jatah belanja dapur masuk keluarga</p>
-        </div>""".replace(",", "."), unsafe_allow_html=True)
+#     ca1, ca2, ca3 = st.columns(3)
+#     with ca1:
+#         st.markdown(f"""<div style='background-color:#fffde7; padding:20px; border-radius:12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 6px solid #fdd835;'>
+#             <h4 style='margin:0; color:#f57f17;'>💸 SETORAN INVESTOR (7.5%)</h4>
+#             <h2 style='margin:10px 0 0 0; color:#f57f17;'>Rp {int(alokasi.get("investor", 0)):,}</h2>
+#             <p style='margin:5px 0 0 0; font-size:11px; color:#777;'>Dana wajib disisihkan periode ini</p>
+#         </div>""".replace(",", "."), unsafe_allow_html=True)
+#     with ca2:
+#         st.markdown(f"""<div style='background-color:#e8f5e9; padding:20px; border-radius:12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 6px solid #43a047;'>
+#             <h4 style='margin:0; color:#1b5e20;'>🛡️ CADANGAN BISNIS (40%)</h4>
+#             <h2 style='margin:10px 0 0 0; color:#1b5e20;'>Rp {int(alokasi.get("cadangan_bisnis", 0)):,}</h2>
+#             <p style='margin:5px 0 0 0; font-size:11px; color:#777;'>Tabungan darurat & modal proyek besar</p>
+#         </div>""".replace(",", "."), unsafe_allow_html=True)
+#     with ca3:
+#         # Hitung total Gaji Owner (Gabungan Rumah Tangga + Investasi + Lifestyle)
+#         total_gaji_owner = alokasi.get("rumah_tangga", 0) + alokasi.get("investasi", 0) + alokasi.get("lifestyle", 0)
+#         st.markdown(f"""<div style='background-color:#e1f5fe; padding:20px; border-radius:12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 6px solid #039be5;'>
+#             <h4 style='margin:0; color:#01579b;'>💰 TOTAL GAJI OWNER (60%)</h4>
+#             <h2 style='margin:10px 0 0 0; color:#01579b;'>Rp {int(total_gaji_owner):,}</h2>
+#             <p style='margin:5px 0 0 0; font-size:11px; color:#777;'>Total jatah belanja dapur masuk keluarga</p>
+#         </div>""".replace(",", "."), unsafe_allow_html=True)
 
-    # Baris kedua untuk sub-pos pecahan dari total jatah Gaji Owner 60%
-    st.markdown("<br>", unsafe_allow_html=True)
-    ca4, ca5, ca6 = st.columns(3)
-    with ca4:
-        st.markdown(f"""<div style='background-color:#f9fbe7; padding:18px; border-radius:10px; border-left: 6px solid #c0ca33;'>
-            <p style='margin:0; font-size:12px; color:#555;'>🏠 POS RUMAH TANGGA & KPR (50%)</p>
-            <h3 style='margin:5px 0 0 0; color:#827717;'>Rp {int(alokasi.get("rumah_tangga", 0)):,}</h3>
-        </div>""".replace(",", "."), unsafe_allow_html=True)
-    with ca5:
-        st.markdown(f"""<div style='background-color:#e0f2f1; padding:18px; border-radius:10px; border-left: 6px solid #00897b;'>
-            <p style='margin:0; font-size:12px; color:#555;'>📈 POS INVESTASI MASA DEPAN (30%)</p>
-            <h3 style='margin:5px 0 0 0; color:#004d40;'>Rp {int(alokasi.get("investasi", 0)):,}</h3>
-        </div>""".replace(",", "."), unsafe_allow_html=True)
-    with ca6:
-        st.markdown(f"""<div style='background-color:#fff3e0; padding:18px; border-radius:10px; border-left: 6px solid #fb8c00;'>
-            <p style='margin:0; font-size:12px; color:#555;'>🎡 POS LIFESTYLE / JAJAN (20%)</p>
-            <h3 style='margin:5px 0 0 0; color:#e65100;'>Rp {int(alokasi.get("lifestyle", 0)):,}</h3>
-        </div>""".replace(",", "."), unsafe_allow_html=True)
-#=============================================================================
+#     # Baris kedua untuk sub-pos pecahan dari total jatah Gaji Owner 60%
+#     st.markdown("<br>", unsafe_allow_html=True)
+#     ca4, ca5, ca6 = st.columns(3)
+#     with ca4:
+#         st.markdown(f"""<div style='background-color:#f9fbe7; padding:18px; border-radius:10px; border-left: 6px solid #c0ca33;'>
+#             <p style='margin:0; font-size:12px; color:#555;'>🏠 POS RUMAH TANGGA & KPR (50%)</p>
+#             <h3 style='margin:5px 0 0 0; color:#827717;'>Rp {int(alokasi.get("rumah_tangga", 0)):,}</h3>
+#         </div>""".replace(",", "."), unsafe_allow_html=True)
+#     with ca5:
+#         st.markdown(f"""<div style='background-color:#e0f2f1; padding:18px; border-radius:10px; border-left: 6px solid #00897b;'>
+#             <p style='margin:0; font-size:12px; color:#555;'>📈 POS INVESTASI MASA DEPAN (30%)</p>
+#             <h3 style='margin:5px 0 0 0; color:#004d40;'>Rp {int(alokasi.get("investasi", 0)):,}</h3>
+#         </div>""".replace(",", "."), unsafe_allow_html=True)
+#     with ca6:
+#         st.markdown(f"""<div style='background-color:#fff3e0; padding:18px; border-radius:10px; border-left: 6px solid #fb8c00;'>
+#             <p style='margin:0; font-size:12px; color:#555;'>🎡 POS LIFESTYLE / JAJAN (20%)</p>
+#             <h3 style='margin:5px 0 0 0; color:#e65100;'>Rp {int(alokasi.get("lifestyle", 0)):,}</h3>
+#         </div>""".replace(",", "."), unsafe_allow_html=True)
+# #=============================================================================
 
-# ---------------------------
-# Streamlit UI
-# ---------------------------
-#st.set_page_config(page_title="Cashflow & Liabilities - UMKM", layout="wide")
-#st.title("Cashflow & Liability Tracker (Refactor)")
+# # ---------------------------
+# # Streamlit UI
+# # ---------------------------
+# #st.set_page_config(page_title="Cashflow & Liabilities - UMKM", layout="wide")
+# #st.title("Cashflow & Liability Tracker (Refactor)")
 
-# Manual input expander
-with st.expander("✏️ Input Data Cashflow Manual"):
-    try:
-        ws_cashflow = connect_to_gsheet(SHEET_ID, "Arus Kas")
-    except Exception:
-        ws_cashflow = None
-        st.warning("GSheets not connected (check secrets). Manual entry will still work locally in session_state.")
+# # Manual input expander
+# with st.expander("✏️ Input Data Cashflow Manual"):
+#     try:
+#         ws_cashflow = connect_to_gsheet(SHEET_ID, "Arus Kas")
+#     except Exception:
+#         ws_cashflow = None
+#         st.warning("GSheets not connected (check secrets). Manual entry will still work locally in session_state.")
 
-    tanggal = st.date_input("Tanggal", value=date.today(), key="tgl_input")
-    tipe = st.selectbox("Tipe", ["Masuk", "Keluar"], key="tipe_input")
+#     tanggal = st.date_input("Tanggal", value=date.today(), key="tgl_input")
+#     tipe = st.selectbox("Tipe", ["Masuk", "Keluar"], key="tipe_input")
 
-    kategori_masuk = ["Komisi & Fee dari Pihak Ketiga", "Service Fee (proses Refund/Reschedule)", "Fee dari Add-on/Produk Tambahan", 
-        "Jasa Pengurusan Dokumen", "Paket Wisata / Tour", "Lain-lain"
-    ]
-    kategori_keluar = [
-        "Gaji Karyawan", "Operasional Kantor", "Pembayaran Pinjaman (Hutang/Credit Card)", "Marketing & Promosi", "Pajak dan Biaya Lainnya",
-        "Kerugian Salah Order", "Kerugian Pembatalan", "Kerugian Kerusakan / Rusak",
-        "Kerugian Lainnya", "HPP", "Lain-lain"
-    ]
-    kategori_opsi = kategori_masuk if tipe == "Masuk" else kategori_keluar
-    kategori = st.selectbox("Kategori", kategori_opsi, key="kategori_input")
-    if kategori == "Lain-lain":
-        kategori = st.text_input("Jelaskan kategori lainnya", key="kategori_lain_input")
+#     kategori_masuk = ["Komisi & Fee dari Pihak Ketiga", "Service Fee (proses Refund/Reschedule)", "Fee dari Add-on/Produk Tambahan", 
+#         "Jasa Pengurusan Dokumen", "Paket Wisata / Tour", "Lain-lain"
+#     ]
+#     kategori_keluar = [
+#         "Gaji Karyawan", "Operasional Kantor", "Pembayaran Pinjaman (Hutang/Credit Card)", "Marketing & Promosi", "Pajak dan Biaya Lainnya",
+#         "Kerugian Salah Order", "Kerugian Pembatalan", "Kerugian Kerusakan / Rusak",
+#         "Kerugian Lainnya", "HPP", "Lain-lain"
+#     ]
+#     kategori_opsi = kategori_masuk if tipe == "Masuk" else kategori_keluar
+#     kategori = st.selectbox("Kategori", kategori_opsi, key="kategori_input")
+#     if kategori == "Lain-lain":
+#         kategori = st.text_input("Jelaskan kategori lainnya", key="kategori_lain_input")
 
-    no_invoice = st.text_input("No Invoice (opsional)", key="no_invoice_input")
-    keterangan = st.text_input("Keterangan", key="keterangan_input")
-    jumlah = st.number_input("Jumlah (Rp)", min_value=0, step=1, format="%d", key="jumlah_input")
-    status_manual = st.selectbox("Status", ["Lunas", "Belum Lunas"], key="status_input")
+#     no_invoice = st.text_input("No Invoice (opsional)", key="no_invoice_input")
+#     keterangan = st.text_input("Keterangan", key="keterangan_input")
+#     jumlah = st.number_input("Jumlah (Rp)", min_value=0, step=1, format="%d", key="jumlah_input")
+#     status_manual = st.selectbox("Status", ["Lunas", "Belum Lunas"], key="status_input")
 
-    # jika pembayaran CC, pilih akun kartu
-    card_account = ""
-    if tipe == "Keluar" and kategori == "Pembayaran Pinjaman (Hutang/Credit Card)":
-        card_account = st.text_input("Bayar ke Akun Kartu (contoh: Hutang Kartu - BCA Visa)", key="card_account_input")
+#     # jika pembayaran CC, pilih akun kartu
+#     card_account = ""
+#     if tipe == "Keluar" and kategori == "Pembayaran Pinjaman (Hutang/Credit Card)":
+#         card_account = st.text_input("Bayar ke Akun Kartu (contoh: Hutang Kartu - BCA Visa)", key="card_account_input")
 
-    if st.button("Simpan Data Manual", key="btn_simpan_manual"):
-        if jumlah <= 0:
-            st.error("Jumlah harus lebih dari 0")
-        else:
-            new_row = {
-                "Tanggal": pd.to_datetime(tanggal),
-                "Tipe": tipe,
-                "Kategori": kategori,
-                "No Invoice": str(no_invoice) if no_invoice else "",
-                "Keterangan": keterangan,
-                "Jumlah": jumlah,
-                "Status": status_manual,
-                "Sumber": "Manual Input",
-                "Is_Invoice": False,
-                "Nama Pemesan": keterangan,
-                "Invoice_Key": f"MANUAL_{datetime.now().strftime('%Y%m%d%H%M%S%f')}",
-                "Card_Account": card_account
-            }
+#     if st.button("Simpan Data Manual", key="btn_simpan_manual"):
+#         if jumlah <= 0:
+#             st.error("Jumlah harus lebih dari 0")
+#         else:
+#             new_row = {
+#                 "Tanggal": pd.to_datetime(tanggal),
+#                 "Tipe": tipe,
+#                 "Kategori": kategori,
+#                 "No Invoice": str(no_invoice) if no_invoice else "",
+#                 "Keterangan": keterangan,
+#                 "Jumlah": jumlah,
+#                 "Status": status_manual,
+#                 "Sumber": "Manual Input",
+#                 "Is_Invoice": False,
+#                 "Nama Pemesan": keterangan,
+#                 "Invoice_Key": f"MANUAL_{datetime.now().strftime('%Y%m%d%H%M%S%f')}",
+#                 "Card_Account": card_account
+#             }
 
-            if "cashflow_manual" not in st.session_state:
-                st.session_state.cashflow_manual = []
-            st.session_state.cashflow_manual.append(new_row)
+#             if "cashflow_manual" not in st.session_state:
+#                 st.session_state.cashflow_manual = []
+#             st.session_state.cashflow_manual.append(new_row)
 
-            # Jika ini pembayaran CC, juga catat entry liability pengurang hutang
-            if kategori == "Pembayaran Pinjaman (Hutang/Credit Card)":
-                liability_entry = {
-                    "Tanggal": pd.to_datetime(tanggal),
-                    "Invoice_Key": new_row["Invoice_Key"],
-                    "Akun": card_account if card_account else "Hutang Kartu - Unknown",
-                    "Jumlah": -jumlah,  # negatif untuk mengurangi hutang
-                    "Keterangan": f"Pembayaran tagihan kartu {card_account}",
-                    "Jenis": "KurangiHutang"
-                }
-                if "liabilities_manual" not in st.session_state:
-                    st.session_state.liabilities_manual = []
-                st.session_state.liabilities_manual.append(liability_entry)
+#             # Jika ini pembayaran CC, juga catat entry liability pengurang hutang
+#             if kategori == "Pembayaran Pinjaman (Hutang/Credit Card)":
+#                 liability_entry = {
+#                     "Tanggal": pd.to_datetime(tanggal),
+#                     "Invoice_Key": new_row["Invoice_Key"],
+#                     "Akun": card_account if card_account else "Hutang Kartu - Unknown",
+#                     "Jumlah": -jumlah,  # negatif untuk mengurangi hutang
+#                     "Keterangan": f"Pembayaran tagihan kartu {card_account}",
+#                     "Jenis": "KurangiHutang"
+#                 }
+#                 if "liabilities_manual" not in st.session_state:
+#                     st.session_state.liabilities_manual = []
+#                 st.session_state.liabilities_manual.append(liability_entry)
 
-            st.success("✅ Data berhasil disimpan sementara (belum dikirim ke GSheets)")
+#             st.success("✅ Data berhasil disimpan sementara (belum dikirim ke GSheets)")
 
-    if st.button("Kirim Manual ke GSheets"):
-        if "cashflow_manual" in st.session_state and st.session_state.cashflow_manual:
-            df_manual = pd.DataFrame(st.session_state.cashflow_manual)
-            columns_gsheet = ["Tanggal","Tipe","Kategori","No Invoice","Keterangan","Jumlah","Status","Sumber","Card_Account"]
-            df_manual_gsheet = df_manual.reindex(columns=columns_gsheet).copy()
-            df_manual_gsheet["Tanggal"] = df_manual_gsheet["Tanggal"].dt.strftime("%Y-%m-%d")
+#     if st.button("Kirim Manual ke GSheets"):
+#         if "cashflow_manual" in st.session_state and st.session_state.cashflow_manual:
+#             df_manual = pd.DataFrame(st.session_state.cashflow_manual)
+#             columns_gsheet = ["Tanggal","Tipe","Kategori","No Invoice","Keterangan","Jumlah","Status","Sumber","Card_Account"]
+#             df_manual_gsheet = df_manual.reindex(columns=columns_gsheet).copy()
+#             df_manual_gsheet["Tanggal"] = df_manual_gsheet["Tanggal"].dt.strftime("%Y-%m-%d")
 
-            if ws_cashflow:
-                ws_cashflow.append_rows(df_manual_gsheet.fillna("").values.tolist(), value_input_option='USER_ENTERED')
-                st.success("✅ Data manual berhasil dikirim ke GSheets")
-                st.session_state.cashflow_manual = []
-            else:
-                st.warning("GSheets tidak tersedia - data tetap disimpan di session_state")
-        else:
-            st.warning("Tidak ada data manual untuk dikirim")
+#             if ws_cashflow:
+#                 ws_cashflow.append_rows(df_manual_gsheet.fillna("").values.tolist(), value_input_option='USER_ENTERED')
+#                 st.success("✅ Data manual berhasil dikirim ke GSheets")
+#                 st.session_state.cashflow_manual = []
+#             else:
+#                 st.warning("GSheets tidak tersedia - data tetap disimpan di session_state")
+#         else:
+#             st.warning("Tidak ada data manual untuk dikirim")
 
 # ---------------------------
 # Laporan Cashflow Realtime
@@ -5460,257 +5460,257 @@ from finance_engine import hitung_performa_dan_reconciliation_v5
 # ==================================================================================================
 #          SINKRONISASI DATA UTAMA UNTUK MENU MONITORING (VERSI AMAN & VALID 100%)
 # ==================================================================================================
-with st.expander("🖥️ MONITORING", expanded=False):
+# with st.expander("🖥️ MONITORING", expanded=False):
 
-    # 🧼 1. ISOLASI DATA PENJUALAN (Jangan sentuh df_filtered asli agar laporan atas tidak rusak!)
-    kolom_nyata_sales = [
-        "Tgl Pemesanan", "Nama Pemesan", "No Invoice", "Harga Beli", 
-        "Harga Jual", "Kode Booking", "Admin", "Keterangan", "Tipe"
-    ]
-    # Ambil kolom yang tersedia dari df_filtered asli, buat salinan baru yang terisolasi
-    kolom_tersedia_sales = [col for col in kolom_nyata_sales if col in df_filtered.columns]
-    df_monitoring_sales = df_filtered[kolom_tersedia_sales].copy().reset_index(drop=True)
+#     # 🧼 1. ISOLASI DATA PENJUALAN (Jangan sentuh df_filtered asli agar laporan atas tidak rusak!)
+#     kolom_nyata_sales = [
+#         "Tgl Pemesanan", "Nama Pemesan", "No Invoice", "Harga Beli", 
+#         "Harga Jual", "Kode Booking", "Admin", "Keterangan", "Tipe"
+#     ]
+#     # Ambil kolom yang tersedia dari df_filtered asli, buat salinan baru yang terisolasi
+#     kolom_tersedia_sales = [col for col in kolom_nyata_sales if col in df_filtered.columns]
+#     df_monitoring_sales = df_filtered[kolom_tersedia_sales].copy().reset_index(drop=True)
 
-    # Buat kolom Invoice_Key tiruan khusus di dalam tabel isolasi baru kita
-    if "No Invoice" in df_monitoring_sales.columns:
-        list_inv = df_monitoring_sales["No Invoice"].fillna("N/A").astype(str).tolist()
-        df_monitoring_sales = df_monitoring_sales.assign(Invoice_Key=list_inv)
-    else:
-        df_monitoring_sales = df_monitoring_sales.assign(Invoice_Key="N/A")
-
-
-    # 🧼 2. ISOLASI DATA MUTASI PRIBADI
-    kolom_nyata_pribadi = ["Tanggal", "Bank_Sumber", "No_Rekening_AI", "Kategori", "Nominal", "Keterangan"]
-    kolom_tersedia_pribadi = [col for col in kolom_nyata_pribadi if col in df_pribadi_current.columns]
-    df_monitoring_pribadi = df_pribadi_current[kolom_tersedia_pribadi].copy().reset_index(drop=True)
+#     # Buat kolom Invoice_Key tiruan khusus di dalam tabel isolasi baru kita
+#     if "No Invoice" in df_monitoring_sales.columns:
+#         list_inv = df_monitoring_sales["No Invoice"].fillna("N/A").astype(str).tolist()
+#         df_monitoring_sales = df_monitoring_sales.assign(Invoice_Key=list_inv)
+#     else:
+#         df_monitoring_sales = df_monitoring_sales.assign(Invoice_Key="N/A")
 
 
-    # 🧼 3. Buat parameter formalitas untuk Arus Kas Lama
-    df_cashflow_combined_monitoring = pd.DataFrame(columns=["Invoice_Key", "No Invoice", "Jumlah", "Tipe", "Kategori"])
+#     # 🧼 2. ISOLASI DATA MUTASI PRIBADI
+#     kolom_nyata_pribadi = ["Tanggal", "Bank_Sumber", "No_Rekening_AI", "Kategori", "Nominal", "Keterangan"]
+#     kolom_tersedia_pribadi = [col for col in kolom_nyata_pribadi if col in df_pribadi_current.columns]
+#     df_monitoring_pribadi = df_pribadi_current[kolom_tersedia_pribadi].copy().reset_index(drop=True)
 
 
-    # =========================================================================
-    # 🚀 EKSEKUSI ENGINE V5 UNTUK MENU MONITORING BAVVAH
-    # =========================================================================
-    hasil_sistem = finance_engine.hitung_performa_dan_reconciliation_v5(
-        df_monitoring_sales, 
-        df_monitoring_pribadi, 
-        df_cashflow_combined_monitoring
-    )
+#     # 🧼 3. Buat parameter formalitas untuk Arus Kas Lama
+#     df_cashflow_combined_monitoring = pd.DataFrame(columns=["Invoice_Key", "No Invoice", "Jumlah", "Tipe", "Kategori"])
 
-    # =========================================================================
-    # 📥 EKSTRAKSI VARIABEL DARI RETURN VALUE ENGINE (Sama seperti teks kopas Anda)
-    # =========================================================================
-    total_piutang = hasil_sistem.get("total_piutang", 0.0)
-    overdue_lebih_30 = hasil_sistem.get("overdue_lebih_30_hari", 0.0)
-    estimasi_kas_riil = hasil_sistem.get("kas_riil", 0.0)
+
+#     # =========================================================================
+#     # 🚀 EKSEKUSI ENGINE V5 UNTUK MENU MONITORING BAVVAH
+#     # =========================================================================
+#     hasil_sistem = finance_engine.hitung_performa_dan_reconciliation_v5(
+#         df_monitoring_sales, 
+#         df_monitoring_pribadi, 
+#         df_cashflow_combined_monitoring
+#     )
+
+#     # =========================================================================
+#     # 📥 EKSTRAKSI VARIABEL DARI RETURN VALUE ENGINE (Sama seperti teks kopas Anda)
+#     # =========================================================================
+#     total_piutang = hasil_sistem.get("total_piutang", 0.0)
+#     overdue_lebih_30 = hasil_sistem.get("overdue_lebih_30_hari", 0.0)
+#     estimasi_kas_riil = hasil_sistem.get("kas_riil", 0.0)
 
     
-    # Ambil dictionary bersarang alokasi_ai
-    dict_alokasi = hasil_sistem.get("alokasi_ai", {})
-    wajib_setor_investor = dict_alokasi.get("investor", 0.0)
-    cadangan_bisnis_40 = dict_alokasi.get("cadangan_bisnis", 0.0)
-    pos_rumah_tangga = dict_alokasi.get("rumah_tangga", 0.0)
-    pos_lifestyle = dict_alokasi.get("lifestyle", 0.0)
-    pos_investasi = dict_alokasi.get("investasi", 0.0)
+#     # Ambil dictionary bersarang alokasi_ai
+#     dict_alokasi = hasil_sistem.get("alokasi_ai", {})
+#     wajib_setor_investor = dict_alokasi.get("investor", 0.0)
+#     cadangan_bisnis_40 = dict_alokasi.get("cadangan_bisnis", 0.0)
+#     pos_rumah_tangga = dict_alokasi.get("rumah_tangga", 0.0)
+#     pos_lifestyle = dict_alokasi.get("lifestyle", 0.0)
+#     pos_investasi = dict_alokasi.get("investasi", 0.0)
     
-    # KUNCI UTAMA: Ambil saldo bank menggunakan kata kunci asli engine v5 ("saldo_bank_riil")
-    dict_saldo = hasil_sistem.get("saldo_bank_riil", {})
-    utang_cc_global = dict_saldo.get("Kartu Kredit", 0.0)
-    saldo_bca = dict_saldo.get("BCA", 0.0)
-    saldo_mandiri = dict_saldo.get("Mandiri", 0.0)
-    saldo_bsi = dict_saldo.get("BSI", 0.0)
+#     # KUNCI UTAMA: Ambil saldo bank menggunakan kata kunci asli engine v5 ("saldo_bank_riil")
+#     dict_saldo = hasil_sistem.get("saldo_bank_riil", {})
+#     utang_cc_global = dict_saldo.get("Kartu Kredit", 0.0)
+#     saldo_bca = dict_saldo.get("BCA", 0.0)
+#     saldo_mandiri = dict_saldo.get("Mandiri", 0.0)
+#     saldo_bsi = dict_saldo.get("BSI", 0.0)
     
-    total_atm_nyata = saldo_bca + saldo_mandiri + saldo_bsi
+#     total_atm_nyata = saldo_bca + saldo_mandiri + saldo_bsi
     
-    # ==================================================================================================
-    #                                         STYLING CSS CUSTOM
-    # ==================================================================================================
-    st.markdown("""
-    <style>
-        /* Desain Header Utama: Putih Bersih dengan Border Sian */
-        .header-box {
-            background-color: #ffffff;
-            padding: 22px;
-            border-radius: 12px;
-            border: 2px solid #4bc0c0;
-            text-align: center;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        }
-        .header-box h2 {
-            color: #1e293b !important; /* Memaksa teks judul berwarna gelap/hitam */
-            font-weight: 800;
-        }
+#     # ==================================================================================================
+#     #                                         STYLING CSS CUSTOM
+#     # ==================================================================================================
+#     st.markdown("""
+#     <style>
+#         /* Desain Header Utama: Putih Bersih dengan Border Sian */
+#         .header-box {
+#             background-color: #ffffff;
+#             padding: 22px;
+#             border-radius: 12px;
+#             border: 2px solid #4bc0c0;
+#             text-align: center;
+#             margin-bottom: 25px;
+#             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+#         }
+#         .header-box h2 {
+#             color: #1e293b !important; /* Memaksa teks judul berwarna gelap/hitam */
+#             font-weight: 800;
+#         }
         
-        /* Desain Kotak Metrik (Card): Latar Putih, Teks Gelap Kontras Tinggi */
-        .custom-card {
-            background-color: #ffffff;
-            padding: 20px;
-            border-radius: 10px;
-            border-left: 6px solid #ef4444;
-            margin-bottom: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-        }
+#         /* Desain Kotak Metrik (Card): Latar Putih, Teks Gelap Kontras Tinggi */
+#         .custom-card {
+#             background-color: #ffffff;
+#             padding: 20px;
+#             border-radius: 10px;
+#             border-left: 6px solid #ef4444;
+#             margin-bottom: 12px;
+#             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+#         }
         
-        /* Pewarnaan Teks Label dan Angka Murni agar Kontras di Latar Putih */
-        .card-label {
-            font-size: 0.85rem; 
-            color: #64748b; /* Abu-abu gelap profesional */
-            font-weight: 600;
-            letter-spacing: 0.05em;
-        }
-        .card-value {
-            font-size: 1.8rem; 
-            font-weight: 800; 
-            color: #0f172a; /* Hitam pekat modern */
-            line-height: 2rem;
-            margin-top: 5px;
-            margin-bottom: 5px;
-            display: inline-block;
-        }
-        .card-status {
-            font-size: 0.85rem;
-            color: #334155;
-            font-weight: 500;
-        }
+#         /* Pewarnaan Teks Label dan Angka Murni agar Kontras di Latar Putih */
+#         .card-label {
+#             font-size: 0.85rem; 
+#             color: #64748b; /* Abu-abu gelap profesional */
+#             font-weight: 600;
+#             letter-spacing: 0.05em;
+#         }
+#         .card-value {
+#             font-size: 1.8rem; 
+#             font-weight: 800; 
+#             color: #0f172a; /* Hitam pekat modern */
+#             line-height: 2rem;
+#             margin-top: 5px;
+#             margin-bottom: 5px;
+#             display: inline-block;
+#         }
+#         .card-status {
+#             font-size: 0.85rem;
+#             color: #334155;
+#             font-weight: 500;
+#         }
 
-        /* Warna Status Indikator */
-        .status-warning { color: #dc2626; font-weight: 700; }
-        .status-tempo { color: #d97706; font-weight: 700; }
-        .status-liquid { color: #16a34a; font-weight: 700; }
-    </style>
-    """, unsafe_allow_html=True)
+#         /* Warna Status Indikator */
+#         .status-warning { color: #dc2626; font-weight: 700; }
+#         .status-tempo { color: #d97706; font-weight: 700; }
+#         .status-liquid { color: #16a34a; font-weight: 700; }
+#     </style>
+#     """, unsafe_allow_html=True)
     
-    # ==================================================================================================
-    #                                           HEADER UTAMA
-    # ==================================================================================================
-    st.markdown("""
-    <div class="header-box">
-        <h2 style='margin:0;'>🕵️‍♂️ DASHBOARD MONITORING FINANSIAL TERPADU — KAYYISA TOUR & TRAVEL</h2>
-    </div>
-    """, unsafe_allow_html=True)
+#     # ==================================================================================================
+#     #                                           HEADER UTAMA
+#     # ==================================================================================================
+#     st.markdown("""
+#     <div class="header-box">
+#         <h2 style='margin:0;'>🕵️‍♂️ DASHBOARD MONITORING FINANSIAL TERPADU — KAYYISA TOUR & TRAVEL</h2>
+#     </div>
+#     """, unsafe_allow_html=True)
     
-    # ==================================================================================================
-    # [🖥️ BRANKAS 1: KESEHATAN KINERJA BISNIS MURNI (STANDAR AKUNTANSI SAK EMKM)]
-    # ==================================================================================================
-    with st.expander("🖥️ BRANKAS 1: KESEHATAN KINERJA BISNIS MURNI (STANDAR AKUNTANSI SAK EMKM)", expanded=True):
-        st.write("")
-        st.markdown("##### 📊 METRICS UTAMA BISNIS:")
+#     # ==================================================================================================
+#     # [🖥️ BRANKAS 1: KESEHATAN KINERJA BISNIS MURNI (STANDAR AKUNTANSI SAK EMKM)]
+#     # ==================================================================================================
+#     with st.expander("🖥️ BRANKAS 1: KESEHATAN KINERJA BISNIS MURNI (STANDAR AKUNTANSI SAK EMKM)", expanded=True):
+#         st.write("")
+#         st.markdown("##### 📊 METRICS UTAMA BISNIS:")
         
-        # 3 Kotak Utama Metrik Bisnis dengan Penerapan Kelas CSS Baru
-        m1, m2, m3 = st.columns(3)
-        with m1:
-            status_piutang = "🚨 WARNING" if overdue_lebih_30 > 0 else "🟢 AMAN"
-            st.markdown(f"""
-            <div class="custom-card" style="border-left-color: #ef4444;">
-                <span class="card-label">🧾 PIUTANG DI PELANGGAN</span><br>
-                <span class="card-value">Rp {total_piutang:,.0f}</span><br>
-                <span class="card-status">Status: <span class="status-warning">{status_piutang}</span></span>
-            </div>
-            """, unsafe_allow_html=True)
-        with m2:
-            st.markdown(f"""
-            <div class="custom-card" style="border-left-color: #f59e0b;">
-                <span class="card-label">🪪 TOTAL TAGIHAN KARTU KREDIT</span><br>
-                <span class="card-value">Rp {utang_cc_global:,.0f}</span><br>
-                <span class="card-status">Status: <span class="status-tempo">⚠️ JATUH TEMPO</span></span>
-            </div>
-            """, unsafe_allow_html=True)
-        with m3:
-            status_kas = "🟢 LIQUID" if estimasi_kas_riil > 0 else "🚨 DEFISIT"
-            st.markdown(f"""
-            <div class="custom-card" style="border-left-color: #10b981;">
-                <span class="card-label">💵 ESTIMASI KAS RIIL TOKO</span><br>
-                <span class="card-value">Rp {estimasi_kas_riil:,.0f}</span><br>
-                <span class="card-status">Status: <span class="status-liquid">{status_kas}</span></span>
-            </div>
-            """, unsafe_allow_html=True)
+#         # 3 Kotak Utama Metrik Bisnis dengan Penerapan Kelas CSS Baru
+#         m1, m2, m3 = st.columns(3)
+#         with m1:
+#             status_piutang = "🚨 WARNING" if overdue_lebih_30 > 0 else "🟢 AMAN"
+#             st.markdown(f"""
+#             <div class="custom-card" style="border-left-color: #ef4444;">
+#                 <span class="card-label">🧾 PIUTANG DI PELANGGAN</span><br>
+#                 <span class="card-value">Rp {total_piutang:,.0f}</span><br>
+#                 <span class="card-status">Status: <span class="status-warning">{status_piutang}</span></span>
+#             </div>
+#             """, unsafe_allow_html=True)
+#         with m2:
+#             st.markdown(f"""
+#             <div class="custom-card" style="border-left-color: #f59e0b;">
+#                 <span class="card-label">🪪 TOTAL TAGIHAN KARTU KREDIT</span><br>
+#                 <span class="card-value">Rp {utang_cc_global:,.0f}</span><br>
+#                 <span class="card-status">Status: <span class="status-tempo">⚠️ JATUH TEMPO</span></span>
+#             </div>
+#             """, unsafe_allow_html=True)
+#         with m3:
+#             status_kas = "🟢 LIQUID" if estimasi_kas_riil > 0 else "🚨 DEFISIT"
+#             st.markdown(f"""
+#             <div class="custom-card" style="border-left-color: #10b981;">
+#                 <span class="card-label">💵 ESTIMASI KAS RIIL TOKO</span><br>
+#                 <span class="card-value">Rp {estimasi_kas_riil:,.0f}</span><br>
+#                 <span class="card-status">Status: <span class="status-liquid">{status_kas}</span></span>
+#             </div>
+#             """, unsafe_allow_html=True)
 
-        st.write("")
-        st.markdown("##### 🗎 NERACA POSISI KEUANGAN BISNIS (BALANCE SHEET)")
+#         st.write("")
+#         st.markdown("##### 🗎 NERACA POSISI KEUANGAN BISNIS (BALANCE SHEET)")
         
-        total_aset = estimasi_kas_riil + total_piutang
-        modal_dan_laba_ditahan = total_aset - (utang_cc_global + wajib_setor_investor + cadangan_bisnis_40)
+#         total_aset = estimasi_kas_riil + total_piutang
+#         modal_dan_laba_ditahan = total_aset - (utang_cc_global + wajib_setor_investor + cadangan_bisnis_40)
     
-        col_kiri, col_kanan = st.columns(2)
-        with col_kiri:
-            st.markdown("**SISI KIRI: ASET TOKO**")
-            df_aset = pd.DataFrame({
-                "Komponen Kiri": ["Kas & Setara Kas (Toko)", "Piutang Dagang Klien Active", "TOTAL ASET"],
-                "Nominal": [f"Rp {estimasi_kas_riil:,.0f}", f"Rp {total_piutang:,.0f}", f"Rp {total_aset:,.0f}"]
-            })
-            st.dataframe(df_aset, hide_index=True, use_container_width=True)
+#         col_kiri, col_kanan = st.columns(2)
+#         with col_kiri:
+#             st.markdown("**SISI KIRI: ASET TOKO**")
+#             df_aset = pd.DataFrame({
+#                 "Komponen Kiri": ["Kas & Setara Kas (Toko)", "Piutang Dagang Klien Active", "TOTAL ASET"],
+#                 "Nominal": [f"Rp {estimasi_kas_riil:,.0f}", f"Rp {total_piutang:,.0f}", f"Rp {total_aset:,.0f}"]
+#             })
+#             st.dataframe(df_aset, hide_index=True, use_container_width=True)
     
-        with col_kanan:
-            st.markdown("**SISI KANAN: KEWAJIBAN & EKUITAS**")
-            df_pasiva = pd.DataFrame({
-                "Komponen Kanan": ["Total Tagihan Multi-CC", "Utang Hak Investor (7.5%)", "Cadangan Bersih Toko (40%)", "Modal Awal + Laba Ditahan", "TOTAL PASIVA"],
-                "Nominal": [f"Rp {utang_cc_global:,.0f}", f"Rp {wajib_setor_investor:,.0f}", f"Rp {cadangan_bisnis_40:,.0f}", f"Rp {modal_dan_laba_ditahan:,.0f}", f"Rp {total_aset:,.0f}"]
-            })
-            st.dataframe(df_pasiva, hide_index=True, use_container_width=True)
+#         with col_kanan:
+#             st.markdown("**SISI KANAN: KEWAJIBAN & EKUITAS**")
+#             df_pasiva = pd.DataFrame({
+#                 "Komponen Kanan": ["Total Tagihan Multi-CC", "Utang Hak Investor (7.5%)", "Cadangan Bersih Toko (40%)", "Modal Awal + Laba Ditahan", "TOTAL PASIVA"],
+#                 "Nominal": [f"Rp {utang_cc_global:,.0f}", f"Rp {wajib_setor_investor:,.0f}", f"Rp {cadangan_bisnis_40:,.0f}", f"Rp {modal_dan_laba_ditahan:,.0f}", f"Rp {total_aset:,.0f}"]
+#             })
+#             st.dataframe(df_pasiva, hide_index=True, use_container_width=True)
     
-        st.success("STATUS NERACA: ✅ 100% BALANCED")
+#         st.success("STATUS NERACA: ✅ 100% BALANCED")
 
-    # ==================================================================================================
-    # [🏠 BRANKAS 2: KONTROL ARUS KAS & DOMPET DOMESTIK (MANAJEMEN INTERNAL PRIBADI)]
-    # ==================================================================================================
-    with st.expander("🏠 BRANKAS 2: KONTROL ARUS KAS & DOMPET DOMESTIK (MANAJEMEN INTERNAL PRIBADI)", expanded=True):
-        st.write("")
-        st.markdown("##### 📊 METRICS UTAMA KELUARGA:")
+#     # ==================================================================================================
+#     # [🏠 BRANKAS 2: KONTROL ARUS KAS & DOMPET DOMESTIK (MANAJEMEN INTERNAL PRIBADI)]
+#     # ==================================================================================================
+#     with st.expander("🏠 BRANKAS 2: KONTROL ARUS KAS & DOMPET DOMESTIK (MANAJEMEN INTERNAL PRIBADI)", expanded=True):
+#         st.write("")
+#         st.markdown("##### 📊 METRICS UTAMA KELUARGA:")
         
-        mx1, mx2, mx3 = st.columns(3)
-        with mx1:
-            st.markdown(f"""
-            <div class="custom-card" style="border-left-color: #10b981;">
-                <span style="font-size:0.9rem; color:#9ca3af;">🏦 SALDO AKTUAL ATM NYATA</span><br>
-                <span style="font-size:1.6rem; font-weight:bold;">Rp {total_atm_nyata:,.0f}</span><br>
-                <span style="font-size:0.85rem; color:#9ca3af;">(Sesuai Log M-Banking)</span>
-            </div>
-            """, unsafe_allow_html=True)
-        with mx2:
-            status_lifestyle = "🛑 STOP SHOPPING" if pos_lifestyle < 500000 else "🟢 AMAN"
-            st.markdown(f"""
-            <div class="custom-card" style="border-left-color: #ef4444;">
-                <span style="font-size:0.9rem; color:#9ca3af;">🎡 SISA KANTONG LIFESTYLE</span><br>
-                <span style="font-size:1.6rem; font-weight:bold;">Rp {pos_lifestyle:,.0f}</span><br>
-                <span style="font-size:0.85rem;">Status: <span class="status-warning">{status_lifestyle}</span></span>
-            </div>
-            """, unsafe_allow_html=True)
-        with mx3:
-            st.markdown(f"""
-            <div class="custom-card" style="border-left-color: #3b82f6;">
-                <span style="font-size:0.9rem; color:#9ca3af;">👩‍💼 DOMPET MANDIRI ISTRI</span><br>
-                <span style="font-size:1.6rem; font-weight:bold;">Rp {saldo_mandiri:,.0f}</span><br>
-                <span style="font-size:0.85rem; color:#9ca3af;">(Aman & Steril Toko)</span>
-            </div>
-            """, unsafe_allow_html=True)
+#         mx1, mx2, mx3 = st.columns(3)
+#         with mx1:
+#             st.markdown(f"""
+#             <div class="custom-card" style="border-left-color: #10b981;">
+#                 <span style="font-size:0.9rem; color:#9ca3af;">🏦 SALDO AKTUAL ATM NYATA</span><br>
+#                 <span style="font-size:1.6rem; font-weight:bold;">Rp {total_atm_nyata:,.0f}</span><br>
+#                 <span style="font-size:0.85rem; color:#9ca3af;">(Sesuai Log M-Banking)</span>
+#             </div>
+#             """, unsafe_allow_html=True)
+#         with mx2:
+#             status_lifestyle = "🛑 STOP SHOPPING" if pos_lifestyle < 500000 else "🟢 AMAN"
+#             st.markdown(f"""
+#             <div class="custom-card" style="border-left-color: #ef4444;">
+#                 <span style="font-size:0.9rem; color:#9ca3af;">🎡 SISA KANTONG LIFESTYLE</span><br>
+#                 <span style="font-size:1.6rem; font-weight:bold;">Rp {pos_lifestyle:,.0f}</span><br>
+#                 <span style="font-size:0.85rem;">Status: <span class="status-warning">{status_lifestyle}</span></span>
+#             </div>
+#             """, unsafe_allow_html=True)
+#         with mx3:
+#             st.markdown(f"""
+#             <div class="custom-card" style="border-left-color: #3b82f6;">
+#                 <span style="font-size:0.9rem; color:#9ca3af;">👩‍💼 DOMPET MANDIRI ISTRI</span><br>
+#                 <span style="font-size:1.6rem; font-weight:bold;">Rp {saldo_mandiri:,.0f}</span><br>
+#                 <span style="font-size:0.85rem; color:#9ca3af;">(Aman & Steril Toko)</span>
+#             </div>
+#             """, unsafe_allow_html=True)
     
-        st.write("")
-        st.markdown("##### 📋 TABEL FORENSIK BEBAN PENGELUARAN BULANAN KELUARGA (DETEKSI KATA KUNCI RADAR RAM)")
+#         st.write("")
+#         st.markdown("##### 📋 TABEL FORENSIK BEBAN PENGELUARAN BULANAN KELUARGA (DETEKSI KATA KUNCI RADAR RAM)")
     
-        df_forensik = pd.DataFrame({
-            "Pos Anggaran & Nama Beban": [
-                "🏠 POS RUMAH TANGGA & UTILITAS (Porsi 50%)",
-                "   - Tagihan & Operasional Bulanan Rumah",
-                "🎡 POS LIFESTYLE / JAJAN PRIBADI (Porsi 20%)",
-                "   - Cafe, Restoran, & Refreshing Keluarga",
-                "📈 POS INVESTASI MASA DEPAN (Porsi 30%)",
-                "   - Pembelian Logam Mulia / Reksa Dana"
-            ],
-            "Realisasi Nominal Bulanan": [
-                f"Alokasi: Rp {pos_rumah_tangga:,.0f}",
-                "(Otomatis Scan Teks Mutasi)",
-                f"Alokasi: Rp {pos_lifestyle:,.0f}",
-                "(Otomatis Scan Teks Mutasi)",
-                f"Alokasi: Rp {pos_investasi:,.0f}",
-                "(Otomatis Scan Teks Mutasi)"
-            ]
-        })
-        st.dataframe(df_forensik, hide_index=True, use_container_width=True)
+#         df_forensik = pd.DataFrame({
+#             "Pos Anggaran & Nama Beban": [
+#                 "🏠 POS RUMAH TANGGA & UTILITAS (Porsi 50%)",
+#                 "   - Tagihan & Operasional Bulanan Rumah",
+#                 "🎡 POS LIFESTYLE / JAJAN PRIBADI (Porsi 20%)",
+#                 "   - Cafe, Restoran, & Refreshing Keluarga",
+#                 "📈 POS INVESTASI MASA DEPAN (Porsi 30%)",
+#                 "   - Pembelian Logam Mulia / Reksa Dana"
+#             ],
+#             "Realisasi Nominal Bulanan": [
+#                 f"Alokasi: Rp {pos_rumah_tangga:,.0f}",
+#                 "(Otomatis Scan Teks Mutasi)",
+#                 f"Alokasi: Rp {pos_lifestyle:,.0f}",
+#                 "(Otomatis Scan Teks Mutasi)",
+#                 f"Alokasi: Rp {pos_investasi:,.0f}",
+#                 "(Otomatis Scan Teks Mutasi)"
+#             ]
+#         })
+#         st.dataframe(df_forensik, hide_index=True, use_container_width=True)
 
-# Pastikan data sheet telah ter-load ke variabel ini sebelum memanggil
-# df_filtered (dari sheet Data) dan df_pribadi_current (dari sheet Pribadi)
+# # Pastikan data sheet telah ter-load ke variabel ini sebelum memanggil
+# # df_filtered (dari sheet Data) dan df_pribadi_current (dari sheet Pribadi)
 
 with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     

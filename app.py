@@ -6053,15 +6053,23 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
             st.error(f"⚠️ STATUS NERACA UNBALANCED: Terdeteksi selisih sebesar **Rp {selisih_neraca:,.0f}** antara Sisi Aktiva dan Pasiva. Periksa kembali entri Biaya Ops atau Alokasi Dana Kertas Anda!")
     
     # =============================================================================
-    # LAPORAN 3: CATATAN ATAS LAPORAN KEUANGAN (CALK)
+    # LAPORAN 3: CATATAN ATAS LAPORAN KEUANGAN (CALK) RESMI SAK EMKM
     # =============================================================================
     with st.container():
         st.markdown("### 📝 3. CATATAN ATAS LAPORAN KEUANGAN (CALK)")
         st.info(
             f"**Kebijakan Akuntansi & Catatan Mutasi:**\n\n"
-            f"1. **Dasar Penyusunan**: Laporan Keuangan disusun berdasarkan asumsi basis kas yang dimodifikasi (Hybrid) yang disesuaikan untuk skala EMKM Mandiri.\n"
-            f"2. **Pengakuan Pendapatan**: Pendapatan diakui secara riil hanya pada tiket yang telah divalidasi oleh status biner Sistem GSheets sebagai 'Lunas'.\n"
-            f"3. **Status Kas Koran Bank (Pribadi)**: Saat ini total saldo perbankan fisik yang tercatat di sheet Pribadi adalah **Rp {db['total_atm_pribadi']:,.0f}**. Seluruh pengeluaran pos domestik (Rumah Tangga, Lifestyle) diisolasi dan tidak dibebankan ke dalam Laporan Laba Rugi Bisnis guna mempertahankan Asas Kesatuan Usaha.\n"
-            f"4. **Manajemen Risiko Piutang**: Rasio Kerentanan Laba tercatat sebesar **{db['rasio_kerentanan_laba']:.1f}%**. Terdapat **{db['jumlah_invoice_piutang']}** Invoice aktif belum tertagih dengan nilai total piutang **Rp {db['total_piutang']:,.0f}**."
+            f"1. **Dasar Penyusunan**: Laporan keuangan entitas disusun berdasarkan **Dasar Akrual** sesuai dengan ketentuan Bab 3 SAK EMKM. "
+            f"Transaksi diakui dan dicatat pada saat terjadinya peristiwa ekonomi, bukan pada saat kas atau setara kas diterima atau dikeluarkan.\n\n"
+            f"2. **Pengakuan Pendapatan**: Pendapatan dari jasa keagenan travel diakui secara penuh pada saat manfaat ekonomi diserahkan kepada konsumen "
+            f"(yaitu saat tiket atau voucher hotel berhasil diterbitkan/*issued*), baik atas transaksi yang penyelesaian pembayarannya telah diterima (Lunas) "
+            f"maupun yang masih berupa hak tagih (Piutang Usaha).\n\n"
+            f"3. **Pemisahan Entitas & Transparansi Rekening**: Seluruh mutasi dana yang bersifat domestik dan personal pemilik (seperti pos Kebutuhan Rumah Tangga "
+            f"dan Gaya Hidup) yang bermedium melalui rekening perbankan pemilik telah **diisolasi secara mutlak** dari Laporan Laba Rugi entitas. Pengeluaran "
+            f"tersebut diperlakukan sebagai komponen Pengambilan Prive (Ekuitas) guna mempertahankan Asas Kesatuan Usaha (*Economic Entity Assumption*).\n\n"
+            f"4. **Manajemen Risiko & Pengukuran Piutang**: Rasio Kerentanan Laba tercatat sebesar **{db['rasio_kerentanan_laba']:.1f}%**. "
+            f"Entitas memiliki **{db['jumlah_invoice_piutang']}** klaim faktur aktif tertagih dengan nilai total Piutang Usaha sebesar **Rp {db['total_piutang']:,.0f}** "
+            f"yang seluruhnya diakui sebagai komponen Aset Lancar."
         )
+
 

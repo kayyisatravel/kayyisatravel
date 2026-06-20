@@ -5836,9 +5836,14 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     st.info(f"📍 Menampilkan Analisis Keuangan: **{bulan_terpilih} {tahun_terpilih}**")
 
     if db["status_darurat_aktif"]:
-        st.error(f"⚠️ **PROTOKOL DARURAT AKTIF:** Kas toko periode ini defisit **Rp {db['nilai_defisit_gaji']:,.0f}** dari target Gaji Pokok Rumah Tangga.")
+        # JIKA kas aman tetapi darurat aktif karena piutang menumpuk menjebol laba
+        if db["rasio_kerentanan_laba"] > 100.0 and db["nilai_defisit_gaji"] == 0.0:
+            st.error(f"⚠️ **PROTOKOL DARURAT AKTIF:** Rasio Rentan Laba kritis (**{db['rasio_kerentanan_laba']:.1f}%**). Total piutang yang macet di konsumen (Rp {db['total_piutang']:,.0f}) sudah melebihi keuntungan bersih buku toko. Segera batasi outstanding dan lakukan penagihan!")
+        else:
+            st.error(f"⚠️ **PROTOKOL DARURAT AKTIF:** Kas toko periode ini defisit **Rp {db['nilai_defisit_gaji']:,.0f}** dari target Gaji Pokok Rumah Tangga.")
     else:
         st.success("✅ **SISTEM STATUS AMAN:** Kas Bisnis sanggup membiayai penuh Gaji Owner.")
+
 
     # --------------------------------==========================================
     # DISPLAY METRICS CENTER (16 PANEL INDIKATOR)

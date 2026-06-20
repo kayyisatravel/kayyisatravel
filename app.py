@@ -6005,7 +6005,7 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
         total_aktiva_riil = max(0.0, db['kas_riil_bisnis_toko']) + db['total_piutang']
         
         # SAK EMKM: Ambil nilai HPP sebagai pengakuan modal kerja/talangan yang berjalan di tengah jalan
-        nilai_modal_kerja_awal = float(db['total_hpp_buku'])
+        nnilai_modal_kerja_awal = float(db['total_piutang']) - (float(db['total_piutang']) / (1 + (db['roi']/100)) if db['roi'] > 0 else 0.0)
         
         # Pasiva dibangun dari Kewajiban + Ekuitas Independen (Termasuk Penyangga HPP)
         nilai_ekuitas_riil = db['laba_bersih_riil_bisnis'] + nilai_modal_kerja_awal 

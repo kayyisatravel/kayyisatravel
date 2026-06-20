@@ -143,7 +143,9 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
         status_darurat_aktif = True
         nilai_defisit_gaji = GAJI_BASELINE_FLAT - kas_setelah_investor
 
-    daya_tahan_bulan = (total_atm_pribadi / GAJI_BASELINE_FLAT) if total_atm_pribadi > 0 else 0.0
+    total_biaya_operasional_bisnis = 0.0 # Placeholder siap pakai jika nanti ada data ops toko
+    laba_bersih_riil_bisnis = laba_buku_total - total_biaya_operasional_bisnis
+    daya_tahan_bulan = (kas_riil_bisnis_toko / GAJI_BASELINE_FLAT) if kas_riil_bisnis_toko > 0 else 0.0
 
     # FORENSIK DETEKSI TRANSAKSI RUGI LAMA Anda
     transaksi_boncos = df_sales[df_sales["Laba (Num)"] < 0] if not df_sales.empty else pd.DataFrame()
@@ -199,7 +201,8 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
         "total_atm_pribadi": total_atm_pribadi, 
         
         "daya_tahan_bulan": daya_tahan_bulan, # <── SUNTIKKAN INI YANG HILANG (Penyembuh Eror)
-        
+        "laba_bersih_riil_bisnis": laba_bersih_riil_bisnis, # <── Pengganti top_admin di level data
+        "total_biaya_operasional_bisnis": total_biaya_operasional_bisnis,
         "total_aset_lancar_toko": total_aset_lancar_toko,
         "laba_buku_total": laba_buku_total, 
         "jumlah_boncos": jumlah_boncos, 

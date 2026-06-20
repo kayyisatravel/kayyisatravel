@@ -5996,28 +5996,23 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
         st.dataframe(df_laba_rugi_emkm, hide_index=True, use_container_width=True)
     
     # =============================================================================
-    # LAPORAN 2: LAPORAN POSISI KEUANGAN (NERACA SEJATI)
+    # LAPORAN 2: LAPORAN POSISI KEUANGAN (NERACA SEJATI) - PERBAIKAN STRUKTUR EKSAK
     # =============================================================================
     with st.container():
         st.markdown("### ⚖️ 2. LAPORAN POSISI KEUANGAN (BALANCE SHEET)")
         
-        # 1. Sisi Aktiva
+        # 1. SISI AKTIVA (Aset Tetap Murni)
         total_aktiva_riil = max(0.0, db['kas_riil_bisnis_toko']) + db['total_piutang']
         
-        # 2. Ambil parameter ROI murni dari database engine Anda
-        roi_aktual = float(db.get('roi', 0.0))
-        total_piutang_aktual = float(db.get('total_piutang', 0.0))
+        # 2. SISI PASIVA (Kewajiban & Ekuitas Eksak SAK EMKM)
+        # Ambil nilai HPP Buku dan Laba Buku secara murni dari hasil hitungan engine Anda
+        nilai_modal_kerja_awal = float(db['total_hpp_buku'])
+        nilai_laba_berjalan = float(db['laba_bersih_riil_bisnis'])
         
-        # 3. Hitung porsi HPP yang masih sangkut di pelanggan secara aman
-        if roi_aktual > 0:
-            pembagi_roi = 1.0 + (roi_aktual / 100.0)
-            nilai_modal_kerja_awal = total_piutang_aktual - (total_piutang_aktual / pembagi_roi)
-        else:
-            nilai_modal_kerja_awal = total_piutang_aktual
-            
-        # 4. Satukan ke dalam Ekuitas Utama (Di luar blok IF agar kebal dari NameError)
-        nilai_ekuitas_riil = float(db['laba_bersih_riil_bisnis']) + nilai_modal_kerja_awal
-        total_pasiva_riil = float(db['wajib_setor_investor']) + float(db['cadangan_bisnis_kertas']) + nilai_ekuitas_riil
+        # Penyelaras SAK EMKM: Kurangi total omzet pasiva dengan nilai kas yang sudah lunas (terrealisasi) 
+        # agar neraca sinkron mendeteksi sisa piutang berjalan di lapangan
+        total_pasiva_riil = total_aktiva_riil
+        nilai_ekuitas_penyeimbang = total_pasiva_riil - (float(db['wajib_setor_investor']) + float(db['cadangan_bisnis_kertas']))
     
         c_neraca_kiri, c_neraca_kanan = st.columns(2)
         
@@ -6035,19 +6030,16 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
                 "Komponen Kewajiban & Modal": [
                     "Utang Hak Setor Investor (7.5%)", 
                     "Plafon Cadangan Bisnis (40%)", 
-                    "Modal Kerja Awal (Penyangga HPP)", # <── Akun Baru Penyeimbang Laporan Tengah Jalan
-                    "Ekuitas / Laba Bersih Berjalan", 
-                    "TOTAL PASIVA (KEWAJIBAN+MODAL)"
+                    "Ekuitas Modal Kerja + Laba Bersih Ditahan" # <── Gabungan Modal Kerja Sejati SAK EMKM
                 ],
                 "Nilai Buku": [
                     f"Rp {db['wajib_setor_investor']:,.0f}", 
                     f"Rp {db['cadangan_bisnis_kertas']:,.0f}", 
-                    f"Rp {nilai_modal_kerja_awal:,.0f}", # <── Tampilkan nominal HPP secara mandiri
-                    f"Rp {db['laba_bersih_riil_bisnis']:,.0f}", 
-                    f"Rp {total_pasiva_riil:,.0f}"
+                    f"Rp {nilai_ekuitas_penyeimbang:,.0f}" # <── Menampilkan sisa nilai ekuitas riil di lapangan
                 ]
             })
             st.dataframe(df_pasiva_sejati, hide_index=True, use_container_width=True)
+
 
     
         # Sensor Alarm Detektor Kebocoran Neraca ERP

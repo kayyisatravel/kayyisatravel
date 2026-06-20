@@ -6044,7 +6044,7 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
                     f"Rp {nilai_utang_cc_bank:,.0f}",
                     f"Rp {nilai_utang_pokok_investor:,.0f}",# <── Memunculkan angka Rp 444.992.692 
                     f"Rp {nilai_modal_pemilik:,.0f}", 
-                    f"Rp {nilai_saldo_laba:,.0f}", 
+                    f"Rp {nilai_saldo_laba_berjalan:,.0f}", 
                     f"Rp {total_pasiva_riil:,.0f}"
                 ]
             })

@@ -5996,54 +5996,54 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
         st.dataframe(df_laba_rugi_emkm, hide_index=True, use_container_width=True)
     
     # =============================================================================
-    # LAPORAN 2: LAPORAN POSISI KEUANGAN (NERACA SEJATI) - PERBAIKAN STRUKTUR EKSAK
+    # LAPORAN 2: LAPORAN POSISI KEUANGAN STANDAR RESMI SAK EMKM (100% REVISED)
     # =============================================================================
     with st.container():
         st.markdown("### ⚖️ 2. LAPORAN POSISI KEUANGAN (BALANCE SHEET)")
         
-        # 1. SISI AKTIVA (Aset Tetap Murni)
+        # 1. SISI AKTIVA
         total_aktiva_riil = max(0.0, db['kas_riil_bisnis_toko']) + db['total_piutang']
         
-        # 2. SISI PASIVA (Kewajiban & Ekuitas Eksak SAK EMKM)
-        # Ambil nilai HPP Buku dan Laba Buku secara murni dari hasil hitungan engine Anda
-        nilai_modal_kerja_awal = float(db['total_hpp_buku'])
-        nilai_laba_berjalan = float(db['laba_bersih_riil_bisnis'])
+        # 2. SISI PASIVA (Restrukturisasi Baku SAK EMKM)
+        nilai_liabilitas_utang = 0.0 # Kondisi riil usaha saat ini
         
-        # Penyelaras SAK EMKM: Kurangi total omzet pasiva dengan nilai kas yang sudah lunas (terrealisasi) 
-        # agar neraca sinkron mendeteksi sisa piutang berjalan di lapangan
-        total_pasiva_riil = total_aktiva_riil
-        nilai_ekuitas_penyeimbang = total_pasiva_riil - (float(db['wajib_setor_investor']) + float(db['cadangan_bisnis_kertas']))
+        # Alokasi Ekuitas Terpisah Sesuai Aturan Akuntansi
+        nilai_modal_investor = float(db['wajib_setor_investor'])
+        nilai_saldo_laba = float(db['laba_bersih_riil_bisnis'])
+        
+        # Perhitungan Nilai Buku Modal Kerja Bersih Pemilik
+        nilai_modal_pemilik = total_aktiva_riil - (nilai_modal_investor + nilai_saldo_laba)
+        total_pasiva_riil = nilai_liabilitas_utang + nilai_modal_investor + nilai_modal_pemilik + nilai_saldo_laba
     
         c_neraca_kiri, c_neraca_kanan = st.columns(2)
         
         with c_neraca_kiri:
-            st.markdown("**SISI AKTIVA (ASET / KEKAYAAN)**")
+            st.markdown("**SISI AKTIVA (ASET)**")
             df_aktiva_sejati = pd.DataFrame({
-                "Komponen Aset": ["Kas & Setara Kas (Toko Riil)", "Piutang Dagang Aktif Konsumen", "TOTAL AKTIVA (ASET)"],
+                "Pos Aset Minimum EMKM": ["Kas dan Setara Kas", "Piutang Usaha", "TOTAL ASET"],
                 "Nilai Buku": [f"Rp {max(0.0, db['kas_riil_bisnis_toko']):,.0f}", f"Rp {db['total_piutang']:,.0f}", f"Rp {total_aktiva_riil:,.0f}"]
             })
             st.dataframe(df_aktiva_sejati, hide_index=True, use_container_width=True)
             
         with c_neraca_kanan:
-            st.markdown("**SISI PASIVA (KEWAJIBAN & MODAL)**")
+            st.markdown("**SISI PASIVA (LIABILITAS & EKUITAS)**")
             df_pasiva_sejati = pd.DataFrame({
-                "Komponen Kewajiban & Modal": [
-                    "Utang Hak Setor Investor (7.5%)", 
-                    "Plafon Cadangan Bisnis (40%)", 
-                    "Ekuitas Modal Kerja + Laba Bersih Ditahan",
-                    "TOTAL PASIVA (KEWAJIBAN+MODAL)" # <── SUNTIKKAN JUDUL BARIS INI (Penyembuh Eror)
+                "Pos Liabilitas & Ekuitas": [
+                    "Liabilitas: Utang Usaha / Utang Lain", 
+                    "Ekuitas: Modal Investor (7.5%)", 
+                    "Ekuitas: Modal Pemilik / Modal Kerja", 
+                    "Ekuitas: Saldo Laba (Laba Ditahan)", 
+                    "TOTAL LIABILITAS & EKUITAS"
                 ],
                 "Nilai Buku": [
-                    f"Rp {db['wajib_setor_investor']:,.0f}", 
-                    f"Rp {db['cadangan_bisnis_kertas']:,.0f}", 
-                    f"Rp {nilai_ekuitas_penyeimbang:,.0f}",
+                    f"Rp {nilai_liabilitas_utang:,.0f}", 
+                    f"Rp {nilai_modal_investor:,.0f}", 
+                    f"Rp {nilai_modal_pemilik:,.0f}", 
+                    f"Rp {nilai_saldo_laba:,.0f}", 
                     f"Rp {total_pasiva_riil:,.0f}"
                 ]
             })
             st.dataframe(df_pasiva_sejati, hide_index=True, use_container_width=True)
-
-
-
     
         # Sensor Alarm Detektor Kebocoran Neraca ERP
         selisih_neraca = total_aktiva_riil - total_pasiva_riil

@@ -5740,7 +5740,7 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
         ]
         # Set default awal ke bulan Mei (index 5) sesuai data pengujian Anda
         bulan_terpilih = st.selectbox("Bulan Operasional", options=nama_bulan_id, index=5, key="hybrid_v2_month_filter")
-
+        
     # =========================================================================
     # COMPONENT 2: ALGORITMA PENYARING COGNITIVE (ANTI-BOCOR FORMAT)
     # =========================================================================
@@ -5756,7 +5756,7 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     # Konstruksi filter ketat untuk data mutasi pribadi (Konversi paksa ke Datetime sebelum filter)
     if not df_pribadi_source.empty and "Tanggal" in df_pribadi_source.columns:
         # Tangani format strip DD-MM-YYYY secara presisi khusus untuk data pribadi
-        df_pribadi_source["Tanggal_Parsed_Hybrid"] = pd.to_datetime(df_pribadi_source["Tanggal"], format="%d-%m-%Y", errors="coerce")
+        df_pribadi_source["Tanggal_Parsed_Hybrid"] = pd.to_datetime(df_pribadi_source["Tanggal"], errors="coerce")
         
         if bulan_terpilih == "Semua Bulan":
             mask_pribadi = (df_pribadi_source["Tanggal_Parsed_Hybrid"].dt.year == tahun_terpilih)

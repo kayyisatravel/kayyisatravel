@@ -5896,62 +5896,62 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
 
     # NERACA KEUANGAN BISNIS MURNI (STANDAR SAK EMKM)
     st.write("")
-    st.markdown("### ⚖️ 3. NERACA POSISI KEUANGAN BISNIS MURNI (SAK EMKM STANDARDS)")
-    utang_investor_kertas = db["wajib_setor_investor"]
-    cadangan_bisnis_kertas = db["cadangan_bisnis_kertas"]
-    modal_laba_ditahan_kertas = db["total_aset_lancar_toko"] - (utang_investor_kertas + cadangan_bisnis_kertas)
+    # st.markdown("### ⚖️ 3. NERACA POSISI KEUANGAN BISNIS MURNI (SAK EMKM STANDARDS)")
+    # utang_investor_kertas = db["wajib_setor_investor"]
+    # cadangan_bisnis_kertas = db["cadangan_bisnis_kertas"]
+    # modal_laba_ditahan_kertas = db["total_aset_lancar_toko"] - (utang_investor_kertas + cadangan_bisnis_kertas)
 
-    col_neraca_kiri, col_neraca_kanan = st.columns(2)
-    with col_neraca_kiri:
-        st.markdown("**SISI AKTIVA (ASET LANCAR)**")
-        df_aktiva = pd.DataFrame({
-            "Komponen Aset Toko": ["Kas & Setara Kas (Toko Riil)", "Piutang Dagang Konsumen Active", "TOTAL AKTIVA"],
-            "Nilai Buku": [f"Rp {max(0.0, db['kas_riil_bisnis_toko']):,.0f}", f"Rp {db['total_piutang']:,.0f}", f"Rp {db['total_aset_lancar_toko']:,.0f}"]
-        })
-        st.dataframe(df_aktiva, hide_index=True, use_container_width=True)
+    # col_neraca_kiri, col_neraca_kanan = st.columns(2)
+    # with col_neraca_kiri:
+    #     st.markdown("**SISI AKTIVA (ASET LANCAR)**")
+    #     df_aktiva = pd.DataFrame({
+    #         "Komponen Aset Toko": ["Kas & Setara Kas (Toko Riil)", "Piutang Dagang Konsumen Active", "TOTAL AKTIVA"],
+    #         "Nilai Buku": [f"Rp {max(0.0, db['kas_riil_bisnis_toko']):,.0f}", f"Rp {db['total_piutang']:,.0f}", f"Rp {db['total_aset_lancar_toko']:,.0f}"]
+    #     })
+    #     st.dataframe(df_aktiva, hide_index=True, use_container_width=True)
 
-    with col_neraca_kanan:
-        st.markdown("**SISI PASIVA (KEWAJIBAN & EKUITAS)**")
-        df_pasiva = pd.DataFrame({
-            "Komponen Kewajiban & Modal": ["Utang Hak Setor Investor (7.5%)", "Plafon Cadangan Bisnis Baru (40%)", "Modal Kerja + Sisa Laba Ditahan", "TOTAL PASIVA"],
-            "Nilai Buku": [f"Rp {utang_investor_kertas:,.0f}", f"Rp {cadangan_bisnis_kertas:,.0f}", f"Rp {modal_laba_ditahan_kertas:,.0f}", f"Rp {db['total_aset_lancar_toko']:,.0f}"]
-        })
-        st.dataframe(df_pasiva, hide_index=True, use_container_width=True)
-    st.success("STATUS NERACA SAK EMKM: ✅ 100% BALANCED (Pencatatan Aset Sesuai Sisi Pasiva)")
+    # with col_neraca_kanan:
+    #     st.markdown("**SISI PASIVA (KEWAJIBAN & EKUITAS)**")
+    #     df_pasiva = pd.DataFrame({
+    #         "Komponen Kewajiban & Modal": ["Utang Hak Setor Investor (7.5%)", "Plafon Cadangan Bisnis Baru (40%)", "Modal Kerja + Sisa Laba Ditahan", "TOTAL PASIVA"],
+    #         "Nilai Buku": [f"Rp {utang_investor_kertas:,.0f}", f"Rp {cadangan_bisnis_kertas:,.0f}", f"Rp {modal_laba_ditahan_kertas:,.0f}", f"Rp {db['total_aset_lancar_toko']:,.0f}"]
+    #     })
+    #     st.dataframe(df_pasiva, hide_index=True, use_container_width=True)
+    # st.success("STATUS NERACA SAK EMKM: ✅ 100% BALANCED (Pencatatan Aset Sesuai Sisi Pasiva)")
 
-    # =========================================================================
-    # KANTONG TARGET ALOKASI KERTAS (KONDISI DOMESTIK KELUARGA)
-    # =========================================================================
-    st.write("")
-    st.markdown("### 📋 4. MONITORING TARGET ALOKASI BUDGET (DI ATAS KERTAS)")
+    # # =========================================================================
+    # # KANTONG TARGET ALOKASI KERTAS (KONDISI DOMESTIK KELUARGA)
+    # # =========================================================================
+    # st.write("")
+    # st.markdown("### 📋 4. MONITORING TARGET ALOKASI BUDGET (DI ATAS KERTAS)")
     
-    col_b1, col_b2 = st.columns(2)
+    # col_b1, col_b2 = st.columns(2)
     
-    with col_b1:
-        st.info("🏛️ **ALOKASI TARGET BISNIS**")
-        df_target_bisnis = pd.DataFrame({
-            "Komponen": ["Hak Investor (7.5%)", "Gaji Pokok Flat Owner (Locked)", "Target Cadangan Baru (40%)"],
-            "Nominal": [
-                f"Rp {db['wajib_setor_investor']:,.0f}", 
-                f"Rp {db['gaji_owner_dialokasikan']:,.0f}", 
-                f"Rp {db['cadangan_bisnis_kertas']:,.0f}"
-            ]
-        })
-        st.dataframe(df_target_bisnis, hide_index=True, use_container_width=True)
+    # with col_b1:
+    #     st.info("🏛️ **ALOKASI TARGET BISNIS**")
+    #     df_target_bisnis = pd.DataFrame({
+    #         "Komponen": ["Hak Investor (7.5%)", "Gaji Pokok Flat Owner (Locked)", "Target Cadangan Baru (40%)"],
+    #         "Nominal": [
+    #             f"Rp {db['wajib_setor_investor']:,.0f}", 
+    #             f"Rp {db['gaji_owner_dialokasikan']:,.0f}", 
+    #             f"Rp {db['cadangan_bisnis_kertas']:,.0f}"
+    #         ]
+    #     })
+    #     st.dataframe(df_target_bisnis, hide_index=True, use_container_width=True)
         
-    with col_b2:
-        st.warning("🏠 **PLAFON BELANJA RUMAH TANGGA MANDATORI**")
-        items_d, nominals_d = [], []
+    # with col_b2:
+    #     st.warning("🏠 **PLAFON BELANJA RUMAH TANGGA MANDATORI**")
+    #     items_d, nominals_d = [], []
         
-        for k, v in db["target_kertas_domestik"].items():
-            items_d.append(k)
-            nominals_d.append(f"Rp {v:,.0f}")
+    #     for k, v in db["target_kertas_domestik"].items():
+    #         items_d.append(k)
+    #         nominals_d.append(f"Rp {v:,.0f}")
             
-        df_domestik_final = pd.DataFrame({
-            "Pos Pengeluaran Keluarga": items_d, 
-            "Target Plafon": nominals_d
-        })
-        st.dataframe(df_domestik_final, hide_index=True, use_container_width=True)
+    #     df_domestik_final = pd.DataFrame({
+    #         "Pos Pengeluaran Keluarga": items_d, 
+    #         "Target Plafon": nominals_d
+    #     })
+    #     st.dataframe(df_domestik_final, hide_index=True, use_container_width=True)
 
 st.write("")
 with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False):

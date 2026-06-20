@@ -182,33 +182,36 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
     outstanding_cc_total = 0.0
 
     # =========================================================================
-    # BLOK C: OPERASIONAL KARTU KREDIT (LANGKAH 1 - 3) - INTEGRASI SAK EMKM
+    # BLOK C: OPERASIONAL KARTU KREDIT (LANGKAH 1 - 3) - REVISI CUT-OFF TOTAL
     # =========================================================================
     outstanding_cc_total = 0.0
     
-    # LANGKAH 1: Hitung total SEMUA transaksi tiket belanja modal yang digesek pakai CC (Mulai Mei 2026)
-    # Patuh SAK EMKM: Tidak lagi disandera status is_belum_lunas konsumen agar utang tidak hilang fiktif
+    # LANGKAH 1: Hitung total SEMUA transaksi tiket belanja modal yang digesek pakai CC (Mulai 1 Mei 2026)
     if not df_sales.empty and "Sumber Dana" in df_sales.columns:
         mask_sumber_cc = df_sales["Sumber Dana"].astype(str).str.lower().str.contains("credit|cc|kartu", na=False)
         df_cc_all = df_sales[mask_sumber_cc].copy()
         
         if not df_cc_all.empty:
             df_cc_all["Tgl_Parsed_CC"] = pd.to_datetime(df_cc_all["Tgl Pemesanan"], dayfirst=True, errors="coerce")
-            # Tetap mengunci batas waktu pengujian data Anda per 1 Mei 2026
             df_cc_cutoff = df_cc_all[df_cc_all["Tgl_Parsed_CC"] >= pd.Timestamp("2026-05-01")]
             outstanding_cc_total = df_cc_cutoff["Harga Beli (Num)"].sum()
 
-    # LANGKAH 2: Hitung total uang yang sudah dibayarkan untuk melunasi tagihan CC di sheet Pribadi
+    # LANGKAH 2: Hitung total uang pembayaran tagihan CC di sheet Pribadi (Mulai 1 Mei 2026)
     total_bayar_tagihan_cc = 0.0
     if not df_pribadi.empty and "Keterangan" in df_pribadi.columns:
+        # Buat kolom parsing tanggal mandiri untuk data pribadi
+        df_pribadi["Tgl_Parsed_Pribadi"] = pd.to_datetime(df_pribadi["Tanggal"], errors="coerce")
+        
         mask_bayar_cc = (
             df_pribadi["Keterangan"].astype(str).str.lower().str.contains("tagihan cc|pelunasan cc|bayar cc|tagihan kartu", na=False) &
-            (df_pribadi["Kategori"].astype(str).str.strip().str.lower() == "pengeluaran")
+            (df_pribadi["Kategori"].astype(str).str.strip().str.lower() == "pengeluaran") &
+            (df_pribadi["Tgl_Parsed_Pribadi"] >= pd.Timestamp("2026-05-01")) # <── LOCK TIME CUT-OFF
         )
         total_bayar_tagihan_cc = df_pribadi[mask_bayar_cc]["Nominal (Num)"].sum()
 
-    # LANGKAH 3: Sisa Beban Kartu Kredit Berjalan (Dikurangi Secara Adil Berdasarkan Uang Keluar Pribadi)
+    # LANGKAH 3: Sisa Beban Kartu Kredit Berjalan Masa Berjalan (100% Cocok & Adil)
     outstanding_cc_final = max(0.0, outstanding_cc_total - total_bayar_tagihan_cc)
+
 
     # =========================================================================
     # BLOK D: SENSOR DETEKSI OTOMATIS BIAYA OPS TOKO & INTEGRASI VARIABEL UTAMA

@@ -5739,7 +5739,7 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
             "Juli", "Agustus", "September", "Oktober", "November", "Desember"
         ]
         # Set default awal ke bulan Mei (index 5) sesuai data pengujian Anda
-        bulan_terpilih = st.selectbox("Bulan Operasional", options=nama_bulan_id, index=5, key="hybrid_v2_month_filter")
+        bulan_terpilih = st.selectbox("Bulan Operasional", options=nama_bulan_id, index=0, key="hybrid_v2_month_filter")
         
     # =========================================================================
     # COMPONENT 2: ALGORITMA PENYARING COGNITIVE (ANTI-BOCOR FORMAT)

@@ -6001,15 +6001,23 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
     with st.container():
         st.markdown("### ⚖️ 2. LAPORAN POSISI KEUANGAN (BALANCE SHEET)")
         
-        # Perhitungan Komponen Neraca Independen (True Balancing)
+        # 1. Sisi Aktiva
         total_aktiva_riil = max(0.0, db['kas_riil_bisnis_toko']) + db['total_piutang']
         
-        # SAK EMKM: Ambil nilai HPP sebagai pengakuan modal kerja/talangan yang berjalan di tengah jalan
-        nnilai_modal_kerja_awal = float(db['total_piutang']) - (float(db['total_piutang']) / (1 + (db['roi']/100)) if db['roi'] > 0 else 0.0)
+        # 2. Ambil parameter ROI murni dari database engine Anda
+        roi_aktual = float(db.get('roi', 0.0))
+        total_piutang_aktual = float(db.get('total_piutang', 0.0))
         
-        # Pasiva dibangun dari Kewajiban + Ekuitas Independen (Termasuk Penyangga HPP)
-        nilai_ekuitas_riil = db['laba_bersih_riil_bisnis'] + nilai_modal_kerja_awal 
-        total_pasiva_riil = db['wajib_setor_investor'] + db['cadangan_bisnis_kertas'] + nilai_ekuitas_riil
+        # 3. Hitung porsi HPP yang masih sangkut di pelanggan secara aman
+        if roi_aktual > 0:
+            pembagi_roi = 1.0 + (roi_aktual / 100.0)
+            nilai_modal_kerja_awal = total_piutang_aktual - (total_piutang_aktual / pembagi_roi)
+        else:
+            nilai_modal_kerja_awal = total_piutang_aktual
+            
+        # 4. Satukan ke dalam Ekuitas Utama (Di luar blok IF agar kebal dari NameError)
+        nilai_ekuitas_riil = float(db['laba_bersih_riil_bisnis']) + nilai_modal_kerja_awal
+        total_pasiva_riil = float(db['wajib_setor_investor']) + float(db['cadangan_bisnis_kertas']) + nilai_ekuitas_riil
     
         c_neraca_kiri, c_neraca_kanan = st.columns(2)
         

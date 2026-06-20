@@ -5870,7 +5870,7 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     g13, g14, g15, g16 = st.columns(4)
     with g13: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">13. Cash Runway</div><div class="m-val c-grn">{db["daya_tahan_bulan"]:.2f} Bulan</div><div class="m-sub">Napas Domestik Tanpa Laba</div></div>', unsafe_allow_html=True)
     with g14: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">14. Invoice Boncos</div><div class="m-val c-red">{db["jumlah_boncos"]} Kasus</div><div class="m-sub">Rugi Rugi: Rp {db["total_kerugian"]:,.0f}</div></div>', unsafe_allow_html=True)
-    with g15: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">15. Admin Terproduktif</div><div class="m-val" style="font-size:1.15rem; padding:3px 0;">{db["top_admin"]}</div><div class="m-sub">Sales Volume Terbanyak</div></div>', unsafe_allow_html=True)
+    with g15: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">15. Laba Bersih Riil</div><div class="m-val c-grn">Rp {db["laba_bersih_riil_bisnis"]:,.0f}</div><div class="m-sub">Laba Buku - Biaya Ops</div></div>', unsafe_allow_html=True)
     with g16: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">16. Aset Lancar Toko</div><div class="m-val">Rp {db["total_aset_lancar_toko"]:,.0f}</div><div class="m-sub">Total Kas Riil + Piutang</div></div>', unsafe_allow_html=True)
 
     # DETAIL SALDO REKENING KAS PRIBADI
@@ -5953,5 +5953,81 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
         })
         st.dataframe(df_domestik_final, hide_index=True, use_container_width=True)
 
+st.write("")
+with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False):
+
+    # =============================================================================
+    # LAPORAN 1: LAPORAN LABA RUGI
+    # =============================================================================
+    with st.container():
+        st.markdown("### 📈 1. LAPORAN LABA RUGI (INCOME STATEMENT)")
+        df_laba_rugi_emkm = pd.DataFrame({
+            "Komponen Laporan Keuangan": [
+                "🟢 PENDAPATAN (Total Omzet Penjualan Tiket)",
+                "🔴 BEBAN POKOK PENJUALAN (Total HPP Beli Tiket)",
+                "📊 LABA KOTOR (Gross Profit)",
+                "🔴 BEBAN OPERASIONAL (Biaya Ops Toko)",
+                "🏆 LABA BERSIH RIIL PERIODE BERJALAN"
+            ],
+            "Nilai Buku": [
+                f"Rp {db['total_omzet_buku']:,.0f}",
+                f"Rp {db['total_hpp_buku']:,.0f}",
+                f"Rp {db['laba_buku_total']:,.0f}",
+                f"Rp {db['total_biaya_operasional_bisnis']:,.0f}",
+                f"Rp {db['laba_bersih_riil_bisnis']:,.0f}"
+            ]
+        })
+        st.dataframe(df_laba_rugi_emkm, hide_index=True, use_container_width=True)
+    
+    # =============================================================================
+    # LAPORAN 2: LAPORAN POSISI KEUANGAN (NERACA SEJATI)
+    # =============================================================================
+    with st.container():
+        st.markdown("### ⚖️ 2. LAPORAN POSISI KEUANGAN (BALANCE SHEET)")
+        
+        # Perhitungan Komponen Neraca Independen (True Balancing)
+        total_aktiva_riil = max(0.0, db['kas_riil_bisnis_toko']) + db['total_piutang']
+        
+        # Pasiva dibangun dari Kewajiban + Ekuitas Independen (Bukan rumus pengurangan)
+        nilai_ekuitas_riil = db['laba_bersih_riil_bisnis'] 
+        total_pasiva_riil = db['wajib_setor_investor'] + db['cadangan_bisnis_kertas'] + nilai_ekuitas_riil
+    
+        c_neraca_kiri, c_neraca_kanan = st.columns(2)
+        
+        with c_neraca_kiri:
+            st.markdown("**SISI AKTIVA (ASET / KEKAYAAN)**")
+            df_aktiva_sejati = pd.DataFrame({
+                "Komponen Aset": ["Kas & Setara Kas (Toko Riil)", "Piutang Dagang Aktif Konsumen", "TOTAL AKTIVA (ASET)"],
+                "Nilai Buku": [f"Rp {max(0.0, db['kas_riil_bisnis_toko']):,.0f}", f"Rp {db['total_piutang']:,.0f}", f"Rp {total_aktiva_riil:,.0f}"]
+            })
+            st.dataframe(df_aktiva_sejati, hide_index=True, use_container_width=True)
+            
+        with c_neraca_kanan:
+            st.markdown("**SISI PASIVA (KEWAJIBAN & MODAL)**")
+            df_pasiva_sejati = pd.DataFrame({
+                "Komponen Kewajiban & Modal": ["Utang Hak Setor Investor (7.5%)", "Plafon Cadangan Bisnis (40%)", "Ekuitas / Laba Bersih Kumulatif", "TOTAL PASIVA (KEWAJIBAN+MODAL)"],
+                "Nilai Buku": [f"Rp {db['wajib_setor_investor']:,.0f}", f"Rp {db['cadangan_bisnis_kertas']:,.0f}", f"Rp {nilai_ekuitas_riil:,.0f}", f"Rp {total_pasiva_riil:,.0f}"]
+            })
+            st.dataframe(df_pasiva_sejati, hide_index=True, use_container_width=True)
+    
+        # Sensor Alarm Detektor Kebocoran Neraca ERP
+        selisih_neraca = total_aktiva_riil - total_pasiva_riil
+        if abs(selisih_neraca) == 0:
+            st.success("STATUS NERACA SAK EMKM: ✅ 100% BALANCED (Pencatatan Berjalan Sempurna)")
+        else:
+            st.error(f"⚠️ STATUS NERACA UNBALANCED: Terdeteksi selisih sebesar **Rp {selisih_neraca:,.0f}** antara Sisi Aktiva dan Pasiva. Periksa kembali entri Biaya Ops atau Alokasi Dana Kertas Anda!")
+    
+    # =============================================================================
+    # LAPORAN 3: CATATAN ATAS LAPORAN KEUANGAN (CALK)
+    # =============================================================================
+    with st.container():
+        st.markdown("### 📝 3. CATATAN ATAS LAPORAN KEUANGAN (CALK)")
+        st.info(
+            f"**Kebijakan Akuntansi & Catatan Mutasi:**\n\n"
+            f"1. **Dasar Penyusunan**: Laporan Keuangan disusun berdasarkan asumsi basis kas yang dimodifikasi (Hybrid) yang disesuaikan untuk skala EMKM Mandiri.\n"
+            f"2. **Pengakuan Pendapatan**: Pendapatan diakui secara riil hanya pada tiket yang telah divalidasi oleh status biner Sistem GSheets sebagai 'Lunas'.\n"
+            f"3. **Status Kas Koran Bank (Pribadi)**: Saat ini total saldo perbankan fisik yang tercatat di sheet Pribadi adalah **Rp {db['total_atm_pribadi']:,.0f}**. Seluruh pengeluaran pos domestik (Rumah Tangga, Lifestyle) diisolasi dan tidak dibebankan ke dalam Laporan Laba Rugi Bisnis guna mempertahankan Asas Kesatuan Usaha.\n"
+            f"4. **Manajemen Risiko Piutang**: Rasio Kerentanan Laba tercatat sebesar **{db['rasio_kerentanan_laba']:.1f}%**. Terdapat **{db['jumlah_invoice_piutang']}** Invoice aktif belum tertagih dengan nilai total piutang **Rp {db['total_piutang']:,.0f}**."
+        )
 
 

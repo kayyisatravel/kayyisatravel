@@ -5996,24 +5996,27 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
         st.dataframe(df_laba_rugi_emkm, hide_index=True, use_container_width=True)
     
     # =============================================================================
-    # LAPORAN 2: LAPORAN POSISI KEUANGAN STANDAR RESMI SAK EMKM (100% REVISED)
+    # LAPORAN 2: LAPORAN POSISI KEUANGAN STANDAR RESMI SAK EMKM (DENGAN UTANG CC)
     # =============================================================================
     with st.container():
         st.markdown("### ⚖️ 2. LAPORAN POSISI KEUANGAN (BALANCE SHEET)")
         
-        # 1. SISI AKTIVA
+        # 1. SISI AKTIVA (Tetap Aman Utuh)
         total_aktiva_riil = max(0.0, db['kas_riil_bisnis_toko']) + db['total_piutang']
         
-        # 2. SISI PASIVA (Restrukturisasi Baku SAK EMKM)
-        nilai_liabilitas_utang = 0.0 # Kondisi riil usaha saat ini
+        # 2. SISI PASIVA (Integrasi Utang Kartu Kredit ke Kelompok Liabilitas)
+        nilai_utang_usaha = 0.0 # Utang operasional pihak ketiga tetap 0
+        nilai_utang_cc_bank = float(db.get('beban_cc_aktual', 0.0)) # <── Ambil nominal Outstanding CC secara otomatis
         
-        # Alokasi Ekuitas Terpisah Sesuai Aturan Akuntansi
+        # Alokasi Ekuitas SAK EMKM
         nilai_modal_investor = float(db['wajib_setor_investor'])
         nilai_saldo_laba = float(db['laba_bersih_riil_bisnis'])
         
-        # Perhitungan Nilai Buku Modal Kerja Bersih Pemilik
-        nilai_modal_pemilik = total_aktiva_riil - (nilai_modal_investor + nilai_saldo_laba)
-        total_pasiva_riil = nilai_liabilitas_utang + nilai_modal_investor + nilai_modal_pemilik + nilai_saldo_laba
+        # Hitung Nilai Buku Modal Kerja Bersih Pemilik setelah dikurangi Utang CC Bank agar 100% Balanced
+        nilai_total_liabilitas = nilai_utang_usaha + nilai_utang_cc_bank
+        nilai_modal_pemilik = total_aktiva_riil - (nilai_total_liabilitas + nilai_modal_investor + nilai_saldo_laba)
+        
+        total_pasiva_riil = nilai_total_liabilitas + nilai_modal_investor + nilai_modal_pemilik + nilai_saldo_laba
     
         c_neraca_kiri, c_neraca_kanan = st.columns(2)
         
@@ -6029,14 +6032,16 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
             st.markdown("**SISI PASIVA (LIABILITAS & EKUITAS)**")
             df_pasiva_sejati = pd.DataFrame({
                 "Pos Liabilitas & Ekuitas": [
-                    "Liabilitas: Utang Usaha / Utang Lain", 
+                    "Liabilitas: Utang Usaha / Dagang", 
+                    "Liabilitas: Utang Bank / Kartu Kredit", # <── Baris Baru Resmi SAK EMKM
                     "Ekuitas: Modal Investor (7.5%)", 
                     "Ekuitas: Modal Pemilik / Modal Kerja", 
                     "Ekuitas: Saldo Laba (Laba Ditahan)", 
                     "TOTAL LIABILITAS & EKUITAS"
                 ],
                 "Nilai Buku": [
-                    f"Rp {nilai_liabilitas_utang:,.0f}", 
+                    f"Rp {nilai_utang_usaha:,.0f}", 
+                    f"Rp {nilai_utang_cc_bank:,.0f}", # <── Memunculkan angka Rp 444.992.692
                     f"Rp {nilai_modal_investor:,.0f}", 
                     f"Rp {nilai_modal_pemilik:,.0f}", 
                     f"Rp {nilai_saldo_laba:,.0f}", 
@@ -6044,6 +6049,7 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
                 ]
             })
             st.dataframe(df_pasiva_sejati, hide_index=True, use_container_width=True)
+
     
         # Sensor Alarm Detektor Kebocoran Neraca ERP
         selisih_neraca = total_aktiva_riil - total_pasiva_riil

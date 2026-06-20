@@ -145,18 +145,18 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
 
     total_biaya_operasional_bisnis = 0.0 
     if not df_pribadi.empty and "Bank_Sumber" in df_pribadi.columns:
-    for _, row in df_pribadi.iterrows():
-        kat = str(row.get("Kategori", "")).strip().lower()
-        pos_rek = str(row.get("No_Rekening_AI", "")).strip().lower()
-        nominal = row["Nominal (Num)"]
-        
-        # JIKA kategori adalah pengeluaran DAN kantongnya ditujukan untuk urusan toko/bisnis
-        if kat == "pengeluaran":
-            if "cadangan" in pos_rek or "aset kantor" in pos_rek:
-                # Akumulasikan ke biaya operasional murni (misal: bayar sewa, bayar internet, listrik kantor)
-                total_biaya_operasional_bisnis += nominal
-    laba_bersih_riil_bisnis = laba_buku_total - total_biaya_operasional_bisnis
-    daya_tahan_bulan = (kas_riil_bisnis_toko / GAJI_BASELINE_FLAT) if kas_riil_bisnis_toko > 0 else 0.0
+        for _, row in df_pribadi.iterrows():
+            kat = str(row.get("Kategori", "")).strip().lower()
+            pos_rek = str(row.get("No_Rekening_AI", "")).strip().lower()
+            nominal = row["Nominal (Num)"]
+            
+            # JIKA kategori adalah pengeluaran DAN kantongnya ditujukan untuk urusan toko/bisnis
+            if kat == "pengeluaran":
+                if "cadangan" in pos_rek or "aset kantor" in pos_rek:
+                    # Akumulasikan ke biaya operasional murni (misal: bayar sewa, bayar internet, listrik kantor)
+                    total_biaya_operasional_bisnis += nominal
+        laba_bersih_riil_bisnis = laba_buku_total - total_biaya_operasional_bisnis
+        daya_tahan_bulan = (kas_riil_bisnis_toko / GAJI_BASELINE_FLAT) if kas_riil_bisnis_toko > 0 else 0.0
 
     # FORENSIK DETEKSI TRANSAKSI RUGI LAMA Anda
     transaksi_boncos = df_sales[df_sales["Laba (Num)"] < 0] if not df_sales.empty else pd.DataFrame()

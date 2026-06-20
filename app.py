@@ -6030,7 +6030,8 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
                 "Komponen Kewajiban & Modal": [
                     "Utang Hak Setor Investor (7.5%)", 
                     "Plafon Cadangan Bisnis (40%)", 
-                    "Ekuitas Modal Kerja + Laba Bersih Ditahan" # <── Gabungan Modal Kerja Sejati SAK EMKM
+                    "Ekuitas Modal Kerja + Laba Bersih Ditahan",
+                    "TOTAL PASIVA (KEWAJIBAN+MODAL)" # <── SUNTIKKAN JUDUL BARIS INI (Penyembuh Eror)
                 ],
                 "Nilai Buku": [
                     f"Rp {db['wajib_setor_investor']:,.0f}", 
@@ -6040,6 +6041,7 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
                 ]
             })
             st.dataframe(df_pasiva_sejati, hide_index=True, use_container_width=True)
+
 
 
     

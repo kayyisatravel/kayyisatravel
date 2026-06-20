@@ -84,8 +84,7 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
     npm = (laba_buku_total / total_omzet_buku * 100) if total_omzet_buku > 0 else 0.0
     roi = (laba_buku_total / total_hpp_buku * 100) if total_hpp_buku > 0 else 0.0
     rasio_keterikatan_modal = (total_piutang / total_omzet_buku * 100) if total_omzet_buku > 0 else 0.0
-    rasio_kerentanan_laba = (total_piutang / laba_buku_total * 100) if laba_buku_total > 0 else 0.0
-
+    
     # BALANCING TRANSPARANSI BUKU BANK AKTUAL
     log_bank = {
         "BCA": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
@@ -136,15 +135,22 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
     # =========================================================================
     status_darurat_aktif = False
     nilai_defisit_gaji = 0.0
-    
-    if kas_setelah_investor >= GAJI_BASELINE_FLAT:
-        gaji_owner_dialokasikan = GAJI_BASELINE_FLAT
-        cadangan_bisnis_40_kertas = (kas_setelah_investor - GAJI_BASELINE_FLAT) * 0.40
-    else:
+    rasio_kerentanan_laba = (total_piutang / laba_buku_total * 100) if laba_buku_total > 0 else 0.0
+
+    if kas_setelah_investor < GAJI_BASELINE_FLAT:
         gaji_owner_dialokasikan = GAJI_BASELINE_FLAT
         cadangan_bisnis_40_kertas = 0.0
         status_darurat_aktif = True
         nilai_defisit_gaji = GAJI_BASELINE_FLAT - kas_setelah_investor
+    elif rasio_kerentanan_laba > 100.0:
+        gaji_owner_dialokasikan = GAJI_BASELINE_FLAT
+        cadangan_bisnis_40_kertas = 0.0
+        status_darurat_aktif = True
+        # Defisit diisi 0 karena kas fisik aman, tetapi lampu darurat wajib menyala sebagai peringatan piutang macet
+        nilai_defisit_gaji = 0.0 
+    else:
+        gaji_owner_dialokasikan = GAJI_BASELINE_FLAT
+        cadangan_bisnis_40_kertas = (kas_setelah_investor - GAJI_BASELINE_FLAT) * 0.40
 
     # =========================================================================
     # BLOK B: FORENSIK DETEKSI TRANSAKSI RUGI LAMA Anda

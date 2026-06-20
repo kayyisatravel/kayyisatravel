@@ -90,8 +90,15 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
         "BCA": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
         "Mandiri": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
         "BSI": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
+        "Bank Mega": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
+        "BRI": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
+        "Sea Bank": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
+        "Gopay": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
+        "OVO": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
+        "DANA": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
         "Kartu Kredit": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0}
     }
+
     mutasi_pos_digital = {"cadangan_bisnis": 0.0, "rumah_tangga": 0.0, "investasi": 0.0, "lifestyle": 0.0}
 
     if not df_pribadi.empty and "Bank_Sumber" in df_pribadi.columns:
@@ -102,10 +109,16 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
             nominal = row["Nominal (Num)"]
             
             bank_key = None
-            if any(x in bank for x in ["cc", "credit", "uob", "mega"]): bank_key = "Kartu Kredit"
+            if any(x in bank for x in ["cc", "credit", "uob", "kartu kredit"]): bank_key = "Kartu Kredit"
             elif "mandiri" in bank: bank_key = "Mandiri"
             elif "bca" in bank: bank_key = "BCA"
             elif "bsi" in bank: bank_key = "BSI"
+            elif "mega" in bank: bank_key = "Bank Mega"
+            elif "bri" in bank: bank_key = "BRI"
+            elif "sea" in bank: bank_key = "Sea Bank"
+            elif "gopay" in bank or "gojek" in bank: bank_key = "Gopay"
+            elif "ovo" in bank: bank_key = "OVO"
+            elif "dana" in bank: bank_key = "DANA"
             
             if bank_key in log_bank:
                 if kat == "pemasukan":
@@ -120,7 +133,8 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
             elif "investasi" in pos_rek: mutasi_pos_digital["investasi"] += nominal if kat == "pemasukan" else -nominal
             elif "lifestyle" in pos_rek: mutasi_pos_digital["lifestyle"] += nominal if kat == "pemasukan" else -nominal
 
-    total_atm_pribadi = log_bank["BCA"]["saldo"] + log_bank["Mandiri"]["saldo"] + log_bank["BSI"]["saldo"]
+    total_atm_pribadi = sum(info["saldo"] for bank_nm, info in log_bank.items() if bank_nm != "Kartu Kredit")
+
     total_cash_in_pribadi = sum(info["masuk"] for info in log_bank.values())
     total_cash_out_pribadi = sum(info["keluar"] for info in log_bank.values())
     rasio_menabung_domestik = (total_atm_pribadi / total_cash_in_pribadi * 100) if total_cash_in_pribadi > 0 else 0.0

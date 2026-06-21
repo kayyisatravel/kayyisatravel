@@ -6078,9 +6078,6 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
             f"yang seluruhnya diakui sebagai komponen Aset Lancar."
         )
 
-# =============================================================================
-# EXPANDER MANDIRI: VISUAL CONTROL ANGGARAN DOMESTIK RUMAH TANGGA (FIXED TYPO)
-# =============================================================================
 with st.expander("🏠 DASHBOARD KONTROL ANGGARAN & BUDGETING RUMAH TANGGA", expanded=False):
     st.subheader("📊 Evaluasi Bulanan Realisasi vs Plafon Anggaran Rumah Tangga")
     st.caption("Sistem mengevaluasi kebocoran dana pribadi mandatori (Listrik, Cicilan, Keluarga) secara real-time.")
@@ -6109,6 +6106,13 @@ with st.expander("🏠 DASHBOARD KONTROL ANGGARAN & BUDGETING RUMAH TANGGA", exp
     sisa_pos_3 = plafon_pos_3 - riil_pos_3
     sisa_pos_4 = plafon_pos_4 - riil_pos_4
     sisa_pos_5 = plafon_pos_5 - riil_pos_5
+
+    # =============================================================================
+    # DEKLARASI TOTAL GLOBAL (DIPINDAHKAN KE ATAS PENYEMBUH NAMEERROR)
+    # =============================================================================
+    total_plafon_global = plafon_pos_1 + plafon_pos_2 + plafon_pos_3 + plafon_pos_4 + plafon_pos_5
+    total_riil_global = riil_pos_1 + riil_pos_2 + riil_pos_3 + riil_pos_4 + riil_pos_5
+    total_sisa_global = total_plafon_global - total_riil_global
 
     # 4. MATRIKS RINGKASAN VISUAL METRICS CENTER DOMESTIK
     c_dom_1, c_dom_2, c_dom_3 = st.columns(3)
@@ -6139,7 +6143,6 @@ with st.expander("🏠 DASHBOARD KONTROL ANGGARAN & BUDGETING RUMAH TANGGA", exp
             f'</div>', 
             unsafe_allow_html=True
         )
-
 
     st.write("")
     st.markdown("##### 🧾 Tabel Transparansi Evaluasi Budgeting Pengeluaran")
@@ -6183,5 +6186,4 @@ with st.expander("🏠 DASHBOARD KONTROL ANGGARAN & BUDGETING RUMAH TANGGA", exp
         st.warning("⚠️ **PERINGATAN POS TAGIHAN:** Biaya operasional rumah tangga (Listrik/Cicilan) melebihi estimasi target kertas. Periksa kembali efisiensi penggunaan energi rumah tangga.")
     else:
         st.success("✅ **KONDISI BUDGET AMAN:** Penyerapan dana domestik keluarga terkendali di bawah ambang batas plafon target bulanan.")
-
 

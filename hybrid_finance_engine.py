@@ -158,7 +158,7 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
         "Kartu Kredit": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0}
     }
 
-    # 1. Inisialisasi awal objek secara lengkap (Mencegah KeyError)
+        # 1. Inisialisasi awal objek secara lengkap di dalam RAM
     mutasi_pos_digital = {
         "cadangan_bisnis": 0.0, 
         "investasi": 0.0, 
@@ -170,26 +170,28 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
         "edukasi": 0.0
     }
 
-    # 2. Blok Perulangan Database Koran Bank
-        if not df_pribadi.empty and "Bank_Sumber" in df_pribadi.columns:
+    # 2. Blok Perulangan Utama Database Koran Bank (Rata Kiri 4 Spasi)
+    if not df_pribadi.empty and "Bank_Sumber" in df_pribadi.columns:
         for _, row in df_pribadi.iterrows():
+            # Jarak menjorok ke dalam di baris ini adalah TEPAT 12 SPASI (3x indentasi)
             bank = str(row["Bank_Sumber"]).strip().lower()
             kat = str(row.get("Kategori", "")).strip().lower()
             pos_rek = str(row.get("No_Rekening_AI", "")).strip().lower()
             nominal = row["Nominal (Num)"]
             
-            # KOREKSI SAK EMKM: Gabungkan pengecekan kolom Keterangan dan Keterangan Tambahan agar aman dari mis-match GSheets
+            # Penggabungan nama kolom deskripsi agar aman dari ketidaksamaan nama kolom GSheets
             keterangan_1 = str(row.get("Keterangan", "")).strip()
             keterangan_2 = str(row.get("Keterangan Tambahan", "")).strip()
             keterangan_riil = keterangan_1 if keterangan_1 != "" else keterangan_2
             
             # =========================================================================
-            # BLOK EKSEKUSI TUNGGAL (ANTI-DUPLIKASI & ANTI-FALLBACK 429)
+            # EKSEKUSI TUNGGAL KONTROL SENSOR COGNITIVE AI GEMINI FLASH LITE
             # =========================================================================
             if kat == "pengeluaran" and keterangan_riil != "":
-                # Dipanggil HANYA 1 KALI agar tidak terkena limitasi kuota Google Cloud
+                # Jarak menjorok ke dalam di baris ini adalah TEPAT 16 SPASI (4x indentasi)
                 id_pos_keputusan_ai = pilah_pengeluaran_domestik_dengan_gemini(keterangan_riil)
                 
+                # Jarak menjorok ke dalam di baris bawah ini adalah TEPAT 16 SPASI
                 if id_pos_keputusan_ai == 1: 
                     mutasi_pos_digital["cicilan"] = mutasi_pos_digital.get("cicilan", 0.0) + nominal
                 elif id_pos_keputusan_ai == 2: 
@@ -200,8 +202,6 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
                     mutasi_pos_digital["tagihan"] = mutasi_pos_digital.get("tagihan", 0.0) + nominal
                 elif id_pos_keputusan_ai == 5: 
                     mutasi_pos_digital["edukasi"] = mutasi_pos_digital.get("edukasi", 0.0) + nominal
-
-
 
             
             bank_key = None

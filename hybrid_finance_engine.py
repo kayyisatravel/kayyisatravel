@@ -2,65 +2,6 @@
 import pandas as pd
 import numpy as np
 import re
-import streamlit as st
-from google import genai
-from google.genai import types
-from pydantic import BaseModel, Field
-import os
-
-# =========================================================================
-# 1. SKEMA DATA PYDANTIC UNTUK MENGUNCI FORMAT OUTPUT AI GEMINI
-# =========================================================================
-class AICategorizationSchema(BaseModel):
-    id_pos_terpilih: int = Field(description="Nomor pos anggaran dari 1 sampai 5 berdasarkan makna teks keterangan.")
-    nama_pos_terpilih: str = Field(description="Nama label pos anggaran yang dipilih.")
-    analisis_konteks: str = Field(description="Alasan singkat mengapa AI memilih pos tersebut.")
-
-def pilah_pengeluaran_domestik_dengan_gemini(keterangan_transaksi: str) -> int:
-    """
-    Menggunakan Gemini 3.1 Flash Lite + Pydantic Structured Output 
-    untuk memilah pengeluaran berdasarkan arti teks secara dinamis.
-    """
-    # Ambil kunci otentikasi resmi dari st.secrets
-    try:
-        api_key = st.secrets["GEMINI_API_KEY"]
-        client = genai.Client(api_key=api_key)
-    except Exception:
-        # Fallback aman jika API Key tidak ditemukan/gagal koneksi
-        return 2
-
-    # Instruksi kaku prompt engineer untuk melatih otak Gemini
-    prompt_rules = f"""
-    Anda adalah sistem kecerdasan buatan entri data akuntansi profesional terpadu.
-    Tugas Anda adalah membaca kalimat pengeluaran domestik rumah tangga berikut dan mengklasifikasikannya ke salah satu dari 5 pos ini secara tepat:
-    
-    Pos 1: Tempat Tinggal & Kendaraan (Cicilan ruko, cicilan rumah, kontrakan, mobil, motor)
-    Pos 2: Rumah Tangga & Keluarga (Belanja harian umum, perlengkapan umum, pasar, swalayan, sapu, alat pembersih rumah, kain pel, kemoceng, deterjen)
-    Pos 3: Kebutuhan Pokok Hidup (Pangan, makanan, galon air, beras, sayur, McD, KFC, kuliner, restoran)
-    Pos 4: Tagihan Bulanan & Ops (Listrik, token, PLN, PDAM, air/utilitas, pulsa, wifi, internet)
-    Pos 5: Edukasi, Anak & Sosial (Sekolah, SPP, les, Inggris, bisyaroh, ustadzah, ngaji, kursus, infak, sedekah)
-    
-    Kalimat Transaksi: "{keterangan_transaksi}"
-    """
-
-    try:
-        response = client.models.generate_content(
-            model='gemini-3.1-flash-lite',
-            contents=prompt_rules,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=AICategorizationSchema, # Mengunci output AI secara kaku via Pydantic
-                temperature=0.1
-            ),
-        )
-        # Ekstrak hasil JSON bersih yang sudah tervalidasi
-        import json
-        parsed_result = json.loads(response.text)
-        return int(parsed_result["id_pos_terpilih"])
-    except Exception:
-        # Fallback sistem: Jika internet putus, masukkan ke Pos 2 (Rumah Tangga Umum) agar sistem tidak crash
-        return 2
-
 
 def bersihkan_angka(val):
     if pd.isna(val) or val == "": return 0.0
@@ -158,44 +99,14 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
         "Kartu Kredit": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0}
     }
 
-    # 1. Inisialisasi awal wadah penampung nominal angka di memori RAM
-    mutasi_pos_digital = {
-        "cicilan": 0.0,
-        "rumah_tangga": 0.0,
-        "pangan": 0.0,
-        "tagihan": 0.0,
-        "edukasi": 0.0,
-        "cadangan_bisnis": 0.0,
-        "investasi": 0.0,
-        "lifestyle": 0.0
-    }
+    mutasi_pos_digital = {"cadangan_bisnis": 0.0, "rumah_tangga": 0.0, "investasi": 0.0, "lifestyle": 0.0}
 
-    # 2. Blok Perulangan Utama Lembar Kerja Pribadi
     if not df_pribadi.empty and "Bank_Sumber" in df_pribadi.columns:
         for _, row in df_pribadi.iterrows():
+            bank = str(row["Bank_Sumber"]).strip().lower()
             kat = str(row.get("Kategori", "")).strip().lower()
             pos_rek = str(row.get("No_Rekening_AI", "")).strip().lower()
             nominal = row["Nominal (Num)"]
-            
-            # AMBIL DATA LANGSUNG DARI KOLOM BARU HASIL PILIHAN DROPDOWN ADMIN
-            pos_anggaran_riil = str(row.get("Pos_Anggaran_Domestik", "")).strip()
-
-            # Jalur perhitungan saldo internal lama Anda tetap aman dipertahankan 100%
-            if "cadangan" in pos_rek: mutasi_pos_digital["cadangan_bisnis"] += nominal if kat == "pemasukan" else -nominal
-            elif "investasi" in pos_rek: mutasi_pos_digital["investasi"] += nominal if kat == "pemasukan" else -nominal
-            elif "lifestyle" in pos_rek: mutasi_pos_digital["lifestyle"] += nominal if kat == "pemasukan" else -nominal
-
-            # =========================================================================
-            # KONTROL SAK EMKM: SINKRONISASI MATEMATIKA DUA ARAH BERDASARKAN KOLOM BARU
-            # =========================================================================
-            if kat == "pengeluaran" and pos_anggaran_riil != "":
-                if "1." in pos_anggaran_riil: mutasi_pos_digital["cicilan"] += nominal
-                elif "2." in pos_anggaran_riil: mutasi_pos_digital["rumah_tangga"] += nominal
-                elif "3." in pos_anggaran_riil: mutasi_pos_digital["pangan"] += nominal
-                elif "4." in pos_anggaran_riil: mutasi_pos_digital["tagihan"] += nominal
-                elif "5." in pos_anggaran_riil: mutasi_pos_digital["edukasi"] += nominal
-
-
             
             bank_key = None
             if any(x in bank for x in ["cc", "credit", "uob", "kartu kredit"]): bank_key = "Kartu Kredit"
@@ -352,14 +263,7 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
         "status_darurat_aktif": status_darurat_aktif, 
         "nilai_defisit_gaji": nilai_defisit_gaji,
         "log_bank_pribadi": log_bank, 
-        "mutasi_pos_digital": {
-            "cicilan": abs(float(mutasi_pos_digital.get("cicilan", 0.0))),
-            "rumah_tangga": abs(float(mutasi_pos_digital.get("rumah_tangga", 0.0))),
-            "pangan": abs(float(mutasi_pos_digital.get("pangan", 0.0))),
-            "tagihan": abs(float(mutasi_pos_digital.get("tagihan", 0.0))),
-            "edukasi": abs(float(mutasi_pos_digital.get("edukasi", 0.0))),
-            "cadangan_bisnis": abs(float(mutasi_pos_digital.get("cadangan_bisnis", 0.0)))
-        },
+        "mutasi_pos_digital": mutasi_pos_digital,
         "target_kertas_domestik": {
             "1. Tempat Tinggal & Kendaraan (40.9%)": 10728067.0, 
             "2. Rumah Tangga & Keluarga (25.8%)": 6768500.0, 
@@ -372,4 +276,3 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
         "debug_raw_sales_count": debug_raw_sales_count, 
         "debug_raw_pribadi_count": debug_raw_pribadi_count
     }
-

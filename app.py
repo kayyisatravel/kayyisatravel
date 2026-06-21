@@ -6079,11 +6079,11 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
         )
 
 # =============================================================================
-# EXPANDER MANDIRI: VISUAL CONTROL ANGGARAN DOMESTIK RUMAH TANGGA
+# EXPANDER MANDIRI: VISUAL CONTROL ANGGARAN DOMESTIK RUMAH TANGGA (FIXED TYPO)
 # =============================================================================
-with st.expander("🏠 DASHBOARD KONTROL ANGGARAN & BUDGETING DOMESTIK", expanded=False):
+with st.expander("🏠 DASHBOARD KONTROL ANGGARAN & BUDGETING RUMAH TANGGA", expanded=False):
     st.subheader("📊 Evaluasi Bulanan Realisasi vs Plafon Anggaran Rumah Tangga")
-    st.caption("Sistem mengevaluasi kebocoran dana domestik mandatori (Listrik, Cicilan, Keluarga) secara real-time.")
+    st.caption("Sistem mengevaluasi kebocoran dana pribadi mandatori (Listrik, Cicilan, Keluarga) secara real-time.")
 
     # 1. Ekstraksi Angka Riil Pengeluaran Domestik dari Mesin Engine (Dipaksa Positif untuk Komparasi)
     pengeluaran_riil_rt = abs(db["mutasi_pos_digital"].get("rumah_tangga", 0.0))
@@ -6096,13 +6096,11 @@ with st.expander("🏠 DASHBOARD KONTROL ANGGARAN & BUDGETING DOMESTIK", expande
     plafon_pos_4 = 2405000.0   # 4. Tagihan Bulanan & Ops (Listrik, Internet, dll)
     plafon_pos_5 = 1358000.0   # 5. Edukasi, Anak & Sosial
 
-    # 3. Distribusi Angka Riasi Lapangan (Asas Alokasi Proporsional)
-    # Karena di database sheet Pribadi Anda baru mengunci kata kunci "rumah tangga" dan "lifestyle",
-    # Maka pengeluaran riil dialokasikan secara presisi ke pos nomor 2 dan nomor 4
+    # 3. Distribusi Angka Realisasi Lapangan (SINKRONISASI VARIABEL KAKU)
     riil_pos_1 = 0.0
-    riil_pos_2 = pengeneralan_riil_rt * 0.70  # 70% porsi belanja keluarga harian
+    riil_pos_2 = pengeluaran_riil_rt * 0.70  # <── PERBAIKAN: Nama variabel sudah lurus 'pengeluaran_riil_rt'
     riil_pos_3 = 0.0
-    riil_pos_4 = pengeluaran_riil_rt * 0.30  # 30% porsi otomatis dialokasikan untuk Listrik & Tagihan Ops
+    riil_pos_4 = pengeluaran_riil_rt * 0.30  
     riil_pos_5 = 0.0
 
     # Perhitungan Selisih Sisa Budget (Plafon - Riil)

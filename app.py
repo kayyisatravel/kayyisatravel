@@ -6111,37 +6111,34 @@ with st.expander("🏠 DASHBOARD KONTROL ANGGARAN & BUDGETING RUMAH TANGGA", exp
     sisa_pos_5 = plafon_pos_5 - riil_pos_5
 
     # 4. MATRIKS RINGKASAN VISUAL METRICS CENTER DOMESTIK
-            # =============================================================================
-        # SEKTOR RINGKASAN METRIKS ATAS (FIXED SYNTAX TRUNCATION & ANTI-ELLIPSIS)
-        # =============================================================================
-        c_dom_1, c_dom_2, c_dom_3 = st.columns(3)
+    c_dom_1, c_dom_2, c_dom_3 = st.columns(3)
+    
+    with c_dom_1:
+        st.markdown(
+            f'<div style="background-color:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:10px;">'
+            f'<div style="font-size:0.75rem; color:#64748b; font-weight:700; text-transform:uppercase;">📋 Total Plafon Budgets</div>'
+            f'<div style="font-size:1.3rem; font-weight:800; color:#0f172a; margin-top:3px;">Rp {total_plafon_global:,.0f}</div>'
+            f'</div>', 
+            unsafe_allow_html=True
+        )
         
-        with c_dom_1:
-            st.markdown(
-                f'<div style="background-color:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:10px;">'
-                f'<div style="font-size:0.75rem; color:#64748b; font-weight:700; text-transform:uppercase;">📋 Total Plafon Budgets</div>'
-                f'<div style="font-size:1.3rem; font-weight:800; color:#0f172a; margin-top:3px;">Rp {total_plafon_global:,.0f}</div>'
-                f'</div>', 
-                unsafe_allow_html=True
-            )
-            
-        with c_dom_2:
-            st.markdown(
-                f'<div style="background-color:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:10px;">'
-                f'<div style="font-size:0.75rem; color:#64748b; font-weight:700; text-transform:uppercase;">💸 Realisasi Belanja Riil</div>'
-                f'<div style="font-size:1.3rem; font-weight:800; color:#dc2626; margin-top:3px;">Rp {total_riil_global:,.0f}</div>'
-                f'</div>', 
-                unsafe_allow_html=True
-            )
-            
-        with c_dom_3:
-            st.markdown(
-                f'<div style="background-color:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:10px;">'
-                f'<div style="font-size:0.75rem; color:#64748b; font-weight:700; text-transform:uppercase;">💰 Sisa Saku Anggaran</div>'
-                f'<div style="font-size:1.3rem; font-weight:800; color:#16a34a; margin-top:3px;">Rp {total_sisa_global:,.0f}</div>'
-                f'</div>', 
-                unsafe_allow_html=True
-            )
+    with c_dom_2:
+        st.markdown(
+            f'<div style="background-color:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:10px;">'
+            f'<div style="font-size:0.75rem; color:#64748b; font-weight:700; text-transform:uppercase;">💸 Realisasi Belanja Riil</div>'
+            f'<div style="font-size:1.3rem; font-weight:800; color:#dc2626; margin-top:3px;">Rp {total_riil_global:,.0f}</div>'
+            f'</div>', 
+            unsafe_allow_html=True
+        )
+        
+    with c_dom_3:
+        st.markdown(
+            f'<div style="background-color:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:10px;">'
+            f'<div style="font-size:0.75rem; color:#64748b; font-weight:700; text-transform:uppercase;">💰 Sisa Saku Anggaran</div>'
+            f'<div style="font-size:1.3rem; font-weight:800; color:#16a34a; margin-top:3px;">Rp {total_sisa_global:,.0f}</div>'
+            f'</div>', 
+            unsafe_allow_html=True
+        )
 
 
     st.write("")

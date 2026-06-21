@@ -32,12 +32,12 @@ def pilah_pengeluaran_domestik_dengan_gemini(keterangan_transaksi: str) -> int:
     # Instruksi kaku prompt engineer untuk melatih otak Gemini
     prompt_rules = f"""
     Anda adalah sistem kecerdasan buatan entri data akuntansi profesional terpadu.
-    Tugas Anda adalah membaca kalimat pengeluaran domestik rumah tangga berikut dan mengklasifikasikannya ke salah satu dari 5 pos ini:
+    Tugas Anda adalah membaca kalimat pengeluaran domestik rumah tangga berikut dan mengklasifikasikannya ke salah satu dari 5 pos ini secara tepat:
     
     Pos 1: Tempat Tinggal & Kendaraan (Cicilan ruko, cicilan rumah, kontrakan, mobil, motor)
-    Pos 2: Rumah Tangga & Keluarga (Belanja harian umum, perlengkapan umum, pasar, swalayan)
+    Pos 2: Rumah Tangga & Keluarga (Belanja harian umum, perlengkapan umum, pasar, swalayan, sapu, alat pembersih rumah, kain pel, kemoceng, deterjen)
     Pos 3: Kebutuhan Pokok Hidup (Pangan, makanan, galon air, beras, sayur, McD, KFC, kuliner, restoran)
-    Pos 4: Tagihan Bulanan & Ops (Listrik, token, PLN, PDAM, air, pulsa, wifi, internet, sapu, alat pembersih rumah)
+    Pos 4: Tagihan Bulanan & Ops (Listrik, token, PLN, PDAM, air/utilitas, pulsa, wifi, internet)
     Pos 5: Edukasi, Anak & Sosial (Sekolah, SPP, les, Inggris, bisyaroh, ustadzah, ngaji, kursus, infak, sedekah)
     
     Kalimat Transaksi: "{keterangan_transaksi}"
@@ -338,7 +338,14 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
         "status_darurat_aktif": status_darurat_aktif, 
         "nilai_defisit_gaji": nilai_defisit_gaji,
         "log_bank_pribadi": log_bank, 
-        "mutasi_pos_digital": mutasi_pos_digital,
+        "mutasi_pos_digital": {
+            "cicilan": abs(float(mutasi_pos_digital.get("cicilan", 0.0))),
+            "rumah_tangga": abs(float(mutasi_pos_digital.get("rumah_tangga", 0.0))),
+            "pangan": abs(float(mutasi_pos_digital.get("pangan", 0.0))),
+            "tagihan": abs(float(mutasi_pos_digital.get("tagihan", 0.0))),
+            "edukasi": abs(float(mutasi_pos_digital.get("edukasi", 0.0))),
+            "cadangan_bisnis": abs(float(mutasi_pos_digital.get("cadangan_bisnis", 0.0)))
+        },
         "target_kertas_domestik": {
             "1. Tempat Tinggal & Kendaraan (40.9%)": 10728067.0, 
             "2. Rumah Tangga & Keluarga (25.8%)": 6768500.0, 

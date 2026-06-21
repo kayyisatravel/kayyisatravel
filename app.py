@@ -6078,4 +6078,95 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
             f"yang seluruhnya diakui sebagai komponen Aset Lancar."
         )
 
+# =============================================================================
+# EXPANDER MANDIRI: VISUAL CONTROL ANGGARAN DOMESTIK RUMAH TANGGA
+# =============================================================================
+with st.expander("🏠 DASHBOARD KONTROL ANGGARAN & BUDGETING DOMESTIK", expanded=False):
+    st.subheader("📊 Evaluasi Bulanan Realisasi vs Plafon Anggaran Rumah Tangga")
+    st.caption("Sistem mengevaluasi kebocoran dana domestik mandatori (Listrik, Cicilan, Keluarga) secara real-time.")
+
+    # 1. Ekstraksi Angka Riil Pengeluaran Domestik dari Mesin Engine (Dipaksa Positif untuk Komparasi)
+    pengeluaran_riil_rt = abs(db["mutasi_pos_digital"].get("rumah_tangga", 0.0))
+    pengeluaran_riil_lifestyle = abs(db["mutasi_pos_digital"].get("lifestyle", 0.0))
+    
+    # 2. Pemetaan Target Plafon Statis Berdasarkan Cetak Biru Anda
+    plafon_pos_1 = 10728067.0  # 1. Tempat Tinggal & Kendaraan (Cicilan)
+    plafon_pos_2 = 6768500.0   # 2. Rumah Tangga & Keluarga
+    plafon_pos_3 = 5000000.0   # 3. Kebutuhan Pokok Hidup
+    plafon_pos_4 = 2405000.0   # 4. Tagihan Bulanan & Ops (Listrik, Internet, dll)
+    plafon_pos_5 = 1358000.0   # 5. Edukasi, Anak & Sosial
+
+    # 3. Distribusi Angka Riasi Lapangan (Asas Alokasi Proporsional)
+    # Karena di database sheet Pribadi Anda baru mengunci kata kunci "rumah tangga" dan "lifestyle",
+    # Maka pengeluaran riil dialokasikan secara presisi ke pos nomor 2 dan nomor 4
+    riil_pos_1 = 0.0
+    riil_pos_2 = pengeneralan_riil_rt * 0.70  # 70% porsi belanja keluarga harian
+    riil_pos_3 = 0.0
+    riil_pos_4 = pengeluaran_riil_rt * 0.30  # 30% porsi otomatis dialokasikan untuk Listrik & Tagihan Ops
+    riil_pos_5 = 0.0
+
+    # Perhitungan Selisih Sisa Budget (Plafon - Riil)
+    sisa_pos_1 = plafon_pos_1 - riil_pos_1
+    sisa_pos_2 = plafon_pos_2 - riil_pos_2
+    sisa_pos_3 = plafon_pos_3 - riil_pos_3
+    sisa_pos_4 = plafon_pos_4 - riil_pos_4
+    sisa_pos_5 = plafon_pos_5 - riil_pos_5
+
+    # 4. MATRIKS RINGKASAN VISUAL METRICS CENTER DOMESTIK
+    c_dom_1, c_dom_2, c_dom_3 = st.columns(3)
+    total_plafon_global = plafon_pos_1 + plafon_pos_2 + plafon_pos_3 + plafon_pos_4 + plafon_pos_5
+    total_riil_global = riil_pos_1 + riil_pos_2 + riil_pos_3 + riil_pos_4 + riil_pos_5
+    total_sisa_global = total_plafon_global - total_riil_global
+
+    with c_dom_1:
+        st.metric("📋 Total Plafon Budgets", f"Rp {total_plafon_global:,.0f}")
+    with c_dom_2:
+        color_riil = "normal" if total_riil_global <= total_plafon_global else "inverse"
+        st.metric("💸 Realisasi Belanja Riil", f"Rp {total_riil_global:,.0f}")
+    with c_dom_3:
+        st.metric("💰 Sisa Saku Anggaran", f"Rp {total_sisa_global:,.0f}")
+
+    st.write("")
+    st.markdown("##### 🧾 Tabel Transparansi Evaluasi Budgeting Pengeluaran")
+
+    # 5. KONSTRUKSI DATAFRAME EVALUASI AKURAT
+    df_evaluasi_budget = pd.DataFrame({
+        "Pos Anggaran Keluarga": [
+            "1. Tempat Tinggal & Kendaraan (Cicilan)",
+            "2. Rumah Tangga & Keluarga (Belanja Harian)",
+            "3. Kebutuhan Pokok Hidup (Pangan)",
+            "4. Tagihan Bulanan & Ops (Listrik & Air)",
+            "5. Edukasi, Anak & Sosial"
+        ],
+        "Target Plafon": [plafon_pos_1, plafon_pos_2, plafon_pos_3, plafon_pos_4, plafon_pos_5],
+        "Realisasi Riil": [riil_pos_1, riil_pos_2, riil_pos_3, riil_pos_4, riil_pos_5],
+        "Sisa Anggaran": [sisa_pos_1, sisa_pos_2, sisa_pos_3, sisa_pos_4, sisa_pos_5],
+        "Status Sensor": [
+            "🟢 Aman (0%)" if riil_pos_1 == 0 else ("🟡 Mendekati Batas" if riil_pos_1 <= plafon_pos_1 else "🔴 Over-Budget (Bocor)"),
+            "🟢 Aman" if riil_pos_2 <= plafon_pos_2 else "🔴 Over-Budget (Bocor)",
+            "🟢 Aman (0%)" if riil_pos_3 == 0 else ("🟡 Mendekati Batas" if riil_pos_3 <= plafon_pos_3 else "🔴 Over-Budget (Bocor)"),
+            "🟢 Aman" if riil_pos_4 <= plafon_pos_4 else "🔴 Over-Budget (Bocor)",
+            "🟢 Aman (0%)" if riil_pos_5 == 0 else ("🟡 Mendekati Batas" if riil_pos_5 <= plafon_pos_5 else "🔴 Over-Budget (Bocor)")
+        ]
+    })
+
+    # Tampilkan Tabel Ke Layar dengan Format Rupiah Rapi
+    st.dataframe(
+        df_evaluasi_budget.style.format({
+            "Target Plafon": "Rp {:,.0f}",
+            "Realisasi Riil": "Rp {:,.0f}",
+            "Sisa Anggaran": "Rp {:,.0f}"
+        }),
+        use_container_width=True,
+        hide_index=True
+    )
+
+    # 6. SENSOR NOTIFIKASI DETEKSI KEBOCORAN DANA DOMESTIK
+    if total_riil_global > total_plafon_global:
+        st.error(f"🚨 **ALARM KEBOCORAN DOMESTIK:** Pengeluaran rumah tangga Anda telah menjebol batas plafon sebesar **Rp {abs(total_sisa_global):,.0f}**. Segera lakukan pengetatan pada pos Belanja atau Tagihan Bulanan!")
+    elif riil_pos_4 > plafon_pos_4:
+        st.warning("⚠️ **PERINGATAN POS TAGIHAN:** Biaya operasional rumah tangga (Listrik/Cicilan) melebihi estimasi target kertas. Periksa kembali efisiensi penggunaan energi rumah tangga.")
+    else:
+        st.success("✅ **KONDISI BUDGET AMAN:** Penyerapan dana domestik keluarga terkendali di bawah ambang batas plafon target bulanan.")
+
 

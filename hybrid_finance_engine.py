@@ -158,50 +158,43 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
         "Kartu Kredit": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0}
     }
 
-        # 1. Inisialisasi awal objek secara lengkap di dalam RAM
+    # 1. Inisialisasi awal wadah penampung nominal angka di memori RAM
     mutasi_pos_digital = {
-        "cadangan_bisnis": 0.0, 
-        "investasi": 0.0, 
-        "lifestyle": 0.0,
         "cicilan": 0.0,
-        "rumah_tangga": 0.0, 
+        "rumah_tangga": 0.0,
         "pangan": 0.0,
         "tagihan": 0.0,
-        "edukasi": 0.0
+        "edukasi": 0.0,
+        "cadangan_bisnis": 0.0,
+        "investasi": 0.0,
+        "lifestyle": 0.0
     }
 
-    # 2. Blok Perulangan Utama Database Koran Bank (Rata Kiri 4 Spasi)
+    # 2. Blok Perulangan Utama Lembar Kerja Pribadi
     if not df_pribadi.empty and "Bank_Sumber" in df_pribadi.columns:
         for _, row in df_pribadi.iterrows():
-            # Jarak menjorok ke dalam di baris ini adalah TEPAT 12 SPASI (3x indentasi)
-            bank = str(row["Bank_Sumber"]).strip().lower()
             kat = str(row.get("Kategori", "")).strip().lower()
             pos_rek = str(row.get("No_Rekening_AI", "")).strip().lower()
             nominal = row["Nominal (Num)"]
             
-            # Penggabungan nama kolom deskripsi agar aman dari ketidaksamaan nama kolom GSheets
-            keterangan_1 = str(row.get("Keterangan", "")).strip()
-            keterangan_2 = str(row.get("Keterangan Tambahan", "")).strip()
-            keterangan_riil = keterangan_1 if keterangan_1 != "" else keterangan_2
-            
+            # AMBIL DATA LANGSUNG DARI KOLOM BARU HASIL PILIHAN DROPDOWN ADMIN
+            pos_anggaran_riil = str(row.get("Pos_Anggaran_Domestik", "")).strip()
+
+            # Jalur perhitungan saldo internal lama Anda tetap aman dipertahankan 100%
+            if "cadangan" in pos_rek: mutasi_pos_digital["cadangan_bisnis"] += nominal if kat == "pemasukan" else -nominal
+            elif "investasi" in pos_rek: mutasi_pos_digital["investasi"] += nominal if kat == "pemasukan" else -nominal
+            elif "lifestyle" in pos_rek: mutasi_pos_digital["lifestyle"] += nominal if kat == "pemasukan" else -nominal
+
             # =========================================================================
-            # EKSEKUSI TUNGGAL KONTROL SENSOR COGNITIVE AI GEMINI FLASH LITE
+            # KONTROL SAK EMKM: SINKRONISASI MATEMATIKA DUA ARAH BERDASARKAN KOLOM BARU
             # =========================================================================
-            if kat == "pengeluaran" and keterangan_riil != "":
-                # Jarak menjorok ke dalam di baris ini adalah TEPAT 16 SPASI (4x indentasi)
-                id_pos_keputusan_ai = pilah_pengeluaran_domestik_dengan_gemini(keterangan_riil)
-                
-                # Jarak menjorok ke dalam di baris bawah ini adalah TEPAT 16 SPASI
-                if id_pos_keputusan_ai == 1: 
-                    mutasi_pos_digital["cicilan"] = mutasi_pos_digital.get("cicilan", 0.0) + nominal
-                elif id_pos_keputusan_ai == 2: 
-                    mutasi_pos_digital["rumah_tangga"] = mutasi_pos_digital.get("rumah_tangga", 0.0) + nominal
-                elif id_pos_keputusan_ai == 3: 
-                    mutasi_pos_digital["pangan"] = mutasi_pos_digital.get("pangan", 0.0) + nominal
-                elif id_pos_keputusan_ai == 4: 
-                    mutasi_pos_digital["tagihan"] = mutasi_pos_digital.get("tagihan", 0.0) + nominal
-                elif id_pos_keputusan_ai == 5: 
-                    mutasi_pos_digital["edukasi"] = mutasi_pos_digital.get("edukasi", 0.0) + nominal
+            if kat == "pengeluaran" and pos_anggaran_riil != "":
+                if "1." in pos_anggaran_riil: mutasi_pos_digital["cicilan"] += nominal
+                elif "2." in pos_anggaran_riil: mutasi_pos_digital["rumah_tangga"] += nominal
+                elif "3." in pos_anggaran_riil: mutasi_pos_digital["pangan"] += nominal
+                elif "4." in pos_anggaran_riil: mutasi_pos_digital["tagihan"] += nominal
+                elif "5." in pos_anggaran_riil: mutasi_pos_digital["edukasi"] += nominal
+
 
             
             bank_key = None

@@ -5711,6 +5711,13 @@ from finance_engine import hitung_performa_dan_reconciliation_v5
 
 # # Pastikan data sheet telah ter-load ke variabel ini sebelum memanggil
 # # df_filtered (dari sheet Data) dan df_pribadi_current (dari sheet Pribadi)
+@st.cache_data(show_spinner=False)
+def cached_pilah_pengeluaran_domestik(keterangan_riil):
+    """
+    Membungkus fungsi AI asli agar teks yang sama tidak memicu 
+    panggilan HTTP ulang ke server Gemini saat user mengubah filter bulan/tahun.
+    """
+    return pilah_pengeluaran_domestik_dengan_gemini(keterangan_riil)
 
 with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     

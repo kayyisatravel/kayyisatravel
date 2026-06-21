@@ -6112,17 +6112,21 @@ with st.expander("🏠 DASHBOARD KONTROL ANGGARAN & BUDGETING RUMAH TANGGA", exp
 
     # 4. MATRIKS RINGKASAN VISUAL METRICS CENTER DOMESTIK
     c_dom_1, c_dom_2, c_dom_3 = st.columns(3)
-    total_plafon_global = plafon_pos_1 + plafon_pos_2 + plafon_pos_3 + plafon_pos_4 + plafon_pos_5
-    total_riil_global = riil_pos_1 + riil_pos_2 + riil_pos_3 + riil_pos_4 + riil_pos_5
-    total_sisa_global = total_plafon_global - total_riil_global
-
     with c_dom_1:
-        st.metric("📋 Total Plafon Budgets", f"Rp {total_plafon_global:,.0f}")
+        st.markdown(f'<div style="background-color:#f8fafc; padding:10px; border-radius:5px; border:1px solid #e2e8f0;"><b>📋 Total Plafon Budgets</b><br><span style="font-size:20px; font-weight:bold;">Rp {total_plafon_global:,.0f}</span></div>', unsafe_allow_html=True)
     with c_dom_2:
-        color_riil = "normal" if total_riil_global <= total_plafon_global else "inverse"
-        st.metric("💸 Realisasi Belanja Riil", f"Rp {total_riil_global:,.0f}")
+        st.markdown(f'<div style="background-color:#f8fafc; padding:10px; border-radius:5px; border:1px solid #e2e8f0;"><b>💸 Realisasi Belanja Riil</b><br><span style="font-size:20px; font-weight:bold; color:#dc2626;">Rp {total_riil_global:,.0f}</span></div>', unsafe_allow_html=True)
     with c_dom_3:
-        st.metric("💰 Sisa Saku Anggaran", f"Rp {total_sisa_global:,.0f}")
+        st.markdown(f'<div style="background-color:#f8fafc; padding:10px; border-radius:5px; border:1px solid #e2e8f0;"><b>💰 Sisa Saku Anggaran</b><br><span style="font-size:20px; font-weight:bold; color:#16a34a;">Rp {total_sisa_global:,.0f}</span></div>', unsafe_allow_html=True)
+
+
+    # with c_dom_1:
+    #     st.metric("📋 Total Plafon Budgets", f"Rp {total_plafon_global:,.0f}")
+    # with c_dom_2:
+    #     color_riil = "normal" if total_riil_global <= total_plafon_global else "inverse"
+    #     st.metric("💸 Realisasi Belanja Riil", f"Rp {total_riil_global:,.0f}")
+    # with c_dom_3:
+    #     st.metric("💰 Sisa Saku Anggaran", f"Rp {total_sisa_global:,.0f}")
 
     st.write("")
     st.markdown("##### 🧾 Tabel Transparansi Evaluasi Budgeting Pengeluaran")

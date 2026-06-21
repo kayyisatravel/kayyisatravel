@@ -171,22 +171,25 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
     }
 
     # 2. Blok Perulangan Database Koran Bank
-    if not df_pribadi.empty and "Bank_Sumber" in df_pribadi.columns:
+        if not df_pribadi.empty and "Bank_Sumber" in df_pribadi.columns:
         for _, row in df_pribadi.iterrows():
             bank = str(row["Bank_Sumber"]).strip().lower()
             kat = str(row.get("Kategori", "")).strip().lower()
             pos_rek = str(row.get("No_Rekening_AI", "")).strip().lower()
-            keterangan_riil = str(row.get("Keterangan", "")).strip()
             nominal = row["Nominal (Num)"]
             
+            # KOREKSI SAK EMKM: Gabungkan pengecekan kolom Keterangan dan Keterangan Tambahan agar aman dari mis-match GSheets
+            keterangan_1 = str(row.get("Keterangan", "")).strip()
+            keterangan_2 = str(row.get("Keterangan Tambahan", "")).strip()
+            keterangan_riil = keterangan_1 if keterangan_1 != "" else keterangan_2
+            
             # =========================================================================
-            # PROSES TUNGGAL SENSOR KOGNITIF AI GEMINI FLASH LITE + PYDANTIC
+            # BLOK EKSEKUSI TUNGGAL (ANTI-DUPLIKASI & ANTI-FALLBACK 429)
             # =========================================================================
             if kat == "pengeluaran" and keterangan_riil != "":
-                # AI murni HANYA dipanggil 1 KALI untuk menentukan ID Kategori (1 sampai 5)
+                # Dipanggil HANYA 1 KALI agar tidak terkena limitasi kuota Google Cloud
                 id_pos_keputusan_ai = pilah_pengeluaran_domestik_dengan_gemini(keterangan_riil)
                 
-                # Komputer mengambil alih hitungan nominal asli dari spreadsheet secara kaku
                 if id_pos_keputusan_ai == 1: 
                     mutasi_pos_digital["cicilan"] = mutasi_pos_digital.get("cicilan", 0.0) + nominal
                 elif id_pos_keputusan_ai == 2: 
@@ -197,6 +200,7 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
                     mutasi_pos_digital["tagihan"] = mutasi_pos_digital.get("tagihan", 0.0) + nominal
                 elif id_pos_keputusan_ai == 5: 
                     mutasi_pos_digital["edukasi"] = mutasi_pos_digital.get("edukasi", 0.0) + nominal
+
 
 
             

@@ -6097,11 +6097,11 @@ with st.expander("🏠 DASHBOARD KONTROL ANGGARAN & BUDGETING RUMAH TANGGA", exp
     plafon_pos_5 = 1358000.0   # 5. Edukasi, Anak & Sosial
 
     # 3. Distribusi Angka Realisasi Lapangan (SINKRONISASI VARIABEL KAKU)
-    riil_pos_1 = 0.0
-    riil_pos_2 = pengeluaran_riil_rt * 0.70  # <── PERBAIKAN: Nama variabel sudah lurus 'pengeluaran_riil_rt'
-    riil_pos_3 = 0.0
-    riil_pos_4 = pengeluaran_riil_rt * 0.30  
-    riil_pos_5 = 0.0
+    riil_pos_1 = float(db["mutasi_pos_digital"].get("cicilan", 0.0))
+    riil_pos_2 = float(db["mutasi_pos_digital"].get("rumah_tangga", 0.0))
+    riil_pos_3 = float(db["mutasi_pos_digital"].get("pangan", 0.0))
+    riil_pos_4 = float(db["mutasi_pos_digital"].get("tagihan", 0.0))  # Menampung uang Sapu Rp 20.000
+    riil_pos_5 = float(db["mutasi_pos_digital"].get("edukasi", 0.0)) 
 
     # Perhitungan Selisih Sisa Budget (Plafon - Riil)
     sisa_pos_1 = plafon_pos_1 - riil_pos_1

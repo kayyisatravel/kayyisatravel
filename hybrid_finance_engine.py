@@ -171,12 +171,17 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
                 # Serahkan teks keterangan ke Otak AI Gemini untuk ditentukan ID Pos-nya
                 id_pos_keputusan_ai = pilah_pengeluaran_domestik_dengan_gemini(keterangan_riil)
                 
-                # Distribusi nominal uang secara akurat berdasarkan keputusan AI
-                if id_pos_keputusan_ai == 1: mutasi_pos_digital["cicilan"] += nominal
-                elif id_pos_keputusan_ai == 2: mutasi_pos_digital["rumah_tangga"] += nominal
-                elif id_pos_keputusan_ai == 3: mutasi_pos_digital["pangan"] += nominal
-                elif id_pos_keputusan_ai == 4: mutasi_pos_digital["tagihan"] += nominal
-                elif id_pos_keputusan_ai == 5: mutasi_pos_digital["edukasi"] += nominal
+                # Gunakan metode .get() agar kebal dari eror kehilangan kunci memori RAM
+                if id_pos_keputusan_ai == 1: 
+                    mutasi_pos_digital["cicilan"] = mutasi_pos_digital.get("cicilan", 0.0) + nominal
+                elif id_pos_keputusan_ai == 2: 
+                    mutasi_pos_digital["rumah_tangga"] = mutasi_pos_digital.get("rumah_tangga", 0.0) + nominal
+                elif id_pos_keputusan_ai == 3: 
+                    mutasi_pos_digital["pangan"] = mutasi_pos_digital.get("pangan", 0.0) + nominal
+                elif id_pos_keputusan_ai == 4: 
+                    mutasi_pos_digital["tagihan"] = mutasi_pos_digital.get("tagihan", 0.0) + nominal 
+                elif id_pos_keputusan_ai == 5: 
+                    mutasi_pos_digital["edukasi"] = mutasi_pos_digital.get("edukasi", 0.0) + nominal
             
             bank_key = None
             if any(x in bank for x in ["cc", "credit", "uob", "kartu kredit"]): bank_key = "Kartu Kredit"

@@ -723,7 +723,7 @@ def generate_evoucher_html(data):
       <!-- PERBAIKAN: Menampilkan detail nama tamu & tipe kamar secara berurutan ke bawah -->
       <div class="section">
         <h3>Guest & Room Details / Detail Tamu & Kamar</h3>
-        <strong>{tamu_html}</strong>
+        <strong>{tamu_html}</strong><br><br>
         <p>{teks_kamar_final}</p>
       </div>
 

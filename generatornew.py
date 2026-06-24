@@ -188,7 +188,7 @@ def parse_evoucher_text(text):
         Hitung total malam menginap secara matematis dan bersihkan nama tamu sesuai kaidah EYD baku.
         PENTING UNTUK TEKS MULTI-KAMAR:
         ⚠️ ATURAN MUTLAK MULTI-KAMAR (WAJIB DIPATUHI):
-        1. Analisis teks manifest dengan teliti. Jika tertulis kata 'Tipe Kamar 1', 'Tipe Kamar 2', dst., kamu WAJIB memecah data tersebut menjadi objek terpisah di dalam array 'daftar_detail_kamar'. Jangan pernah menggabungkannya menjadi 1 kamar saja!
+        1. Analisis teks manifest dengan teliti. Jika pemesanan kamar berjumlah 1 atau lebih dari 1, kamu WAJIB memecah data tersebut menjadi objek terpisah di dalam array 'daftar_detail_kamar'. Jangan pernah menggabungkannya menjadi 1 kamar saja!
         2. Untuk field 'nama_tamu_kamar', ambil nama tamu spesifik yang berada di bawah blok 'Tipe Kamar' tersebut (Contoh: Kamar 1 = Yellena Bunga Casimira, Kamar 2 = Nabila Meinisya Sahira).
         3. Kolom 'kamar' pada objek utama diisi dengan nama tipe kamar global.
         

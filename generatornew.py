@@ -24,9 +24,9 @@ class PenumpangKeretaSchema(BaseModel):
     kursi: str = Field(description="""
         Nomor posisi kursi spesifik. Wajib lakukan penyingkatan format secara ketat jika mendeteksi tiket Whoosh.
         Aturan Penyingkatan Whoosh:
-        - Teks format 'Ekonomi Premium / Kereta [X] / Kursi [Y]' WAJIB dikonversi menjadi 'Eko Pre [X]/[Y]'.
-        - Contoh input: 'Ekonomi Premium / Kereta 6 / Kursi 8F' -> Hasil output wajib: 'Eko Pre 6/8F'.
-        - Contoh input: 'Ekonomi Premium / Kereta 6 / Kursi 9F' -> Hasil output wajib: 'Eko Pre 6/9F'.
+        - Teks format 'Ekonomi Premium / Kereta [X] / Kursi [Y]' WAJIB dikonversi menjadi 'EKO PRE [X]/[Y]'.
+        - Contoh input: 'Ekonomi Premium / Kereta 6 / Kursi 8F' -> Hasil output wajib: 'EKO PRE 6/8F'.
+        - Contoh input: 'Ekonomi Premium / Kereta 6 / Kursi 9F' -> Hasil output wajib: 'EKO PRE 6/9F'.
         Aturan Penyingkatan KAI Biasa:
         - Contoh teks: 'EKO-3/ 19-E' -> Hasil output wajib: 'EKO 3/19E'.
         - Contoh teks: 'Eksekutif 2 / 5A' -> Hasil output wajib: 'EKS 2/5A'.
@@ -116,7 +116,7 @@ class AIHotelMasterSchema(BaseModel):
     
     # 4. FIX: Struktur Deteksi Dinamis Paket Wisata / Tiket Atraksi Tambahan
     paket_wisata_tambahan: Optional[str] = Field(default="-", description="""
-        Analisis teks manifest dengan teliti. Jika ditemukan adanya bonus bundle kado/paket tiket masuk wisata, 
+        Analisis teks manifest dengan teliti. Jika ditemukan adanya bonus bundle kado/paket tiket masuk wisata (bukan penawaran paket wisata), 
         wahana, atau atraksi di luar hotel (seperti Aquaria KLCC, Dufan, Ancol, Jatim Park, Bali Zoo, dll) 
         beserta rincian jumlah tiketnya (cth: 2 Dewasa dan 3 Anak-anak), ekstrak teks tersebut ke dalam field ini.
         Contoh isi field: 'Voucher Package Ticket Aquaria KLCC (Turis Internasional) - 2 Dewasa dan 3 Anak-anak / 2 Adults & 3 Children'.

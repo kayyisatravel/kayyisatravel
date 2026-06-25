@@ -3739,6 +3739,7 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
                 st.caption("💡 Info Visual: Baris berwarna merah muda menandakan sisa tagihan telah menunggak parah melebihi 30 hari sejak nota dibuat.")
 
         # --- TAB 3: AUDIT FORENSIK OTOMATIS GEMINI 3.1 FLASH LITE ---
+        db = metrik_hybrid
         with tab_ai_audit:
             st.subheader("🕵️‍♂️ Laporan Hasil Penelaahan Audit Forensik AI")
             st.info("Fitur ini meringkas data indikator keuangan Anda lalu mengirimkannya ke Gemini 2.5 Flash untuk di-audit secara berkala.")

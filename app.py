@@ -5919,7 +5919,7 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     st.markdown("### 🔍 INTERACTIVE DRILL-DOWN MONITOR")
     
     # Inisialisasi Tab baru tanpa merusak 16 Panel Metrics Center di atasnya
-    tab_pribadi_monitor, tab_bisnis_monitor = st.st_tabs([
+    tab_pribadi_monitor, tab_bisnis_monitor = st.tabs([
         "🏠 Monitor Anggaran Domestik (Pribadi)", 
         "🏪 Monitor Operasional Toko (Bisnis)"
     ])

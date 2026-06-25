@@ -3969,7 +3969,7 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
         # =========================================================================
         with tab_match_erp:
             st.subheader("🤖 Panel Kendali Rekonsiliasi Bank & Penyelaras Status GSheets")
-            st.caption("Sistem membandingkan 12 digit invoice di sheet Pribadi dengan nominal tagihan asli di Toko sebelum melakukan update fisik.")
+            st.caption("Sistem membandingkan 12 digit invoice di sheet Pribadi dengan nominal tagihan asli usaha, sebelum melakukan update fisik.")
         
             try:
                 # 1. Tarik basis data mentah terpusat
@@ -4168,7 +4168,7 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
 #         #st.write("")
 
 #     st.markdown("---")
-#     st.markdown("### 💼 II. Kantong Anggaran Hasil Alokasi AI (Dompet Keluarga & Toko)")
+#     st.markdown("### 💼 II. Kantong Anggaran Hasil Alokasi AI (Dompet Pribadi & Bisnis)")
 #     st.caption("Pembagian dana bersih setelah dipotong otomatis untuk hak wajib investor sebesar 7.5%.")
     
 #     # Tarik data anggaran dompet dari alokasi_ai finance_engine
@@ -5621,7 +5621,7 @@ from finance_engine import hitung_performa_dan_reconciliation_v5
 #             status_kas = "🟢 LIQUID" if estimasi_kas_riil > 0 else "🚨 DEFISIT"
 #             st.markdown(f"""
 #             <div class="custom-card" style="border-left-color: #10b981;">
-#                 <span class="card-label">💵 ESTIMASI KAS RIIL TOKO</span><br>
+#                 <span class="card-label">💵 ESTIMASI KAS RIIL USAHA</span><br>
 #                 <span class="card-value">Rp {estimasi_kas_riil:,.0f}</span><br>
 #                 <span class="card-status">Status: <span class="status-liquid">{status_kas}</span></span>
 #             </div>
@@ -5635,9 +5635,9 @@ from finance_engine import hitung_performa_dan_reconciliation_v5
     
 #         col_kiri, col_kanan = st.columns(2)
 #         with col_kiri:
-#             st.markdown("**SISI KIRI: ASET TOKO**")
+#             st.markdown("**SISI KIRI: ASET BISNIS**")
 #             df_aset = pd.DataFrame({
-#                 "Komponen Kiri": ["Kas & Setara Kas (Toko)", "Piutang Dagang Klien Active", "TOTAL ASET"],
+#                 "Komponen Kiri": ["Kas & Setara Kas (Bisnis)", "Piutang Dagang Klien Active", "TOTAL ASET"],
 #                 "Nominal": [f"Rp {estimasi_kas_riil:,.0f}", f"Rp {total_piutang:,.0f}", f"Rp {total_aset:,.0f}"]
 #             })
 #             st.dataframe(df_aset, hide_index=True, use_container_width=True)
@@ -5645,7 +5645,7 @@ from finance_engine import hitung_performa_dan_reconciliation_v5
 #         with col_kanan:
 #             st.markdown("**SISI KANAN: KEWAJIBAN & EKUITAS**")
 #             df_pasiva = pd.DataFrame({
-#                 "Komponen Kanan": ["Total Tagihan Multi-CC", "Utang Hak Investor (7.5%)", "Cadangan Bersih Toko (40%)", "Modal Awal + Laba Ditahan", "TOTAL PASIVA"],
+#                 "Komponen Kanan": ["Total Tagihan Multi-CC", "Utang Hak Investor (7.5%)", "Cadangan Bersih Usaha (40%)", "Modal Awal + Laba Ditahan", "TOTAL PASIVA"],
 #                 "Nominal": [f"Rp {utang_cc_global:,.0f}", f"Rp {wajib_setor_investor:,.0f}", f"Rp {cadangan_bisnis_40:,.0f}", f"Rp {modal_dan_laba_ditahan:,.0f}", f"Rp {total_aset:,.0f}"]
 #             })
 #             st.dataframe(df_pasiva, hide_index=True, use_container_width=True)
@@ -5682,7 +5682,7 @@ from finance_engine import hitung_performa_dan_reconciliation_v5
 #             <div class="custom-card" style="border-left-color: #3b82f6;">
 #                 <span style="font-size:0.9rem; color:#9ca3af;">👩‍💼 DOMPET MANDIRI ISTRI</span><br>
 #                 <span style="font-size:1.6rem; font-weight:bold;">Rp {saldo_mandiri:,.0f}</span><br>
-#                 <span style="font-size:0.85rem; color:#9ca3af;">(Aman & Steril Toko)</span>
+#                 <span style="font-size:0.85rem; color:#9ca3af;">(Aman & Steril Bisnis)</span>
 #             </div>
 #             """, unsafe_allow_html=True)
     
@@ -5849,9 +5849,9 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     if db["status_darurat_aktif"]:
         # JIKA kas aman tetapi darurat aktif karena piutang menumpuk menjebol laba
         if db["rasio_kerentanan_laba"] > 100.0 and db["nilai_defisit_gaji"] == 0.0:
-            st.error(f"⚠️ **PROTOKOL DARURAT AKTIF:** Rasio Rentan Laba kritis (**{db['rasio_kerentanan_laba']:.1f}%**). Total piutang yang macet di konsumen (Rp {db['total_piutang']:,.0f}) sudah melebihi keuntungan bersih buku toko. Segera batasi outstanding dan lakukan penagihan!")
+            st.error(f"⚠️ **PROTOKOL DARURAT AKTIF:** Rasio Rentan Laba kritis (**{db['rasio_kerentanan_laba']:.1f}%**). Total piutang yang macet di konsumen (Rp {db['total_piutang']:,.0f}) sudah melebihi keuntungan bersih buku usaha. Segera batasi outstanding dan lakukan penagihan!")
         else:
-            st.error(f"⚠️ **PROTOKOL DARURAT AKTIF:** Kas toko periode ini defisit **Rp {db['nilai_defisit_gaji']:,.0f}** dari target Gaji Pokok Rumah Tangga.")
+            st.error(f"⚠️ **PROTOKOL DARURAT AKTIF:** Kas bisnis periode ini defisit **Rp {db['nilai_defisit_gaji']:,.0f}** dari target Gaji Pokok Rumah Tangga.")
     else:
         st.success("✅ **SISTEM STATUS AMAN:** Kas Bisnis sanggup membiayai penuh Gaji Owner.")
 
@@ -5877,7 +5877,7 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     st.markdown("##### 🧾 B. Rumpun Struktur Kas Likuid & Ambang Batas Risiko Piutang")
     g5, g6, g7, g8 = st.columns(4)
     with g5: 
-        st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">5. NET CASH FLOW OPERATING (KAS RIIL)</div><div class="m-val">Rp {db["kas_riil_bisnis_toko"]:,.0f}</div><div class="m-sub">Uang Fisik Hasil Transaksi Lunas di Rekening Bank Toko</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">5. NET CASH FLOW OPERATING (KAS RIIL)</div><div class="m-val">Rp {db["kas_riil_bisnis_toko"]:,.0f}</div><div class="m-sub">Uang Fisik Hasil Transaksi Lunas di Rekening Bank Bisnis</div></div>', unsafe_allow_html=True)
     with g6: 
         st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">6. CAPITAL TIE-UP RATIO (IKAT MODAL)</div><div class="m-val c-red">{db["rasio_keterikatan_modal"]:.1f}%</div><div class="m-sub">Sangkut: Rp {db["total_piutang"]:,.0f} dari Total Omzet Penjualan</div></div>', unsafe_allow_html=True)
     with g7: 
@@ -5901,7 +5901,7 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     st.markdown("##### 👑 D. Rumpun Forensik Kebocoran, Ketahanan & Kekayaan Bersih")
     g13, g14, g15, g16 = st.columns(4)
     with g13: 
-        st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">13. DOMESTIC CASH RUNWAY</div><div class="m-val c-grn">{db["daya_tahan_bulan"]:.2f} Bulan</div><div class="m-sub">Daya Tahan Napas Rumah Tangga Jika Toko Travel Rp 0 Laba</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">13. DOMESTIC CASH RUNWAY</div><div class="m-val c-grn">{db["daya_tahan_bulan"]:.2f} Bulan</div><div class="m-sub">Daya Tahan Napas Rumah Tangga Jika Bisnis Travel Rp 0 Laba</div></div>', unsafe_allow_html=True)
     with g14: 
         st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">14. INVOICE ACCIDENT NET LOSS</div><div class="m-val c-red">{db["jumlah_boncos"]} Kasus</div><div class="m-sub">Total Kerugian Operasional Akibat Salah Harga: Rp {db["total_kerugian"]:,.0f}</div></div>', unsafe_allow_html=True)
     with g15: 
@@ -5942,7 +5942,7 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     # Inisialisasi Tab baru tanpa merusak 16 Panel Metrics Center di atasnya
     tab_pribadi_monitor, tab_bisnis_monitor = st.tabs([
         "🏠 Monitor Anggaran Domestik (Pribadi)", 
-        "🏪 Monitor Operasional Toko (Bisnis)"
+        "🏪 Monitor Operasional Usaha (Bisnis)"
     ])
 
     # Ambil data mutasi sub-kategori riil dari RAM engine Tahap 2
@@ -6092,12 +6092,12 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     # TAB 2: VISUALISASI SUB-KATEGORI OPERASIONAL BISNIS (TRAVEL)
     # ─────────────────────────────────────────────────────────────────
     with tab_bisnis_monitor:
-        st.markdown("##### 📈 Visualisasi Transparansi Operasional & Belanja Toko")
+        st.markdown("##### 📈 Visualisasi Transparansi Operasional & Belanja Usaha")
         
         # Grid visualisasi internal khusus urusan operasional travel
         b_c1, b_c2 = st.columns(2)
         with b_c1:
-            st.metric(label="🏪 Biaya Operasional Toko (Fisik)", value=f"Rp {db['total_biaya_operasional_bisnis']:,.0f}", help="Total pengeluaran dari pos Cadangan Bisnis dan Aset Kantor")
+            st.metric(label="🏪 Biaya Operasional Usaha (Fisik)", value=f"Rp {db['total_biaya_operasional_bisnis']:,.0f}", help="Total pengeluaran dari pos Cadangan Bisnis dan Aset Kantor")
             st.metric(label="💳 Alokasi Pelunasan CC Bisnis (HPP)", value=f"Rp {mutasi_pos_digital.get('pelunasan_cc_bisnis', 0.0):,.0f}", help="Dana talangan kulakan tiket yang sudah dibayarkan balik ke CC masa berjalan")
         with b_c2:
             st.metric(label="📉 Kasus Tiket/Invoice Boncos", value=f"{db['jumlah_boncos']} Kasus", delta=f"-Rp {db['total_kerugian']:,.0f}", delta_color="inverse")
@@ -6112,7 +6112,7 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     # with col_neraca_kiri:
     #     st.markdown("**SISI AKTIVA (ASET LANCAR)**")
     #     df_aktiva = pd.DataFrame({
-    #         "Komponen Aset Toko": ["Kas & Setara Kas (Toko Riil)", "Piutang Dagang Konsumen Active", "TOTAL AKTIVA"],
+    #         "Komponen Aset Bisnis": ["Kas & Setara Kas (Toko Riil)", "Piutang Dagang Konsumen Active", "TOTAL AKTIVA"],
     #         "Nilai Buku": [f"Rp {max(0.0, db['kas_riil_bisnis_toko']):,.0f}", f"Rp {db['total_piutang']:,.0f}", f"Rp {db['total_aset_lancar_toko']:,.0f}"]
     #     })
     #     st.dataframe(df_aktiva, hide_index=True, use_container_width=True)
@@ -6173,7 +6173,7 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
                 "🟢 PENDAPATAN (Total Omzet Penjualan Tiket)",
                 "🔴 BEBAN POKOK PENJUALAN (Total HPP Beli Tiket)",
                 "📊 LABA KOTOR (Gross Profit)",
-                "🔴 BEBAN OPERASIONAL (Biaya Ops Toko)",
+                "🔴 BEBAN OPERASIONAL (Biaya Ops Usaha)",
                 "🔴 BEBAN KEUANGAN: Biaya Bagi Hasil Investor (7.5%)", # <── Masuk sebagai pengurang Laba
                 "🏆 LABA BERSIH RIIL HAK PEMILIK UTAMA"
             ],

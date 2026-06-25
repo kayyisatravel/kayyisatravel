@@ -5859,249 +5859,248 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     # --------------------------------------------------------------------------
     # INTERACTIVE METRICS CENTER (16 PANEL INDIKATOR KEUANGAN PROFESIONAL)
     # --------------------------------------------------------------------------
-    st.markdown("### 📊 EXECUTIVE FINANCIAL METRICS CENTER")
+    with st.expander("EXECUTIVE FINANCIAL METRICS CENTER", expanded=True):
     
-    # 🏛️ RUMPUN A: PROFITABILITAS & KINERJA OPERASIONAL BISNIS (INCOME STATEMENT ANALYSIS)
-    st.markdown("##### 🏛️ A. Rumpun Profitabilitas & Kinerja Kuantitatif Bisnis")
-    g1, g2, g3, g4 = st.columns(4)
-    with g1: 
-        st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">1. NET PROFIT MARGIN (NPM)</div><div class="m-val">{db["npm"]:.2f}%</div><div class="m-sub">Laba Buku: Rp {db["laba_buku_total"]:,.0f} / Omzet: Rp {db["total_omzet_buku"]:,.0f}</div></div>', unsafe_allow_html=True)
-    with g2: 
-        st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">2. RETURN ON INVESTMENT (ROI)</div><div class="m-val">{db["roi"]:.2f}%</div><div class="m-sub">Laba Buku: Rp {db["laba_buku_total"]:,.0f} / HPP Modal: Rp {db["total_hpp_buku"]:,.0f}</div></div>', unsafe_allow_html=True)
-    with g3: 
-        st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">3. TOTAL VOLUME TRANSACTION</div><div class="m-val">{db["total_tiket_terjual"]} Pax</div><div class="m-sub">Akumulasi Kuantitas Produk Penjualan Ter-issued</div></div>', unsafe_allow_html=True)
-    with g4: 
-        st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">4. AVERAGE NET MARGIN PER UNIT</div><div class="m-val">Rp {db["laba_per_tiket"]:,.0f}</div><div class="m-sub">Rata-rata Margin Bersih yang Didapatkan per Pax Produk</div></div>', unsafe_allow_html=True)
-
-    # 🧾 RUMPUN B: STRUKTUR KAS LIKUID & MANAJEMEN RISIKO PIUTANG (LIQUIDITY & RECEIVABLE EXPOSURE)
-    st.markdown("##### 🧾 B. Rumpun Struktur Kas Likuid & Ambang Batas Risiko Piutang")
-    g5, g6, g7, g8 = st.columns(4)
-    with g5: 
-        st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">5. NET CASH FLOW OPERATING (KAS RIIL)</div><div class="m-val">Rp {db["kas_riil_bisnis_toko"]:,.0f}</div><div class="m-sub">Uang Fisik Hasil Transaksi Lunas di Rekening Bank Bisnis</div></div>', unsafe_allow_html=True)
-    with g6: 
-        st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">6. CAPITAL TIE-UP RATIO (IKAT MODAL)</div><div class="m-val c-red">{db["rasio_keterikatan_modal"]:.1f}%</div><div class="m-sub">Sangkut: Rp {db["total_piutang"]:,.0f} dari Total Omzet Penjualan</div></div>', unsafe_allow_html=True)
-    with g7: 
-        st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">7. EARNINGS VULNERABILITY RATIO</div><div class="m-val">{db["rasio_kerentanan_laba"]:.1f}%</div><div class="m-sub">Porsi Laba Semu Kertas Dibanding Klaim Piutang Aktif</div></div>', unsafe_allow_html=True)
-    with g8: 
-        st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">8. TOTAL ACCOUNT RECEIVABLE (INVOICE)</div><div class="m-val c-red">{db["jumlah_invoice_piutang"]} Faktur</div><div class="m-sub">Jumlah Nota Transaksi yang Belum Dicairkan Konsumen</div></div>', unsafe_allow_html=True)
-
-    # 🏦 RUMPUN C: MANAJEMEN ALIRAN KAS MASUK-KELUAR PRIBADI (PERSONAL CASH FLOW STATEMENT)
-    st.markdown("##### 🏦 C. Rumpun Aliran Kas Keluar-Masuk & Tabungan Pribadi")
-    g9, g10, g11, g12 = st.columns(4)
-    with g9:  
-        st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">9. TOTAL PERSONAL CASH INFLOW</div><div class="m-val c-grn">Rp {db["total_cash_in_pribadi"]:,.0f}</div><div class="m-sub">Akumulasi Dana Masuk ke Seluruh Rekening Pribadi</div></div>', unsafe_allow_html=True)
-    with g10: 
-        st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">10. TOTAL PERSONAL CASH OUTFLOW</div><div class="m-val c-red">Rp {db["total_cash_out_pribadi"]:,.0f}</div><div class="m-sub">Akumulasi Dana Keluar dari Seluruh Rekening Pribadi</div></div>', unsafe_allow_html=True)
-    with g11: 
-        st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">11. SAVING EFFICIENCY INDEX</div><div class="m-val">{db["rasio_menabung_domestik"]:.1f}%</div><div class="m-sub">Mengendap: Rp {db["total_atm_pribadi"]:,.0f} dari Total Arus Cash Inflow</div></div>', unsafe_allow_html=True)
-    with g12: 
-        st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">12. CREDIT CARD DEBT RUNNING</div><div class="m-val c-red">Rp {db["beban_cc_aktual"]:,.0f}</div><div class="m-sub">Sisa Beban Kewajiban Kartu Kredit Berjalan Periode Ini</div></div>', unsafe_allow_html=True)
-
-    # 👑 RUMPUN D: KETAHANAN KAPITAL & FORENSIK KEBOCORAN (BUSINESS RUNWAY & CAPITAL LIABILITIES)
-    st.markdown("##### 👑 D. Rumpun Forensik Kebocoran, Ketahanan & Kekayaan Bersih")
-    g13, g14, g15, g16 = st.columns(4)
-    with g13: 
-        st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">13. DOMESTIC CASH RUNWAY</div><div class="m-val c-grn">{db["daya_tahan_bulan"]:.2f} Bulan</div><div class="m-sub">Daya Tahan Napas Rumah Tangga Jika Bisnis Travel Rp 0 Laba</div></div>', unsafe_allow_html=True)
-    with g14: 
-        st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">14. INVOICE ACCIDENT NET LOSS</div><div class="m-val c-red">{db["jumlah_boncos"]} Kasus</div><div class="m-sub">Total Kerugian Operasional Akibat Salah Harga: Rp {db["total_kerugian"]:,.0f}</div></div>', unsafe_allow_html=True)
-    with g15: 
-        st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">15. NET INCOME STATE (LABA BERSIH RIIL)</div><div class="m-val c-grn">Rp {db["laba_bersih_riil_bisnis"]:,.0f}</div><div class="m-sub">Hak Untung Murni Owner (Laba Buku - Biaya Ops & Investor)</div></div>', unsafe_allow_html=True)
-    with g16: 
-        st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">16. TOTAL CURRENT ASSETS (ASET LANCAR)</div><div class="m-val">Rp {db["total_aset_lancar_toko"]:,.0f}</div><div class="m-sub">Total Kekayaan Pendek: Kas Riil Fisik + Rp {db["total_piutang"]:,.0f} Piutang</div></div>', unsafe_allow_html=True)
+        # 🏛️ RUMPUN A: PROFITABILITAS & KINERJA OPERASIONAL BISNIS (INCOME STATEMENT ANALYSIS)
+        st.markdown("##### 🏛️ A. Rumpun Profitabilitas & Kinerja Kuantitatif Bisnis")
+        g1, g2, g3, g4 = st.columns(4)
+        with g1: 
+            st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">1. NET PROFIT MARGIN (NPM)</div><div class="m-val">{db["npm"]:.2f}%</div><div class="m-sub">Laba Buku: Rp {db["laba_buku_total"]:,.0f} / Omzet: Rp {db["total_omzet_buku"]:,.0f}</div></div>', unsafe_allow_html=True)
+        with g2: 
+            st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">2. RETURN ON INVESTMENT (ROI)</div><div class="m-val">{db["roi"]:.2f}%</div><div class="m-sub">Laba Buku: Rp {db["laba_buku_total"]:,.0f} / HPP Modal: Rp {db["total_hpp_buku"]:,.0f}</div></div>', unsafe_allow_html=True)
+        with g3: 
+            st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">3. TOTAL VOLUME TRANSACTION</div><div class="m-val">{db["total_tiket_terjual"]} Pax</div><div class="m-sub">Akumulasi Kuantitas Produk Penjualan Ter-issued</div></div>', unsafe_allow_html=True)
+        with g4: 
+            st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">4. AVERAGE NET MARGIN PER UNIT</div><div class="m-val">Rp {db["laba_per_tiket"]:,.0f}</div><div class="m-sub">Rata-rata Margin Bersih yang Didapatkan per Pax Produk</div></div>', unsafe_allow_html=True)
+    
+        # 🧾 RUMPUN B: STRUKTUR KAS LIKUID & MANAJEMEN RISIKO PIUTANG (LIQUIDITY & RECEIVABLE EXPOSURE)
+        st.markdown("##### 🧾 B. Rumpun Struktur Kas Likuid & Ambang Batas Risiko Piutang")
+        g5, g6, g7, g8 = st.columns(4)
+        with g5: 
+            st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">5. NET CASH FLOW OPERATING (KAS RIIL)</div><div class="m-val">Rp {db["kas_riil_bisnis_toko"]:,.0f}</div><div class="m-sub">Uang Fisik Hasil Transaksi Lunas di Rekening Bank Bisnis</div></div>', unsafe_allow_html=True)
+        with g6: 
+            st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">6. CAPITAL TIE-UP RATIO (IKAT MODAL)</div><div class="m-val c-red">{db["rasio_keterikatan_modal"]:.1f}%</div><div class="m-sub">Sangkut: Rp {db["total_piutang"]:,.0f} dari Total Omzet Penjualan</div></div>', unsafe_allow_html=True)
+        with g7: 
+            st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">7. EARNINGS VULNERABILITY RATIO</div><div class="m-val">{db["rasio_kerentanan_laba"]:.1f}%</div><div class="m-sub">Porsi Laba Semu Kertas Dibanding Klaim Piutang Aktif</div></div>', unsafe_allow_html=True)
+        with g8: 
+            st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">8. TOTAL ACCOUNT RECEIVABLE (INVOICE)</div><div class="m-val c-red">{db["jumlah_invoice_piutang"]} Faktur</div><div class="m-sub">Jumlah Nota Transaksi yang Belum Dicairkan Konsumen</div></div>', unsafe_allow_html=True)
+    
+        # 🏦 RUMPUN C: MANAJEMEN ALIRAN KAS MASUK-KELUAR PRIBADI (PERSONAL CASH FLOW STATEMENT)
+        st.markdown("##### 🏦 C. Rumpun Aliran Kas Keluar-Masuk & Tabungan Pribadi")
+        g9, g10, g11, g12 = st.columns(4)
+        with g9:  
+            st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">9. TOTAL PERSONAL CASH INFLOW</div><div class="m-val c-grn">Rp {db["total_cash_in_pribadi"]:,.0f}</div><div class="m-sub">Akumulasi Dana Masuk ke Seluruh Rekening Pribadi</div></div>', unsafe_allow_html=True)
+        with g10: 
+            st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">10. TOTAL PERSONAL CASH OUTFLOW</div><div class="m-val c-red">Rp {db["total_cash_out_pribadi"]:,.0f}</div><div class="m-sub">Akumulasi Dana Keluar dari Seluruh Rekening Pribadi</div></div>', unsafe_allow_html=True)
+        with g11: 
+            st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">11. SAVING EFFICIENCY INDEX</div><div class="m-val">{db["rasio_menabung_domestik"]:.1f}%</div><div class="m-sub">Mengendap: Rp {db["total_atm_pribadi"]:,.0f} dari Total Arus Cash Inflow</div></div>', unsafe_allow_html=True)
+        with g12: 
+            st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">12. CREDIT CARD DEBT RUNNING</div><div class="m-val c-red">Rp {db["beban_cc_aktual"]:,.0f}</div><div class="m-sub">Sisa Beban Kewajiban Kartu Kredit Berjalan Periode Ini</div></div>', unsafe_allow_html=True)
+    
+        # 👑 RUMPUN D: KETAHANAN KAPITAL & FORENSIK KEBOCORAN (BUSINESS RUNWAY & CAPITAL LIABILITIES)
+        st.markdown("##### 👑 D. Rumpun Forensik Kebocoran, Ketahanan & Kekayaan Bersih")
+        g13, g14, g15, g16 = st.columns(4)
+        with g13: 
+            st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">13. DOMESTIC CASH RUNWAY</div><div class="m-val c-grn">{db["daya_tahan_bulan"]:.2f} Bulan</div><div class="m-sub">Daya Tahan Napas Rumah Tangga Jika Bisnis Travel Rp 0 Laba</div></div>', unsafe_allow_html=True)
+        with g14: 
+            st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">14. INVOICE ACCIDENT NET LOSS</div><div class="m-val c-red">{db["jumlah_boncos"]} Kasus</div><div class="m-sub">Total Kerugian Operasional Akibat Salah Harga: Rp {db["total_kerugian"]:,.0f}</div></div>', unsafe_allow_html=True)
+        with g15: 
+            st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">15. NET INCOME STATE (LABA BERSIH RIIL)</div><div class="m-val c-grn">Rp {db["laba_bersih_riil_bisnis"]:,.0f}</div><div class="m-sub">Hak Untung Murni Owner (Laba Buku - Biaya Ops & Investor)</div></div>', unsafe_allow_html=True)
+        with g16: 
+            st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">16. TOTAL CURRENT ASSETS (ASET LANCAR)</div><div class="m-val">Rp {db["total_aset_lancar_toko"]:,.0f}</div><div class="m-sub">Total Kekayaan Pendek: Kas Riil Fisik + Rp {db["total_piutang"]:,.0f} Piutang</div></div>', unsafe_allow_html=True)
 
 
     # DETAIL SALDO REKENING KAS PRIBADI
     st.write("")
-    st.markdown("### 🔍 2. BUKU BESAR DETAIL TRANSPARANSI KAS PRIBADI")
-    rekening_list, in_list, out_list, nett_list = [], [], [], []
-    for bank_nm, info in db["log_bank_pribadi"].items():
-        rekening_list.append(f"🏦 Akun {bank_nm}")
-        in_list.append(f"Rp {info['masuk']:,.0f}")
-        out_list.append(f"Rp {info['keluar']:,.0f}")
-        if bank_nm == "Kartu Kredit":
-            nett_list.append(f"Rp {info['saldo']:,.0f} (Tagihan Berjalan)")
-        else:
-            nett_list.append(f"Rp {info['saldo']:,.0f}")
-
-    df_kas_detail = pd.DataFrame({
-        "Akun Rekening Fisik": rekening_list,
-        "Total Uang Masuk (+)": in_list,
-        "Total Uang Keluar (-)": out_list,
-        "Saldo Akhir Riil (M-Banking)": nett_list
-    })
-    st.dataframe(df_kas_detail, hide_index=True, use_container_width=True)
+    with st.expander("BUKU BESAR DETAIL TRANSPARANSI KAS PRIBADI", expanded=False):
+        rekening_list, in_list, out_list, nett_list = [], [], [], []
+        for bank_nm, info in db["log_bank_pribadi"].items():
+            rekening_list.append(f"🏦 Akun {bank_nm}")
+            in_list.append(f"Rp {info['masuk']:,.0f}")
+            out_list.append(f"Rp {info['keluar']:,.0f}")
+            if bank_nm == "Kartu Kredit":
+                nett_list.append(f"Rp {info['saldo']:,.0f} (Tagihan Berjalan)")
+            else:
+                nett_list.append(f"Rp {info['saldo']:,.0f}")
+    
+        df_kas_detail = pd.DataFrame({
+            "Akun Rekening Fisik": rekening_list,
+            "Total Uang Masuk (+)": in_list,
+            "Total Uang Keluar (-)": out_list,
+            "Saldo Akhir Riil (M-Banking)": nett_list
+        })
+        st.dataframe(df_kas_detail, hide_index=True, use_container_width=True)
 
     # NERACA KEUANGAN BISNIS MURNI (STANDAR SAK EMKM)
     st.write("")
     # =========================================================================
     # COMPONENT 4: VISUALISASI MONITORING MULTI-LEVEL (BISNIS & PRIBADI)
     # =========================================================================
-    st.write("")
-    st.markdown("### 🔍 INTERACTIVE DRILL-DOWN MONITOR")
+    with st.expander("INTERACTIVE DRILL-DOWN MONITOR", expanded=False):
     
-    # Inisialisasi Tab baru tanpa merusak 16 Panel Metrics Center di atasnya
-    tab_pribadi_monitor, tab_bisnis_monitor = st.tabs([
-        "🏠 Monitor Anggaran Domestik (Pribadi)", 
-        "🏪 Monitor Operasional Usaha (Bisnis)"
-    ])
-
-    # Ambil data mutasi sub-kategori riil dari RAM engine Tahap 2
-    mutasi_pos_digital = db.get("mutasi_pos_digital", {})
-    target_kertas_dinamis = db.get("target_kertas_domestik", {})
-
-    # ─────────────────────────────────────────────────────────────────
-    # TAB 1: VISUALISASI SUB-KATEGORI PRIBADI (DENGAN KUOTA DINAMIS)
-    # ─────────────────────────────────────────────────────────────────
-    with tab_pribadi_monitor:
-        st.markdown("##### 📊 Realisasi 5 Rumpun Anggaran vs Sisa Saldo Kuota")
-        
-        # --- KELOMPOK 1: TEMPAT TINGGAL & KENDARAAN ---
-        nama_k1 = "1. Tempat Tinggal & Kendaraan (40.9%)"
-        limit_k1 = target_kertas_dinamis.get(nama_k1, 0.0)
-        realisasi_k1 = abs(mutasi_pos_digital.get("cicilan_rumah", 0.0)) + \
-                       abs(mutasi_pos_digital.get("perbaikan_rumah", 0.0)) + \
-                       abs(mutasi_pos_digital.get("pajak_kendaraan", 0.0)) + \
-                       abs(mutasi_pos_digital.get("servis_kendaraan", 0.0))
-        sisa_k1 = limit_k1 - realisasi_k1
-        pct_k1 = (realisasi_k1 / limit_k1) if limit_k1 > 0 else 0.0
-
-        st.write(f"**{nama_k1}**")
-        st.progress(min(1.0, pct_k1))
-        st.caption(f"Terpakai: Rp {realisasi_k1:,.0f} / Batas Kuota: Rp {limit_k1:,.0f} (Sisa Saldo Aman: Rp {sisa_k1:,.0f})")
-        
-        with st.expander("🔍 Breakdown Detak Transaksi Sub-Kategori 1", expanded=False):
-            c_sub1, c_val1 = st.columns([0.6, 0.4])
-            with c_sub1:
-                st.write("- Cicilan Rumah / KPR")
-                st.write("- Perbaikan & Renovasi Properti")
-                st.write("- Pajak Tahunan Kendaraan")
-                st.write("- Servis, Oli & Bengkel")
-            with c_val1:
-                st.write(f"Rp {mutasi_pos_digital.get('cicilan_rumah', 0.0):,.0f}")
-                st.write(f"Rp {mutasi_pos_digital.get('perbaikan_rumah', 0.0):,.0f}")
-                st.write(f"Rp {mutasi_pos_digital.get('pajak_kendaraan', 0.0):,.0f}")
-                st.write(f"Rp {mutasi_pos_digital.get('servis_kendaraan', 0.0):,.0f}")
-        st.write("")
-
-        # --- KELOMPOK 2: RUMAH TANGGA & KELUARGA ---
-        nama_k2 = "2. Rumah Tangga & Keluarga (25.8%)"
-        limit_k2 = target_kertas_dinamis.get(nama_k2, 0.0)
-        realisasi_k2 = abs(mutasi_pos_digital.get("belanja_dapur", 0.0)) + \
-                       abs(mutasi_pos_digital.get("perlengkapan_rumah", 0.0)) + \
-                       abs(mutasi_pos_digital.get("asisten_rumah_tangga", 0.0))
-        sisa_k2 = limit_k2 - realisasi_k2
-        pct_k2 = (realisasi_k2 / limit_k2) if limit_k2 > 0 else 0.0
-
-        st.write(f"**{nama_k2}**")
-        st.progress(min(1.0, pct_k2))
-        st.caption(f"Terpakai: Rp {realisasi_k2:,.0f} / Batas Kuota: Rp {limit_k2:,.0f} (Sisa Saldo Aman: Rp {sisa_k2:,.0f})")
-        
-        with st.expander("🔍 Breakdown Detak Transaksi Sub-Kategori 2", expanded=False):
-            c_sub2, c_val2 = st.columns([0.6, 0.4])
-            with c_sub2:
-                st.write("- Belanja Dapur & Sembako")
-                st.write("- Perlengkapan Rumah & Sabun/Gas/Galon")
-                st.write("- Gaji & THR Asisten Rumah Tangga (ART)")
-            with c_val2:
-                st.write(f"Rp {mutasi_pos_digital.get('belanja_dapur', 0.0):,.0f}")
-                st.write(f"Rp {mutasi_pos_digital.get('perlengkapan_rumah', 0.0):,.0f}")
-                st.write(f"Rp {mutasi_pos_digital.get('asisten_rumah_tangga', 0.0):,.0f}")
-        st.write("")
-
-        # --- KELOMPOK 3: KEBUTUHAN POKOK HIDUP ---
-        nama_k3 = "3. Kebutuhan Pokok Hidup (19.0%)"
-        limit_k3 = target_kertas_dinamis.get(nama_k3, 0.0)
-        realisasi_k3 = abs(mutasi_pos_digital.get("bensin_transport", 0.0)) + \
-                       abs(mutasi_pos_digital.get("makan_harian", 0.0)) + \
-                       abs(mutasi_pos_digital.get("kesehatan_obat", 0.0))
-        sisa_k3 = limit_k3 - realisasi_k3
-        pct_k3 = (realisasi_k3 / limit_k3) if limit_k3 > 0 else 0.0
-
-        st.write(f"**{nama_k3}**")
-        st.progress(min(1.0, pct_k3))
-        st.caption(f"Terpakai: Rp {realisasi_k3:,.0f} / Batas Kuota: Rp {limit_k3:,.0f} (Sisa Saldo Aman: Rp {sisa_k3:,.0f})")
-        
-        with st.expander("🔍 Breakdown Detak Transaksi Sub-Kategori 3", expanded=False):
-            c_sub3, c_val3 = st.columns([0.6, 0.4])
-            with c_sub3:
-                st.write("- Bensin, Tol, Parkir & Transport harian")
-                st.write("- Makan Siang Kantor & Warung Harian")
-                st.write("- Tagihan Dokter, Apotek & Obat-obatan")
-            with c_val3:
-                st.write(f"Rp {mutasi_pos_digital.get('bensin_transport', 0.0):,.0f}")
-                st.write(f"Rp {mutasi_pos_digital.get('makan_harian', 0.0):,.0f}")
-                st.write(f"Rp {mutasi_pos_digital.get('kesehatan_obat', 0.0):,.0f}")
-        st.write("")
-
-        # --- KELOMPOK 4: TAGIHAN BULANAN & OPS ---
-        nama_k4 = "4. Tagihan Bulanan & Ops (9.2%)"
-        limit_k4 = target_kertas_dinamis.get(nama_k4, 0.0)
-        realisasi_k4 = abs(mutasi_pos_digital.get("listrik_air", 0.0)) + \
-                       abs(mutasi_pos_digital.get("wifi_internet", 0.0)) + \
-                       abs(mutasi_pos_digital.get("pulsa_hp", 0.0)) + \
-                       abs(mutasi_pos_digital.get("langganan_digital", 0.0))
-        sisa_k4 = limit_k4 - realisasi_k4
-        pct_k4 = (realisasi_k4 / limit_k4) if limit_k4 > 0 else 0.0
-
-        st.write(f"**{nama_k4}**")
-        st.progress(min(1.0, pct_k4))
-        st.caption(f"Terpakai: Rp {realisasi_k4:,.0f} / Batas Kuota: Rp {limit_k4:,.0f} (Sisa Saldo Aman: Rp {sisa_k4:,.0f})")
-        
-        with st.expander("🔍 Breakdown Detak Transaksi Sub-Kategori 4", expanded=False):
-            c_sub4, c_val4 = st.columns([0.6, 0.4])
-            with c_sub4:
-                st.write("- Token Listrik PLN & PDAM")
-                st.write("- Internet Rumah / IndiHome / Biznet")
-                st.write("- Pulsa Seluler & Paket Data HP")
-                st.write("- Langganan App (Netflix, iCloud, Google One)")
-            with c_val4:
-                st.write(f"Rp {mutasi_pos_digital.get('listrik_air', 0.0):,.0f}")
-                st.write(f"Rp {mutasi_pos_digital.get('wifi_internet', 0.0):,.0f}")
-                st.write(f"Rp {mutasi_pos_digital.get('pulsa_hp', 0.0):,.0f}")
-                st.write(f"Rp {mutasi_pos_digital.get('langganan_digital', 0.0):,.0f}")
-        st.write("")
-
-        # --- KELOMPOK 5: EDUKASI, ANAK & SOSIAL (TEMPAT EMAS) ---
-        nama_k5 = "5. Edukasi, Anak & Sosial (5.1%)"
-        limit_k5 = target_kertas_dinamis.get(nama_k5, 0.0)
-        realisasi_k5 = abs(mutasi_pos_digital.get("pendidikan_anak", 0.0)) + \
-                       abs(mutasi_pos_digital.get("dana_sosial", 0.0)) + \
-                       abs(mutasi_pos_digital.get("lifestyle", 0.0)) + \
-                       abs(mutasi_pos_digital.get("investasi_pribadi", 0.0))
-        sisa_k5 = limit_k5 - realisasi_k5
-        pct_k5 = (realisasi_k5 / limit_k5) if limit_k5 > 0 else 0.0
-
-        st.write(f"**{nama_k5}**")
-        st.progress(min(1.0, pct_k5))
-        st.caption(f"Terpakai: Rp {realisasi_k5:,.0f} / Batas Kuota Dinamis: Rp {limit_k5:,.0f} (Sisa Saldo Aman: Rp {sisa_k5:,.0f})")
-        
-        with st.expander("🔍 Breakdown Detak Transaksi Sub-Kategori 5 & Investasi Emas", expanded=False):
-            c_sub5, c_val5 = st.columns([0.6, 0.4])
-            with c_sub5:
-                st.write("- SPP, Les & Kebutuhan Sekolah Anak")
-                st.write("- Sedekah, Zakat & Uang Kondangan")
-                st.write("- Gaya Hidup (Nongkrong/Mall/Kopi/Baju)")
-                st.write("📈 **Tabungan Investasi Mandiri (Emas/Saham)**")
-            with c_val5:
-                st.write(f"Rp {mutasi_pos_digital.get('pendidikan_anak', 0.0):,.0f}")
-                st.write(f"Rp {mutasi_pos_digital.get('dana_sosial', 0.0):,.0f}")
-                st.write(f"Rp {mutasi_pos_digital.get('lifestyle', 0.0):,.0f}")
-                st.write(f"**Rp {mutasi_pos_digital.get('investasi_pribadi', 0.0):,.0f}**")
-
-    # ─────────────────────────────────────────────────────────────────
-    # TAB 2: VISUALISASI SUB-KATEGORI OPERASIONAL BISNIS (TRAVEL)
-    # ─────────────────────────────────────────────────────────────────
-    with tab_bisnis_monitor:
-        st.markdown("##### 📈 Visualisasi Transparansi Operasional & Belanja Usaha")
-        
-        # Grid visualisasi internal khusus urusan operasional travel
-        b_c1, b_c2 = st.columns(2)
-        with b_c1:
-            st.metric(label="🏪 Biaya Operasional Usaha (Fisik)", value=f"Rp {db['total_biaya_operasional_bisnis']:,.0f}", help="Total pengeluaran dari pos Cadangan Bisnis dan Aset Kantor")
-            st.metric(label="💳 Alokasi Pelunasan CC Bisnis (HPP)", value=f"Rp {mutasi_pos_digital.get('pelunasan_cc_bisnis', 0.0):,.0f}", help="Dana talangan kulakan tiket yang sudah dibayarkan balik ke CC masa berjalan")
-        with b_c2:
-            st.metric(label="📉 Kasus Tiket/Invoice Boncos", value=f"{db['jumlah_boncos']} Kasus", delta=f"-Rp {db['total_kerugian']:,.0f}", delta_color="inverse")
-            st.metric(label="🏆 Rata-Rata Margin per Pax/Tiket", value=f"Rp {db['laba_per_tiket']:,.0f}", help="Total laba buku dibagi volume tiket issued")
+        # Inisialisasi Tab baru tanpa merusak 16 Panel Metrics Center di atasnya
+        tab_pribadi_monitor, tab_bisnis_monitor = st.tabs([
+            "🏠 Monitor Anggaran Domestik (Pribadi)", 
+            "🏪 Monitor Operasional Usaha (Bisnis)"
+        ])
+    
+        # Ambil data mutasi sub-kategori riil dari RAM engine Tahap 2
+        mutasi_pos_digital = db.get("mutasi_pos_digital", {})
+        target_kertas_dinamis = db.get("target_kertas_domestik", {})
+    
+        # ─────────────────────────────────────────────────────────────────
+        # TAB 1: VISUALISASI SUB-KATEGORI PRIBADI (DENGAN KUOTA DINAMIS)
+        # ─────────────────────────────────────────────────────────────────
+        with tab_pribadi_monitor:
+            st.markdown("##### 📊 Realisasi 5 Rumpun Anggaran vs Sisa Saldo Kuota")
+            
+            # --- KELOMPOK 1: TEMPAT TINGGAL & KENDARAAN ---
+            nama_k1 = "1. Tempat Tinggal & Kendaraan (40.9%)"
+            limit_k1 = target_kertas_dinamis.get(nama_k1, 0.0)
+            realisasi_k1 = abs(mutasi_pos_digital.get("cicilan_rumah", 0.0)) + \
+                           abs(mutasi_pos_digital.get("perbaikan_rumah", 0.0)) + \
+                           abs(mutasi_pos_digital.get("pajak_kendaraan", 0.0)) + \
+                           abs(mutasi_pos_digital.get("servis_kendaraan", 0.0))
+            sisa_k1 = limit_k1 - realisasi_k1
+            pct_k1 = (realisasi_k1 / limit_k1) if limit_k1 > 0 else 0.0
+    
+            st.write(f"**{nama_k1}**")
+            st.progress(min(1.0, pct_k1))
+            st.caption(f"Terpakai: Rp {realisasi_k1:,.0f} / Batas Kuota: Rp {limit_k1:,.0f} (Sisa Saldo Aman: Rp {sisa_k1:,.0f})")
+            
+            with st.expander("🔍 Breakdown Detak Transaksi Sub-Kategori 1", expanded=False):
+                c_sub1, c_val1 = st.columns([0.6, 0.4])
+                with c_sub1:
+                    st.write("- Cicilan Rumah / KPR")
+                    st.write("- Perbaikan & Renovasi Properti")
+                    st.write("- Pajak Tahunan Kendaraan")
+                    st.write("- Servis, Oli & Bengkel")
+                with c_val1:
+                    st.write(f"Rp {mutasi_pos_digital.get('cicilan_rumah', 0.0):,.0f}")
+                    st.write(f"Rp {mutasi_pos_digital.get('perbaikan_rumah', 0.0):,.0f}")
+                    st.write(f"Rp {mutasi_pos_digital.get('pajak_kendaraan', 0.0):,.0f}")
+                    st.write(f"Rp {mutasi_pos_digital.get('servis_kendaraan', 0.0):,.0f}")
+            st.write("")
+    
+            # --- KELOMPOK 2: RUMAH TANGGA & KELUARGA ---
+            nama_k2 = "2. Rumah Tangga & Keluarga (25.8%)"
+            limit_k2 = target_kertas_dinamis.get(nama_k2, 0.0)
+            realisasi_k2 = abs(mutasi_pos_digital.get("belanja_dapur", 0.0)) + \
+                           abs(mutasi_pos_digital.get("perlengkapan_rumah", 0.0)) + \
+                           abs(mutasi_pos_digital.get("asisten_rumah_tangga", 0.0))
+            sisa_k2 = limit_k2 - realisasi_k2
+            pct_k2 = (realisasi_k2 / limit_k2) if limit_k2 > 0 else 0.0
+    
+            st.write(f"**{nama_k2}**")
+            st.progress(min(1.0, pct_k2))
+            st.caption(f"Terpakai: Rp {realisasi_k2:,.0f} / Batas Kuota: Rp {limit_k2:,.0f} (Sisa Saldo Aman: Rp {sisa_k2:,.0f})")
+            
+            with st.expander("🔍 Breakdown Detak Transaksi Sub-Kategori 2", expanded=False):
+                c_sub2, c_val2 = st.columns([0.6, 0.4])
+                with c_sub2:
+                    st.write("- Belanja Dapur & Sembako")
+                    st.write("- Perlengkapan Rumah & Sabun/Gas/Galon")
+                    st.write("- Gaji & THR Asisten Rumah Tangga (ART)")
+                with c_val2:
+                    st.write(f"Rp {mutasi_pos_digital.get('belanja_dapur', 0.0):,.0f}")
+                    st.write(f"Rp {mutasi_pos_digital.get('perlengkapan_rumah', 0.0):,.0f}")
+                    st.write(f"Rp {mutasi_pos_digital.get('asisten_rumah_tangga', 0.0):,.0f}")
+            st.write("")
+    
+            # --- KELOMPOK 3: KEBUTUHAN POKOK HIDUP ---
+            nama_k3 = "3. Kebutuhan Pokok Hidup (19.0%)"
+            limit_k3 = target_kertas_dinamis.get(nama_k3, 0.0)
+            realisasi_k3 = abs(mutasi_pos_digital.get("bensin_transport", 0.0)) + \
+                           abs(mutasi_pos_digital.get("makan_harian", 0.0)) + \
+                           abs(mutasi_pos_digital.get("kesehatan_obat", 0.0))
+            sisa_k3 = limit_k3 - realisasi_k3
+            pct_k3 = (realisasi_k3 / limit_k3) if limit_k3 > 0 else 0.0
+    
+            st.write(f"**{nama_k3}**")
+            st.progress(min(1.0, pct_k3))
+            st.caption(f"Terpakai: Rp {realisasi_k3:,.0f} / Batas Kuota: Rp {limit_k3:,.0f} (Sisa Saldo Aman: Rp {sisa_k3:,.0f})")
+            
+            with st.expander("🔍 Breakdown Detak Transaksi Sub-Kategori 3", expanded=False):
+                c_sub3, c_val3 = st.columns([0.6, 0.4])
+                with c_sub3:
+                    st.write("- Bensin, Tol, Parkir & Transport harian")
+                    st.write("- Makan Siang Kantor & Warung Harian")
+                    st.write("- Tagihan Dokter, Apotek & Obat-obatan")
+                with c_val3:
+                    st.write(f"Rp {mutasi_pos_digital.get('bensin_transport', 0.0):,.0f}")
+                    st.write(f"Rp {mutasi_pos_digital.get('makan_harian', 0.0):,.0f}")
+                    st.write(f"Rp {mutasi_pos_digital.get('kesehatan_obat', 0.0):,.0f}")
+            st.write("")
+    
+            # --- KELOMPOK 4: TAGIHAN BULANAN & OPS ---
+            nama_k4 = "4. Tagihan Bulanan & Ops (9.2%)"
+            limit_k4 = target_kertas_dinamis.get(nama_k4, 0.0)
+            realisasi_k4 = abs(mutasi_pos_digital.get("listrik_air", 0.0)) + \
+                           abs(mutasi_pos_digital.get("wifi_internet", 0.0)) + \
+                           abs(mutasi_pos_digital.get("pulsa_hp", 0.0)) + \
+                           abs(mutasi_pos_digital.get("langganan_digital", 0.0))
+            sisa_k4 = limit_k4 - realisasi_k4
+            pct_k4 = (realisasi_k4 / limit_k4) if limit_k4 > 0 else 0.0
+    
+            st.write(f"**{nama_k4}**")
+            st.progress(min(1.0, pct_k4))
+            st.caption(f"Terpakai: Rp {realisasi_k4:,.0f} / Batas Kuota: Rp {limit_k4:,.0f} (Sisa Saldo Aman: Rp {sisa_k4:,.0f})")
+            
+            with st.expander("🔍 Breakdown Detak Transaksi Sub-Kategori 4", expanded=False):
+                c_sub4, c_val4 = st.columns([0.6, 0.4])
+                with c_sub4:
+                    st.write("- Token Listrik PLN & PDAM")
+                    st.write("- Internet Rumah / IndiHome / Biznet")
+                    st.write("- Pulsa Seluler & Paket Data HP")
+                    st.write("- Langganan App (Netflix, iCloud, Google One)")
+                with c_val4:
+                    st.write(f"Rp {mutasi_pos_digital.get('listrik_air', 0.0):,.0f}")
+                    st.write(f"Rp {mutasi_pos_digital.get('wifi_internet', 0.0):,.0f}")
+                    st.write(f"Rp {mutasi_pos_digital.get('pulsa_hp', 0.0):,.0f}")
+                    st.write(f"Rp {mutasi_pos_digital.get('langganan_digital', 0.0):,.0f}")
+            st.write("")
+    
+            # --- KELOMPOK 5: EDUKASI, ANAK & SOSIAL (TEMPAT EMAS) ---
+            nama_k5 = "5. Edukasi, Anak & Sosial (5.1%)"
+            limit_k5 = target_kertas_dinamis.get(nama_k5, 0.0)
+            realisasi_k5 = abs(mutasi_pos_digital.get("pendidikan_anak", 0.0)) + \
+                           abs(mutasi_pos_digital.get("dana_sosial", 0.0)) + \
+                           abs(mutasi_pos_digital.get("lifestyle", 0.0)) + \
+                           abs(mutasi_pos_digital.get("investasi_pribadi", 0.0))
+            sisa_k5 = limit_k5 - realisasi_k5
+            pct_k5 = (realisasi_k5 / limit_k5) if limit_k5 > 0 else 0.0
+    
+            st.write(f"**{nama_k5}**")
+            st.progress(min(1.0, pct_k5))
+            st.caption(f"Terpakai: Rp {realisasi_k5:,.0f} / Batas Kuota Dinamis: Rp {limit_k5:,.0f} (Sisa Saldo Aman: Rp {sisa_k5:,.0f})")
+            
+            with st.expander("🔍 Breakdown Detak Transaksi Sub-Kategori 5 & Investasi Emas", expanded=False):
+                c_sub5, c_val5 = st.columns([0.6, 0.4])
+                with c_sub5:
+                    st.write("- SPP, Les & Kebutuhan Sekolah Anak")
+                    st.write("- Sedekah, Zakat & Uang Kondangan")
+                    st.write("- Gaya Hidup (Nongkrong/Mall/Kopi/Baju)")
+                    st.write("📈 **Tabungan Investasi Mandiri (Emas/Saham)**")
+                with c_val5:
+                    st.write(f"Rp {mutasi_pos_digital.get('pendidikan_anak', 0.0):,.0f}")
+                    st.write(f"Rp {mutasi_pos_digital.get('dana_sosial', 0.0):,.0f}")
+                    st.write(f"Rp {mutasi_pos_digital.get('lifestyle', 0.0):,.0f}")
+                    st.write(f"**Rp {mutasi_pos_digital.get('investasi_pribadi', 0.0):,.0f}**")
+    
+        # ─────────────────────────────────────────────────────────────────
+        # TAB 2: VISUALISASI SUB-KATEGORI OPERASIONAL BISNIS (TRAVEL)
+        # ─────────────────────────────────────────────────────────────────
+        with tab_bisnis_monitor:
+            st.markdown("##### 📈 Visualisasi Transparansi Operasional & Belanja Usaha")
+            
+            # Grid visualisasi internal khusus urusan operasional travel
+            b_c1, b_c2 = st.columns(2)
+            with b_c1:
+                st.metric(label="🏪 Biaya Operasional Usaha (Fisik)", value=f"Rp {db['total_biaya_operasional_bisnis']:,.0f}", help="Total pengeluaran dari pos Cadangan Bisnis dan Aset Kantor")
+                st.metric(label="💳 Alokasi Pelunasan CC Bisnis (HPP)", value=f"Rp {mutasi_pos_digital.get('pelunasan_cc_bisnis', 0.0):,.0f}", help="Dana talangan kulakan tiket yang sudah dibayarkan balik ke CC masa berjalan")
+            with b_c2:
+                st.metric(label="📉 Kasus Tiket/Invoice Boncos", value=f"{db['jumlah_boncos']} Kasus", delta=f"-Rp {db['total_kerugian']:,.0f}", delta_color="inverse")
+                st.metric(label="🏆 Rata-Rata Margin per Pax/Tiket", value=f"Rp {db['laba_per_tiket']:,.0f}", help="Total laba buku dibagi volume tiket issued")
 
     # st.markdown("### ⚖️ 3. NERACA POSISI KEUANGAN BISNIS MURNI (SAK EMKM STANDARDS)")
     # utang_investor_kertas = db["wajib_setor_investor"]

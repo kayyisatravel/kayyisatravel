@@ -699,7 +699,7 @@ def generate_evoucher_html(data):
             <!-- BARIS 3: RINGKASAN GRAND TOTAL AKUMULASI GABUNGAN -->
             <tr style="background-color: #f0f4ff; font-weight: 700; border-top: 2px solid #004080;">
               <td colspan="2" style="text-align: right; padding: 12px; font-size: 14px; color: #004080; text-transform: uppercase; letter-spacing: 0.3px;">
-                GRAND TOTAL PRICE / <span style="font-size: 11.5px; font-weight:400; font-style:italic; text-transform: none;">Total Bayar</span> :
+                GRAND TOTAL PRICE / <span style="font-size: 11.5px; font-weight:400; font-style:italic; text-transform: none;">Total Harga</span> :
               </td>
               <td style="text-align: right; padding: 12px; font-size: 15.5px; color: #b30000;">
                 {grand_total_str}

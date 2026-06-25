@@ -150,7 +150,7 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
        - JIKA nama tamu/penumpang YANG SAMA/NAMA TUNGGAL, memesan lebih dari 1 kamar/tiket sekaligus (ANTI-SPLIT DATA), Anda DILARANG keras memecahnya. Satukan menjadi 1 BARIS ENTRI TUNGGAL dan gunakan nominal total keseluruhan secara utuh.
 
     2. Perhitungan "harga_beli" (MODAL):
-       - Cari teks nominal modal yang dibayarkan ke pihak vendor/OTA. Masukkan hasilnya ke field "harga_beli". Set 0 jika bisnis via redeem point atau transaksi pribadi.
+       - Cari teks nominal modal yang dibayarkan ke pihak vendor/OTA dengan contoh teks 'Total Pembayaran', 'Dibayar Hari Ini', 'Jumlah Pembayaran', 'Jumlah yang dibayarkan', 'Telah Dibayar', 'Jumlah Total Pembayaran' dll. Masukkan hasilnya ke field "harga_beli". Set 0 jika bisnis via redeem point atau transaksi pribadi.
 
     3. Perhitungan "harga_jual" (HARGA TOKO PER KAMAR / PER PAX):
        - Langkah 1: Jika admin mengetik kata manual (cth: 'Jual 950000'), gunakan angka itu. Jika ada kata 'Harga' diikuti nominal angka, maka nominal tersebut WAJIB kamu tetapkan sebagai "harga_jual". Jika ada perkalian malam/pax (cth: 200.000/mlm selama 2 malam), kalikan nilainya (400000).

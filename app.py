@@ -3589,46 +3589,21 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
             df_pribadi_current = sedot_data_pribadi_independen()
 
         # =========================================================================
-        # 🚀 ALIHAN TOTAL KE REVISI BARU V2 (ANTI-BREAKDOWN)
+        # 🚀 EKSEKUSI ENGINE V5: Panggil dengan 3 Parameter Data yang Sudah Steril
         # =========================================================================
-        # Mengemas input jurnal pembukuan bulanan konvensional agar engine baru tidak crash
-        jurnal_data_dashboard_input = {
-            "saldo_kas_riil": 0.0,
-            "piutang_total": 0.0, 
-            "jumlah_invoice_piutang": 0
-        }
-
-        # Panggil fungsi resmi dari hybrid_finance_engine dan kunci langsung ke nama variabel 'db'
-        import hybrid_finance_engine
-        db = hybrid_finance_engine.hitung_hybrid_monitoring_v2(
-            df_sales_raw=df_filtered, 
-            df_pribadi_raw=df_pribadi_current, 
-            jurnal_data=jurnal_data_dashboard_input
+        metrics = finance_engine.hitung_performa_dan_reconciliation_v5(
+            df_filtered, 
+            df_pribadi_current, 
+            df_cashflow_combined
         )
 
-        metrics = db
-
-        # 🛡️ PENYEMBUH KEYERROR (SINKRONISASI COCOK 100%):
-        # Memetakan sisa seluruh kunci mesin baru ke kunci visual lama Anda
-        metrics['pendapatan'] = db.get('total_omzet_buku', 0.0)
-        metrics['hpp'] = db.get('total_hpp_buku', 0.0)
-        metrics['laba_bersih'] = db.get('laba_buku_total', 0.0)
-        metrics['margin_laba_bersih'] = db.get('npm', 0.0)
-        
-        # SUNTIKAN BARU: Penyelaras Kunci untuk Tab Aging Report Piutang (Baris 3730 & 3733)
-        metrics['total_piutang'] = db.get('total_piutang', 0.0)
-        metrics['overdue_lebih_30_hari'] = db.get('total_piutang', 0.0) # Fallback ke total outstanding aktif
-        metrics['df_aging_report'] = df_filtered # Fallback menyajikan data tabel terfilter saat ini
-
-        # 5️⃣ TAMPILKAN INTERFACES TABS
+        # 5️⃣ TAMPILKAN INTERFACES TABS (Bersih, Rapi, & Padat di Dalam Expander)
         tab_ringkasan, tab_aging, tab_ai_audit, tab_match_erp = st.tabs([
             "📊 Ringkasan Keuangan", 
             "⏳ Aging Report Piutang", 
             "🕵️‍♂️ AI Real-time Auditor",
             "🤖 Jembatan Match ERP"
         ])
-
-
         
         # --- TAB 1: RINGKASAN DATA ANGKA & GRAFIK INTERAKTIF ---
                 # --- TAB 1: RINGKASAN DATA ANGKA & GRAFIK INTERAKTIF ---
@@ -3764,50 +3739,46 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
                 st.caption("💡 Info Visual: Baris berwarna merah muda menandakan sisa tagihan telah menunggak parah melebihi 30 hari sejak nota dibuat.")
 
         # --- TAB 3: AUDIT FORENSIK OTOMATIS GEMINI 3.1 FLASH LITE ---
-        # db = metrik_hybrid
         with tab_ai_audit:
             st.subheader("🕵️‍♂️ Laporan Hasil Penelaahan Audit Forensik AI")
             st.info("Fitur ini meringkas data indikator keuangan Anda lalu mengirimkannya ke Gemini 2.5 Flash untuk di-audit secara berkala.")
             
-            # 🛡️ REVISI MUTLAK: Sinkronisasi 100% dengan Variabel Hasil Keluaran Engine V2 Baru (db)
-            val_total_transaksi = db.get('total_tiket_terjual', 0)
-            val_pendapatan = db.get('total_omzet_buku', 0.0)
-            val_hpp = db.get('total_hpp_buku', 0.0)
-            val_laba_bersih = db.get('laba_buku_total', 0.0)
-            val_margin = db.get('npm', 0.0)
-            val_top_admin = db.get('top_admin', 'N/A')
-            val_text_segmentasi = "- Data distribusi segmen terintegrasi di dashboard utama\n"
-            val_total_piutang = db.get('total_piutang', 0.0)
-            val_jumlah_invoice = db.get('jumlah_invoice_piutang', 0)
-            val_overdue_30 = db.get('total_piutang', 0.0) # Fallback aman ke total outstanding aktif
-            val_jumlah_boncos = db.get('jumlah_boncos', 0)
-            val_total_kerugian = db.get('total_kerugian', 0.0)
-            val_text_debitur = "- Daftar lengkap invoice unpaid menggantung dapat diakses pada ringkasan tabel jurnal\n"
+            val_total_transaksi = metrics.get('total_transaksi', len(df_filtered))
+            val_pendapatan = metrics.get('pendapatan', 0.0)
+            val_hpp = metrics.get('hpp', 0.0)
+            val_laba_bersih = metrics.get('laba_bersih', 0.0)
+            val_margin = metrics.get('margin_laba_bersih', 0.0)
+            val_top_admin = metrics.get('top_admin', 'N/A')
+            val_text_segmentasi = metrics.get('text_segmentasi', '- Data distribusi belum siap\n')
+            val_total_piutang = metrics.get('total_piutang', 0.0)
+            val_jumlah_invoice = metrics.get('jumlah_invoice_piutang', 0)
+            val_overdue_30 = metrics.get('overdue_lebih_30_hari', 0.0)
+            val_jumlah_boncos = metrics.get('jumlah_transaksi_rugi', 0)
+            val_total_kerugian = metrics.get('total_kerugian', 0.0)
+            val_text_debitur = metrics.get('text_top_debitur', '- Belum ada data debitur\n')
 
-            # AMBIL DATA RASIO DAN KAS LIKUID LANGSUNG DARI RAM ENGINE V2 RESMI
-            val_roi = db.get('roi', 0.0)
-            val_kas_riil = db.get('kas_riil_bisnis_toko', 0.0)
-            val_keterikatan_modal = db.get('rasio_keterikatan_modal', 0.0)
-            val_kerentanan_laba = db.get('rasio_kerentanan_laba', 0.0)
+            # 🧮 KALKULASI ARSENAL RASIO DARURAT (Mencegah KeyError di app.py)
+            val_roi = metrics.get('roi', (val_laba_bersih / val_hpp * 100) if val_hpp > 0 else 0.0)
+            val_kas_riil = metrics.get('kas_riil', (val_pendapatan - val_total_piutang) - val_hpp)
+            val_keterikatan_modal = metrics.get('rasio_keterikatan_modal', (val_total_piutang / val_pendapatan * 100) if val_pendapatan > 0 else 0.0)
+            val_kerentanan_laba = metrics.get('rasio_kerentanan_laba', (val_total_piutang / val_laba_bersih * 100) if val_laba_bersih > 0 else 0.0)
             
-            # INTEGRASI MUTASI KAS NYATA & ATM PRIBADI (SINKRON DENGAN LOG BANK ENGINE)
-            saldo_bank_map = db.get("log_bank_pribadi", {})
-            target_kertas_dinamis = db.get("target_kertas_domestik", {})
+            # 🏦 SUNTIKAN INTEGRASI JALUR KAS PRIBADI & ATM NYATA (RULES BARU)
+            saldo_bank_map = metrics.get("saldo_bank_riil", {})
+            alokasi_ai_map = metrics.get("alokasi_ai", {})
             
             # Forensik otomatis mencari apakah ada rekening ATM aktif yang minus/defisit
-            list_bank_defisit = []
-            for b_k, b_v in saldo_bank_map.items():
-                if isinstance(b_v, dict) and b_v.get("saldo", 0.0) < 0:
-                    list_bank_defisit.append(f"Bank {b_k} (Minus Rp {int(abs(b_v['saldo'])):,})")
+            list_bank_defisit = [f"Bank {b_k} (Minus Rp {int(abs(b_v)):,})" for b_k, b_v in saldo_bank_map.items() if b_v < 0]
             text_status_defisit_atm = ", ".join(list_bank_defisit) if list_bank_defisit else "Semua Rekening Bank Normal/Positif"
             
-            # Format teks rincian saldo fisik ATM secara presisi dari objek sub-dictionary
+            # Format teks rincian saldo fisik ATM
             text_rincian_atm_riil = ""
-            for b_name, b_info in saldo_bank_map.items():
-                if isinstance(b_info, dict):
-                    text_rincian_atm_riil += f"  * Saldo {b_name}: Rp {int(b_info.get('saldo', 0.0)):,}\n"
+            for b_name, b_val in saldo_bank_map.items():
+                text_rincian_atm_riil += f"  * Saldo {b_name}: Rp {int(b_val):,}\n"
 
-            # Merakit Paket Payload Senjata Lengkap dengan Tambahan Sektor Dompet Pribadi Dinamis
+            # ----------------------------------------------------------------------
+
+            # Merakit Paket Payload Senjata Lengkap dengan Tambahan Sektor Dompet Pribadi
             text_payload_ai = f"""
             INDIKATOR UTAMA AKUNTANSI BISNIS TRAVEL:
             - Total Baris Transaksi Terproses: {val_total_transaksi} baris
@@ -3823,21 +3794,25 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
             - Rasio Kerentanan Laba terhadap Piutang: {val_kerentanan_laba:.2f}%
             - Admin dengan Penjualan Tertinggi: Admin [{val_top_admin}]
             
+            DISTRIBUSI KINERJA SEGMEN PRODUK:
+            {val_text_segmentasi}
+            
             🚨 LAPORAN FORENSIK PIUTANG MACET & KEBOCORAN DANA:
             - Total Nilai Piutang Klien Keseluruhan: Rp {int(val_total_piutang):,}
             - Jumlah Invoice Menggantung: {val_jumlah_invoice} nota belum lunas
             - Dana Piutang Macet Kritis Jangka Panjang (>30 Hari): Rp {int(val_overdue_30):,}
             - Kebocoran Harga (Transaksi Rugi/Minus): {val_jumlah_boncos} kali transaksi, total kerugian riil Rp {int(val_total_kerugian):,}
             
-            🏦 INTEGRASI MUTASI KAS NYATA & PLAFON ANGGARAN DOMESTIK DINAMIS:
+            DAFTAR NAMA PENGUTANG (TOP DEBITUR TERBESAR):
+            {val_text_debitur}
+            
+            🏦 INTEGRASI MUTASI KAS NYATA & DOMPET PRIBADI (REAL-TIME ATM):
             - Temuan Status Krisis Defisit ATM: {text_status_defisit_atm}
             - Posisi Saldo Fisik Buku Tabungan Aktif:
             {text_rincian_atm_riil}
-            - Plafon Kuota Dinamis Kelompok 1 (Tempat Tinggal & KPR): Rp {int(target_kertas_dinamis.get("1. Tempat Tinggal & Kendaraan (40.9%)", 0)):,}
-            - Plafon Kuota Dinamis Kelompok 2 (Rumah Tangga & ART): Rp {int(target_kertas_dinamis.get("2. Rumah Tangga & Keluarga (25.8%)", 0)):,}
-            - Plafon Kuota Dinamis Kelompok 3 (Kebutuhan Pokok Hidup): Rp {int(target_kertas_dinamis.get("3. Kebutuhan Pokok Hidup (19.0%)", 0)):,}
-            - Plafon Kuota Dinamis Kelompok 4 (Tagihan Bulanan & Ops): Rp {int(target_kertas_dinamis.get("4. Tagihan Bulanan & Ops (9.2%)", 0)):,}
-            - Plafon Kuota Dinamis Kelompok 5 (Edukasi, Anak & Investasi Emas): Rp {int(target_kertas_dinamis.get("5. Edukasi, Anak & Sosial (5.1%)", 0)):,}
+            - Alokasi Plafon Anggaran AI Rumah Tangga & KPR (Porsi 50%): Rp {int(alokasi_ai_map.get("rumah_tangga", 0)):,}
+            - Alokasi Plafon Anggaran AI Investasi Masa Depan (Porsi 30%): Rp {int(alokasi_ai_map.get("investasi", 0)):,}
+            - Alokasi Plafon Anggaran AI Lifestyle / Jajan (Porsi 20%): Rp {int(alokasi_ai_map.get("lifestyle", 0)):,}
             """
                 
             if "response_audit_ai" not in st.session_state:
@@ -3852,6 +3827,7 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
                     try:
                         client_hitung = ai_auditor.inisialisasi_gemini()
                         if client_hitung:
+                            # Tameng proteksi tetap mengecek teks payload untuk mengukur volume token
                             token_info = client_hitung.models.count_tokens(
                                 model='gemini-2.5-flash',
                                 contents=text_payload_ai
@@ -3865,11 +3841,13 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
                                 
                     except Exception as token_err:
                         pass
-
+                    
+                    # 🚀 EKSEKUSI OPSI B
                     if lanjutkan_request:
                         try:
-                            # SINKRONISASI TRANSMISI DATA: Melempar objek kamus V2 (db) seutuhnya ke modul auditor eksternal Anda
-                            hasil_lhpa = ai_auditor.audit_forensik_dashboard(db) 
+                            # PERBAIKAN UTAMA: Masukkan variabel 'metrics' atau 'hasil_v5' (berupa DICTIONARY objek)
+                            # Sesuaikan nama variabel dictionary hasil keluaran fungsi v5 Anda di app.py
+                            hasil_lhpa = ai_auditor.audit_forensik_dashboard(metrics) 
                             st.session_state.response_audit_ai = hasil_lhpa
                         except Exception as e:
                             if "429" in str(e) or "quota" in str(e).lower():
@@ -3877,10 +3855,14 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
                             else:
                                 st.error(f"⚠️ Terjadi kendala saat menghubungi AI: {str(e)}")
 
+                    
             if st.session_state.response_audit_ai:
                 st.markdown("---")
                 st.markdown(st.session_state.response_audit_ai)
 
+                import re
+
+            
                 # 🛠️ Mesin Mini Pengubah Otomatis: Mengubah Tabel Markdown Gemini Menjadi Tabel HTML Word Resmi
                 def markdown_to_html_word(md_text):
                     lines = md_text.strip().split("\n")
@@ -3888,21 +3870,30 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
                     in_table = False
                     
                     for line in lines:
+                        # Deteksi baris tabel markdown
                         if line.strip().startswith("|"):
                             if not in_table:
                                 html_output.append('<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse; font-family:Arial; font-size:11pt; width:100%; margin-bottom:14px;">')
                                 in_table = True
+                            
+                            # Abaikan baris pembatas tabel | :--- | :--- |
                             if "---" in line:
                                 continue
+                                
                             cells = [c.strip() for c in line.split("|")[1:-1]]
+                            tag = "th" if html_output[-1].endswith("</table>") or html_output[-1].strip() == '<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse; font-family:Arial; font-size:11pt; width:100%; margin-bottom:14px;">' else "td"
+                            
+                            # Deteksi apakah ini baris header pertama
                             if html_output[-1].strip().startswith('<table'):
                                 tag = "th"
                                 bg_style = ' style="background-color:#f2f2f2; font-weight:bold; text-align:left;"'
                             else:
                                 tag = "td"
                                 bg_style = ''
+                                
                             row_html = "  <tr>"
                             for cell in cells:
+                                # Jika sel bertuliskan tebal **teks**, bersihkan tanda bintangnya
                                 cell_clean = cell.replace("**", "")
                                 row_html += f'<{tag}{bg_style}>{cell_clean}</{tag}>'
                             row_html += "</tr>"
@@ -3911,19 +3902,20 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
                             if in_table:
                                 html_output.append("</table>")
                                 in_table = False
+                            
+                            # Konversi format penulisan judul standar markdown ke HTML
                             if line.strip().startswith("###"):
                                 html_output.append(f'<h3 style="font-family:Arial; color:#1b5e20; margin-top:18px;">{line.replace("###", "").strip()}</h3>')
                             elif line.strip().startswith("##"):
                                 html_output.append(f'<h2 style="font-family:Arial; color:#2e7d32; margin-top:22px;">{line.replace("##", "").strip()}</h2>')
                             elif line.strip().startswith("#"):
                                 html_output.append(f'<h1 style="font-family:Arial; color:#111111; text-align:center;">{line.replace("#", "").strip()}</h1>')
-
                             elif line.strip().startswith("-") or line.strip().startswith("*"):
-                                # Bersihkan tanda bintang tebal di list poin dan bungkus ke tag LI Word
+                                # Bersihkan tanda bintang tebal di list poin
                                 bullet_text = line.strip()[1:].strip().replace("**", "")
                                 html_output.append(f'<li style="font-family:Arial; font-size:11pt; margin-left:20px; margin-bottom:6px;">{bullet_text}</li>')
                             else:
-                                # Bersihkan teks paragraf biasa dari bintang markdown dan bungkus ke tag P Word
+                                # Bersihkan teks paragraf biasa dari bintang-bintang tebal markdown
                                 clean_line = line.replace("**", "")
                                 html_output.append(f'<p style="font-family:Arial; font-size:11pt; line-height:1.5;">{clean_line}</p>')
                                 
@@ -3933,7 +3925,7 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
                     return "\n".join(html_output)
 
                 # Jalankan mesin konversi terhadap teks Gemini
-                html_content_lhpa = markdown_to_html_word(st.session_state.response_audit_ai)
+                html_body_content = markdown_to_html_word(st.session_state.response_audit_ai)
                 
                 # Bungkus ke dalam template dokumen resmi Microsoft Word (MIME type HTML)
                 word_html_template = f"""
@@ -3965,12 +3957,12 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
                 
                 # Sediakan tombol unduh Word pintar yang dijamin rapi kotak-kotaknya
                 st.download_button(
-                    label="📥 Download Laporan Audit Resmi (.doc / Word)",
-                    data=html_content_lhpa,
-                    file_name=f"LHPA_Kayyisa_{bulan_terpilih}_{tahun_terpilih}.doc",
+                    label="📝 Unduh Dokumen Laporan Word Resmi (.doc)",
+                    data=word_html_template,
+                    file_name=f"Laporan_Audit_Kayyisa_Travel_{date.today().strftime('%Y%m%d')}.doc",
                     mime="application/msword",
-                    use_container_width=True,
-                    key="btn_download_lhpa_word"
+                    type="primary",
+                    key="btn_download_word_html_v3"
                 )
         # =========================================================================
         # TAB 4: ENGINE REKONSILIASI OTOMATIS & TAMENG PENGAMAN BATCH UPDATE
@@ -6275,4 +6267,3 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
             f"Entitas memiliki **{db['jumlah_invoice_piutang']}** klaim invoice aktif tertagih dengan nilai total Piutang Usaha sebesar **Rp {db['total_piutang']:,.0f}** "
             f"yang seluruhnya diakui sebagai komponen Aset Lancar."
         )
-

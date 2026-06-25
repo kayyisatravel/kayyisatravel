@@ -5864,7 +5864,7 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
     st.markdown("##### 🏛️ A. Rumpun Profitabilitas & Kinerja Bisnis Murni")
     g1, g2, g3, g4 = st.columns(4)
     with g1: 
-    st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">1. Net Profit Margin (NPM)</div><div class="m-val">{db["npm"]:.2f}%</div><div class="m-sub">Rasio Efisiensi: Rp {db["laba_buku_total"]:,.0f} Laba / Rp {db["total_omzet_buku"]:,.0f} Omzet</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">1. Net Profit Margin (NPM)</div><div class="m-val">{db["npm"]:.2f}%</div><div class="m-sub">Rasio Efisiensi: Rp {db["laba_buku_total"]:,.0f} Laba / Rp {db["total_omzet_buku"]:,.0f} Omzet</div></div>', unsafe_allow_html=True)
     with g2: st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">2. Return on Investment</div><div class="m-val">{db["roi"]:.2f}%</div><div class="m-sub">Efektivitas Putaran Modal</div></div>', unsafe_allow_html=True)
     with g3: st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">3. Volume Penjualan</div><div class="m-val">{db["total_tiket_terjual"]} Pax</div><div class="m-sub">Total Produk Ter-issued</div></div>', unsafe_allow_html=True)
     with g4: st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">4. Avg Laba per Produk</div><div class="m-val">Rp {db["laba_per_tiket"]:,.0f}</div><div class="m-sub">Rata-rata Margin Bersih</div></div>', unsafe_allow_html=True)

@@ -20,8 +20,8 @@ def bersihkan_angka(val):
 
 def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
     """
-    Engine V2 Resmi Final: Integrasi Sempurna 100% dengan Struktur Tabel Aging Report Lama,
-    Solusi Plafon Dinamis (1 & 2), dan Sistem Proteksi Saldo Bank Aktual.
+    Engine V2 Resmi: Diperbarui dengan Formula Plafon Anggaran Dinamis (Solusi 1 & 2)
+    Melacak realisasi 19 Sub-Kategori domestik dan mengamankan Laporan SAK EMKM.
     """
     df_sales = df_sales_raw.copy().reset_index(drop=True)
     df_pribadi = df_pribadi_raw.copy().reset_index(drop=True)
@@ -29,65 +29,45 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
     debug_raw_sales_count = len(df_sales)
     debug_raw_pribadi_count = len(df_pribadi)
     
+    # ─────────────────────────────────────────────────────────────────
+    # SINKRONISASI SOLUSI 1: HITUNG JUMLAH BULAN UNIK YANG TERFILTER
+    # ─────────────────────────────────────────────────────────────────
+    # Membaca kolom Tanggal untuk mendeteksi rentang waktu data yang aktif di layar
     if not df_pribadi.empty and "Tanggal" in df_pribadi.columns:
         df_pribadi["Tgl_Temp_Parsed"] = pd.to_datetime(df_pribadi["Tanggal"], errors="coerce")
         jumlah_bulan_aktif = df_pribadi["Tgl_Temp_Parsed"].dt.to_period("M").nunique()
-        jumlah_bulan_aktif = max(1, int(jumlah_bulan_aktif))
+        jumlah_bulan_aktif = max(1, int(jumlah_bulan_aktif)) # Pengaman minimal 1 bulan
     else:
         jumlah_bulan_aktif = 1
 
-    # 1. STANDARISASI DATA PENJUALAN TOKO & INTEGRASI ALGORITMA AGING PIUTANG ASLI ANDA
-    total_piutang = overdue_lebih_30 = jumlah_invoice_piutang = 0.0
-    text_top_debitur = "- (Bersih, tidak ada piutang aktif)\n"
-    df_display_aging = pd.DataFrame()
-
+    # 1. STANDARISASI DATA PENJUALAN TOKO (BUKU UTAMA)
     if not df_sales.empty:
         df_sales["Harga Beli (Num)"] = df_sales["Harga Beli"].apply(bersihkan_angka)
         df_sales["Harga Jual (Num)"] = df_sales["Harga Jual"].apply(bersihkan_angka)
         df_sales["Laba (Num)"] = df_sales["Harga Jual (Num)"] - df_sales["Harga Beli (Num)"]
-        df_sales["Tgl Pemesanan_Parsed"] = pd.to_datetime(df_sales["Tgl Pemesanan"], dayfirst=True, errors="coerce")
         
-        total_pendapatan = df_sales["Harga Jual (Num)"].sum()
-        total_hpp = df_sales["Harga Beli (Num)"].sum()
-        laba_buku_total = df_sales["Laba (Num)"].sum()
+        df_sales["No Invoice"] = df_sales["No Invoice"].fillna("").astype(str).str.strip()
         
-        # Saring baris transaksi lunas untuk hitung Uang Fisik Bisnis
-        is_sudah_lunas = df_sales["Keterangan"].astype(str).str.contains(r'(?<!belum\s)lunas', case=False, na=False, regex=True)
         is_belum_lunas = df_sales["Keterangan"].astype(str).str.contains("Belum Lunas", case=False, na=False)
-        df_paid = df_sales[is_sudah_lunas & (~is_belum_lunas)].copy()
-        kas_riil_bisnis_toko = df_paid["Harga Jual (Num)"].sum() - df_paid["Harga Beli (Num)"].sum()
-
-        # ─── REPLIKASI FORMULA AGING REPORT ASLI DARI ENGINEMU ───
-        df_invoice = df_sales[["No Invoice", "Nama Pemesan", "Harga Jual (Num)", "Tgl Pemesanan_Parsed", "Keterangan"]].copy()
-        df_invoice["Jumlah Masuk"] = 0.0
-        df_invoice["Piutang"] = df_invoice["Harga Jual (Num)"] - df_invoice["Jumlah Masuk"]
+        is_sudah_lunas = df_sales["Keterangan"].astype(str).str.contains(r'(?<!belum\s)lunas', case=False, na=False, regex=True)
         
-        is_belum_lunas_inv = df_invoice["Keterangan"].astype(str).str.contains("Belum Lunas", case=False, na=False)
-        df_unpaid = df_invoice[((df_invoice["Piutang"] > 1000) | is_belum_lunas_inv) & (~is_sudah_lunas)].copy()
+        df_unpaid = df_sales[is_belum_lunas & (~is_sudah_lunas)].copy()
         
         if not df_unpaid.empty:
-            df_agg = df_unpaid.groupby(["Nama Pemesan", "No Invoice"], as_index=False).agg({
-                "Piutang": "sum",
-                "Tgl Pemesanan_Parsed": "min"
-            })
-            hari_ini_ts = pd.Timestamp.today().normalize()
-            df_agg["Tanggal Pemesanan"] = df_agg["Tgl Pemesanan_Parsed"].fillna(hari_ini_ts)
-            df_agg["Aging (hari)"] = (hari_ini_ts - df_agg["Tanggal Pemesanan"].dt.normalize()).dt.days
-            df_agg["Overdue"] = df_agg["Aging (hari)"] > 30
+            df_agg_piutang = df_unpaid.groupby("No Invoice", as_index=False).agg({"Harga Jual (Num)": "sum"})
+            total_piutang = df_agg_piutang["Harga Jual (Num)"].sum()
+            df_agg_piutang_clean = df_agg_piutang[df_agg_piutang["No Invoice"] != ""]
+            jumlah_invoice_piutang = df_agg_piutang_clean["No Invoice"].nunique()
+        else:
+            total_piutang = 0.0
+            jumlah_invoice_piutang = 0
             
-            total_piutang = df_agg["Piutang"].sum()
-            jumlah_invoice_piutang = df_agg["No Invoice"].nunique()
-            overdue_lebih_30 = df_agg[df_agg["Overdue"] == True]["Piutang"].sum()
-            
-            top_debitur = df_agg.groupby("Nama Pemesan")["Piutang"].sum().reset_index()
-            top_debitur = top_debitur.sort_values("Piutang", ascending=False).head(3)
-            text_top_debitur = ""
-            for _, row in top_debitur.iterrows():
-                text_top_debitur += f"- 👥 {row['Nama Pemesan']}: Menunggak Rp {int(row['Piutang']):,}\n"
-                
-            df_display_aging = df_agg[["Nama Pemesan", "No Invoice", "Tanggal Pemesanan", "Piutang", "Aging (hari)", "Overdue"]].copy()
+        df_paid = df_sales[is_sudah_lunas & (~is_belum_lunas)].copy()
+        kas_riil_bisnis_toko = df_paid["Harga Jual (Num)"].sum() - df_paid["Harga Beli (Num)"].sum()
     else:
-        total_pendapatan = total_hpp = laba_buku_total = kas_riil_bisnis_toko = 0.0
+        df_sales["Harga Beli (Num)"], df_sales["Harga Jual (Num)"], df_sales["Laba (Num)"] = 0.0, 0.0, 0.0
+        total_piutang = kas_riil_bisnis_toko = 0.0
+        jumlah_invoice_piutang = 0
 
     # 2. STANDARISASI DATA MUTASI KAS PRIBADI
     if not df_pribadi.empty:
@@ -95,23 +75,45 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
     else:
         df_pribadi["Nominal (Num)"] = 0.0
 
+    total_omzet_buku = df_sales["Harga Jual (Num)"].sum()
+    total_hpp_buku = df_sales["Harga Beli (Num)"].sum()
+    laba_buku_total = df_sales["Laba (Num)"].sum()
+
+    npm = (laba_buku_total / total_omzet_buku * 100) if total_omzet_buku > 0 else 0.0
+    roi = (laba_buku_total / total_hpp_buku * 100) if total_hpp_buku > 0 else 0.0
+    rasio_keterikatan_modal = (total_piutang / total_omzet_buku * 100) if total_omzet_buku > 0 else 0.0
+    
     log_bank = {
-        "BCA": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0}, "Mandiri": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
-        "BSI": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0}, "Bank Mega": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
-        "BRI": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0}, "Sea Bank": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
-        "Gopay": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0}, "OVO": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
-        "DANA": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0}, "Kartu Kredit": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0}
+        "BCA": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
+        "Mandiri": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
+        "BSI": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
+        "Bank Mega": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
+        "BRI": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
+        "Sea Bank": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
+        "Gopay": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
+        "OVO": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
+        "DANA": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0},
+        "Kartu Kredit": {"masuk": 0.0, "keluar": 0.0, "saldo": 0.0}
     }
 
     DAFTAR_PENGELUARAN_PRIBADI = [
         "pengeluaran", "cicilan_rumah", "perbaikan_rumah", "pajak_kendaraan", "servis_kendaraan",
-        "belanja_dapur", "perlengkapan_rumah", "asisten_rumah_tangga", "bensin_transport", "makan_harian", 
-        "kesehatan_obat", "listrik_air", "wifi_internet", "pulsa_hp", "langganan_digital",
+        "belanja_dapur", "perlengkapan_rumah", "asisten_rumah_tangga",
+        "bensin_transport", "makan_harian", "kesehatan_obat",
+        "listrik_air", "wifi_internet", "pulsa_hp", "langganan_digital",
         "pendidikan_anak", "dana_sosial", "lifestyle", "investasi_pribadi", "pelunasan_cc_bisnis"
     ]
 
-    mutasi_pos_digital = {k: 0.0 for k in DAFTAR_PENGELUARAN_PRIBADI}
-    total_biaya_operasional_bisnis = 0.0
+    mutasi_pos_digital = {
+        "cicilan_rumah": 0.0, "perbaikan_rumah": 0.0, "pajak_kendaraan": 0.0, "servis_kendaraan": 0.0,
+        "belanja_dapur": 0.0, "perlengkapan_rumah": 0.0, "asisten_rumah_tangga": 0.0,
+        "bensin_transport": 0.0, "makan_harian": 0.0, "kesehatan_obat": 0.0,
+        "listrik_air": 0.0, "wifi_internet": 0.0, "pulsa_hp": 0.0, "langganan_digital": 0.0,
+        "pendidikan_anak": 0.0, "dana_sosial": 0.0, "lifestyle": 0.0, "investasi_pribadi": 0.0,
+        "pelunasan_cc_bisnis": 0.0
+    }
+
+    total_biaya_operasional_bisnis = 0.0 
     total_bayar_tagihan_cc = 0.0
 
     if not df_pribadi.empty and "Bank_Sumber" in df_pribadi.columns:
@@ -122,7 +124,7 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
             nominal = row["Nominal (Num)"]
             
             bank_key = None
-            if any(x in bank for x in ["cc", "credit", "uob", "kartu", "cimb"]): bank_key = "Kartu Kredit"
+            if any(x in bank for x in ["cc", "credit", "uob", "kartu kredit", "cimb"]): bank_key = "Kartu Kredit"
             elif "mandiri" in bank: bank_key = "Mandiri"
             elif "bca" in bank: bank_key = "BCA"
             elif "bsi" in bank: bank_key = "BSI"
@@ -156,7 +158,9 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
     total_cash_out_pribadi = sum(info["keluar"] for info in log_bank.values())
     rasio_menabung_domestik = (total_atm_pribadi / total_cash_in_pribadi * 100) if total_cash_in_pribadi > 0 else 0.0
 
-    # FORMULA ALOKASI POS ANGGARAN DIGITAL AI (HYBRID & DINAMIS)
+    # ─────────────────────────────────────────────────────────────────
+    # SINKRONISASI SOLUSI 2: FORMULA GAJI / PRIVE OWNER DINAMIS
+    # ─────────────────────────────────────────────────────────────────
     GAJI_BASELINE_FLAT = 26259567.0 * jumlah_bulan_aktif
     beban_bagi_hasil_investor = max(0.0, kas_riil_bisnis_toko) * 0.075
     kas_setelah_investor = max(0.0, kas_riil_bisnis_toko) - beban_bagi_hasil_investor
@@ -165,25 +169,24 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
     nilai_defisit_gaji = 0.0
     rasio_kerentanan_laba = (total_piutang / laba_buku_total * 100) if laba_buku_total > 0 else 0.0
 
+    # Penentuan batas dana domestik aktual (Jika untung besar, jatah prive membesar secara otomatis)
     if kas_setelah_investor < GAJI_BASELINE_FLAT:
-        prive_dinamis_aktual = GAJI_BASELINE_FLAT
+        gaji_owner_dialokasikan = GAJI_BASELINE_FLAT
+        cadangan_bisnis_40_kertas = 0.0
         status_darurat_aktif = True
         nilai_defisit_gaji = GAJI_BASELINE_FLAT - kas_setelah_investor
-    elif rasio_kerentanan_laba > 100.0:
         prive_dinamis_aktual = GAJI_BASELINE_FLAT
+    elif rasio_kerentanan_laba > 100.0:
+        gaji_owner_dialokasikan = GAJI_BASELINE_FLAT
+        cadangan_bisnis_40_kertas = 0.0
         status_darurat_aktif = True
         nilai_defisit_gaji = 0.0 
+        prive_dinamis_aktual = GAJI_BASELINE_FLAT
     else:
+        gaji_owner_dialokasikan = GAJI_BASELINE_FLAT
         cadangan_bisnis_40_kertas = (kas_setelah_investor - GAJI_BASELINE_FLAT) * 0.40
+        # Kombinasi: Sisa kas setelah dipotong 40% cadangan fisik adalah Hak Prive Dinamis Pemilik Seutuhnya
         prive_dinamis_aktual = kas_setelah_investor - cadangan_bisnis_40_kertas
-
-    target_kertas_dinamis = {
-        "1. Tempat Tinggal & Kendaraan (40.9%)": prive_dinamis_aktual * 0.409,
-        "2. Rumah Tangga & Keluarga (25.8%)": prive_dinamis_aktual * 0.258,
-        "3. Kebutuhan Pokok Hidup (19.0%)": prive_dinamis_aktual * 0.190,
-        "4. Tagihan Bulanan & Ops (9.2%)": prive_dinamis_aktual * 0.092,
-        "5. Edukasi, Anak & Sosial (5.1%)": prive_dinamis_aktual * 0.051
-    }
 
     transaksi_boncos = df_sales[df_sales["Laba (Num)"] < 0] if not df_sales.empty else pd.DataFrame()
     jumlah_boncos = len(transaksi_boncos)
@@ -213,6 +216,7 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
     # ─────────────────────────────────────────────────────────────────
     # IMPLEMENTASI TARGET KERTAS DOMESTIK BERBASIS LABA DINAMIS & BULAN
     # ─────────────────────────────────────────────────────────────────
+    # Jatah nominal sub-kategori membesar proporsional mengikuti Laba Berjalan & Kelipatan Bulan Filter
     target_kertas_dinamis = {
         "1. Tempat Tinggal & Kendaraan (40.9%)": prive_dinamis_aktual * 0.409,
         "2. Rumah Tangga & Keluarga (25.8%)": prive_dinamis_aktual * 0.258,
@@ -221,33 +225,7 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
         "5. Edukasi, Anak & Sosial (5.1%)": prive_dinamis_aktual * 0.051
     }
 
-    # =========================================================================
-    # JANGKAR PENYEMBUH KEYERROR (SINKRON 100% UNTUK DATA LAMA & BARU)
-    # =========================================================================
     return {
-        # Kunci Lama (Mencegah KeyError di Tab Ringkasan & Jurnal Lama Anda)
-        "total_transaksi": len(df_sales),
-        "pendapatan": total_omzet_buku,
-        "hpp": total_hpp_buku,
-        "laba_bersih": laba_buku_total,
-        "margin_laba_bersih": npm,
-        "kas_riil": kas_riil_bisnis_toko,
-        "overdue_lebih_30_hari": overdue_lebih_30,
-        "jumlah_transaksi_rugi": jumlah_boncos,
-        "saldo_bank_riil": log_bank,
-        "text_top_debitur": text_top_debitur,
-        "text_segmentasi": "- Analisis produk travel fungsional\n",
-        "df_aging_report": df_display_aging,  # <── JANGKAR PENYEMBUH KEYERROR 3753 AGING REPORT
-        "alokasi_ai": {
-            "investor": beban_bagi_hasil_investor,
-            "cadangan_bisnis": cadangan_bisnis_40_kertas,
-            "gaji_owner": prive_dinamis_aktual,
-            "rumah_tangga": target_kertas_dinamis["2. Rumah Tangga & Keluarga (25.8%)"],
-            "investasi": target_kertas_dinamis["5. Edukasi, Anak & Sosial (5.1%)"],
-            "lifestyle": target_kertas_dinamis["5. Edukasi, Anak & Sosial (5.1%)"]
-        },
-
-        # Kunci Baru (Untuk 16 Panel Metrics Berlabel Ilmiah & Progress Bar)
         "npm": npm,
         "roi": roi,
         "total_tiket_terjual": len(df_sales),
@@ -264,7 +242,6 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
         "total_atm_pribadi": total_atm_pribadi,
         "daya_tahan_bulan": daya_tahan_bulan,
         "wajib_setor_investor": beban_bagi_hasil_investor,
-        "laba_internal_buku": laba_buku_total,
         "laba_bersih_riil_bisnis": laba_bersih_riil_bisnis,
         "total_biaya_operasional_bisnis": total_biaya_operasional_bisnis,
         "total_aset_lancar_toko": total_aset_lancar_toko,
@@ -284,6 +261,4 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
         "debug_raw_sales_count": debug_raw_sales_count,
         "debug_raw_pribadi_count": debug_raw_pribadi_count
     }
-
-
 

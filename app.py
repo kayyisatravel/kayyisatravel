@@ -3605,7 +3605,7 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
             df_pribadi_raw=df_pribadi_current, 
             jurnal_data=jurnal_data_dashboard_input
         )
-
+        metrics = db
         # 5️⃣ TAMPILKAN INTERFACES TABS (Menggunakan nama objek 'db' yang sah)
         tab_ringkasan, tab_aging, tab_ai_audit, tab_match_erp = st.tabs([
             "📊 Ringkasan Keuangan", 

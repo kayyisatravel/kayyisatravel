@@ -5856,39 +5856,59 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
         st.success("✅ **SISTEM STATUS AMAN:** Kas Bisnis sanggup membiayai penuh Gaji Owner.")
 
 
-    # --------------------------------==========================================
-    # DISPLAY METRICS CENTER (16 PANEL INDIKATOR)
-    # --------------------------------==========================================
-    st.markdown("### 📊 INTERACTIVE METRICS CENTER")
+    # --------------------------------------------------------------------------
+    # INTERACTIVE METRICS CENTER (16 PANEL INDIKATOR KEUANGAN PROFESIONAL)
+    # --------------------------------------------------------------------------
+    st.markdown("### 📊 EXECUTIVE FINANCIAL METRICS CENTER")
     
-    st.markdown("##### 🏛️ A. Rumpun Profitabilitas & Kinerja Bisnis Murni")
+    # 🏛️ RUMPUN A: PROFITABILITAS & KINERJA OPERASIONAL BISNIS (INCOME STATEMENT ANALYSIS)
+    st.markdown("##### 🏛️ A. Rumpun Profitabilitas & Kinerja Kuantitatif Bisnis")
     g1, g2, g3, g4 = st.columns(4)
     with g1: 
-        st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">1. Net Profit Margin (NPM)</div><div class="m-val">{db["npm"]:.2f}%</div><div class="m-sub">Rasio Efisiensi: Rp {db["laba_buku_total"]:,.0f} Laba / Rp {db["total_omzet_buku"]:,.0f} Omzet</div></div>', unsafe_allow_html=True)
-    with g2: st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">2. Return on Investment</div><div class="m-val">{db["roi"]:.2f}%</div><div class="m-sub">Efektivitas Putaran Modal</div></div>', unsafe_allow_html=True)
-    with g3: st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">3. Volume Penjualan</div><div class="m-val">{db["total_tiket_terjual"]} Pax</div><div class="m-sub">Total Produk Ter-issued</div></div>', unsafe_allow_html=True)
-    with g4: st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">4. Avg Laba per Produk</div><div class="m-val">Rp {db["laba_per_tiket"]:,.0f}</div><div class="m-sub">Rata-rata Margin Bersih</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">1. NET PROFIT MARGIN (NPM)</div><div class="m-val">{db["npm"]:.2f}%</div><div class="m-sub">Laba Buku: Rp {db["laba_buku_total"]:,.0f} / Omzet: Rp {db["total_omzet_buku"]:,.0f}</div></div>', unsafe_allow_html=True)
+    with g2: 
+        st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">2. RETURN ON INVESTMENT (ROI)</div><div class="m-val">{db["roi"]:.2f}%</div><div class="m-sub">Laba Buku: Rp {db["laba_buku_total"]:,.0f} / HPP Modal: Rp {db["total_hpp_buku"]:,.0f}</div></div>', unsafe_allow_html=True)
+    with g3: 
+        st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">3. TOTAL VOLUME TRANSACTION</div><div class="m-val">{db["total_tiket_terjual"]} Pax</div><div class="m-sub">Akumulasi Kuantitas Produk Penjualan Ter-issued</div></div>', unsafe_allow_html=True)
+    with g4: 
+        st.markdown(f'<div class="m-box" style="border-top-color:#3b82f6;"><div class="m-lbl">4. AVERAGE NET MARGIN PER UNIT</div><div class="m-val">Rp {db["laba_per_tiket"]:,.0f}</div><div class="m-sub">Rata-rata Margin Bersih yang Didapatkan per Pax Produk</div></div>', unsafe_allow_html=True)
 
-    st.markdown("##### 🧾 B. Rumpun Struktur Kas & Ambang Batas Piutang")
+    # 🧾 RUMPUN B: STRUKTUR KAS LIKUID & MANAJEMEN RISIKO PIUTANG (LIQUIDITY & RECEIVABLE EXPOSURE)
+    st.markdown("##### 🧾 B. Rumpun Struktur Kas Likuid & Ambang Batas Risiko Piutang")
     g5, g6, g7, g8 = st.columns(4)
-    with g5: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">5. Kas Riil Bisnis</div><div class="m-val">Rp {db["kas_riil_bisnis_toko"]:,.0f}</div><div class="m-sub">Uang Fisik Bisnis</div></div>', unsafe_allow_html=True)
-    with g6: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">6. Rasio Ikat Modal</div><div class="m-val c-red">{db["rasio_keterikatan_modal"]:.1f}%</div><div class="m-sub">Omzet Sangkut di Pelanggan</div></div>', unsafe_allow_html=True)
-    with g7: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">7. Rasio Rentan Laba</div><div class="m-val">{db["rasio_kerentanan_laba"]:.1f}%</div><div class="m-sub">Porsi Laba Semu Kertas</div></div>', unsafe_allow_html=True)
-    with g8: st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">8. Invoice Unpaid</div><div class="m-val c-red">{db["jumlah_invoice_piutang"]} Transaksi</div><div class="m-sub">Total Nota Belum Lunas</div></div>', unsafe_allow_html=True)
+    with g5: 
+        st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">5. NET CASH FLOW OPERATING (KAS RIIL)</div><div class="m-val">Rp {db["kas_riil_bisnis_toko"]:,.0f}</div><div class="m-sub">Uang Fisik Hasil Transaksi Lunas di Rekening Bank Toko</div></div>', unsafe_allow_html=True)
+    with g6: 
+        st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">6. CAPITAL TIE-UP RATIO (IKAT MODAL)</div><div class="m-val c-red">{db["rasio_keterikatan_modal"]:.1f}%</div><div class="m-sub">Sangkut: Rp {db["total_piutang"]:,.0f} dari Total Omzet Penjualan</div></div>', unsafe_allow_html=True)
+    with g7: 
+        st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">7. EARNINGS VULNERABILITY RATIO</div><div class="m-val">{db["rasio_kerentanan_laba"]:.1f}%</div><div class="m-sub">Porsi Laba Semu Kertas Dibanding Klaim Piutang Aktif</div></div>', unsafe_allow_html=True)
+    with g8: 
+        st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">8. TOTAL ACCOUNT RECEIVABLE (INVOICE)</div><div class="m-val c-red">{db["jumlah_invoice_piutang"]} Faktur</div><div class="m-sub">Jumlah Nota Transaksi yang Belum Dicairkan Konsumen</div></div>', unsafe_allow_html=True)
 
-    st.markdown("##### 🏦 C. Rumpun Aliran Kas Keluar-Masuk Pribadi")
+    # 🏦 RUMPUN C: MANAJEMEN ALIRAN KAS MASUK-KELUAR PRIBADI (PERSONAL CASH FLOW STATEMENT)
+    st.markdown("##### 🏦 C. Rumpun Aliran Kas Keluar-Masuk & Tabungan Pribadi")
     g9, g10, g11, g12 = st.columns(4)
-    with g9:  st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">9. Total Cash Inflow</div><div class="m-val c-grn">Rp {db["total_cash_in_pribadi"]:,.0f}</div><div class="m-sub">Akumulasi Masuk Rekening</div></div>', unsafe_allow_html=True)
-    with g10: st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">10. Total Cash Outflow</div><div class="m-val c-red">Rp {db["total_cash_out_pribadi"]:,.0f}</div><div class="m-sub">Akumulasi Keluar Rekening</div></div>', unsafe_allow_html=True)
-    with g11: st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">11. Saving Efficiency</div><div class="m-val">{db["rasio_menabung_domestik"]:.1f}%</div><div class="m-sub">Daya Mengendap Dana ATM</div></div>', unsafe_allow_html=True)
-    with g12: st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">12. Outstanding CC</div><div class="m-val c-red">Rp {db["beban_cc_aktual"]:,.0f}</div><div class="m-sub">Beban Kartu Kredit Berjalan</div></div>', unsafe_allow_html=True)
+    with g9:  
+        st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">9. TOTAL PERSONAL CASH INFLOW</div><div class="m-val c-grn">Rp {db["total_cash_in_pribadi"]:,.0f}</div><div class="m-sub">Akumulasi Dana Masuk ke Seluruh Rekening Pribadi</div></div>', unsafe_allow_html=True)
+    with g10: 
+        st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">10. TOTAL PERSONAL CASH OUTFLOW</div><div class="m-val c-red">Rp {db["total_cash_out_pribadi"]:,.0f}</div><div class="m-sub">Akumulasi Dana Keluar dari Seluruh Rekening Pribadi</div></div>', unsafe_allow_html=True)
+    with g11: 
+        st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">11. SAVING EFFICIENCY INDEX</div><div class="m-val">{db["rasio_menabung_domestik"]:.1f}%</div><div class="m-sub">Mengendap: Rp {db["total_atm_pribadi"]:,.0f} dari Total Arus Cash Inflow</div></div>', unsafe_allow_html=True)
+    with g12: 
+        st.markdown(f'<div class="m-box" style="border-top-color:#10b981;"><div class="m-lbl">12. CREDIT CARD DEBT RUNNING</div><div class="m-val c-red">Rp {db["beban_cc_aktual"]:,.0f}</div><div class="m-sub">Sisa Beban Kewajiban Kartu Kredit Berjalan Periode Ini</div></div>', unsafe_allow_html=True)
 
-    st.markdown("##### 👑 D. Rumpun Forensik Kebocoran & Ketahanan")
+    # 👑 RUMPUN D: KETAHANAN KAPITAL & FORENSIK KEBOCORAN (BUSINESS RUNWAY & CAPITAL LIABILITIES)
+    st.markdown("##### 👑 D. Rumpun Forensik Kebocoran, Ketahanan & Kekayaan Bersih")
     g13, g14, g15, g16 = st.columns(4)
-    with g13: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">13. Cash Runway</div><div class="m-val c-grn">{db["daya_tahan_bulan"]:.2f} Bulan</div><div class="m-sub">Napas Domestik Tanpa Laba</div></div>', unsafe_allow_html=True)
-    with g14: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">14. Invoice Boncos</div><div class="m-val c-red">{db["jumlah_boncos"]} Kasus</div><div class="m-sub">Rugi Rugi: Rp {db["total_kerugian"]:,.0f}</div></div>', unsafe_allow_html=True)
-    with g15: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">15. Laba Bersih Riil</div><div class="m-val c-grn">Rp {db["laba_bersih_riil_bisnis"]:,.0f}</div><div class="m-sub">Laba Buku - Biaya Ops</div></div>', unsafe_allow_html=True)
-    with g16: st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">16. Aset Lancar Toko</div><div class="m-val">Rp {db["total_aset_lancar_toko"]:,.0f}</div><div class="m-sub">Total Kas Riil + Piutang</div></div>', unsafe_allow_html=True)
+    with g13: 
+        st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">13. DOMESTIC CASH RUNWAY</div><div class="m-val c-grn">{db["daya_tahan_bulan"]:.2f} Bulan</div><div class="m-sub">Daya Tahan Napas Rumah Tangga Jika Toko Travel Rp 0 Laba</div></div>', unsafe_allow_html=True)
+    with g14: 
+        st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">14. INVOICE ACCIDENT NET LOSS</div><div class="m-val c-red">{db["jumlah_boncos"]} Kasus</div><div class="m-sub">Total Kerugian Operasional Akibat Salah Harga: Rp {db["total_kerugian"]:,.0f}</div></div>', unsafe_allow_html=True)
+    with g15: 
+        st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">15. NET INCOME STATE (LABA BERSIH RIIL)</div><div class="m-val c-grn">Rp {db["laba_bersih_riil_bisnis"]:,.0f}</div><div class="m-sub">Hak Untung Murni Owner (Laba Buku - Biaya Ops & Investor)</div></div>', unsafe_allow_html=True)
+    with g16: 
+        st.markdown(f'<div class="m-box" style="border-top-color:#ec4899;"><div class="m-lbl">16. TOTAL CURRENT ASSETS (ASET LANCAR)</div><div class="m-val">Rp {db["total_aset_lancar_toko"]:,.0f}</div><div class="m-sub">Total Kekayaan Pendek: Kas Riil Fisik + Rp {db["total_piutang"]:,.0f} Piutang</div></div>', unsafe_allow_html=True)
+
 
     # DETAIL SALDO REKENING KAS PRIBADI
     st.write("")

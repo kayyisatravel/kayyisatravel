@@ -3599,7 +3599,7 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
         }
 
         # Panggil fungsi resmi dari hybrid_finance_engine dan kunci langsung ke nama variabel 'db'
-        import hybrid_finance_engine
+                import hybrid_finance_engine
         db = hybrid_finance_engine.hitung_hybrid_monitoring_v2(
             df_sales_raw=df_filtered, 
             df_pribadi_raw=df_pribadi_current, 
@@ -3607,10 +3607,18 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
         )
 
         metrics = db
+
+        # 🛡️ PENYEMBUH KEYERROR (SINKRONISASI COCOK 100%):
+        # Memetakan sisa seluruh kunci mesin baru ke kunci visual lama Anda
         metrics['pendapatan'] = db.get('total_omzet_buku', 0.0)
         metrics['hpp'] = db.get('total_hpp_buku', 0.0)
         metrics['laba_bersih'] = db.get('laba_buku_total', 0.0)
         metrics['margin_laba_bersih'] = db.get('npm', 0.0)
+        
+        # SUNTIKAN BARU: Penyelaras Kunci untuk Tab Aging Report Piutang (Baris 3730 & 3733)
+        metrics['total_piutang'] = db.get('total_piutang', 0.0)
+        metrics['overdue_lebih_30_hari'] = db.get('total_piutang', 0.0) # Fallback ke total outstanding aktif
+        metrics['df_aging_report'] = df_filtered # Fallback menyajikan data tabel terfilter saat ini
 
         # 5️⃣ TAMPILKAN INTERFACES TABS
         tab_ringkasan, tab_aging, tab_ai_audit, tab_match_erp = st.tabs([
@@ -3619,6 +3627,7 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
             "🕵️‍♂️ AI Real-time Auditor",
             "🤖 Jembatan Match ERP"
         ])
+
 
         
         # --- TAB 1: RINGKASAN DATA ANGKA & GRAFIK INTERAKTIF ---

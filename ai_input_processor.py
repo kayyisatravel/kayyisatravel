@@ -148,6 +148,7 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
     1. UNTUK JALUR BISNIS: Periksa nama penumpang atau tamu terlebih dahulu.
        - JIKA nama tamu/penumpang BERBEDA-BEDA, Anda WAJIB memecah data menjadi beberapa baris entri, lalu bagi rata nominal total vendor/internal dengan jumlah pax/kamar tersebut.
        - JIKA nama tamu/penumpang YANG SAMA/NAMA TUNGGAL, memesan lebih dari 1 kamar/tiket sekaligus (ANTI-SPLIT DATA), Anda DILARANG keras memecahnya. Satukan menjadi 1 BARIS ENTRI TUNGGAL dan gunakan nominal total keseluruhan secara utuh.
+       - Cari teks nama penumpang di tiket atau voucher hotel, biasanya didekat Label 'Nama Penumpang' atau 'Nama Tamu' atau 'Detail Tamu' atau 'Detail Penumpang' atau 'Passenger Name' atau 'Detail Passenger' dan sebagainya maka nama tersebut WAJIB kamu tetapkan sebagai "nama_customer"
 
     2. Perhitungan "harga_beli" (MODAL):
        - Cari teks nominal modal yang dibayarkan ke pihak vendor/OTA. cari teks nominal di dekat label 'Total Pembayaran' atau 'Dibayar Hari Ini' atau 'Jumlah Pembayaran' atau 'Jumlah yang dibayarkan' atau 'Telah Dibayar' atau 'Jumlah Total Pembayaran' maka nominal tersebut WAJIB kamu tetapkan sebagai "harga_beli". Set 0 jika bisnis via redeem point atau transaksi pribadi.

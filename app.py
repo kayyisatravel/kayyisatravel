@@ -3589,15 +3589,24 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
             df_pribadi_current = sedot_data_pribadi_independen()
 
         # =========================================================================
-        # 🚀 EKSEKUSI ENGINE V5: Panggil dengan 3 Parameter Data yang Sudah Steril
+        # 🚀 ALIHAN TOTAL KE REVISI BARU V2 (ANTI-BREAKDOWN)
         # =========================================================================
-        metrics = finance_engine.hitung_performa_dan_reconciliation_v5(
-            df_filtered, 
-            df_pribadi_current, 
-            df_cashflow_combined
+        # Mengemas input jurnal pembukuan bulanan konvensional agar engine baru tidak crash
+        jurnal_data_dashboard_input = {
+            "saldo_kas_riil": 0.0,
+            "piutang_total": 0.0, 
+            "jumlah_invoice_piutang": 0
+        }
+
+        # Panggil fungsi resmi dari hybrid_finance_engine dan kunci langsung ke nama variabel 'db'
+        import hybrid_finance_engine
+        db = hybrid_finance_engine.hitung_hybrid_monitoring_v2(
+            df_sales_raw=df_filtered, 
+            df_pribadi_raw=df_pribadi_current, 
+            jurnal_data=jurnal_data_dashboard_input
         )
 
-        # 5️⃣ TAMPILKAN INTERFACES TABS (Bersih, Rapi, & Padat di Dalam Expander)
+        # 5️⃣ TAMPILKAN INTERFACES TABS (Menggunakan nama objek 'db' yang sah)
         tab_ringkasan, tab_aging, tab_ai_audit, tab_match_erp = st.tabs([
             "📊 Ringkasan Keuangan", 
             "⏳ Aging Report Piutang", 

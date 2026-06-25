@@ -213,7 +213,6 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
     # ─────────────────────────────────────────────────────────────────
     # IMPLEMENTASI TARGET KERTAS DOMESTIK BERBASIS LABA DINAMIS & BULAN
     # ─────────────────────────────────────────────────────────────────
-    # Jatah nominal sub-kategori membesar proporsional mengikuti Laba Berjalan & Kelipatan Bulan Filter
     target_kertas_dinamis = {
         "1. Tempat Tinggal & Kendaraan (40.9%)": prive_dinamis_aktual * 0.409,
         "2. Rumah Tangga & Keluarga (25.8%)": prive_dinamis_aktual * 0.258,
@@ -222,7 +221,33 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
         "5. Edukasi, Anak & Sosial (5.1%)": prive_dinamis_aktual * 0.051
     }
 
+    # =========================================================================
+    # JANGKAR PENYEMBUH KEYERROR (SINKRON 100% UNTUK DATA LAMA & BARU)
+    # =========================================================================
     return {
+        # Kunci Lama (Mencegah KeyError di Tab Ringkasan & Jurnal Lama Anda)
+        "total_transaksi": len(df_sales),
+        "pendapatan": total_omzet_buku,
+        "hpp": total_hpp_buku,
+        "laba_bersih": laba_buku_total,
+        "margin_laba_bersih": npm,
+        "kas_riil": kas_riil_bisnis_toko,
+        "overdue_lebih_30_hari": overdue_lebih_30,
+        "jumlah_transaksi_rugi": jumlah_boncos,
+        "saldo_bank_riil": log_bank,
+        "text_top_debitur": text_top_debitur,
+        "text_segmentasi": "- Analisis produk travel fungsional\n",
+        "df_aging_report": df_display_aging,  # <── JANGKAR PENYEMBUH KEYERROR 3753 AGING REPORT
+        "alokasi_ai": {
+            "investor": beban_bagi_hasil_investor,
+            "cadangan_bisnis": cadangan_bisnis_40_kertas,
+            "gaji_owner": prive_dinamis_aktual,
+            "rumah_tangga": target_kertas_dinamis["2. Rumah Tangga & Keluarga (25.8%)"],
+            "investasi": target_kertas_dinamis["5. Edukasi, Anak & Sosial (5.1%)"],
+            "lifestyle": target_kertas_dinamis["5. Edukasi, Anak & Sosial (5.1%)"]
+        },
+
+        # Kunci Baru (Untuk 16 Panel Metrics Berlabel Ilmiah & Progress Bar)
         "npm": npm,
         "roi": roi,
         "total_tiket_terjual": len(df_sales),
@@ -239,6 +264,7 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
         "total_atm_pribadi": total_atm_pribadi,
         "daya_tahan_bulan": daya_tahan_bulan,
         "wajib_setor_investor": beban_bagi_hasil_investor,
+        "laba_internal_buku": laba_buku_total,
         "laba_bersih_riil_bisnis": laba_bersih_riil_bisnis,
         "total_biaya_operasional_bisnis": total_biaya_operasional_bisnis,
         "total_aset_lancar_toko": total_aset_lancar_toko,
@@ -258,5 +284,6 @@ def hitung_hybrid_monitoring_v2(df_sales_raw, df_pribadi_raw, jurnal_data=None):
         "debug_raw_sales_count": debug_raw_sales_count,
         "debug_raw_pribadi_count": debug_raw_pribadi_count
     }
+
 
 

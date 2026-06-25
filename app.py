@@ -5883,7 +5883,7 @@ with st.expander("🛡️ DASHBOARD MONITORING ANGGARAN", expanded=False):
         with g7: 
             st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">7. EARNINGS VULNERABILITY RATIO</div><div class="m-val">{db["rasio_kerentanan_laba"]:.1f}%</div><div class="m-sub">Porsi Laba Semu Kertas Dibanding Klaim Piutang Aktif</div></div>', unsafe_allow_html=True)
         with g8: 
-            st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">8. TOTAL ACCOUNT RECEIVABLE (INVOICE)</div><div class="m-val c-red">{db["jumlah_invoice_piutang"]} Faktur</div><div class="m-sub">Jumlah Nota Transaksi yang Belum Dicairkan Konsumen</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="m-box" style="border-top-color:#f59e0b;"><div class="m-lbl">8. TOTAL ACCOUNT RECEIVABLE (INVOICE)</div><div class="m-val c-red">{db["jumlah_invoice_piutang"]} Invoice</div><div class="m-sub">Jumlah Nota Transaksi yang Belum Dicairkan Konsumen</div></div>', unsafe_allow_html=True)
     
         # 🏦 RUMPUN C: MANAJEMEN ALIRAN KAS MASUK-KELUAR PRIBADI (PERSONAL CASH FLOW STATEMENT)
         st.markdown("##### 🏦 C. Rumpun Aliran Kas Keluar-Masuk & Tabungan Pribadi")
@@ -6264,7 +6264,7 @@ with st.expander("📜 LAPORAN KEUANGAN RESMI STANDAR SAK EMKM", expanded=False)
             f"dan Gaya Hidup) yang bermedium melalui rekening perbankan pemilik telah **diisolasi secara mutlak** dari Laporan Laba Rugi entitas. Pengeluaran "
             f"tersebut diperlakukan sebagai komponen Pengambilan Prive (Ekuitas) guna mempertahankan Asas Kesatuan Usaha (*Economic Entity Assumption*).\n\n"
             f"4. **Manajemen Risiko & Pengukuran Piutang**: Rasio Kerentanan Laba tercatat sebesar **{db['rasio_kerentanan_laba']:.1f}%**. "
-            f"Entitas memiliki **{db['jumlah_invoice_piutang']}** klaim faktur aktif tertagih dengan nilai total Piutang Usaha sebesar **Rp {db['total_piutang']:,.0f}** "
+            f"Entitas memiliki **{db['jumlah_invoice_piutang']}** klaim invoice aktif tertagih dengan nilai total Piutang Usaha sebesar **Rp {db['total_piutang']:,.0f}** "
             f"yang seluruhnya diakui sebagai komponen Aset Lancar."
         )
 

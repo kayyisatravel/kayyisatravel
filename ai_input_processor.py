@@ -150,11 +150,11 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
        - JIKA nama tamu/penumpang YANG SAMA/NAMA TUNGGAL, memesan lebih dari 1 kamar/tiket sekaligus (ANTI-SPLIT DATA), Anda DILARANG keras memecahnya. Satukan menjadi 1 BARIS ENTRI TUNGGAL dan gunakan nominal total keseluruhan secara utuh.
 
     2. Perhitungan "harga_beli" (MODAL):
-       - Cari teks nominal modal yang dibayarkan ke pihak vendor/OTA dengan contoh teks 'Total Pembayaran', 'Dibayar Hari Ini', 'Jumlah Pembayaran', 'Jumlah yang dibayarkan', 'Telah Dibayar', 'Jumlah Total Pembayaran' dll. Masukkan hasilnya ke field "harga_beli". Set 0 jika bisnis via redeem point atau transaksi pribadi.
+       - Cari teks nominal modal yang dibayarkan ke pihak vendor/OTA. cari teks nominal di dekat label 'Total Pembayaran' atau 'Dibayar Hari Ini' atau 'Jumlah Pembayaran' atau 'Jumlah yang dibayarkan' atau 'Telah Dibayar' atau 'Jumlah Total Pembayaran' maka nominal tersebut WAJIB kamu tetapkan sebagai "harga_beli". Set 0 jika bisnis via redeem point atau transaksi pribadi.
 
     3. Perhitungan "harga_jual" (HARGA TOKO PER KAMAR / PER PAX):
        - Langkah 1: Jika admin mengetik kata manual (cth: 'Jual 950000'), gunakan angka itu. Jika ada kata 'Harga' diikuti nominal angka, maka nominal tersebut WAJIB kamu tetapkan sebagai "harga_jual". Jika ada perkalian malam/pax (cth: 200.000/mlm selama 2 malam), kalikan nilainya (400000).
-       - Langkah 2: Jika tidak ada input manual, cari teks nominal di dekat label 'Total Harga' atau 'Rate per Malam'. Bagi rata nominal total tersebut dengan jumlah kamar atau penumpang, masukkan sebagai "harga_jual".
+       - Langkah 2: Jika tidak ada input manual, cari teks nominal di dekat label 'GRAND TOTAL PRICE' atau 'Rate per Malam'. Bagi rata nominal total tersebut dengan jumlah kamar atau penumpang, masukkan sebagai "harga_jual".
        - Langkah 3 (FALLBACK): Jika Langkah 1 dan 2 tidak ada, samakan nilai "harga_jual" dengan "harga_beli".
 
     4. UNTUK JALUR PRIBADI: Masukkan nominal total uang belanja/transfer langsung ke field "harga_jual", set "harga_beli" menjadi 0.

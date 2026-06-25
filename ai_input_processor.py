@@ -166,7 +166,7 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
     0. NAMA CUSTOMER: Wajib ubah ke format Title Case (EYD Baku). Bersihkan dan balik format nama maskapai/internasional (Last Name/First Name) serta hapus gelar sapaan seperti 'MR', 'MRS', 'MS', 'TN', 'NY'.
     1. Tipe PESAWAT: "item_name" berisi Nama Maskapai dan No Penerbangan. "durasi" format 'HH:MM - HH:MM'. Rute HANYA kode bandara 3 huruf.
     2. Tipe HOTEL: "item_name" berisi Nama properti hotel bersih. "durasi" format Jumlah malam + 'mlm'. Rute HANYA nama kota/kabupaten. "bf_status" isi 'BF' atau 'NBF'.
-    3. Tipe KERETA: "item_name" format [Nama Kereta] [Singkatan Kelas] [Nomor Gerbong]/[Nomor Kursi] contoh: 'Bima EKS 1/5A' 'Sangkuriang PRE 2/12C' 'Argo Wilis PAN 3/1D'. "durasi" format 'HH:MM - HH:MM'. Rute berisi kode stasiun asal - tujuan, jika tidak diketahui cari di internet singkatannya sesuai standar KAI jangan asal. Singkatan kelas Bisnis adalah 'Bis'.
+    3. Tipe KERETA termasuk Whoosh: "item_name" format [Nama Kereta] [Singkatan Kelas] [Nomor Gerbong]/[Nomor Kursi] contoh: 'Bima EKS 1/5A' 'Sangkuriang PRE 2/12C' 'Argo Wilis PAN 3/1D' 'Whoosh EKO PRE 1/5F'. "durasi" format 'HH:MM - HH:MM'. Rute berisi kode stasiun asal - tujuan, jika tidak diketahui cari di internet singkatannya sesuai standar KAI jangan asal. Singkatan kelas Bisnis adalah 'Bis'.
     4. TANGGAL: Format standar ISO 'YYYY-MM-DD'. Teks input menggunakan standar penanggalan Indonesia (DD/MM/YYYY). Angka depan adalah tanggal, angka tengah adalah bulan.
 
     Output Anda WAJIB berupa JSON valid yang mengikuti skema data AIUniversalParserResult.

@@ -3605,14 +3605,21 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
             df_pribadi_raw=df_pribadi_current, 
             jurnal_data=jurnal_data_dashboard_input
         )
+
         metrics = db
-        # 5️⃣ TAMPILKAN INTERFACES TABS (Menggunakan nama objek 'db' yang sah)
+        metrics['pendapatan'] = db.get('total_omzet_buku', 0.0)
+        metrics['hpp'] = db.get('total_hpp_buku', 0.0)
+        metrics['laba_bersih'] = db.get('laba_buku_total', 0.0)
+        metrics['margin_laba_bersih'] = db.get('npm', 0.0)
+
+        # 5️⃣ TAMPILKAN INTERFACES TABS
         tab_ringkasan, tab_aging, tab_ai_audit, tab_match_erp = st.tabs([
             "📊 Ringkasan Keuangan", 
             "⏳ Aging Report Piutang", 
             "🕵️‍♂️ AI Real-time Auditor",
             "🤖 Jembatan Match ERP"
         ])
+
         
         # --- TAB 1: RINGKASAN DATA ANGKA & GRAFIK INTERAKTIF ---
                 # --- TAB 1: RINGKASAN DATA ANGKA & GRAFIK INTERAKTIF ---

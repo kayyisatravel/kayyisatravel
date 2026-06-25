@@ -8,25 +8,24 @@ import re
 import json
 from datetime import datetime
 
-
-tgl_sekarang_str = datetime.today().strftime("%Y-%m-%d")
-# =====================================================================
-# 1. SKEMA DATA PYDANTIC
-# =====================================================================
-from pydantic import BaseModel, Field
-from typing import List
-from datetime import datetime
-
-# Ambil tanggal hari ini secara real-time dari komputer sistem
 tgl_sekarang_str = datetime.today().strftime("%Y-%m-%d")
 
 # =====================================================================
-# 1. SKEMA DATA PYDANTIC (SUDAH DISESUAIKAN SINKRON)
+# 1. SKEMA DATA PYDANTIC (SUDAH DISESUAIKAN SINKRON SUB-KATEGORI)
 # =====================================================================
 class AIUniversalEntry(BaseModel):
     Is_Bisnis: bool = Field(description="True jika transaksi tiket/hotel pelanggan. False jika pengeluaran pribadi/operasional rumah-kantor.")
     Tabel_Tujuan: str = Field(description="Wajib diisi 'DATA' jika Is_Bisnis true, atau 'PRIBADI' jika Is_Bisnis false.")
-    kategori: str = Field(description="Wajib pilih: 'Pemasukan' jika dana masuk/setoran modal, atau 'Pengeluaran' jika ada uang keluar/belanja/operasional.")
+    kategori: str = Field(description=(
+        "Jika Is_Bisnis true: wajib pilih 'Pemasukan' atau 'Pengeluaran'. "
+        "Jika Is_Bisnis false: WAJIB pilih salah satu dari sub-kategori berikut: "
+        "'Pemasukan' (untuk dana masuk/transferan/setoran modal pribadi), "
+        "'cicilan_rumah', 'perbaikan_rumah', 'pajak_kendaraan', 'servis_kendaraan', "
+        "'belanja_dapur', 'perlengkapan_rumah', 'asisten_rumah_tangga', "
+        "'bensin_transport', 'makan_harian', 'kesehatan_obat', "
+        "'listrik_air', 'wifi_internet', 'pulsa_hp', 'langganan_digital', "
+        "'pendidikan_anak', 'dana_sosial', 'lifestyle', 'investasi_pribadi', 'pelunasan_cc_bisnis'."
+    ))
     tgl_pemesanan: str = Field(description="Format YYYY-MM-DD. Jika ragu, gunakan tanggal hari ini atau samakan dengan tgl berangkat.")
     tgl_berangkat: str = Field(description="Format YYYY-MM-DD. WAJIB kosongkan '' jika Is_Bisnis adalah false.")
     kode_booking: str = Field(description="Teks string kapital (PNR/ID Pesanan). WAJIB kosongkan '' jika Is_Bisnis adalah false.")
@@ -39,25 +38,19 @@ class AIUniversalEntry(BaseModel):
     tipe: str = Field(description="Jika Is_Bisnis true, wajib pilih: 'PESAWAT', 'HOTEL', atau 'KERETA'. Jika Is_Bisnis false, wajib kosongkan ''.")
     bf_status: str = Field(description="Khusus HOTEL bisnis: isi 'BF' atau 'NBF'. Transportasi atau pribadi wajib kosongkan ''.")
     platform: str = Field(description="Nama vendor/platform booking. Set 'Lainnya' jika transaksi pribadi.")
-    no_rekening: str = Field(description="Wajib pilih salah satu jika Is_Bisnis false: 'Aset Kantor', 'Rumah Tangga', 'Lifestyle', 'Investasi', 'Cadangan Bisnis', 'Dana Sosial / Titipan'. Jika Is_Bisnis true: wajib kosongkan ''.")
+    no_rekening: str = Field(description="Wajib pilih salah satu jika Is_Bisnis false: 'Aset Kantor', 'Rumah Tangga', 'Lifestyle', 'Investasi', 'Cadangan Bisnis', 'Dana Sosial / Titipan', 'Modal Kerja Bisnis'. Jika Is_Bisnis true: wajib kosongkan ''.")
     keterangan_tambahan: str = Field(description="Catatan ringkas pendukung transaksi atau nama paket wisata tambahan (add-on promo).")
     detail_dana: str = Field(description="Ekstrak nama bank yang tertulis di teks secara tepat. Contoh: 'Mandiri', 'BSI', 'BCA', 'BNI', 'BRI', 'OVO', 'DANA', atau 'SeaBank'")
+
     @field_validator('tgl_pemesanan', 'tgl_berangkat')
     @classmethod
     def pastikan_format_tanggal(cls, v: str) -> str:
         if not v:
             return ""
-        
-        # 1. Bersihkan spasi di awal/akhir
         v = v.strip()
-        
-        # 2. Normalisasi format DD/MM/YYYY atau DD-MM-YYYY menjadi YYYY-MM-DD
-        # Menangani input e-ticket seperti "10/09/2026" atau "10-09-2026"
         if re.match(r"^\d{2}[/-]\d{2}[/-]\d{4}$", v):
             pembatas = "/" if "/" in v else "-"
             return datetime.strptime(v, f"%d{pembatas}%m{pembatas}%Y").strftime("%Y-%m-%d")
-        
-        # 3. Validasi akhir memastikan string sudah standar ISO YYYY-MM-DD
         try:
             datetime.strptime(v, "%Y-%m-%d")
             return v
@@ -67,13 +60,10 @@ class AIUniversalEntry(BaseModel):
 class AIUniversalParserResult(BaseModel):
     entries: List[AIUniversalEntry]
 
-
-
 # =====================================================================
 # 2. LOGIKA PYTHON KONVENSIONAL
 # =====================================================================
 def inisialisasi_gemini_client():
-    """Mengaktifkan koneksi ke Google GenAI SDK menggunakan API Key dari secrets."""
     try:
         api_key = st.secrets["GEMINI_API_KEY"]
         return genai.Client(api_key=api_key)
@@ -82,7 +72,6 @@ def inisialisasi_gemini_client():
         return None
 
 def terapkan_otomatisasi_bank(platform_name: str) -> str:
-    """Mengakomodasi 100% aturan pembagian bank dari skrip lama Part 2"""
     p_lower = platform_name.lower()
     if any(x in p_lower for x in ["traveloka", "tiket", "kai", "access"]):
         return "UOB"
@@ -91,19 +80,11 @@ def terapkan_otomatisasi_bank(platform_name: str) -> str:
     else:
         return "UOB"
 
-
-# =====================================================================
-# 3. CORE ENGINE MULTIMODAL TERPADU
-# =====================================================================
 def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audio_input=None):
-    """
-    Core Engine Universal: Membaca teks, gambar, atau audio.
-    """
     client = inisialisasi_gemini_client()
     if not client:
         return None
 
-    # Teks prompt murni (Kurung kurawal tunggal karena tidak menggunakan f-string)
     prompt_rules = f"""
     Anda adalah sistem kecerdasan buatan entri data akuntansi profesional terpadu untuk Kayyisa Tour & Travel.
     Tugas Anda adalah mengekstrak data input (teks chat WA, rekaman suara dikte, atau foto nota/struk) menjadi struktur data JSON secara presisi.
@@ -112,73 +93,83 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
     1. Transaksi JALUR BISNIS (Set properti "Is_Bisnis": true, "Tabel_Tujuan": "DATA"):
        Jika input berisi manifes pemesanan tiket pesawat, booking hotel, atau tiket kereta api milik customer/klien.
        
-    2. Transaksi JALUR PRIBADI DOMPET KELUARGA (Set properti "Is_Bisnis": false, "Tabel_Tujuan": "PRIBADI"):
+    2. Transaksi JALUR PRIBADI DOMPET KELUARGA & OPERASIONAL (Set properti "Is_Bisnis": false, "Tabel_Tujuan": "PRIBADI"):
        Wajib digunakan jika input berisi:
-       - Pengeluaran operasional rumah/kantor, belanja bulanan sembako, uang jajan, bensin istri, cicilan KPR, iuran RT perumahan (Uang Sosial).
-       - MUTASI REKENING MURNI, TRANSFER MASUK, ATAU NOTIFIKASI PEMBAYARAN TUNAI (Contoh: "Pembayaran dari PT Endo...", "Transfer masuk dari..."). Meskipun transaksi tersebut berasal dari nama PT/Perusahaan atau terkait bisnis, jika inputnya HANYA BERUPA NOTIFIKASI MUTASI/TRANSFER DANA (bukan voucher/e-ticket travel), maka WAJIB dikategorikan sebagai JALUR PRIBADI dengan kategori "Pemasukan".
+       - Pengeluaran operasional rumah/kantor, belanja bulanan sembako, uang jajan, bensin istri, cicilan KPR, iuran RT perumahan, tabungan investasi, atau pelunasan tagihan kartu kredit.
+       - MUTASI REKENING MURNI, TRANSFER MASUK, ATAU NOTIFIKASI PEMBAYARAN TUNAI. Meskipun berasal dari nama PT/Perusahaan, jika inputnya HANYA BERUPA NOTIFIKASI MUTASI/TRANSFER DANA, maka WAJIB dikategorikan sebagai JALUR PRIBADI dengan kategori "Pemasukan".
        
-       Aturan Kolom Jalur Pribadi:
+       Aturan Penentuan "kategori" dan "no_rekening" Jalur Pribadi Berdasarkan Sub-Kategori Cerdas:
        - Kolom "tipe", "bf_status", "kode_booking", "durasi", "rute", "tgl_berangkat" WAJIB DIISI STRING KOSONG "".
-       - Pilih pos "no_rekening" secara cerdas wajib salah satu dari:
-         * 'Aset Kantor' : Untuk cicilan KPR rumah kantor kosong, perbaikan properti kantor, atau jika ada dana masuk/pembayaran dari PT/Mitra bisnis yang masuk ke rekening pribadi.
-         * 'Rumah Tangga' : Untuk belanja dapur, listrik/air rumah tinggal, gaji ART, atau bensin harian mobil istri.
-         * 'Lifestyle' : Untuk makan di mall (Trans Studio), jajan kopi, liburan keluarga, atau belanja konsumtif pribadi.
-         * 'Investasi' : Untuk emas logam mulia, reksa dana, saham, atau tabungan masa depan mandiri.
-         * 'Cadangan Bisnis' : Untuk setoran tabungan 40% laba toko atau penarikan dana darurat modal.
-         * 'Dana Sosial / Titipan' : Khusus untuk iuran keamanan/RT titipan warga perumahan (Uang Sosial).
+       - Analisis teks input secara semantik, lalu wajib petakan bidang "kategori" dan "no_rekening" sesuai aturan berikut:
+         
+         * JIKA pembayaran/pelunasan Tagihan KARTU KREDIT (mayoritas kulakan tiket bisnis):
+           Set "kategori": "pelunasan_cc_bisnis" dan "no_rekening": "Modal Kerja Bisnis"
+         
+         * JIKA pengeluaran terkait Tempat Tinggal & Kendaraan:
+           - Cicilan rumah/KPR -> "kategori": "cicilan_rumah", "no_rekening": "Rumah Tangga"
+           - Tukang/renovasi/perbaikan rumah -> "kategori": "perbaikan_rumah", "no_rekening": "Rumah Tangga"
+           - Pajak STNK/mobil/motor -> "kategori": "pajak_kendaraan", "no_rekening": "Rumah Tangga"
+           - Bengkel/oli/servis/cuci kendaraan -> "kategori": "servis_kendaraan", "no_rekening": "Rumah Tangga"
+         
+         * JIKA pengeluaran terkait Rumah Tangga & Keluarga:
+           - Sembako/pasar/supermarket/sayur -> "kategori": "belanja_dapur", "no_rekening": "Rumah Tangga"
+           - Sabun/sapu/perlengkapan rumah/galon/gas -> "kategori": "perlengkapan_rumah", "no_rekening": "Rumah Tangga"
+           - Gaji ART/THR ART -> "kategori": "asisten_rumah_tangga", "no_rekening": "Rumah Tangga"
+         
+         * JIKA pengeluaran terkait Kebutuhan Pokok Hidup:
+           - Bensin/tol/parkir/ojek online -> "kategori": "bensin_transport", "no_rekening": "Rumah Tangga"
+           - Makan siang/warung harian non-rekreasi -> "kategori": "makan_harian", "no_rekening": "Rumah Tangga"
+           - Dokter/obat/apotek/BPJS -> "kategori": "kesehatan_obat", "no_rekening": "Rumah Tangga"
+         
+         * JIKA pengeluaran terkait Tagihan Bulanan & Ops:
+           - Token listrik/PLN/PDAM -> "kategori": "listrik_air", "no_rekening": "Rumah Tangga"
+           - IndiHome/Biznet/Wifi rumah -> "kategori": "wifi_internet", "no_rekening": "Rumah Tangga"
+           - Paket data/pulsa hp -> "kategori": "pulsa_hp", "no_rekening": "Rumah Tangga"
+           - Netflix/Spotify/iCloud/Google One -> "kategori": "langganan_digital", "no_rekening": "Rumah Tangga"
+         
+         * JIKA pengeluaran terkait Edukasi, Anak, Sosial & Gaya Hidup:
+           - Uang sekolah/SPP/les/buku anak -> "kategori": "pendidikan_anak", "no_rekening": "Rumah Tangga"
+           - Sedekah/zakat/kondangan/kado -> "kategori": "dana_sosial", "no_rekening": "Dana Sosial / Titipan"
+           - Kopi kekinian/restoran mall/bioskop/hobi/belanja baju -> "kategori": "lifestyle", "no_rekening": "Lifestyle"
+         
+         * JIKA pengeluaran untuk Tabungan Investasi Masa Depan:
+           - Logam mulia/reksadana/saham/tabungan berjangka pribadi -> "kategori": "investasi_pribadi", "no_rekening": "Investasi"
+
+         * JIKA pengeluaran operasional toko travel langsung dari dana cadangan/kantor:
+           - Kertas print/alat kantor/AC kantor -> "kategori": "Pengeluaran", "no_rekening": "Aset Kantor" (atau "Cadangan Bisnis")
 
     🔀 PENANGANAN INPUT HIBRIDA (CAMPURAN):
     - Jika user mengirimkan teks yang berisi gabungan transaksi bisnis travel DAN transaksi pengeluaran/pemasukan pribadi sekaligus dalam satu teks, Anda WAJIB memisahkannya menjadi objek entri yang berbeda di dalam array JSON output.
 
     Aturan Tambahan Ekstraksi Tanggal:
-    - Jika menemukan format tanggal dengan garis miring seperti DD/MM/YYYY (Contoh: 10/09/2026 artinya 10 September), ubah secara ketat ke YYYY-MM-DD (2026-09-10). Jangan tertukar antara bulan dan hari!
+        - Jika menemukan format tanggal dengan garis miring seperti DD/MM/YYYY (Contoh: 10/09/2026 artinya 10 September), ubah secara ketat ke YYYY-MM-DD (2026-09-10). Jangan tertukar antara bulan dan hari!
 
-    
     🧮 ATURAN MATEMATIKA PECAH BARIS & HARGA ECERAN:
     1. UNTUK JALUR BISNIS: Periksa nama penumpang atau tamu terlebih dahulu.
-       - JIKA nama tamu/penumpang BERBEDA-BEDA (cth: Jane Susanna & Gascha Firga), Anda WAJIB memecah data menjadi beberapa baris entri, lalu bagi rata nominal total vendor/internal dengan jumlah pax/kamar tersebut.
-       - JIKA nama tamu/penumpang YANG SAMA/NAMA TUNGGAL, memesan lebih dari 1 kamar/tiket sekaligus (ANTI-SPLIT DATA), Anda DILARANG keras memecahnya. Satukan menjadi 1 BARIS ENTRI TUNGGAL dan gunakan nominal total keseluruhan secara utuh (JANGAN dibagi rata).
+       - JIKA nama tamu/penumpang BERBEDA-BEDA, Anda WAJIB memecah data menjadi beberapa baris entri, lalu bagi rata nominal total vendor/internal dengan jumlah pax/kamar tersebut.
+       - JIKA nama tamu/penumpang YANG SAMA/NAMA TUNGGAL, memesan lebih dari 1 kamar/tiket sekaligus (ANTI-SPLIT DATA), Anda DILARANG keras memecahnya. Satukan menjadi 1 BARIS ENTRI TUNGGAL dan gunakan nominal total keseluruhan secara utuh.
 
     2. Perhitungan "harga_beli" (MODAL):
-       - Cari teks nominal modal yang dibayarkan ke pihak vendor/OTA (di dekat kata 'JUMLAH PEMBAYARAN', 'TOTAL', atau 'Dibayar Hari Ini'). 
-       - Ikuti aturan nama tamu: Jika nama tamu berbeda-beda, bagi rata nominal tersebut dengan jumlah kamar/pax. Jika nama tamu tunggal (ANTI-SPLIT DATA), ambil nominal total tersebut secara utuh (2.608.500) tanpa pembagian. Masukkan hasilnya ke field "harga_beli". Set 0 jika bisnis via redeem point atau transaksi pribadi.
+       - Cari teks nominal modal yang dibayarkan ke pihak vendor/OTA. Masukkan hasilnya ke field "harga_beli". Set 0 jika bisnis via redeem point atau transaksi pribadi.
+
     3. Perhitungan "harga_jual" (HARGA TOKO PER KAMAR / PER PAX):
-       - Langkah 1: Jika admin mengetik kata manual (cth: 'Jual 950000'), gunakan angka itu. Atau (ATURAN SHORTCUT): Jika admin mengetik manual kata 'Harga' diikuti nominal angka (Contoh: 'Harga Rp 1.000.000' atau 'Harga 1000000'), maka nominal tersebut WAJIB kamu tetapkan sebagai "harga_jual". 
-                    Jika admin mengetik manual kata 'Harga' diikuti nominal harga per pax atau per malam (Contoh: Harga 200.000/mlm atau 200.000/pax) maka Harga Jual WAJIB kamu kalikan dengan jumlah pax atau malam nya. Contoh: Menginap 2 malam Harga 200.000/mlm artinya harga jual = 400.000 (200.000 * 2)
-       - Langkah 2: Jika tidak ada input manual, cari teks nominal yang ditawarkan ke konsumen di dalam tabel itinerary internal Kayyisa. Kata kuncinya berada di dekat label 'Total Harga' atau 'Rate per Malam' (Contoh pada teks: 'Total Harga Rp 1.860.000').
-       - Kamu WAJIB membagi rata nominal total internal tersebut dengan jumlah kamar atau jumlah penumpang (Contoh: 1.860.000 / 2 kamar = 930000).
-       - Masukkan hasil pembagian bersih per kamar/per pax ini sebagai "harga_jual".
-       - Jika dokumen HOTEL, tidak ada instruksi 'Jual'/'Harga' manual, tetapi ada kolom 'Total Harga' resmi dari tabel voucher (cth: 'Total Harga Rp 1.860.000'), ambil angka ini sebagai total omzet jual. Kamu WAJIB membagi rata total harga ini dengan 'Jumlah Kamar' (Contoh: Total Harga tabel 1.860.000 / 2 kamar = 930000). Masukkan hasil pembagian per kamar ini sebagai "harga_jual".
-       - Langkah 3 (FALLBACK): Jika Langkah 1 dan 2 tidak ada, samakan nilai "harga_jual" dengan "harga_beli" per baris.
-    4. UNTUK JALUR PRIBADI: Masukkan nominal total uang belanja/transfer langsung ke field "harga_jual", set "harga_beli" dan "laba" menjadi 0.
-    - Untuk JALUR PRIBADI (Is_Bisnis adalah false), kolom "tgl_berangkat", "harga_beli", "laba" dan "durasi" WAJIB DIISI STRING KOSONG "" (DILARANG KERAS diisi tanggal atau teks apa pun).
-    - Jika pada jalur pribadi tidak disebutkan nama toko spesifik tempat bertransaksi, isi kolom "nama_customer" dengan nama vendor, nama pembayar/perusahaan mutasi dana, atau 'Lainnya', JANGAN PERNAH diisi dengan nama pos rekening seperti Rumah Tangga atau Lifestyle.
+       - Langkah 1: Jika admin mengetik kata manual (cth: 'Jual 950000'), gunakan angka itu. Jika ada kata 'Harga' diikuti nominal angka, maka nominal tersebut WAJIB kamu tetapkan sebagai "harga_jual". Jika ada perkalian malam/pax (cth: 200.000/mlm selama 2 malam), kalikan nilainya (400000).
+       - Langkah 2: Jika tidak ada input manual, cari teks nominal di dekat label 'Total Harga' atau 'Rate per Malam'. Bagi rata nominal total tersebut dengan jumlah kamar atau penumpang, masukkan sebagai "harga_jual".
+       - Langkah 3 (FALLBACK): Jika Langkah 1 dan 2 tidak ada, samakan nilai "harga_jual" dengan "harga_beli".
 
+    4. UNTUK JALUR PRIBADI: Masukkan nominal total uang belanja/transfer langsung ke field "harga_jual", set "harga_beli" menjadi 0.
+       - Untuk JALUR PRIBADI, kolom "tgl_berangkat", "harga_beli" dan "durasi" WAJIB DIISI STRING KOSONG "".
+       - Jika pada jalur pribadi tidak disebutkan nama toko spesifik, isi kolom "nama_customer" dengan nama vendor, nama pembayar/perusahaan mutasi dana, atau 'Lainnya'.
 
-    📋 ATURAN STRUKTUR DATA UTAMA (WAJIB DIPATUHI BAGAIMANAPUN INPUT TEKSNYA):
-    0. NAMA CUSTOMER: Wajib ubah ke format Title Case / Huruf Kapital di Awal Kata (EYD Baku). 
-       Wajib bersihkan dan balik total jika mendeteksi format nama maskapai/internasional (Last Name/First Name) serta hapus gelar sapaan seperti 'MR', 'MRS', 'MS', 'TN', 'NY'.
-       (Contoh: 'UTOMO/PRABOWO MR' -> Hasil: 'Prabowo Utomo').
-       (Contoh: 'SUTRISNO/DEWI MRS' -> Hasil: 'Dewi Sutrisno').
-    1. Tipe PESAWAT: "item_name" berisi Nama Maskapai dan No Penerbangan (cth: "QG997-QG 174"). "durasi" format 'HH:MM - HH:MM' (contoh 17:00 - 18:45). Rute HANYA kode bandara 3 huruf (cth: "TKG - SUB").
-    2. Tipe HOTEL:
-       - "item_name": Nama properti hotel bersih (Contoh: "Montana Hotel Syariah Banjarbaru").
-       - "durasi": Jumlah malam + kata 'mlm' (Contoh: "2 mlm").
-       - "rute": HANYA nama kota/kabupaten lokasi hotel (Contoh: "Banjarbaru").
-       - "bf_status": Isi 'BF' (jika ada sarapan) atau 'NBF' (jika tanpa sarapan/Room Only).
-    3. Tipe KERETA (Termasuk Whoosh): "item_name" format penulisan WAJIB: [Nama Kereta] [Singkatan Kelas] [Nomor Gerbong]/[Nomor Kursi] (Contoh: "Sembrani Eks 4/5D"). "durasi" format 'HH:MM - HH:MM' (contoh 17:00 - 18:45). Rute berisi kode stasiun asal - tujuan (cth: "GMR - SBI").
-       INGAT: Jika kelasnya 'Business Class', singkatan kelasnya adalah 'Bis' (Contoh: "Whoosh Bis 2/4A"). JANGAN PERNAH menulis kata "Bus"!
-    4. TANGGAL: Format standar ISO 'YYYY-MM-DD'. 
-       - ⚠️ ATURAN MUTLAK FORMAT INDONESIA: Teks input menggunakan standar penanggalan Indonesia (DD/MM/YYYY atau DD-MM-YYYY). 
-       - Jika menemukan teks "10/09/2026" atau "10-09-2026", angka '10' adalah TANGGAL (DD) dan '09' adalah BULAN September (MM). Anda WAJIB mengonversinya menjadi '2026-09-10'. DILARANG KERAS membalikkannya menjadi format Amerika (2026-10-09)!
-       - Jika teks menyebutkan kata 'Hari ini' atau 'Sekarang', gunakan tanggal acuan ini: {tgl_sekarang_str}.
-       - Untuk JALUR PRIBADI (Is_Bisnis: false), kolom "tgl_berangkat" WAJIB diisi string kosong "".
+    📋 ATURAN STRUKTUR DATA UTAMA:
+    0. NAMA CUSTOMER: Wajib ubah ke format Title Case (EYD Baku). Bersihkan dan balik format nama maskapai/internasional (Last Name/First Name) serta hapus gelar sapaan seperti 'MR', 'MRS', 'MS', 'TN', 'NY'.
+    1. Tipe PESAWAT: "item_name" berisi Nama Maskapai dan No Penerbangan. "durasi" format 'HH:MM - HH:MM'. Rute HANYA kode bandara 3 huruf.
+    2. Tipe HOTEL: "item_name" berisi Nama properti hotel bersih. "durasi" format Jumlah malam + 'mlm'. Rute HANYA nama kota/kabupaten. "bf_status" isi 'BF' atau 'NBF'.
+    3. Tipe KERETA: "item_name" format [Nama Kereta] [Singkatan Kelas] [Nomor Gerbong]/[Nomor Kursi]. "durasi" format 'HH:MM - HH:MM'. Rute berisi kode stasiun asal - tujuan. Singkatan kelas Bisnis adalah 'Bis'.
+    4. TANGGAL: Format standar ISO 'YYYY-MM-DD'. Teks input menggunakan standar penanggalan Indonesia (DD/MM/YYYY). Angka depan adalah tanggal, angka tengah adalah bulan.
 
-    5. PLATFORM: Pilih salah satu dari: "Tiket.com", "Traveloka", "Agoda", "Trip.com", "Book Cabin", "KAI Access", "RedDoorz", "Lainnya".
-    6. KETERANGAN PAKET TAMBAHAN: Jika di dalam teks input terdapat informasi paket wisata tambahan (add-on promo ticket seperti Dufan, Ancol, Jatim Park, dll), kamu WAJIB menuliskan nama paket tersebut secara ringkas ke dalam field "keterangan_tambahan" agar datanya tidak hilang.
-       
+    Output Anda WAJIB berupa JSON valid yang mengikuti skema data AIUniversalParserResult.
     """
-    content_payload = [prompt_rules]
 
     content_payload = [prompt_rules]
     
@@ -216,4 +207,5 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
     except Exception as e:
         st.error(f"⚠️ Gagal mengekstrak dokumen melalui AI Engine Terpadu: {str(e)}")
         return None
+
 

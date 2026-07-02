@@ -104,7 +104,7 @@ def prepare_batch_update(
 
     return updates
 
-@st.cache_data(ttl=300, show_spinner="Mengambil data mutasi dari Google Sheets...")
+@st.cache_data(ttl=3000, show_spinner="Mengambil data mutasi dari Google Sheets...")
 def sedot_data_pribadi_independen():
     """
     Fungsi penarik data mandiri untuk tab 'Pribadi' Google Sheets.

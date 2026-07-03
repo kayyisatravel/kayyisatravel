@@ -62,7 +62,7 @@ class DetailKamarDinamis(BaseModel):
     nama_tamu_kamar: List[str] = Field(description="Daftar nama semua tamu yang ada di blok tipe kamar ini")
     tipe_kamar_nama: str = Field(description="Nama tipe kamar, contoh: 'Deluxe View Twin'")
     harga_kamar_per_malam: float = Field(description="Harga per malam untuk 1 unit kamar ini")
-    fasilitas_kamar: str = Field(description="Fasilitas kamar ini, contoh: 'Sarapan (2 Pax)'")
+    fasilitas_kamar: str = Field(description="Fasilitas Gratis yang diberikan oleh hotel, contoh: 'Sarapan (2 Pax)', 'Wifi Gratis', 'Parkir Gratis'")
     permintaan_khusus_kamar: str = Field(description="Permintaan khusus")
 
 

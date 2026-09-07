@@ -234,7 +234,7 @@ def generate_eticket(data):
         color_table_header = "#ffebeb"  # Latar header tabel merah pastel lembut
         color_table_border = "#ffccd3"  # Garis tepi tabel rose/peach lembut
     else:
-        logo_url = "https://keretaapikita.com/wp-content/uploads/2020/09/Logo-Baru-PT-KAI.jpg"
+        logo_url = "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Logo_PT_Kereta_Api_Indonesia_%28Persero%29_2020.svg/3840px-Logo_PT_Kereta_Api_Indonesia_%28Persero%29_2020.svg.png?utm_source=id.wikipedia.org&utm_campaign=index&utm_content=thumbnail"
         judul_tiket = ""
         color_primary = "#0047b3"  # Biru KAI asli
         color_table_header = "#cce0ff"  # Biru muda pastel

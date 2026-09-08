@@ -8,7 +8,7 @@ import easyocr
 import numpy as np
 import pandas as pd
 import PyPDF2
-from pdf2image import convert_from_bytes
+import pypdfium2 as pdfium
 from process_ocr import process_ocr_unified
 from sheets_utils import connect_to_gsheet, append_dataframe_to_sheet
 from datetime import datetime, date, timedelta
@@ -536,13 +536,23 @@ def normalize_df(df):
 
 def extract_text_from_pdf(pdf_bytes):
     reader = get_ocr_reader()
-    pages = convert_from_bytes(pdf_bytes.read(), dpi=300)
+    
+    # Membaca bytes PDF menggunakan pypdfium2 (Tanpa perlu poppler-utils)
+    pdf = pdfium.PdfDocument(pdf_bytes.read())
     texts = []
-    for page in pages[:5]:
-        img = page.convert('RGB')
+    
+    # Batasi maksimal 5 halaman seperti kode lama Anda
+    for i in range(min(5, len(pdf))):
+        page = pdf[i]
+        # render ke bitmap dengan scale=3 (setara dengan dpi=300 untuk akurasi OCR)
+        bitmap = page.render(scale=3)
+        img = bitmap.to_pil().convert('RGB')
+        
         img = resize_image(img, max_dim=1600)
         result = reader.readtext(np.array(img), detail=0)
         texts.append("\n".join(result))
+        
+    pdf.close() # Tutup dokumen setelah selesai
     return "\n\n".join(texts)
 
 try:

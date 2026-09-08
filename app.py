@@ -3619,511 +3619,510 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
             # (Pastikan kode pengisian tab_ringkasan, tab_aging, dll di bawahnya 
             # diberikan indentasi/tab bergeser ke kanan agar masuk ke dalam blok IF ini)
             
-        else:
-            st.info("ℹ️ Tidak ada data transaksi yang ditemukan pada rentang tanggal atau filter admin yang dipilih.")
-
+                
+            # --- TAB 1: RINGKASAN DATA ANGKA & GRAFIK INTERAKTIF ---
+                    # --- TAB 1: RINGKASAN DATA ANGKA & GRAFIK INTERAKTIF ---
+            with tab_ringkasan:
+                st.subheader("📌 Indikator Utama Kinerja Keuangan")
+                
+                # 🎨 1. SUNTIKAN CSS UNTUK STYLE KARTU METRIK KUSTOM (EFEK BAYANGAN & SUDUT TUMPUL)
+                card_style = """
+                <style>
+                .fin-card {
+                    background-color: #ffffff;
+                    padding: 24px;
+                    border-radius: 14px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+                    border: 1px solid #f0f0f0;
+                    text-align: center;
+                    margin-bottom: 16px;
+                }
+                .fin-title {
+                    font-size: 16px;
+                    color: #555555;
+                    font-weight: 500;
+                    margin-bottom: 12px;
+                }
+                .fin-value {
+                    font-size: 26px;
+                    font-weight: 700;
+                    color: #111111;
+                }
+                .fin-delta {
+                    font-size: 14px;
+                    color: #2e7d32;
+                    background-color: #e8f5e9;
+                    padding: 4px 10px;
+                    border-radius: 20px;
+                    display: inline-block;
+                    margin-top: 8px;
+                    font-weight: 600;
+                }
+                </style>
+                """
+                st.markdown(card_style, unsafe_allow_html=True)
         
-        # --- TAB 1: RINGKASAN DATA ANGKA & GRAFIK INTERAKTIF ---
-                # --- TAB 1: RINGKASAN DATA ANGKA & GRAFIK INTERAKTIF ---
-    with tab_ringkasan:
-        st.subheader("📌 Indikator Utama Kinerja Keuangan")
+                # 🧮 Ambil dan format angka nominal dari mesin hitung
+                txt_pendapatan = f"Rp {int(metrics['pendapatan']):,}".replace(",", ".")
+                txt_hpp = f"Rp {int(metrics['hpp']):,}".replace(",", ".")
+                txt_laba = f"Rp {int(metrics['laba_bersih']):,}".replace(",", ".")
+                txt_margin = f"↑ Margin {metrics['margin_laba_bersih']:.2f}%"
         
-        # 🎨 1. SUNTIKAN CSS UNTUK STYLE KARTU METRIK KUSTOM (EFEK BAYANGAN & SUDUT TUMPUL)
-        card_style = """
-        <style>
-        .fin-card {
-            background-color: #ffffff;
-            padding: 24px;
-            border-radius: 14px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-            border: 1px solid #f0f0f0;
-            text-align: center;
-            margin-bottom: 16px;
-        }
-        .fin-title {
-            font-size: 16px;
-            color: #555555;
-            font-weight: 500;
-            margin-bottom: 12px;
-        }
-        .fin-value {
-            font-size: 26px;
-            font-weight: 700;
-            color: #111111;
-        }
-        .fin-delta {
-            font-size: 14px;
-            color: #2e7d32;
-            background-color: #e8f5e9;
-            padding: 4px 10px;
-            border-radius: 20px;
-            display: inline-block;
-            margin-top: 8px;
-            font-weight: 600;
-        }
-        </style>
-        """
-        st.markdown(card_style, unsafe_allow_html=True)
-
-        # 🧮 Ambil dan format angka nominal dari mesin hitung
-        txt_pendapatan = f"Rp {int(metrics['pendapatan']):,}".replace(",", ".")
-        txt_hpp = f"Rp {int(metrics['hpp']):,}".replace(",", ".")
-        txt_laba = f"Rp {int(metrics['laba_bersih']):,}".replace(",", ".")
-        txt_margin = f"↑ Margin {metrics['margin_laba_bersih']:.2f}%"
-
-        # 🏗️ 2. RENDER LAYOUT KARTU METRIK KUSTOM HINGGA 2 BARIS (PERSIS SEPERTI GAMBAR)
-        # Baris 1: Total Penjualan & Total Pembelian (Berdampingan)
-        col_m1, col_m2 = st.columns(2)
-        with col_m1:
-            st.markdown(f"""
-            <div class="fin-card">
-                <div class="fin-title">💰 Total Penjualan</div>
-                <div class="fin-value">{txt_pendapatan}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        with col_m2:
-            st.markdown(f"""
-            <div class="fin-card">
-                <div class="fin-title">💸 Total Pembelian</div>
-                <div class="fin-value">{txt_hpp}</div>
-            </div>
-            """, unsafe_allow_html=True)
+                # 🏗️ 2. RENDER LAYOUT KARTU METRIK KUSTOM HINGGA 2 BARIS (PERSIS SEPERTI GAMBAR)
+                # Baris 1: Total Penjualan & Total Pembelian (Berdampingan)
+                col_m1, col_m2 = st.columns(2)
+                with col_m1:
+                    st.markdown(f"""
+                    <div class="fin-card">
+                        <div class="fin-title">💰 Total Penjualan</div>
+                        <div class="fin-value">{txt_pendapatan}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                with col_m2:
+                    st.markdown(f"""
+                    <div class="fin-card">
+                        <div class="fin-title">💸 Total Pembelian</div>
+                        <div class="fin-value">{txt_hpp}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                # Baris 2: Profit Bersih Buku (Ukuran Penuh / Full Width)
+                st.markdown(f"""
+                <div class="fin-card">
+                    <div class="fin-title">📈 Profit Bersih Buku</div>
+                    <div class="fin-value">{txt_laba}</div>
+                    <div class="fin-delta">{txt_margin}</div>
+                </div>
+                """, unsafe_allow_html=True)
         
-        # Baris 2: Profit Bersih Buku (Ukuran Penuh / Full Width)
-        st.markdown(f"""
-        <div class="fin-card">
-            <div class="fin-title">📈 Profit Bersih Buku</div>
-            <div class="fin-value">{txt_laba}</div>
-            <div class="fin-delta">{txt_margin}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("---")
-
-        
-        # 📊 3. BAGIAN GRAFIK INTERAKTIF
-        col_g1, col_g2 = st.columns(2)
-        with col_g1:
-            df_daily_chart = df_filtered.copy()
-            def _clean_chart_num(val):
-                if pd.isna(val): return 0.0
-                try: return float(str(val).replace("Rp", "").replace(".", "").replace(" ", "").replace(",", ""))
-                except: return 0.0
-            df_daily_chart["Harga Jual (Num)"] = df_daily_chart["Harga Jual"].apply(_clean_chart_num)
-            df_daily_grouped = df_daily_chart.groupby("Tgl Pemesanan_Parsed")["Harga Jual (Num)"].sum().reset_index()
-            
-            # Panggil grafik harian Plotly Express
-            visualizer.render_grafik_tren_harian(df_daily_grouped)
-            
-        with col_g2:
-            # Panggil grafik batang murni versi aman tanpa update_layout sensitif
-            visualizer.render_grafik_margin_aman(df_filtered)
-
-
-        # --- TAB 2: AGING REPORT (OTOMATISASI STATUS BELUM LUNAS) ---
-        with tab_aging:
-            st.subheader("⏳ Daftar Sisa Tagihan Invoice Klien (Hasil Rekonsiliasi)")
-            
-            col_a1, col_a2 = st.columns(2)
-            with col_a1:
-                st.warning(f"🔴 Total Sisa Piutang: Rp {int(metrics['total_piutang']):,}".replace(",", ".") + f" ({metrics['jumlah_invoice_piutang']} Invoice)")
-            with col_a2:
-                st.error(f"⚠️ Kritis (Overdue > 30 Hari): Rp {int(metrics['overdue_lebih_30_hari']):,}".replace(",", "."))
-            st.markdown("---")
-            
-            df_aging = metrics["df_aging_report"]
-            if df_aging.empty:
-                st.success("🎉 Luar biasa! Seluruh tagihan invoice berdasarkan transaksi masuk dan keluar sudah Lunas.")
-            else:
-                # Fungsi inline styling warna merah muda milik Anda
-                def style_row_overdue(row):
-                    return ["background-color: #FF9999" if row.Overdue else "" for _ in row]
-                
-                df_display_aging = df_aging.copy()
-                
-                # Format Tanggal agar rapi tanpa jam jam 00:00:00
-                df_display_aging["Tanggal Pemesanan"] = df_display_aging["Tanggal Pemesanan"].dt.strftime('%Y-%m-%d')
-                
-                # Format nominal sisa piutang ke mata uang rupiah
-                df_display_aging["Piutang"] = df_display_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
-                df_display_aging = df_display_aging.rename(columns={"Piutang": "Sisa Tagihan"})
-                
-                st.dataframe(
-                    df_display_aging.style.apply(style_row_overdue, axis=1), 
-                    use_container_width=True, 
-                    height=400
-                )
-                st.caption("💡 Info Visual: Baris berwarna merah muda menandakan sisa tagihan telah menunggak parah melebihi 30 hari sejak nota dibuat.")
-
-        # --- TAB 3: AUDIT FORENSIK OTOMATIS GEMINI 3.1 FLASH LITE ---
-        with tab_ai_audit:
-            st.subheader("🕵️‍♂️ Laporan Hasil Penelaahan Audit Forensik AI")
-            st.info("Fitur ini meringkas data indikator keuangan Anda lalu mengirimkannya ke Gemini 2.5 Flash untuk di-audit secara berkala.")
-            
-            val_total_transaksi = metrics.get('total_transaksi', len(df_filtered))
-            val_pendapatan = metrics.get('pendapatan', 0.0)
-            val_hpp = metrics.get('hpp', 0.0)
-            val_laba_bersih = metrics.get('laba_bersih', 0.0)
-            val_margin = metrics.get('margin_laba_bersih', 0.0)
-            val_top_admin = metrics.get('top_admin', 'N/A')
-            val_text_segmentasi = metrics.get('text_segmentasi', '- Data distribusi belum siap\n')
-            val_total_piutang = metrics.get('total_piutang', 0.0)
-            val_jumlah_invoice = metrics.get('jumlah_invoice_piutang', 0)
-            val_overdue_30 = metrics.get('overdue_lebih_30_hari', 0.0)
-            val_jumlah_boncos = metrics.get('jumlah_transaksi_rugi', 0)
-            val_total_kerugian = metrics.get('total_kerugian', 0.0)
-            val_text_debitur = metrics.get('text_top_debitur', '- Belum ada data debitur\n')
-
-            # 🧮 KALKULASI ARSENAL RASIO DARURAT (Mencegah KeyError di app.py)
-            val_roi = metrics.get('roi', (val_laba_bersih / val_hpp * 100) if val_hpp > 0 else 0.0)
-            val_kas_riil = metrics.get('kas_riil', (val_pendapatan - val_total_piutang) - val_hpp)
-            val_keterikatan_modal = metrics.get('rasio_keterikatan_modal', (val_total_piutang / val_pendapatan * 100) if val_pendapatan > 0 else 0.0)
-            val_kerentanan_laba = metrics.get('rasio_kerentanan_laba', (val_total_piutang / val_laba_bersih * 100) if val_laba_bersih > 0 else 0.0)
-            
-            # 🏦 SUNTIKAN INTEGRASI JALUR KAS PRIBADI & ATM NYATA (RULES BARU)
-            saldo_bank_map = metrics.get("saldo_bank_riil", {})
-            alokasi_ai_map = metrics.get("alokasi_ai", {})
-            
-            # Forensik otomatis mencari apakah ada rekening ATM aktif yang minus/defisit
-            list_bank_defisit = [f"Bank {b_k} (Minus Rp {int(abs(b_v)):,})" for b_k, b_v in saldo_bank_map.items() if b_v < 0]
-            text_status_defisit_atm = ", ".join(list_bank_defisit) if list_bank_defisit else "Semua Rekening Bank Normal/Positif"
-            
-            # Format teks rincian saldo fisik ATM
-            text_rincian_atm_riil = ""
-            for b_name, b_val in saldo_bank_map.items():
-                text_rincian_atm_riil += f"  * Saldo {b_name}: Rp {int(b_val):,}\n"
-
-            # ----------------------------------------------------------------------
-
-            # Merakit Paket Payload Senjata Lengkap dengan Tambahan Sektor Dompet Pribadi
-            text_payload_ai = f"""
-            INDIKATOR UTAMA AKUNTANSI BISNIS TRAVEL:
-            - Total Baris Transaksi Terproses: {val_total_transaksi} baris
-            - Omzet Penjualan Kotor: Rp {int(val_pendapatan):,}
-            - Total Pengeluaran Modal (HPP): Rp {int(val_hpp):,}
-            - Laba Bersih Buku (Paper Profit): Rp {int(val_laba_bersih):,}
-            
-            ARSENAL RASIO FINANSIAL (REALISASI AKTUAL):
-            - Realisasi Net Profit Margin (NPM): {val_margin:.2f}%
-            - Realisasi Return on Investment (ROI): {val_roi:.2f}%
-            - Estimasi Sisa Kas Riil Lapangan: Rp {int(val_kas_riil):,}
-            - Rasio Keterikatan Modal dalam Piutang: {val_keterikatan_modal:.2f}%
-            - Rasio Kerentanan Laba terhadap Piutang: {val_kerentanan_laba:.2f}%
-            - Admin dengan Penjualan Tertinggi: Admin [{val_top_admin}]
-            
-            DISTRIBUSI KINERJA SEGMEN PRODUK:
-            {val_text_segmentasi}
-            
-            🚨 LAPORAN FORENSIK PIUTANG MACET & KEBOCORAN DANA:
-            - Total Nilai Piutang Klien Keseluruhan: Rp {int(val_total_piutang):,}
-            - Jumlah Invoice Menggantung: {val_jumlah_invoice} nota belum lunas
-            - Dana Piutang Macet Kritis Jangka Panjang (>30 Hari): Rp {int(val_overdue_30):,}
-            - Kebocoran Harga (Transaksi Rugi/Minus): {val_jumlah_boncos} kali transaksi, total kerugian riil Rp {int(val_total_kerugian):,}
-            
-            DAFTAR NAMA PENGUTANG (TOP DEBITUR TERBESAR):
-            {val_text_debitur}
-            
-            🏦 INTEGRASI MUTASI KAS NYATA & DOMPET PRIBADI (REAL-TIME ATM):
-            - Temuan Status Krisis Defisit ATM: {text_status_defisit_atm}
-            - Posisi Saldo Fisik Buku Tabungan Aktif:
-            {text_rincian_atm_riil}
-            - Alokasi Plafon Anggaran AI Rumah Tangga & KPR (Porsi 50%): Rp {int(alokasi_ai_map.get("rumah_tangga", 0)):,}
-            - Alokasi Plafon Anggaran AI Investasi Masa Depan (Porsi 30%): Rp {int(alokasi_ai_map.get("investasi", 0)):,}
-            - Alokasi Plafon Anggaran AI Lifestyle / Jajan (Porsi 20%): Rp {int(alokasi_ai_map.get("lifestyle", 0)):,}
-            """
-                
-            if "response_audit_ai" not in st.session_state:
-                st.session_state.response_audit_ai = None
-                
-            if st.button("🔍 Mulai Jalankan Audit Finansial Sekarang", type="primary", key="btn_audit_keuangan_v2"):
-                with st.spinner("Gemini AI sedang meneliti struktur pembukuan dan mengalkulasi risiko keuangan Anda..."):
-                    
-                    BATAS_AMAN_TOKEN = 230000
-                    lanjutkan_request = True
-                    
-                    try:
-                        client_hitung = ai_auditor.inisialisasi_gemini()
-                        if client_hitung:
-                            # Tameng proteksi tetap mengecek teks payload untuk mengukur volume token
-                            token_info = client_hitung.models.count_tokens(
-                                model='gemini-2.5-flash',
-                                contents=text_payload_ai
-                            )
-                            
-                            if token_info.total_tokens > BATAS_AMAN_TOKEN:
-                                st.error(f"❌ Audit Dibatalkan Otomatis! Ukuran data Anda ({token_info.total_tokens:,} token) hampir melebihi kuota.")
-                                lanjutkan_request = False
-                            else:
-                                st.caption(f"📊 *Request dikirim menggunakan {token_info.total_tokens:,} token input (Batas aman: 250,000 TPM).*")
-                                
-                    except Exception as token_err:
-                        pass
-                    
-                    # 🚀 EKSEKUSI OPSI B
-                    if lanjutkan_request:
-                        try:
-                            # PERBAIKAN UTAMA: Masukkan variabel 'metrics' atau 'hasil_v5' (berupa DICTIONARY objek)
-                            # Sesuaikan nama variabel dictionary hasil keluaran fungsi v5 Anda di app.py
-                            hasil_lhpa = ai_auditor.audit_forensik_dashboard(metrics) 
-                            st.session_state.response_audit_ai = hasil_lhpa
-                        except Exception as e:
-                            if "429" in str(e) or "quota" in str(e).lower():
-                                st.error("⚠️ Kuota menit (TPM) atau kuota harian (RPD) Gemini Anda habis.")
-                            else:
-                                st.error(f"⚠️ Terjadi kendala saat menghubungi AI: {str(e)}")
-
-                    
-            if st.session_state.response_audit_ai:
                 st.markdown("---")
-                st.markdown(st.session_state.response_audit_ai)
-
-                import re
-
-            
-                # 🛠️ Mesin Mini Pengubah Otomatis: Mengubah Tabel Markdown Gemini Menjadi Tabel HTML Word Resmi
-                def markdown_to_html_word(md_text):
-                    lines = md_text.strip().split("\n")
-                    html_output = []
-                    in_table = False
+        
+                
+                # 📊 3. BAGIAN GRAFIK INTERAKTIF
+                col_g1, col_g2 = st.columns(2)
+                with col_g1:
+                    df_daily_chart = df_filtered.copy()
+                    def _clean_chart_num(val):
+                        if pd.isna(val): return 0.0
+                        try: return float(str(val).replace("Rp", "").replace(".", "").replace(" ", "").replace(",", ""))
+                        except: return 0.0
+                    df_daily_chart["Harga Jual (Num)"] = df_daily_chart["Harga Jual"].apply(_clean_chart_num)
+                    df_daily_grouped = df_daily_chart.groupby("Tgl Pemesanan_Parsed")["Harga Jual (Num)"].sum().reset_index()
                     
-                    for line in lines:
-                        # Deteksi baris tabel markdown
-                        if line.strip().startswith("|"):
-                            if not in_table:
-                                html_output.append('<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse; font-family:Arial; font-size:11pt; width:100%; margin-bottom:14px;">')
-                                in_table = True
+                    # Panggil grafik harian Plotly Express
+                    visualizer.render_grafik_tren_harian(df_daily_grouped)
+                    
+                with col_g2:
+                    # Panggil grafik batang murni versi aman tanpa update_layout sensitif
+                    visualizer.render_grafik_margin_aman(df_filtered)
+        
+        
+                # --- TAB 2: AGING REPORT (OTOMATISASI STATUS BELUM LUNAS) ---
+                with tab_aging:
+                    st.subheader("⏳ Daftar Sisa Tagihan Invoice Klien (Hasil Rekonsiliasi)")
+                    
+                    col_a1, col_a2 = st.columns(2)
+                    with col_a1:
+                        st.warning(f"🔴 Total Sisa Piutang: Rp {int(metrics['total_piutang']):,}".replace(",", ".") + f" ({metrics['jumlah_invoice_piutang']} Invoice)")
+                    with col_a2:
+                        st.error(f"⚠️ Kritis (Overdue > 30 Hari): Rp {int(metrics['overdue_lebih_30_hari']):,}".replace(",", "."))
+                    st.markdown("---")
+                    
+                    df_aging = metrics["df_aging_report"]
+                    if df_aging.empty:
+                        st.success("🎉 Luar biasa! Seluruh tagihan invoice berdasarkan transaksi masuk dan keluar sudah Lunas.")
+                    else:
+                        # Fungsi inline styling warna merah muda milik Anda
+                        def style_row_overdue(row):
+                            return ["background-color: #FF9999" if row.Overdue else "" for _ in row]
+                        
+                        df_display_aging = df_aging.copy()
+                        
+                        # Format Tanggal agar rapi tanpa jam jam 00:00:00
+                        df_display_aging["Tanggal Pemesanan"] = df_display_aging["Tanggal Pemesanan"].dt.strftime('%Y-%m-%d')
+                        
+                        # Format nominal sisa piutang ke mata uang rupiah
+                        df_display_aging["Piutang"] = df_display_aging["Piutang"].apply(lambda x: f"Rp {int(x):,}".replace(",", "."))
+                        df_display_aging = df_display_aging.rename(columns={"Piutang": "Sisa Tagihan"})
+                        
+                        st.dataframe(
+                            df_display_aging.style.apply(style_row_overdue, axis=1), 
+                            use_container_width=True, 
+                            height=400
+                        )
+                        st.caption("💡 Info Visual: Baris berwarna merah muda menandakan sisa tagihan telah menunggak parah melebihi 30 hari sejak nota dibuat.")
+        
+                # --- TAB 3: AUDIT FORENSIK OTOMATIS GEMINI 3.1 FLASH LITE ---
+                with tab_ai_audit:
+                    st.subheader("🕵️‍♂️ Laporan Hasil Penelaahan Audit Forensik AI")
+                    st.info("Fitur ini meringkas data indikator keuangan Anda lalu mengirimkannya ke Gemini 2.5 Flash untuk di-audit secara berkala.")
+                    
+                    val_total_transaksi = metrics.get('total_transaksi', len(df_filtered))
+                    val_pendapatan = metrics.get('pendapatan', 0.0)
+                    val_hpp = metrics.get('hpp', 0.0)
+                    val_laba_bersih = metrics.get('laba_bersih', 0.0)
+                    val_margin = metrics.get('margin_laba_bersih', 0.0)
+                    val_top_admin = metrics.get('top_admin', 'N/A')
+                    val_text_segmentasi = metrics.get('text_segmentasi', '- Data distribusi belum siap\n')
+                    val_total_piutang = metrics.get('total_piutang', 0.0)
+                    val_jumlah_invoice = metrics.get('jumlah_invoice_piutang', 0)
+                    val_overdue_30 = metrics.get('overdue_lebih_30_hari', 0.0)
+                    val_jumlah_boncos = metrics.get('jumlah_transaksi_rugi', 0)
+                    val_total_kerugian = metrics.get('total_kerugian', 0.0)
+                    val_text_debitur = metrics.get('text_top_debitur', '- Belum ada data debitur\n')
+        
+                    # 🧮 KALKULASI ARSENAL RASIO DARURAT (Mencegah KeyError di app.py)
+                    val_roi = metrics.get('roi', (val_laba_bersih / val_hpp * 100) if val_hpp > 0 else 0.0)
+                    val_kas_riil = metrics.get('kas_riil', (val_pendapatan - val_total_piutang) - val_hpp)
+                    val_keterikatan_modal = metrics.get('rasio_keterikatan_modal', (val_total_piutang / val_pendapatan * 100) if val_pendapatan > 0 else 0.0)
+                    val_kerentanan_laba = metrics.get('rasio_kerentanan_laba', (val_total_piutang / val_laba_bersih * 100) if val_laba_bersih > 0 else 0.0)
+                    
+                    # 🏦 SUNTIKAN INTEGRASI JALUR KAS PRIBADI & ATM NYATA (RULES BARU)
+                    saldo_bank_map = metrics.get("saldo_bank_riil", {})
+                    alokasi_ai_map = metrics.get("alokasi_ai", {})
+                    
+                    # Forensik otomatis mencari apakah ada rekening ATM aktif yang minus/defisit
+                    list_bank_defisit = [f"Bank {b_k} (Minus Rp {int(abs(b_v)):,})" for b_k, b_v in saldo_bank_map.items() if b_v < 0]
+                    text_status_defisit_atm = ", ".join(list_bank_defisit) if list_bank_defisit else "Semua Rekening Bank Normal/Positif"
+                    
+                    # Format teks rincian saldo fisik ATM
+                    text_rincian_atm_riil = ""
+                    for b_name, b_val in saldo_bank_map.items():
+                        text_rincian_atm_riil += f"  * Saldo {b_name}: Rp {int(b_val):,}\n"
+        
+                    # ----------------------------------------------------------------------
+        
+                    # Merakit Paket Payload Senjata Lengkap dengan Tambahan Sektor Dompet Pribadi
+                    text_payload_ai = f"""
+                    INDIKATOR UTAMA AKUNTANSI BISNIS TRAVEL:
+                    - Total Baris Transaksi Terproses: {val_total_transaksi} baris
+                    - Omzet Penjualan Kotor: Rp {int(val_pendapatan):,}
+                    - Total Pengeluaran Modal (HPP): Rp {int(val_hpp):,}
+                    - Laba Bersih Buku (Paper Profit): Rp {int(val_laba_bersih):,}
+                    
+                    ARSENAL RASIO FINANSIAL (REALISASI AKTUAL):
+                    - Realisasi Net Profit Margin (NPM): {val_margin:.2f}%
+                    - Realisasi Return on Investment (ROI): {val_roi:.2f}%
+                    - Estimasi Sisa Kas Riil Lapangan: Rp {int(val_kas_riil):,}
+                    - Rasio Keterikatan Modal dalam Piutang: {val_keterikatan_modal:.2f}%
+                    - Rasio Kerentanan Laba terhadap Piutang: {val_kerentanan_laba:.2f}%
+                    - Admin dengan Penjualan Tertinggi: Admin [{val_top_admin}]
+                    
+                    DISTRIBUSI KINERJA SEGMEN PRODUK:
+                    {val_text_segmentasi}
+                    
+                    🚨 LAPORAN FORENSIK PIUTANG MACET & KEBOCORAN DANA:
+                    - Total Nilai Piutang Klien Keseluruhan: Rp {int(val_total_piutang):,}
+                    - Jumlah Invoice Menggantung: {val_jumlah_invoice} nota belum lunas
+                    - Dana Piutang Macet Kritis Jangka Panjang (>30 Hari): Rp {int(val_overdue_30):,}
+                    - Kebocoran Harga (Transaksi Rugi/Minus): {val_jumlah_boncos} kali transaksi, total kerugian riil Rp {int(val_total_kerugian):,}
+                    
+                    DAFTAR NAMA PENGUTANG (TOP DEBITUR TERBESAR):
+                    {val_text_debitur}
+                    
+                    🏦 INTEGRASI MUTASI KAS NYATA & DOMPET PRIBADI (REAL-TIME ATM):
+                    - Temuan Status Krisis Defisit ATM: {text_status_defisit_atm}
+                    - Posisi Saldo Fisik Buku Tabungan Aktif:
+                    {text_rincian_atm_riil}
+                    - Alokasi Plafon Anggaran AI Rumah Tangga & KPR (Porsi 50%): Rp {int(alokasi_ai_map.get("rumah_tangga", 0)):,}
+                    - Alokasi Plafon Anggaran AI Investasi Masa Depan (Porsi 30%): Rp {int(alokasi_ai_map.get("investasi", 0)):,}
+                    - Alokasi Plafon Anggaran AI Lifestyle / Jajan (Porsi 20%): Rp {int(alokasi_ai_map.get("lifestyle", 0)):,}
+                    """
+                        
+                    if "response_audit_ai" not in st.session_state:
+                        st.session_state.response_audit_ai = None
+                        
+                    if st.button("🔍 Mulai Jalankan Audit Finansial Sekarang", type="primary", key="btn_audit_keuangan_v2"):
+                        with st.spinner("Gemini AI sedang meneliti struktur pembukuan dan mengalkulasi risiko keuangan Anda..."):
                             
-                            # Abaikan baris pembatas tabel | :--- | :--- |
-                            if "---" in line:
-                                continue
-                                
-                            cells = [c.strip() for c in line.split("|")[1:-1]]
-                            tag = "th" if html_output[-1].endswith("</table>") or html_output[-1].strip() == '<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse; font-family:Arial; font-size:11pt; width:100%; margin-bottom:14px;">' else "td"
+                            BATAS_AMAN_TOKEN = 230000
+                            lanjutkan_request = True
                             
-                            # Deteksi apakah ini baris header pertama
-                            if html_output[-1].strip().startswith('<table'):
-                                tag = "th"
-                                bg_style = ' style="background-color:#f2f2f2; font-weight:bold; text-align:left;"'
-                            else:
-                                tag = "td"
-                                bg_style = ''
-                                
-                            row_html = "  <tr>"
-                            for cell in cells:
-                                # Jika sel bertuliskan tebal **teks**, bersihkan tanda bintangnya
-                                cell_clean = cell.replace("**", "")
-                                row_html += f'<{tag}{bg_style}>{cell_clean}</{tag}>'
-                            row_html += "</tr>"
-                            html_output.append(row_html)
-                        else:
+                            try:
+                                client_hitung = ai_auditor.inisialisasi_gemini()
+                                if client_hitung:
+                                    # Tameng proteksi tetap mengecek teks payload untuk mengukur volume token
+                                    token_info = client_hitung.models.count_tokens(
+                                        model='gemini-2.5-flash',
+                                        contents=text_payload_ai
+                                    )
+                                    
+                                    if token_info.total_tokens > BATAS_AMAN_TOKEN:
+                                        st.error(f"❌ Audit Dibatalkan Otomatis! Ukuran data Anda ({token_info.total_tokens:,} token) hampir melebihi kuota.")
+                                        lanjutkan_request = False
+                                    else:
+                                        st.caption(f"📊 *Request dikirim menggunakan {token_info.total_tokens:,} token input (Batas aman: 250,000 TPM).*")
+                                        
+                            except Exception as token_err:
+                                pass
+                            
+                            # 🚀 EKSEKUSI OPSI B
+                            if lanjutkan_request:
+                                try:
+                                    # PERBAIKAN UTAMA: Masukkan variabel 'metrics' atau 'hasil_v5' (berupa DICTIONARY objek)
+                                    # Sesuaikan nama variabel dictionary hasil keluaran fungsi v5 Anda di app.py
+                                    hasil_lhpa = ai_auditor.audit_forensik_dashboard(metrics) 
+                                    st.session_state.response_audit_ai = hasil_lhpa
+                                except Exception as e:
+                                    if "429" in str(e) or "quota" in str(e).lower():
+                                        st.error("⚠️ Kuota menit (TPM) atau kuota harian (RPD) Gemini Anda habis.")
+                                    else:
+                                        st.error(f"⚠️ Terjadi kendala saat menghubungi AI: {str(e)}")
+        
+                            
+                    if st.session_state.response_audit_ai:
+                        st.markdown("---")
+                        st.markdown(st.session_state.response_audit_ai)
+        
+                        import re
+        
+                    
+                        # 🛠️ Mesin Mini Pengubah Otomatis: Mengubah Tabel Markdown Gemini Menjadi Tabel HTML Word Resmi
+                        def markdown_to_html_word(md_text):
+                            lines = md_text.strip().split("\n")
+                            html_output = []
+                            in_table = False
+                            
+                            for line in lines:
+                                # Deteksi baris tabel markdown
+                                if line.strip().startswith("|"):
+                                    if not in_table:
+                                        html_output.append('<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse; font-family:Arial; font-size:11pt; width:100%; margin-bottom:14px;">')
+                                        in_table = True
+                                    
+                                    # Abaikan baris pembatas tabel | :--- | :--- |
+                                    if "---" in line:
+                                        continue
+                                        
+                                    cells = [c.strip() for c in line.split("|")[1:-1]]
+                                    tag = "th" if html_output[-1].endswith("</table>") or html_output[-1].strip() == '<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse; font-family:Arial; font-size:11pt; width:100%; margin-bottom:14px;">' else "td"
+                                    
+                                    # Deteksi apakah ini baris header pertama
+                                    if html_output[-1].strip().startswith('<table'):
+                                        tag = "th"
+                                        bg_style = ' style="background-color:#f2f2f2; font-weight:bold; text-align:left;"'
+                                    else:
+                                        tag = "td"
+                                        bg_style = ''
+                                        
+                                    row_html = "  <tr>"
+                                    for cell in cells:
+                                        # Jika sel bertuliskan tebal **teks**, bersihkan tanda bintangnya
+                                        cell_clean = cell.replace("**", "")
+                                        row_html += f'<{tag}{bg_style}>{cell_clean}</{tag}>'
+                                    row_html += "</tr>"
+                                    html_output.append(row_html)
+                                else:
+                                    if in_table:
+                                        html_output.append("</table>")
+                                        in_table = False
+                                    
+                                    # Konversi format penulisan judul standar markdown ke HTML
+                                    if line.strip().startswith("###"):
+                                        html_output.append(f'<h3 style="font-family:Arial; color:#1b5e20; margin-top:18px;">{line.replace("###", "").strip()}</h3>')
+                                    elif line.strip().startswith("##"):
+                                        html_output.append(f'<h2 style="font-family:Arial; color:#2e7d32; margin-top:22px;">{line.replace("##", "").strip()}</h2>')
+                                    elif line.strip().startswith("#"):
+                                        html_output.append(f'<h1 style="font-family:Arial; color:#111111; text-align:center;">{line.replace("#", "").strip()}</h1>')
+                                    elif line.strip().startswith("-") or line.strip().startswith("*"):
+                                        # Bersihkan tanda bintang tebal di list poin
+                                        bullet_text = line.strip()[1:].strip().replace("**", "")
+                                        html_output.append(f'<li style="font-family:Arial; font-size:11pt; margin-left:20px; margin-bottom:6px;">{bullet_text}</li>')
+                                    else:
+                                        # Bersihkan teks paragraf biasa dari bintang-bintang tebal markdown
+                                        clean_line = line.replace("**", "")
+                                        html_output.append(f'<p style="font-family:Arial; font-size:11pt; line-height:1.5;">{clean_line}</p>')
+                                        
                             if in_table:
                                 html_output.append("</table>")
-                                in_table = False
-                            
-                            # Konversi format penulisan judul standar markdown ke HTML
-                            if line.strip().startswith("###"):
-                                html_output.append(f'<h3 style="font-family:Arial; color:#1b5e20; margin-top:18px;">{line.replace("###", "").strip()}</h3>')
-                            elif line.strip().startswith("##"):
-                                html_output.append(f'<h2 style="font-family:Arial; color:#2e7d32; margin-top:22px;">{line.replace("##", "").strip()}</h2>')
-                            elif line.strip().startswith("#"):
-                                html_output.append(f'<h1 style="font-family:Arial; color:#111111; text-align:center;">{line.replace("#", "").strip()}</h1>')
-                            elif line.strip().startswith("-") or line.strip().startswith("*"):
-                                # Bersihkan tanda bintang tebal di list poin
-                                bullet_text = line.strip()[1:].strip().replace("**", "")
-                                html_output.append(f'<li style="font-family:Arial; font-size:11pt; margin-left:20px; margin-bottom:6px;">{bullet_text}</li>')
-                            else:
-                                # Bersihkan teks paragraf biasa dari bintang-bintang tebal markdown
-                                clean_line = line.replace("**", "")
-                                html_output.append(f'<p style="font-family:Arial; font-size:11pt; line-height:1.5;">{clean_line}</p>')
                                 
-                    if in_table:
-                        html_output.append("</table>")
+                            return "\n".join(html_output)
+        
+                        # Jalankan mesin konversi terhadap teks Gemini
+                        html_body_content = markdown_to_html_word(st.session_state.response_audit_ai)
                         
-                    return "\n".join(html_output)
-
-                # Jalankan mesin konversi terhadap teks Gemini
-                html_body_content = markdown_to_html_word(st.session_state.response_audit_ai)
-                
-                # Bungkus ke dalam template dokumen resmi Microsoft Word (MIME type HTML)
-                word_html_template = f"""
-                <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://w3.org'>
-                <head>
-                    <title>Laporan Audit Finansial Kayyisa Travel</title>
-                    <!--[if gte mso 9]>
-                    <xml>
-                        <w:WordDocument>
-                            <w:View>Print</w:View>
-                            <w:Zoom>100</w:Zoom>
-                        </w:WordDocument>
-                    </xml>
-                    <![endif]-->
-                </head>
-                <body style="font-family:Arial; padding:40px;">
-                    <div style="text-align:center; margin-bottom:30px;">
-                        <h1 style="font-family:Arial; margin-bottom:4px; color:#111111;">🏛️ REKOMENDASI CFO & LAPORAN AUDIT STRATEGIS</h1>
-                        <p style="font-family:Arial; font-size:10pt; color:#666666; margin-top:0px;">
-                            <b>Kayyisa Tour & Travel — Business Management System</b><br>
-                            Tanggal Cetak Dokumen: {date.today().strftime('%d %B %Y')}
-                        </p>
-                    </div>
-                    <hr style="border:1px solid #cccccc; margin-bottom:24px;">
-                    {html_body_content}
-                </body>
-                </html>
-                """
-                
-                # Sediakan tombol unduh Word pintar yang dijamin rapi kotak-kotaknya
-                st.download_button(
-                    label="📝 Unduh Dokumen Laporan Word Resmi (.doc)",
-                    data=word_html_template,
-                    file_name=f"Laporan_Audit_Kayyisa_Travel_{date.today().strftime('%Y%m%d')}.doc",
-                    mime="application/msword",
-                    type="primary",
-                    key="btn_download_word_html_v3"
-                )
-        # =========================================================================
-        # TAB 4: ENGINE REKONSILIASI OTOMATIS & TAMENG PENGAMAN BATCH UPDATE
-        # =========================================================================
-        with tab_match_erp:
-            st.subheader("🤖 Panel Kendali Rekonsiliasi Bank & Penyelaras Status GSheets")
-            st.caption("Sistem membandingkan 12 digit invoice di sheet Pribadi dengan nominal tagihan asli usaha, sebelum melakukan update fisik.")
-        
-            try:
-                # 1. Tarik basis data mentah terpusat
-                df_all_data = st.session_state.df_data.copy()
-                
-                if 'df_pribadi_current' in locals() or 'df_pribadi_current' in globals():
-                    df_pribadi = df_pribadi_current.copy()
-                else:
-                    df_pribadi = sedot_data_pribadi_independen()
-        
-                # 2. Isolasi data pemasukan bank pribadi
-                if not df_pribadi.empty and "Kategori" in df_pribadi.columns:
-                    df_pribadi_in = df_pribadi[df_pribadi["Kategori"].astype(str).str.strip().str.lower() == "pemasukan"].copy()
-                    df_pribadi_in["Nominal (Num)"] = df_pribadi_in["Nominal"].apply(hybrid_finance_engine.bersihkan_angka)
-                else:
-                    df_pribadi_in = pd.DataFrame()
-        
-                # 3. Radar Ekstraktor khusus 12 digit nomor invoice (yymmddhhmmss)
-                def ambil_inv_12_digit(teks):
-                    match = re.search(r'\b\d{12}\b', str(teks))
-                    return match.group(0) if match else None
-        
-                if not df_pribadi_in.empty and "Keterangan" in df_pribadi_in.columns:
-                    df_pribadi_in["Invoice_Target"] = df_pribadi_in["Keterangan"].apply(ambil_inv_12_digit)
-                    df_pembayaran_valid = df_pribadi_in.dropna(subset=["Invoice_Target"]).copy()
-                else:
-                    df_pembayaran_valid = pd.DataFrame()
-        
-                # 4. KONSTRUKSI TABEL PRATINJAU DETEKTIF (PREVIEW)
-                if not df_pembayaran_valid.empty and not df_all_data.empty:
-                    df_all_data["No Invoice_Clean"] = df_all_data["No Invoice"].astype(str).str.strip()
-                    df_all_data["Harga Jual (Num)"] = df_all_data["Harga Jual"].apply(hybrid_finance_engine.bersihkan_angka)
-        
-                    preview_rows = []
-                    update_requests = []
-                    status_blocking_aktif = False # Sinyal pengunci tombol jika ada bahaya/salah ketik
-        
-                    # Satukan nominal total tagihan per invoice dari data penjualan
-                    df_sales_group = df_all_data.groupby("No Invoice_Clean").agg({
-                        "Harga Jual (Num)": "sum",
-                        "Nama Pemesan": "first",
-                        "Keterangan": "first"
-                    }).reset_index()
-                    is_belum_lunas = df_sales_group["Keterangan"].astype(str).str.contains("Belum Lunas", case=False, na=False)
-                    is_sudah_lunas = df_sales_group["Keterangan"].astype(str).str.contains(r'(?<!belum\s)lunas', case=False, na=False, regex=True)
-                    
-                    # Paksa agar df_sales_group HANYA berisi nomor invoice yang benar-benar belum lunas di GSheets
-                    df_sales_group = df_sales_group[is_belum_lunas & (~is_sudah_lunas)].copy()
-        
-                    for _, row_p in df_pembayaran_valid.iterrows():
-                        target_inv = str(row_p["Invoice_Target"]).strip()
-                        nominal_bank = float(row_p["Nominal (Num)"])
-                        tgl_bayar_raw = pd.to_datetime(row_p["Tanggal"], errors="coerce")
-                        tgl_bayar_str = tgl_bayar_raw.strftime("%d/%m/%y") if not pd.isna(tgl_bayar_raw) else "2026"
-        
-                        # Cari kecocokan di data penjualan
-                        match_sales = df_sales_group[df_sales_group["No Invoice_Clean"] == target_inv]
-        
-                        if not match_sales.empty:
-                            tagihan_toko = float(match_sales["Harga Jual (Num)"].iloc[0])
-                            nama_klien = str(match_sales["Nama Pemesan"].iloc[0])
-                            selisih = nominal_bank - tagihan_toko
-        
-                            # DETERMINASI SENSOR AI KONTROL AMBANG BATAS
-                            if abs(selisih) == 0:
-                                status_sensor = "🟢 Lunas Sempurna (Valid)"
-                            elif (selisih < 0) and (abs(selisih) <= 50000):
-                                status_sensor = "🟡 Toleransi Pajak PPh 23 (Aman)"
-                            elif (selisih < 0) and (abs(selisih) > 50000):
-                                status_sensor = "🔴 Kurang Bayar (Bahaya Kebocoran)"
-                                status_blocking_aktif = True
-                            elif selisih > 0:
-                                status_sensor = "🚨 Kritis! Salah Input Angka Admin"
-                                status_blocking_aktif = True
-        
-                            preview_rows.append({
-                                "No Invoice": target_inv,
-                                "Nama Klien": nama_klien,
-                                "Tagihan Toko": tagihan_toko,
-                                "Uang Masuk Bank": nominal_bank,
-                                "Selisih Nominal": selisih,
-                                "Status Sensor Sistem": status_sensor
-                            })
-        
-                            # Jika statusnya Aman/Toleransi, masukkan ke daftar antrean update GSheets
-                            if not status_blocking_aktif:
-                                mask_all_rows = (df_all_data["No Invoice_Clean"] == target_inv)
-                                matching_indices = df_all_data[mask_all_rows].index.tolist()
-                                
-                                # Ambil indeks kolom Keterangan secara presisi (Default kolom 14)
-                                worksheet = connect_to_gsheet(SHEET_ID, "Data")
-                                worksheet_cols = [str(col).strip() for col in worksheet.row_values(1)]
-                                col_keterangan_idx = worksheet_cols.index("Keterangan") + 1 if "Keterangan" in worksheet_cols else 14
-        
-                                for idx in matching_indices:
-                                    row_number = idx + 2
-                                    update_requests.append({
-                                        "range": rowcol_to_a1(row_number, col_keterangan_idx),
-                                        "values": [[f"Lunas {tgl_bayar_str}"]]
-                                    })
-        
-                    # 5. TAMPILKAN TABEL PRATINJAU KE LAYAR MONITOR
-                    if preview_rows:
-                        df_preview_table = pd.DataFrame(preview_rows)
-                        st.markdown("##### 🔍 Hasil Pemeriksaan Validitas Nominal Sebelum Sinkronisasi")
-                        st.dataframe(
-                            df_preview_table.style.format({
-                                "Tagihan Toko": "Rp {:,.0f}",
-                                "Uang Masuk Bank": "Rp {:,.0f}",
-                                "Selisih Nominal": "Rp {:,.0f}"
-                            }),
-                            use_container_width=True,
-                            hide_index=True
+                        # Bungkus ke dalam template dokumen resmi Microsoft Word (MIME type HTML)
+                        word_html_template = f"""
+                        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://w3.org'>
+                        <head>
+                            <title>Laporan Audit Finansial Kayyisa Travel</title>
+                            <!--[if gte mso 9]>
+                            <xml>
+                                <w:WordDocument>
+                                    <w:View>Print</w:View>
+                                    <w:Zoom>100</w:Zoom>
+                                </w:WordDocument>
+                            </xml>
+                            <![endif]-->
+                        </head>
+                        <body style="font-family:Arial; padding:40px;">
+                            <div style="text-align:center; margin-bottom:30px;">
+                                <h1 style="font-family:Arial; margin-bottom:4px; color:#111111;">🏛️ REKOMENDASI CFO & LAPORAN AUDIT STRATEGIS</h1>
+                                <p style="font-family:Arial; font-size:10pt; color:#666666; margin-top:0px;">
+                                    <b>Kayyisa Tour & Travel — Business Management System</b><br>
+                                    Tanggal Cetak Dokumen: {date.today().strftime('%d %B %Y')}
+                                </p>
+                            </div>
+                            <hr style="border:1px solid #cccccc; margin-bottom:24px;">
+                            {html_body_content}
+                        </body>
+                        </html>
+                        """
+                        
+                        # Sediakan tombol unduh Word pintar yang dijamin rapi kotak-kotaknya
+                        st.download_button(
+                            label="📝 Unduh Dokumen Laporan Word Resmi (.doc)",
+                            data=word_html_template,
+                            file_name=f"Laporan_Audit_Kayyisa_Travel_{date.today().strftime('%Y%m%d')}.doc",
+                            mime="application/msword",
+                            type="primary",
+                            key="btn_download_word_html_v3"
                         )
-                        st.write("")
-        
-                        # 6. EKSEKUSI TOMBOL BERDASARKAN HASIL SENSOR
-                        if status_blocking_aktif:
-                            st.error("⚠️ **EKSEKUSI DIKUNCI SISTEM:** Terdeteksi adanya selisih kurang bayar yang parah atau kesalahan ketik nominal oleh Admin. Silakan periksa kembali angka pada Excel Sheet 'Pribadi' Anda, lalu tekan tombol Refresh!")
-                            st.button("🤖 Jalankan Auto-Match & Update GSheets", key="btn_erp_blocked", disabled=True, use_container_width=True)
+                # =========================================================================
+                # TAB 4: ENGINE REKONSILIASI OTOMATIS & TAMENG PENGAMAN BATCH UPDATE
+                # =========================================================================
+                with tab_match_erp:
+                    st.subheader("🤖 Panel Kendali Rekonsiliasi Bank & Penyelaras Status GSheets")
+                    st.caption("Sistem membandingkan 12 digit invoice di sheet Pribadi dengan nominal tagihan asli usaha, sebelum melakukan update fisik.")
+                
+                    try:
+                        # 1. Tarik basis data mentah terpusat
+                        df_all_data = st.session_state.df_data.copy()
+                        
+                        if 'df_pribadi_current' in locals() or 'df_pribadi_current' in globals():
+                            df_pribadi = df_pribadi_current.copy()
                         else:
-                            st.success("✅ **SISTEM STATUS STERIL:** Seluruh nominal transferan masuk cocok dan lolos ambang batas toleransi. Data aman untuk disinkronisasikan.")
-                            if st.button("🤖 Jalankan Auto-Match & Update GSheets", key="btn_erp_execute_active", type="primary", use_container_width=True):
-                                if update_requests:
-                                    worksheet.batch_update(update_requests)
-                                    st.success(f"🎉 Sukses Korporat! Status {len(preview_rows)} Invoice berhasil diperbarui menjadi LUNAS secara permanen di Google Sheets!")
-                                    st.cache_data.clear()
-                                    load_sheet_cached.clear()
-                                    st.rerun()
-                    else:
-                        st.info("ℹ️ Tidak ada mutasi pemasukan baru di sheet Pribadi yang memiliki 12 digit nomor invoice untuk dicocokkan.")
-                else:
-                    st.info("ℹ️ Belum ada catatan transfer masuk dari customer di database Pribadi.")
-        
-            except Exception as erp_tab_err:
-                st.error(f"❌ Gagal memuat jembatan ERP: {str(erp_tab_err)}")
+                            df_pribadi = sedot_data_pribadi_independen()
+                
+                        # 2. Isolasi data pemasukan bank pribadi
+                        if not df_pribadi.empty and "Kategori" in df_pribadi.columns:
+                            df_pribadi_in = df_pribadi[df_pribadi["Kategori"].astype(str).str.strip().str.lower() == "pemasukan"].copy()
+                            df_pribadi_in["Nominal (Num)"] = df_pribadi_in["Nominal"].apply(hybrid_finance_engine.bersihkan_angka)
+                        else:
+                            df_pribadi_in = pd.DataFrame()
+                
+                        # 3. Radar Ekstraktor khusus 12 digit nomor invoice (yymmddhhmmss)
+                        def ambil_inv_12_digit(teks):
+                            match = re.search(r'\b\d{12}\b', str(teks))
+                            return match.group(0) if match else None
+                
+                        if not df_pribadi_in.empty and "Keterangan" in df_pribadi_in.columns:
+                            df_pribadi_in["Invoice_Target"] = df_pribadi_in["Keterangan"].apply(ambil_inv_12_digit)
+                            df_pembayaran_valid = df_pribadi_in.dropna(subset=["Invoice_Target"]).copy()
+                        else:
+                            df_pembayaran_valid = pd.DataFrame()
+                
+                        # 4. KONSTRUKSI TABEL PRATINJAU DETEKTIF (PREVIEW)
+                        if not df_pembayaran_valid.empty and not df_all_data.empty:
+                            df_all_data["No Invoice_Clean"] = df_all_data["No Invoice"].astype(str).str.strip()
+                            df_all_data["Harga Jual (Num)"] = df_all_data["Harga Jual"].apply(hybrid_finance_engine.bersihkan_angka)
+                
+                            preview_rows = []
+                            update_requests = []
+                            status_blocking_aktif = False # Sinyal pengunci tombol jika ada bahaya/salah ketik
+                
+                            # Satukan nominal total tagihan per invoice dari data penjualan
+                            df_sales_group = df_all_data.groupby("No Invoice_Clean").agg({
+                                "Harga Jual (Num)": "sum",
+                                "Nama Pemesan": "first",
+                                "Keterangan": "first"
+                            }).reset_index()
+                            is_belum_lunas = df_sales_group["Keterangan"].astype(str).str.contains("Belum Lunas", case=False, na=False)
+                            is_sudah_lunas = df_sales_group["Keterangan"].astype(str).str.contains(r'(?<!belum\s)lunas', case=False, na=False, regex=True)
+                            
+                            # Paksa agar df_sales_group HANYA berisi nomor invoice yang benar-benar belum lunas di GSheets
+                            df_sales_group = df_sales_group[is_belum_lunas & (~is_sudah_lunas)].copy()
+                
+                            for _, row_p in df_pembayaran_valid.iterrows():
+                                target_inv = str(row_p["Invoice_Target"]).strip()
+                                nominal_bank = float(row_p["Nominal (Num)"])
+                                tgl_bayar_raw = pd.to_datetime(row_p["Tanggal"], errors="coerce")
+                                tgl_bayar_str = tgl_bayar_raw.strftime("%d/%m/%y") if not pd.isna(tgl_bayar_raw) else "2026"
+                
+                                # Cari kecocokan di data penjualan
+                                match_sales = df_sales_group[df_sales_group["No Invoice_Clean"] == target_inv]
+                
+                                if not match_sales.empty:
+                                    tagihan_toko = float(match_sales["Harga Jual (Num)"].iloc[0])
+                                    nama_klien = str(match_sales["Nama Pemesan"].iloc[0])
+                                    selisih = nominal_bank - tagihan_toko
+                
+                                    # DETERMINASI SENSOR AI KONTROL AMBANG BATAS
+                                    if abs(selisih) == 0:
+                                        status_sensor = "🟢 Lunas Sempurna (Valid)"
+                                    elif (selisih < 0) and (abs(selisih) <= 50000):
+                                        status_sensor = "🟡 Toleransi Pajak PPh 23 (Aman)"
+                                    elif (selisih < 0) and (abs(selisih) > 50000):
+                                        status_sensor = "🔴 Kurang Bayar (Bahaya Kebocoran)"
+                                        status_blocking_aktif = True
+                                    elif selisih > 0:
+                                        status_sensor = "🚨 Kritis! Salah Input Angka Admin"
+                                        status_blocking_aktif = True
+                
+                                    preview_rows.append({
+                                        "No Invoice": target_inv,
+                                        "Nama Klien": nama_klien,
+                                        "Tagihan Toko": tagihan_toko,
+                                        "Uang Masuk Bank": nominal_bank,
+                                        "Selisih Nominal": selisih,
+                                        "Status Sensor Sistem": status_sensor
+                                    })
+                
+                                    # Jika statusnya Aman/Toleransi, masukkan ke daftar antrean update GSheets
+                                    if not status_blocking_aktif:
+                                        mask_all_rows = (df_all_data["No Invoice_Clean"] == target_inv)
+                                        matching_indices = df_all_data[mask_all_rows].index.tolist()
+                                        
+                                        # Ambil indeks kolom Keterangan secara presisi (Default kolom 14)
+                                        worksheet = connect_to_gsheet(SHEET_ID, "Data")
+                                        worksheet_cols = [str(col).strip() for col in worksheet.row_values(1)]
+                                        col_keterangan_idx = worksheet_cols.index("Keterangan") + 1 if "Keterangan" in worksheet_cols else 14
+                
+                                        for idx in matching_indices:
+                                            row_number = idx + 2
+                                            update_requests.append({
+                                                "range": rowcol_to_a1(row_number, col_keterangan_idx),
+                                                "values": [[f"Lunas {tgl_bayar_str}"]]
+                                            })
+                
+                            # 5. TAMPILKAN TABEL PRATINJAU KE LAYAR MONITOR
+                            if preview_rows:
+                                df_preview_table = pd.DataFrame(preview_rows)
+                                st.markdown("##### 🔍 Hasil Pemeriksaan Validitas Nominal Sebelum Sinkronisasi")
+                                st.dataframe(
+                                    df_preview_table.style.format({
+                                        "Tagihan Toko": "Rp {:,.0f}",
+                                        "Uang Masuk Bank": "Rp {:,.0f}",
+                                        "Selisih Nominal": "Rp {:,.0f}"
+                                    }),
+                                    use_container_width=True,
+                                    hide_index=True
+                                )
+                                st.write("")
+                
+                                # 6. EKSEKUSI TOMBOL BERDASARKAN HASIL SENSOR
+                                if status_blocking_aktif:
+                                    st.error("⚠️ **EKSEKUSI DIKUNCI SISTEM:** Terdeteksi adanya selisih kurang bayar yang parah atau kesalahan ketik nominal oleh Admin. Silakan periksa kembali angka pada Excel Sheet 'Pribadi' Anda, lalu tekan tombol Refresh!")
+                                    st.button("🤖 Jalankan Auto-Match & Update GSheets", key="btn_erp_blocked", disabled=True, use_container_width=True)
+                                else:
+                                    st.success("✅ **SISTEM STATUS STERIL:** Seluruh nominal transferan masuk cocok dan lolos ambang batas toleransi. Data aman untuk disinkronisasikan.")
+                                    if st.button("🤖 Jalankan Auto-Match & Update GSheets", key="btn_erp_execute_active", type="primary", use_container_width=True):
+                                        if update_requests:
+                                            worksheet.batch_update(update_requests)
+                                            st.success(f"🎉 Sukses Korporat! Status {len(preview_rows)} Invoice berhasil diperbarui menjadi LUNAS secara permanen di Google Sheets!")
+                                            st.cache_data.clear()
+                                            load_sheet_cached.clear()
+                                            st.rerun()
+                            else:
+                                st.info("ℹ️ Tidak ada mutasi pemasukan baru di sheet Pribadi yang memiliki 12 digit nomor invoice untuk dicocokkan.")
+                        else:
+                            st.info("ℹ️ Belum ada catatan transfer masuk dari customer di database Pribadi.")
+                
+                    except Exception as erp_tab_err:
+                        st.error(f"❌ Gagal memuat jembatan ERP: {str(erp_tab_err)}")
+        else:
+            st.info("ℹ️ Tidak ada data transaksi yang ditemukan pada rentang tanggal atau filter admin yang dipilih.")
 
 # =========================================================================
 # 🎨 TAHAP VISUALISASI: RENDER KARTU SALDO MULTI-BANK & ANGGARAN DIGITAL AI

@@ -3601,19 +3601,27 @@ with st.expander("💸 Laporan Cashflow Realtime (AI Powered)", expanded=False):
         # =========================================================================
         # 🚀 EKSEKUSI ENGINE V5: Panggil dengan 3 Parameter Data yang Sudah Steril
         # =========================================================================
-        metrics = finance_engine.hitung_performa_dan_reconciliation_v5(
-            df_filtered, 
-            df_pribadi_current, 
-            df_cashflow_combined
-        )
+        if not df_filtered.empty:
+            metrics = finance_engine.hitung_performa_dan_reconciliation_v5(
+                df_filtered, 
+                df_pribadi_current, 
+                df_cashflow_combined
+            )
 
-        # 5️⃣ TAMPILKAN INTERFACES TABS (Bersih, Rapi, & Padat di Dalam Expander)
-        tab_ringkasan, tab_aging, tab_ai_audit, tab_match_erp = st.tabs([
-            "📊 Ringkasan Keuangan", 
-            "⏳ Aging Report Piutang", 
-            "🕵️‍♂️ AI Real-time Auditor",
-            "🤖 Jembatan Match ERP"
-        ])
+            # 5️⃣ TAMPILKAN INTERFACES TABS (Bersih, Rapi, & Padat di Dalam Expander)
+            tab_ringkasan, tab_aging, tab_ai_audit, tab_match_erp = st.tabs([
+                "📊 Ringkasan Keuangan", 
+                "⏳ Aging Report Piutang", 
+                "🕵️‍♂️ AI Real-time Auditor",
+                "🤖 Jembatan Match ERP"
+            ])
+            
+            # (Pastikan kode pengisian tab_ringkasan, tab_aging, dll di bawahnya 
+            # diberikan indentasi/tab bergeser ke kanan agar masuk ke dalam blok IF ini)
+            
+        else:
+            st.info("ℹ️ Tidak ada data transaksi yang ditemukan pada rentang tanggal atau filter admin yang dipilih.")
+
         
         # --- TAB 1: RINGKASAN DATA ANGKA & GRAFIK INTERAKTIF ---
                 # --- TAB 1: RINGKASAN DATA ANGKA & GRAFIK INTERAKTIF ---

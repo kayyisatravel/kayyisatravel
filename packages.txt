@@ -1,1 +1,2 @@
 poppler-utils
+# pemicu instalasi ulang sistem

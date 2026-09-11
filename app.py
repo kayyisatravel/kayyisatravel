@@ -2520,7 +2520,10 @@ with st.expander("💾 Database Pemesan", expanded=False):
                     tanggal_invoice = pd.Timestamp.now()
         
             st.write("") # Memberikan sedikit jeda vertikal agar tombol tidak terlalu rapat
-            st.write("Isi Data dari Database:", selected_data)
+            st.subheader("🕵️ Cek Data Mentah Kolom Harga Jual:")
+            for idx, row in selected_data.iterrows():
+                harga_asli = row.get("Harga Jual", "Tidak Ada")
+                st.write(f"Baris {idx+1} - Nilai: `{harga_asli}` | Tipe Data: `{type(harga_asli)}`")
             
             # 4. Tombol Eksekusi PDF
             if st.button("📄 Buat Invoice PDF"):

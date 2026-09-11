@@ -2522,7 +2522,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
                     tanggal_invoice = pd.Timestamp.now()
         
             st.write("") # Memberikan sedikit jeda vertikal agar tombol tidak terlalu rapat
-            st.write("Isi Data dari Database:", data)
+            st.write("Isi Data dari Database:", selected_data)
             
             # 4. Tombol Eksekusi PDF
             if st.button("📄 Buat Invoice PDF"):

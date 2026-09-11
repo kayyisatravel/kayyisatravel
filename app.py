@@ -168,7 +168,6 @@ from fpdf import FPDF
 import pandas as pd
 from datetime import datetime
 
-st.write("Isi Data dari Database:", data)
 def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filename, logo_path, ttd_path=None, status_lunas="BELUM LUNAS", nama_pemesan="Pelanggan"):
     import os
     import re
@@ -2523,6 +2522,7 @@ with st.expander("💾 Database Pemesan", expanded=False):
                     tanggal_invoice = pd.Timestamp.now()
         
             st.write("") # Memberikan sedikit jeda vertikal agar tombol tidak terlalu rapat
+            st.write("Isi Data dari Database:", data)
             
             # 4. Tombol Eksekusi PDF
             if st.button("📄 Buat Invoice PDF"):

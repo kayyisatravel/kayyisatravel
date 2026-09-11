@@ -288,15 +288,22 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =====================================================================
      
     pdf.set_font("Arial", "", 7.5)  
-    total_harga = 0.0
     
+    # 1. PERBAIKAN FUNGSI TO_NUMBER (Mendukung minus dan membersihkan string)
     def to_number(val):
-        if isinstance(val, (int, float)): return float(val)
-        digits = re.findall(r"-?\d+", str(val))
+        if isinstance(val, (int, float)): 
+            return float(val)
+        val_str = str(val).strip()
+        # Mengambil tanda minus opsional dan semua digit angka
+        digits = re.findall(r"-?\d+", val_str)
         return float("".join(digits)) if digits else 0.0
 
+    # 2. HITUNG TOTAL HARGA DI AWAL (DI LUAR LOOP TABEL)
+    total_harga = 0.0
+    for r in data:
+        total_harga += to_number(r.get("Harga Jual", 0))
 
-    # FIX MUTLAK: Mengunci tinggi baris secara seragam sebesar 11 mm untuk estetika profesional
+    # Kunci tinggi baris secara seragam sebesar 11 mm untuk estetika profesional
     FIXED_ROW_H = 11.0 
 
     for i, row in enumerate(data, start=1):
@@ -309,16 +316,12 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
                 except: pass
             elif col == "Harga Jual":
                 num_val = to_number(val_str)
-                if i == 1:
-                    total_harga = sum(to_number(r.get("Harga Jual", 0)) for r in data)
-                
-                # Memastikan format tanda minus diletakkan di depan Rp dengan rapi
+                # 3. FIX FORMAT TAMPILAN MINUS PADA TABEL
                 if num_val < 0:
                     val_str = f"-Rp {abs(num_val):,.0f}".replace(',', '.')
                 else:
                     val_str = f"Rp {num_val:,.0f}".replace(',', '.')
             row_formatted[col] = val_str
-
 
         # Jaring pengaman ganti halaman baru otomatis berbasis tinggi seragam
         if pdf.get_y() + FIXED_ROW_H > pdf.page_break_trigger:
@@ -351,12 +354,13 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
             if col == "Harga Jual":
                 align_cell = "R"  # Harga tetap kanan
             elif col in ["No Penerbangan / Hotel / Kereta", "Kode Booking", "Durasi", "Rute", "Tgl Pemesanan", "Tgl Berangkat"]:
-                align_cell = "C"  # FIX: Item/Armada kembali dikunci rata tengah secara kuat
+                align_cell = "C"  # Item/Armada kembali dikunci rata tengah secara kuat
             else:
                 align_cell = "L"  # Nama Customer tetap rata kiri agar lurus vertikal
 
             # Gambar bingkai kotak sel terluar dengan tinggi seragam yang rapi
             pdf.rect(current_x, start_y, col_widths[col], FIXED_ROW_H)
+
             
             # Hitung jumlah baris teks sebenarnya untuk menentukan padding vertikal tengah
             string_width = pdf.get_string_width(val_text)

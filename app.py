@@ -175,11 +175,6 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     import pandas as pd
     from datetime import datetime
 
-    print("ISI VARIABEL DATA ANDA ADALAH:")
-    print(data)
-    # =============================
-    # Inisialisasi PDF
-    # =============================
     # =====================================================================
     # 1. INISIALISASI PDF & WARNA UTAMA FLAT DESIGN (BARU)
     # =====================================================================
@@ -2527,6 +2522,11 @@ with st.expander("💾 Database Pemesan", expanded=False):
                     tanggal_invoice = pd.Timestamp.now()
         
             st.write("") # Memberikan sedikit jeda vertikal agar tombol tidak terlalu rapat
+            st.subheader("Pengecekan Tipe Data Database")
+            st.code(str(data), language="python")
+            
+            # Ini adalah baris kode Anda yang sudah ada saat ini
+            buat_invoice_pdf(data, ...) 
             
             # 4. Tombol Eksekusi PDF
             if st.button("📄 Buat Invoice PDF"):

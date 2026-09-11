@@ -292,8 +292,9 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     
     def to_number(val):
         if isinstance(val, (int, float)): return float(val)
-        digits = re.findall(r"\d+", str(val))
+        digits = re.findall(r"-?\d+", str(val))
         return float("".join(digits)) if digits else 0.0
+
 
     # FIX MUTLAK: Mengunci tinggi baris secara seragam sebesar 11 mm untuk estetika profesional
     FIXED_ROW_H = 11.0 
@@ -310,8 +311,14 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
                 num_val = to_number(val_str)
                 if i == 1:
                     total_harga = sum(to_number(r.get("Harga Jual", 0)) for r in data)
-                val_str = f"Rp {num_val:,.0f}".replace(',', '.')
+                
+                # Memastikan format tanda minus diletakkan di depan Rp dengan rapi
+                if num_val < 0:
+                    val_str = f"-Rp {abs(num_val):,.0f}".replace(',', '.')
+                else:
+                    val_str = f"Rp {num_val:,.0f}".replace(',', '.')
             row_formatted[col] = val_str
+
 
         # Jaring pengaman ganti halaman baru otomatis berbasis tinggi seragam
         if pdf.get_y() + FIXED_ROW_H > pdf.page_break_trigger:

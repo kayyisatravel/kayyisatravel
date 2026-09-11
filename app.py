@@ -174,7 +174,9 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     import math
     import pandas as pd
     from datetime import datetime
-    
+
+    print("ISI VARIABEL DATA ANDA ADALAH:")
+    print(data)
     # =============================
     # Inisialisasi PDF
     # =============================

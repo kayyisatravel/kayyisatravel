@@ -286,7 +286,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
      
     pdf.set_font("Arial", "", 7.5)  
     
-    # 1. PERBAIKAN FUNGSI TO_NUMBER (Mendukung minus dan membersihkan string)
+    # 1. Fungsi pembersih angka super aman
     def to_number(val):
         if isinstance(val, (int, float)): 
             return float(val)
@@ -295,16 +295,14 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         digits = re.findall(r"-?\d+", val_str)
         return float("".join(digits)) if digits else 0.0
 
-    # 2. HITUNG TOTAL HARGA DI AWAL (DI LUAR LOOP TABEL)
+    # 2. SEKARANG KITA HITUNG TOTAL DI SINI (LUAR LOOP)
     total_harga = 0.0
     for r in data:
         total_harga += to_number(r.get("Harga Jual", 0))
 
-    # Kunci tinggi baris secara seragam sebesar 11 mm untuk estetika profesional
     FIXED_ROW_H = 11.0 
 
     for i, row in enumerate(data, start=1):
-        # Format nilai dan masukkan ke dalam dictionary baris sementara
         row_formatted = {}
         for col in kolom_pdf:
             val_str = str(row.get(col, ""))
@@ -313,7 +311,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
                 except: pass
             elif col == "Harga Jual":
                 num_val = to_number(val_str)
-                # 3. FIX FORMAT TAMPILAN MINUS PADA TABEL
+                # 3. FORMAT TAMPILAN MINUS AGAR MUNCUL -Rp DI TABEL PDF
                 if num_val < 0:
                     val_str = f"-Rp {abs(num_val):,.0f}".replace(',', '.')
                 else:

@@ -286,14 +286,28 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
      
     pdf.set_font("Arial", "", 7.5)  
     
-    # 1. Fungsi pembersih angka super aman
     def to_number(val):
         if isinstance(val, (int, float)): 
             return float(val)
+        
+        # 1. Ubah ke string dan bersihkan spasi
         val_str = str(val).strip()
-        # Mengambil tanda minus opsional dan semua digit angka
-        digits = re.findall(r"-?\d+", val_str)
-        return float("".join(digits)) if digits else 0.0
+        
+        # 2. Buang teks 'Rp' atau 'rp' agar tanda minus langsung menempel ke angka
+        val_str = val_str.replace("Rp", "").replace("rp", "").strip()
+        
+        # 3. Buang semua tanda titik pembatas ribuan (contoh: 1.190.000 -> 1190000)
+        val_str = val_str.replace(".", "")
+        
+        # 4. Buang tanda koma desimal jika ada (opsional, untuk jaring pengaman)
+        if "," in val_str:
+            val_str = val_str.split(",")[0]
+            
+        # 5. Konversi langsung ke Float
+        try:
+            return float(val_str)
+        except ValueError:
+            return 0.0
 
     # 2. SEKARANG KITA HITUNG TOTAL DI SINI (LUAR LOOP)
     total_harga = 0.0

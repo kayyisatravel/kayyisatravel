@@ -3299,8 +3299,17 @@ def parse_financial_data(df_data, df_cashflow_existing):
             })
     # --- 2. LOOP CASHFLOW EXISTING UNTUK JURNAL PELUNASAN ---
     if not df_cashflow_existing.empty:
-        # Pastikan jumlah numeric
-        df_cashflow_existing["Jumlah"] = df_cashflow_existing["Jumlah"].replace('[Rp,]', '', regex=True).astype(float)
+        # PEMBERSIHAN AMAN:
+        # 1. Pastikan diubah ke string dulu (.astype(str))
+        # 2. Hapus Rp, koma, titik, dan spasi kosong (\s)
+        # 3. Gunakan pd.to_numeric dengan errors='coerce' agar jika ada teks rusak, diubah ke NaN (bukan error)
+        # 4. .fillna(0) untuk mengubah NaN tersebut menjadi angka 0
+        df_cashflow_existing["Jumlah"] = (
+            df_cashflow_existing["Jumlah"]
+            .astype(str)
+            .str.replace('[Rp,.\s]', '', regex=True)
+        )
+        df_cashflow_existing["Jumlah"] = pd.to_numeric(df_cashflow_existing["Jumlah"], errors='coerce').fillna(0.0)
 
         for idx, row in df_cashflow_existing.iterrows():
             key = row.get("Invoice_Key", "")

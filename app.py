@@ -289,7 +289,9 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     kolom_pdf = [c for c in col_widths.keys() if c != "No" and c in data[0].keys()]
     header_mapping = {
         "Harga Jual": "Harga",
-        "No Penerbangan / Hotel / Kereta": "Item / Armada"
+        "No Penerbangan / Hotel / Kereta": "Item / Armada",
+        "Tgl Pemesanan": "Tgl Order",
+        "Tgl Berangkat": "Keberangkat"
     }
 
     # =====================================================================

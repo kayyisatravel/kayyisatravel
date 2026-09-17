@@ -340,7 +340,8 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     for r in data:
         total_harga += to_number(r.get("Harga Jual", 0))
 
-    FIXED_ROW_H = 11.0 
+        # TINGGI BARIS DITINGGIKAN SEDIKIT AGAR DATA PUNYA RUANG (PADDDING ALAMI)
+    FIXED_ROW_H = 13.0 
 
     for i, row in enumerate(data, start=1):
         row_formatted = {}
@@ -351,14 +352,13 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
                 except: pass
             elif col == "Harga Jual":
                 num_val = to_number(val_str)
-                # 3. FORMAT TAMPILAN MINUS AGAR MUNCUL -Rp DI TABEL PDF
                 if num_val < 0:
                     val_str = f"-Rp {abs(num_val):,.0f}".replace(',', '.')
                 else:
                     val_str = f"Rp {num_val:,.0f}".replace(',', '.')
             row_formatted[col] = val_str
 
-        # Jaring pengaman ganti halaman baru otomatis berbasis tinggi seragam
+        # Jaring pengaman otomatis ganti halaman baru
         if pdf.get_y() + FIXED_ROW_H > pdf.page_break_trigger:
             pdf.add_page()
             pdf.set_font("Arial", "B", 8)
@@ -369,57 +369,59 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
             pdf.ln()
             pdf.set_font("Arial", "", 7.5)
 
-        # Kunci koordinat baris dasar
+        # Kunci koordinat awal baris
         start_x = pdf.l_margin
         start_y = pdf.get_y()
         
-        # Gambar kotak luar nomor urut & isi teks nomor (Tinggi Seragam)
-        pdf.rect(start_x, start_y, col_widths["No"], FIXED_ROW_H)
+        # --- PERBAIKAN 1: HITUNG JUMLAH BARIS NYATA BERDASARKAN FPDF BUKAN RUMUS MANUAL ---
+        # Cari tahu apakah ada teks di baris ini yang membelah menjadi 2 baris (misal durasi atau item)
+        max_actual_lines = 1
+        for col in kolom_pdf:
+            val_text = row_formatted[col]
+            # Gunakan fungsi bawaan untuk membagi teks menjadi array baris berdasarkan lebar cell
+            lines_array = pdf.multi_cell(col_widths[col], 4, val_text, split_only=True)
+            if len(lines_array) > max_actual_lines:
+                max_actual_lines = len(lines_array)
+        
+        # Jika ada teks yang pecah jadi 2 baris atau lebih, tinggi box otomatis menyesuaikan agar tidak sesak
+        current_row_h = FIXED_ROW_H if max_actual_lines == 1 else (max_actual_lines * 5.0 + 4)
+
+        # Cetak Kolom Nomor (No) - Menggunakan native cell vertical centering
         pdf.set_xy(start_x, start_y)
-        # Vertical centering untuk nomor urut tunggal (padding atas 3.5mm)
-        pdf.set_y(start_y + 3.5)
-        pdf.cell(col_widths["No"], 4, str(i), border=0, align="C")
+        pdf.cell(col_widths["No"], current_row_h, str(i), border=1, align="C")
         
         current_x = start_x + col_widths["No"]
         
-        # Render cell data dengan tinggi seragam dan posisi vertikal pas di tengah
+        # Render cell data
         for col in kolom_pdf:
             val_text = row_formatted[col]
             
             if col == "Harga Jual":
-                align_cell = "R"  # Harga tetap kanan
-            elif col in ["No Penerbangan / Hotel / Kereta", "Kode Booking", "Durasi", "Rute", "Tgl Pemesanan", "Tgl Berangkat"]:
-                align_cell = "C"  # Item/Armada kembali dikunci rata tengah secara kuat
+                align_cell = "R"
+            elif col in ["No Penerbangan / Hotel / Kereta", "Nama Customer"]:
+                align_cell = "L"  # Diubah ke L (Rata Kiri) agar teks panjang rapi tidak berantakan di tengah
             else:
-                align_cell = "L"  # Nama Customer tetap rata kiri agar lurus vertikal
+                align_cell = "C"
 
-            # Gambar bingkai kotak sel terluar dengan tinggi seragam yang rapi
-            pdf.rect(current_x, start_y, col_widths[col], FIXED_ROW_H)
-
+            # --- PERBAIKAN 2: TENTUKAN PADDING ATAS SECARA PRESISI KARENA UKURAN BOX SUDAH DIKETAHUI ---
+            lines_array = pdf.multi_cell(col_widths[col], 4, val_text, split_only=True)
+            total_text_h = len(lines_array) * 4.2  # Tinggi total teks di dalam sel
             
-            # Hitung jumlah baris teks sebenarnya untuk menentukan padding vertikal tengah
-            string_width = pdf.get_string_width(val_text)
-            actual_lines = math.ceil(string_width / (col_widths[col] - 3))
-            
-            # --- LOGIKA OTOMATIS VERTICAL CENTERING (ANTI-GANTUNG) ---
-            if actual_lines == 1:
-                # Teks pendek 1 baris didorong turun 3.5 mm agar pas di tengah kotak
-                padding_top = 3.5
-            else:
-                # Teks panjang 2 baris didorong turun 1.3 mm agar seimbang
-                padding_top = 1.3
+            # Selisih tinggi kotak dan tinggi teks dibagi dua adalah padding atas yang sempurna
+            padding_top = (current_row_h - total_text_h) / 2
 
-            # Set koordinat presisi tepat di dalam kotak sel terkait
+            # Langkah A: Gambar kotak pembungkus sel asli (Menggantikan fungsi pdf.rect yang kaku)
+            pdf.set_xy(current_x, start_y)
+            pdf.cell(col_widths[col], current_row_h, "", border=1)
+
+            # Langkah B: Tulis teks tepat di tengah-tengah kotak tersebut
             pdf.set_xy(current_x, start_y + padding_top)
-
-            # Cetak teks menggunakan multi_cell tanpa border (Kotak sudah diwakili pdf.rect)
             pdf.multi_cell(col_widths[col], 4.2, val_text, border=0, align=align_cell)
             
-            # Geser koordinat X ke kanan untuk kolom berikutnya
             current_x += col_widths[col]
             
-        # Kembalikan posisi kursor ke baris baru paling kiri di bawah kotak yang seragam
-        pdf.set_xy(start_x, start_y + FIXED_ROW_H)
+        # Pindahkan kursor secara aman ke baris baru di bawahnya
+        pdf.set_xy(start_x, start_y + current_row_h)
 
 
     # =====================================================================

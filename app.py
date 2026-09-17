@@ -277,13 +277,14 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         "No": 8,
         "Tgl Pemesanan": 21,
         "Tgl Berangkat": 21,
-        "Kode Booking": 21,
+        "Kode Booking": 18,                       
         "No Penerbangan / Hotel / Kereta": 36,
-        "Durasi": 14,
+        "Durasi": 18,                             
         "Nama Customer": 32,
-        "Rute": 15,
+        "Rute": 14,                               
         "Harga Jual": 22
     }
+
 
     kolom_pdf = [c for c in col_widths.keys() if c != "No" and c in data[0].keys()]
     header_mapping = {

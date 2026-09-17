@@ -307,7 +307,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     HEADER_HEIGHT = 10.0
     
     # Cetak kolom No
-    pdf.cell(col_widths["No"], HEADER_HEIGHT, "No", border="TB", align="C", fill=True)
+    pdf.cell(col_widths["No"], HEADER_HEIGHT, "No", border="1", align="C", fill=True)
     
     # Cetak kolom-kolom data
     for col in kolom_pdf:
@@ -315,7 +315,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         
         # Gunakan border "TB" (Top & Bottom) saja untuk gaya modern minimalis, 
         # atau gunakan border=1 jika Anda tetap ingin kotak penuh yang rapi.
-        pdf.cell(col_widths[col], HEADER_HEIGHT, label_header, border="TB", align="C", fill=True)
+        pdf.cell(col_widths[col], HEADER_HEIGHT, label_header, border="1", align="C", fill=True)
         
     pdf.ln()
     
@@ -416,7 +416,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
             
             if col == "Harga Jual":
                 align_cell = "R"
-            elif col in ["No Penerbangan / Hotel / Kereta", "Nama Customer"]:
+            elif col in ["No Penerbangan / Hotel / Kereta"]:
                 align_cell = "L"  # Diubah ke L (Rata Kiri) agar teks panjang rapi tidak berantakan di tengah
             else:
                 align_cell = "C"

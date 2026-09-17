@@ -275,13 +275,13 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =====================================================================
     col_widths = {
         "No": 8,
-        "Tgl Pemesanan": 21,
-        "Tgl Berangkat": 21,
-        "Kode Booking": 18,                       
+        "Tgl Order": 18,
+        "Tgl Berangkat": 23,
+        "Kode Booking": 20,                       
         "No Penerbangan / Hotel / Kereta": 36,
         "Durasi": 18,                             
-        "Nama Customer": 32,
-        "Rute": 14,                               
+        "Nama Customer": 30,
+        "Rute": 15,                               
         "Harga Jual": 22
     }
 
@@ -292,19 +292,34 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         "No Penerbangan / Hotel / Kereta": "Item / Armada"
     }
 
-    # Desain Header Tabel yang Bersih
-    pdf.set_font("Helvetica", "B", 8.5)
-    pdf.set_fill_color(245, 247, 250)   # Abu-abu terang pastel yang elegan (bukan biru jadul)
-    pdf.set_draw_color(*COLOR_LINE)
+    # =====================================================================
+    # CETAK HEADER JUDUL KOLOM TABEL (MODERN & CLEAN DESIGN)
+    # =====================================================================
+    pdf.set_font("Helvetica", "B", 8)          # Menggunakan Helvetica Bold yang lebih clean dibanding Arial
+    pdf.set_fill_color(245, 247, 250)         # Warna abu-abu terang pastel (Soft Gray) standar corporate modern
+    pdf.set_text_color(44, 62, 80)            # Warna teks charcoal gelap, bukan hitam pekat agar elegan
+    pdf.set_draw_color(200, 207, 214)         # Garis border abu-abu tipis pembatas header
     pdf.set_line_width(0.2)
     
-    # Tinggi baris diperbesar ke 9 agar teks bernapas (tidak menempel border)
-    pdf.cell(col_widths["No"], 9, "No", border="TB", align="C", fill=True)
+    # Tinggi header dinaikkan ke 10.0 mm agar teks judul memiliki "padding" atas-bawah yang lega
+    HEADER_HEIGHT = 10.0
+    
+    # Cetak kolom No
+    pdf.cell(col_widths["No"], HEADER_HEIGHT, "No", border="TB", align="C", fill=True)
+    
+    # Cetak kolom-kolom data
     for col in kolom_pdf:
         label_header = header_mapping.get(col, col)
-        pdf.cell(col_widths[col], 9, label_header, border="TB", align="C", fill=True)
+        
+        # Gunakan border "TB" (Top & Bottom) saja untuk gaya modern minimalis, 
+        # atau gunakan border=1 jika Anda tetap ingin kotak penuh yang rapi.
+        pdf.cell(col_widths[col], HEADER_HEIGHT, label_header, border="TB", align="C", fill=True)
+        
     pdf.ln()
     
+    # Reset warna teks kembali ke regular untuk isi tabel di bawahnya
+    pdf.set_font("Helvetica", "", 8)
+    pdf.set_text_color(44, 62, 80)
 
 
     # =====================================================================

@@ -211,7 +211,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.cell(0, 4, "Mobile: 081217026522  |  Email: kayyisatour@gmail.com", ln=True)
     
     # Garis Pembatas Tipis Elegan
-    pdf.ln(5)
+    pdf.ln(6)
     pdf.set_draw_color(*COLOR_LINE)
     pdf.set_line_width(0.3)
     pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
@@ -512,7 +512,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     if status_lunas.upper() == "LUNAS":
         pdf.set_font("Arial", "B", 9)
         pdf.set_text_color(39, 174, 96)
-        pdf.cell(100, 5, "- STATUS PEMBAYARAN: LUNAS (KUITANSI RESMI)", ln=False) # Ganti ke ln=False agar kursor tidak jatuh ke bawah
+        #pdf.cell(100, 5, "- STATUS PEMBAYARAN: LUNAS (KUITANSI RESMI)", ln=False) # Ganti ke ln=False agar kursor tidak jatuh ke bawah
         pdf.set_text_color(0, 0, 0)
     else:
         pdf.set_font("Arial", "B", 8.5)
@@ -534,7 +534,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_xy(right_x, y_setelah_terbilang)
     if not ttd_path or not os.path.exists(ttd_path):
         pdf.set_font("Arial", "I", 7.5)
-        pdf.cell(70, 5, "Invoice sah diterbitkan secara elektronik oleh sistem.", align="C", ln=False)
+        #pdf.cell(70, 5, "Invoice sah diterbitkan secara elektronik oleh sistem.", align="C", ln=False)
     else:
         try:
             pdf.set_font("Arial", "", 8.5)
@@ -555,7 +555,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.set_xy(left_x, y_final_footer + 6)
     pdf.set_font("Arial", "I", 7.5)
     pdf.set_text_color(100, 100, 100) # Warna abu-abu elegan untuk footer
-    pdf.multi_cell(0, 4, "Invoice ini diterbitkan oleh sistem manajemen Kayyisa Tour & Travel dan sah tanpa tanda tangan fisik basah sesuai aturan transaksi elektronik.", align="C")
+    pdf.multi_cell(0, 4, "Invoice ini diterbitkan oleh sistem Kayyisa Tour & Travel dan sah tanpa tanda tangan fisik basah sesuai aturan transaksi elektronik.", align="C")
 
     # Output eksekusi simpan berkas fisik PDF final di server
     pdf.output(output_pdf_filename)

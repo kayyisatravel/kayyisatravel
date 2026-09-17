@@ -170,94 +170,118 @@ from datetime import datetime
 
 def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filename, logo_path, ttd_path=None, status_lunas="BELUM LUNAS", nama_pemesan="Pelanggan"):
     import os
-    import re
-    import math
-    import pandas as pd
     from datetime import datetime
+    # Pastikan FPDF sudah diimport di luar atau di sini
+    # from fpdf import FPDF 
 
     # =====================================================================
-    # 1. INISIALISASI PDF & WARNA UTAMA FLAT DESIGN (BARU)
+    # 1. INISIALISASI PDF & KONFIGURASI HALAMAN
     # =====================================================================
-    pdf = FPDF(orientation="P", unit="mm", format="A4")  # Portrait
+    pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.add_page()
-    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.set_auto_page_break(auto=True, margin=20)
     
-    # Warna abu-abu gelap korporat untuk teks agar tidak jadul (bukan hitam pekat)
-    COLOR_TEXT_MAIN = 44  # Setara dengan RGB (44, 62, 80) / #2c3e50
-    pdf.set_text_color(COLOR_TEXT_MAIN, COLOR_TEXT_MAIN, COLOR_TEXT_MAIN)
+    # Warna utama (Slate/Charcoal Modern - Bukan hitam pekat)
+    COLOR_TEXT_MAIN = (44, 62, 80)      # #2c3e50 (Teks utama)
+    COLOR_TEXT_MUTED = (127, 140, 141)  # #7f8c8d (Teks sekunder/label)
+    COLOR_LINE = (220, 224, 230)        # Abu-abu sangat tipis untuk garis pembatas
+    
+    pdf.set_text_color(*COLOR_TEXT_MAIN)
     
     # =====================================================================
-    # 2. HEADER UTAMA (ALAMAT + LOGO) - DIOPTIMALKAN MODERN
+    # 2. HEADER PERUSAHAAN (KIRI) & LOGO (KANAN)
     # =====================================================================
-    # Mengubah Font menjadi Helvetica dengan ukuran 8.5 yang lebih elegan
-    pdf.set_font("Helvetica", "B", 8.5)
-    pdf.set_y(15)  # Jarak dari atas halaman diturunkan sedikit agar lapang
+    pdf.set_y(15)
     
-    alamat_perusahaan = (
-        "KAYYISA TOUR & TRAVEL\n"
-        "The Taman Dhika Cluster Wilis Blok F2 No. 2 Buduran, Sidoarjo - Jawa Timur\n"
-        "Mobile: 081217026522  Email: kayyisatour@gmail.com"
-    )
-    pdf.set_x(pdf.l_margin)
-    # Mengurangi tinggi baris multi_cell dari 5 menjadi 4.2 agar teks alamat padat dan rapi
-    pdf.multi_cell(0, 4.2, alamat_perusahaan, align="L")
-    
-    # Render Logo Perusahaan di Kanan Atas
+    # Render Logo Perusahaan di Kanan Atas terlebih dahulu agar sejajar teks
     if logo_path and os.path.exists(logo_path):
         try:
-            logo_width = 38 # Sedikit dikecilkan agar proporsional dengan alamat baru
+            logo_width = 35
             logo_x = pdf.w - pdf.r_margin - logo_width
-            pdf.image(logo_path, x=logo_x, y=10, w=logo_width)
+            pdf.image(logo_path, x=logo_x, y=12, w=logo_width)
         except Exception as e:
             print("Gagal load logo:", e)
-
-    # Garis Pembatas Tipis Elegan Di Bawah Header Alamat
-    pdf.ln(4)  
-    pdf.set_draw_color(224, 228, 236)  # Mengubah warna garis menjadi abu-abu tipis halus
-    pdf.set_line_width(0.2)  # Ketebalan garis dipertipis agar terlihat mewah
-    pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())  
-    pdf.set_y(pdf.get_y() + 2)  
-
-    # Teks Judul INVOICE Minimalis Tengah
-    pdf.ln(3)
-    pdf.set_font("Helvetica", "B", 14)
-    pdf.cell(0, 10, "INVOICE", ln=True, align="C")
-    pdf.ln(2)
-
-    # === LANJUT KE SKRIP IDENTITAS MANIFES ANDA YANG SUDAH FIX ===
+            
+    # Alamat Perusahaan di Kiri Atas
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 5, "KAYYISA TOUR & TRAVEL", ln=True)
+    pdf.set_font("Helvetica", "", 8)
+    pdf.set_text_color(*COLOR_TEXT_MUTED)
+    pdf.cell(0, 4, "The Taman Dhika Cluster Wilis Blok F2 No. 2 Buduran, Sidoarjo - Jawa Timur", ln=True)
+    pdf.cell(0, 4, "Mobile: 081217026522  |  Email: kayyisatour@gmail.com", ln=True)
+    
+    # Garis Pembatas Tipis Elegan
+    pdf.ln(5)
+    pdf.set_draw_color(*COLOR_LINE)
+    pdf.set_line_width(0.3)
+    pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
+    
+    # =====================================================================
+    # 3. AREA INFORMASI INVOICE & STATUS (DIBUAT 2 KOLOM KIRI-KANAN)
+    # =====================================================================
+    pdf.ln(6)
+    current_y = pdf.get_y()
+    
+    # --- KOLOM KIRI: Detail Pelanggan & Invoice ---
     if not isinstance(tanggal_invoice, datetime):
         tanggal_invoice = datetime.now()
-
-    pdf.set_font("Arial", "", 9) # Bagian bawah ini tetap menggunakan font lama Anda agar tidak rusak
-    pdf.cell(0, 5, f"Nama Pemesan: {nama_pemesan}", ln=True)
-    # ... (skrip identitas ke bawah tetap utuh seperti milik Anda sebelumnya)
-
-    pdf.cell(0, 5, f"Tanggal Invoice: {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
-    pdf.cell(0, 5, f"No. Invoice: {unique_invoice_no}", ln=True)
+        
+    pdf.set_x(pdf.l_margin)
+    pdf.set_text_color(*COLOR_TEXT_MAIN)
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.cell(100, 7, "INVOICE", ln=True)
     
-    pdf.set_font("Arial", "B", 9)
-    pdf.write(5, "Status Pembayaran: ")
+    pdf.set_font("Helvetica", "", 9)
+    pdf.set_text_color(*COLOR_TEXT_MUTED)
+    pdf.cell(30, 5, "No. Invoice")
+    pdf.set_text_color(*COLOR_TEXT_MAIN)
+    pdf.cell(70, 5, f": {unique_invoice_no}", ln=True)
+    
+    pdf.set_text_color(*COLOR_TEXT_MUTED)
+    pdf.cell(30, 5, "Tanggal")
+    pdf.set_text_color(*COLOR_TEXT_MAIN)
+    pdf.cell(70, 5, f": {tanggal_invoice.strftime('%d-%m-%Y')}", ln=True)
+    
+    pdf.set_text_color(*COLOR_TEXT_MUTED)
+    pdf.cell(30, 5, "Nama Pemesan")
+    pdf.set_text_color(*COLOR_TEXT_MAIN)
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.cell(70, 5, f": {nama_pemesan}", ln=True)
+    
+    # --- KOLOM KANAN: Status Pembayaran (Disetarakan posisinya secara vertikal) ---
+    pdf.set_y(current_y + 7)  # Sejajar dengan baris No. Invoice
+    right_col_x = pdf.w - pdf.r_margin - 50
+    pdf.set_x(right_col_x)
+    
+    pdf.set_font("Helvetica", "", 9)
+    pdf.set_text_color(*COLOR_TEXT_MUTED)
+    pdf.cell(50, 5, "Status Pembayaran:", ln=True, align="R")
+    
+    pdf.set_x(right_col_x)
+    pdf.set_font("Helvetica", "B", 11)
     if str(status_lunas).upper() == "LUNAS":
-        pdf.set_text_color(39, 174, 96) # Hijau
-        pdf.cell(0, 5, "LUNAS", ln=True)
+        pdf.set_text_color(46, 204, 113)  # Hijau Emerald Modern (#2ecc71)
+        pdf.cell(50, 6, "LUNAS", ln=True, align="R")
     else:
-        pdf.set_text_color(192, 41, 43) # Merah
-        pdf.cell(0, 5, "BELUM LUNAS", ln=True)
-    pdf.set_text_color(0, 0, 0)
-    pdf.ln(4)
-
+        pdf.set_text_color(231, 76, 60)   # Merah Alizarin Modern (#e74c3c)
+        pdf.cell(50, 6, "BELUM LUNAS", ln=True, align="R")
+        
+    # Reset Margin & Warna untuk Tabel
+    pdf.set_y(current_y + 26) 
+    pdf.set_text_color(*COLOR_TEXT_MAIN)
+    
     # =====================================================================
-    # LEBAR KOLOM PROPORSIONAL PAS 190mm (BATAS MAKSIMAL KERTAS A4)
+    # 4. TABEL DATA MANIFES (PROPORSIONAL MODERN)
     # =====================================================================
     col_widths = {
         "No": 8,
         "Tgl Pemesanan": 21,
         "Tgl Berangkat": 21,
         "Kode Booking": 21,
-        "No Penerbangan / Hotel / Kereta": 36,  # Kolom diperlebar khusus teks panjang
-        "Durasi": 13,
-        "Nama Customer": 32,  # Kolom diperlebar khusus nama panjang
-        "Rute": 16,
+        "No Penerbangan / Hotel / Kereta": 36,
+        "Durasi": 14,
+        "Nama Customer": 32,
+        "Rute": 15,
         "Harga Jual": 22
     }
 
@@ -267,18 +291,20 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
         "No Penerbangan / Hotel / Kereta": "Item / Armada"
     }
 
-    # =====================================================================
-    # CETAK HEADER JUDUL KOLOM TABEL
-    # =====================================================================
-    pdf.set_font("Arial", "B", 8)
-    pdf.set_fill_color(224, 235, 255)  # Latar biru muda pastel khas korporat
-    pdf.set_draw_color(180, 200, 230)  # Bingkai biru pastel tipis disamakan dengan rute
+    # Desain Header Tabel yang Bersih
+    pdf.set_font("Helvetica", "B", 8.5)
+    pdf.set_fill_color(245, 247, 250)   # Abu-abu terang pastel yang elegan (bukan biru jadul)
+    pdf.set_draw_color(*COLOR_LINE)
+    pdf.set_line_width(0.2)
     
-    pdf.cell(col_widths["No"], 8, "No", border=1, align="C", fill=True)
+    # Tinggi baris diperbesar ke 9 agar teks bernapas (tidak menempel border)
+    pdf.cell(col_widths["No"], 9, "No", border="TB", align="C", fill=True)
     for col in kolom_pdf:
         label_header = header_mapping.get(col, col)
-        pdf.cell(col_widths[col], 8, label_header, border=1, align="C", fill=True)
+        pdf.cell(col_widths[col], 9, label_header, border="TB", align="C", fill=True)
     pdf.ln()
+    
+
 
     # =====================================================================
     # ISI DATA TABEL (FIX METODE RENDER ADVANCED ROW HEIGHT SYNC)

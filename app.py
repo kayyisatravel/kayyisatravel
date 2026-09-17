@@ -275,7 +275,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     # =====================================================================
     col_widths = {
         "No": 8,
-        "Tgl Order": 18,
+        "Tgl Pemesanan": 18,
         "Tgl Berangkat": 23,
         "Kode Booking": 20,                       
         "No Penerbangan / Hotel / Kereta": 36,

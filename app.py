@@ -211,7 +211,7 @@ def buat_invoice_pdf(data, tanggal_invoice, unique_invoice_no, output_pdf_filena
     pdf.cell(0, 4, "Mobile: 081217026522  |  Email: kayyisatour@gmail.com", ln=True)
     
     # Garis Pembatas Tipis Elegan
-    pdf.ln(6)
+    pdf.ln(7)
     pdf.set_draw_color(*COLOR_LINE)
     pdf.set_line_width(0.3)
     pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())

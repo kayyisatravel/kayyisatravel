@@ -136,13 +136,13 @@ class AIHotelMasterSchema(BaseModel):
     
 
 # =====================================================================
-# 2. FUNGSI PARSER KECERDASAN BUATAN GEMINI 3.1 FLASH-LITE
+# 2. FUNGSI PARSER KECERDASAN BUATAN GEMINI 3.5 FLASH-LITE
 # =====================================================================
 
 def parse_input_dynamic(text):
     """
     JALUR AI TRANSPORTASI: Menggantikan fungsi regex lama Anda.
-    Membaca teks manifes Kereta Api & Whoosh secara akurat dengan Gemini 3.1 Flash-Lite.
+    Membaca teks manifes Kereta Api & Whoosh secara akurat dengan Gemini 3.5 Flash-Lite.
     Sudah disesuaikan untuk mengekstrak Add-ons Kuliner dan Fasilitas per penumpang.
     """
     try:
@@ -161,7 +161,7 @@ def parse_input_dynamic(text):
         {text}
         """
         response = client.models.generate_content(
-            model='gemini-3.1-flash-lite',
+            model='gemini-3.5-flash-lite',
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
@@ -178,7 +178,7 @@ def parse_input_dynamic(text):
 def parse_evoucher_text(text):
     """
     JALUR AI AKOMODASI: Menggantikan fungsi baris lama Anda.
-    Membaca teks manifes Voucher Hotel secara akurat dengan Gemini 3.1 Flash-Lite.
+    Membaca teks manifes Voucher Hotel secara akurat dengan Gemini 3.5 Flash-Lite.
     """
     try:
         client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
@@ -201,7 +201,7 @@ def parse_evoucher_text(text):
         {text}
         """
         response = client.models.generate_content(
-            model='gemini-3.1-flash-lite',
+            model='gemini-3.5-flash-lite',
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",

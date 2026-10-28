@@ -185,7 +185,7 @@ def proses_pembacaan_multimodal_universal(text_input=None, file_input=None, audi
     
     try:
         response = client.models.generate_content(
-            model='gemini-3.1-flash-lite',
+            model='gemini-3.5-flash-lite',
             contents=content_payload,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
